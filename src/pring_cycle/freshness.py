@@ -905,11 +905,12 @@ def add_projection_gaps(
     comparison gave (ADR-0033), also when the selected claim failed too. A period the
     run plan could not complete and the release gate kept from being requested gets its
     metric ``not_requested``, each period with the gate's reason (lookback L01); one its
-    official listing stopped short of gets ``not_covered``, each period with
-    ``listing_not_covered``: not listed as far as read, which is not "none" (lookback
-    L05). The list keeps one row per metric: a metric not listed yet is added as
-    ``derived_failed``, ``source_failed``, ``source_conflict`` or, never requested,
-    ``missing``.
+    official listing stopped short of gets ``not_covered``, each period with the listing,
+    where its reading stopped (``page_limit``: the run's pages of the site were read), the
+    pages read and the earliest entry they list: not listed as far as read, which is not
+    "none" (lookback L05). The list keeps one row
+    per metric: a metric not listed yet is added as ``derived_failed``, ``source_failed``,
+    ``source_conflict`` or, never requested, ``missing``.
     """
     from pring_cycle.retrieval_registry import is_searchable_gap
 
@@ -967,9 +968,9 @@ def add_projection_gaps(
         entry(metric_id, "missing", "period_not_requested")["not_requested"] = periods
     not_covered: dict[str, list[dict[str, object]]] = {}
     for gap in incomplete:
-        if gap.get("official_listing") is not None:
+        if isinstance(uncovered := gap.get("listing_not_covered"), Mapping):
             not_covered.setdefault(str(gap["metric_id"]), []).append(
-                {"period": gap.get("period"), "reason": gap["official_listing"]}
+                {"period": gap.get("period"), **uncovered}
             )
     for metric_id, periods in not_covered.items():
         entry(metric_id, "missing", "listing_not_covered")["not_covered"] = periods

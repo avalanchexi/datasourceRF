@@ -288,9 +288,17 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
         assert ledger is not None
         physical = [r for r in ledger["requests"] if r["acquisition_id"] in acquisitions]
         assert physical and all(
-            r["outcome"] == "failed"
-            and r["classification"]
-            == ("transient_transport_error" if transport_failed else "semantic_validation_failed")
+            (r["outcome"], r["classification"])
+            in (
+                {("failed", "transient_transport_error")}
+                if transport_failed
+                # The listing is read once: in the run's turn of listings before the periods,
+                # or by the period that first looks it up (lookback L05).
+                else {
+                    ("candidate_source", "listing_page_read"),
+                    ("failed", "semantic_validation_failed"),
+                }
+            )
             for r in physical
         )
     context = build_context_projection(

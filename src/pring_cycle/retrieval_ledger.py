@@ -20,7 +20,7 @@ from pring_cycle.batches import code_version
 from pring_cycle.catalog import MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import require_registered_manifest
 from pring_cycle.models import ModelRepository
-from pring_cycle.official_listing import ListingNotCovered
+from pring_cycle.official_listing import LISTING_NOT_COVERED, ListingNotCovered
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS, RetrievalAdapterResponse
 from pring_cycle.same_definition import family_identity
 from pring_cycle.storage import database_connection
@@ -473,9 +473,11 @@ class RetrievalLedger:
             result = RetrievalAdapterResponse("failed", classification=classification)
         except OSError:
             result = RetrievalAdapterResponse("failed", classification="transient_transport_error")
-        except ListingNotCovered:
+        except ListingNotCovered as error:
             # The listing read did not reach the period: no word on its release (lookback L05).
-            result = RetrievalAdapterResponse("failed", classification="listing_not_covered")
+            result = RetrievalAdapterResponse(
+                "failed", classification=f"{LISTING_NOT_COVERED}_{error.stopped}"
+            )
         except (TypeError, ValueError):
             result = RetrievalAdapterResponse("failed", classification="semantic_validation_failed")
         if request_id is not None and not (

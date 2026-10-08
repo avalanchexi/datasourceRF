@@ -351,14 +351,50 @@ def _not_requested(value: object) -> str:
     )
 
 
+LISTING_LABELS = {
+    "https://www.stats.gov.cn/sj/zxfb/": "统计局最新发布",
+    "https://www.stats.gov.cn/sj/zxfbhjd/": "统计局发布和解读",
+    "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html": (
+        "人民银行公开市场业务交易公告"
+    ),
+    "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/index.html": "人民银行金融统计数据报告",
+    "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/index.html": (
+        "人民银行各项工具流动性投放情况"
+    ),
+}
+LISTING_STOP_LABELS = {
+    "page_limit": "本轮该站列表页额度用完",
+    "repeated_page": "翻到重复页",
+    "unreadable_page": "列表页多次读取失败",
+    "last_page": "栏目已到底",
+}
+
+
 def _not_covered(value: object) -> str:
-    """The periods the official listing, as far as the run read it, did not reach: not
-    listed there, which is not "none published" nor "no operation" (lookback L05)."""
-    periods = sorted(str(item.get("period")) for item in _document_list(value))
-    if not periods:
-        return ""
-    return "；列表未覆盖 " + (
-        periods[0] if len(periods) == 1 else f"{len(periods)} 期 {periods[0]} 至 {periods[-1]}"
+    """The periods the official listing, as far as the run read it, did not reach, by
+    listing and where its reading stopped, with the pages read and the earliest day they
+    list: not listed there, which is not "none published" nor "no operation" (lookback
+    L05)."""
+    by_stop: dict[tuple[str, str, str, str], list[str]] = {}
+    for item in _document_list(value):
+        oldest = str(item.get("oldest_entry") or "")
+        key = (
+            str(item.get("listing")),
+            str(item.get("stopped")),
+            str(item.get("pages_read")),
+            f"{oldest[:4]}-{oldest[4:6]}-{oldest[6:]}" if len(oldest) == 8 else "无带日期条目",
+        )
+        by_stop.setdefault(key, []).append(str(item.get("period")))
+    return "".join(
+        "；列表未覆盖 "
+        + (
+            periods[0]
+            if len(periods) == 1
+            else f"{len(periods)} 期 {min(periods)} 至 {max(periods)}"
+        )
+        + f"（{LISTING_LABELS.get(listing, listing)}，"
+        + f"{LISTING_STOP_LABELS.get(stopped, stopped)}；已读 {pages} 页，最早读到 {oldest}）"
+        for (listing, stopped, pages, oldest), periods in by_stop.items()
     )
 
 

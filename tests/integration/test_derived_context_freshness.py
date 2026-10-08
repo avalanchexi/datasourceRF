@@ -616,7 +616,10 @@ def test_a_period_the_release_gate_kept_from_being_requested_is_listed_with_why(
 
 def test_a_period_its_listing_was_not_read_back_to_is_listed_as_not_covered() -> None:
     """Lookback L05: 100 OMO days not on the listing pages read were left as if the column
-    had nothing for them. Each is named on its metric as not covered, not as "none"."""
+    had nothing for them. Each is named on its metric as not covered, not as "none", with
+    the listing and where its reading stopped: the site's pages of the run spent, say."""
+    omo = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html"
+    nbs = "https://www.stats.gov.cn/sj/zxfb/"
     gaps = add_projection_gaps(
         (),
         (),
@@ -627,32 +630,68 @@ def test_a_period_its_listing_was_not_read_back_to_is_listed_as_not_covered() ->
                     "complete": False,
                     "metric_id": "CN_OMO_7D_AMOUNT",
                     "period": period,
-                    "official_listing": "listing_not_covered",
+                    "listing_not_covered": {
+                        "listing": omo,
+                        "stopped": "page_limit",
+                        "pages_read": 50,
+                        "oldest_entry": "20260410",
+                    },
                 }
                 for period in ("2026-04-09", "2026-08-31", "2026-06-01")
             ),
+            {
+                "complete": False,
+                "metric_id": "CN_OMO_7D_AMOUNT",
+                "period": "2026-03-31",
+                "listing_not_covered": {
+                    "listing": omo,
+                    "stopped": "unreadable_page",
+                    "pages_read": 3,
+                    "oldest_entry": None,
+                },
+            },
             # Found by search after the listing stopped: nothing is owed.
             {
                 "complete": True,
                 "metric_id": "CN_INDUSTRIAL_PROFIT",
                 "period": "2026-02",
-                "official_listing": "listing_not_covered",
+                "listing_not_covered": {
+                    "listing": nbs,
+                    "stopped": "page_limit",
+                    "pages_read": 50,
+                    "oldest_entry": "20260301",
+                },
             },
         ),
         definitions=metric_catalog_v0003(),
     )
 
-    (omo,) = gaps
-    assert (omo["metric_id"], omo["category"], omo["reason"]) == (
+    (listed,) = gaps
+    assert (listed["metric_id"], listed["category"], listed["reason"]) == (
         "CN_OMO_7D_AMOUNT",
         "missing",
         "listing_not_covered",
     )
-    assert [item["period"] for item in omo["not_covered"]] == [
+    assert listed["not_covered"][0] == {
+        "period": "2026-04-09",
+        "listing": omo,
+        "stopped": "page_limit",
+        "pages_read": 50,
+        "oldest_entry": "20260410",
+    }
+    assert [item["period"] for item in listed["not_covered"]] == [
         "2026-04-09",
         "2026-08-31",
         "2026-06-01",
+        "2026-03-31",
     ]
     page = str(_gap_list(gaps))
-    assert "列表未覆盖 3 期 2026-04-09 至 2026-08-31" in page
+    assert (
+        "列表未覆盖 3 期 2026-04-09 至 2026-08-31（人民银行公开市场业务交易公告，"
+        "本轮该站列表页额度用完；已读 50 页，最早读到 2026-04-10）"
+    ) in page
+    assert (
+        "列表未覆盖 2026-03-31（人民银行公开市场业务交易公告，"
+        "列表页多次读取失败；已读 3 页，最早读到 无带日期条目）"
+    ) in page
     assert "无操作" not in page

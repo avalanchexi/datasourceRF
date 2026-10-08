@@ -200,6 +200,11 @@ def reaches_back(days: list[str], period: str) -> bool:
     return bool(days) and min(days) < period_last_day(period)
 
 
+# A retrieval's classification when the listing read stopped short of its period, followed
+# by where it stopped: listing_not_covered_page_limit, ...
+LISTING_NOT_COVERED = "listing_not_covered"
+
+
 class ListingNotCovered(ValueError):
     """The listing read stopped before reaching back to the period: its release may be
     listed further back, so not finding it says nothing about whether it was published.

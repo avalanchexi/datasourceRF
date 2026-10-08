@@ -22,6 +22,7 @@ from pring_cycle.acquisition import (
     AcquisitionRepository,
     CandidateSkipped,
     SourceFailed,
+    failed_step,
     owning_run,
     receipt_key,
     utc_now,
@@ -783,9 +784,16 @@ class ListingScan:
     reads: dict[str, int] = field(default_factory=dict)
     failures: dict[str, int] = field(default_factory=dict)
 
-    def count_read(self, listing_url: str) -> None:
-        site = urlsplit(listing_url).netloc
+    def days(self, listing_url: str) -> list[str]:
+        """The days of the dated entries on the listing's pages read so far."""
+        return [day for page in self.pages.get(listing_url, []) for day in page.days]
+
+    def count_site(self, url: str) -> None:
+        site = urlsplit(url).netloc
         self.sites[site] = self.sites.get(site, 0) + 1
+
+    def count_read(self, listing_url: str) -> None:
+        self.count_site(listing_url)
         self.reads[listing_url] = self.reads.get(listing_url, 0) + 1
 
     def keep(self, listing_url: str, page: _ListingPage) -> bool:
@@ -816,17 +824,22 @@ def listing_scan() -> Iterator[None]:
 
 
 def _run_listings(paths: RuntimePaths) -> ListingScan:
-    """The listing pages read so far by the run now acquiring, a fresh scan outside a run.
-
-    A full run's are rebuilt from its receipts when this process has not read them, so a
-    run resumed reads on from where it stopped and keeps counting its pages; a failed page
-    is tried afresh. A targeted run's are shared within ``listing_scan``.
-    """
+    """The listing pages read so far by the run now acquiring, a fresh scan outside a run;
+    a targeted run's are shared within ``listing_scan``."""
     if (shared := _SHARED_LISTINGS.get()) is not None:
         return shared
     run_id = owning_run(paths.database)
-    if run_id is None:
-        return ListingScan()
+    return ListingScan() if run_id is None else run_listings(paths, run_id)
+
+
+def run_listings(paths: RuntimePaths, run_id: str) -> ListingScan:
+    """The listing pages a full run has read so far.
+
+    Rebuilt from its receipts when this process has not read them, so a run resumed reads
+    on from where it stopped and keeps counting its pages; a failed page is tried afresh.
+    The chronicle's pages the RRR backtrack read count to their site too; a request the
+    retrieval ledger held back was never sent and counts to none.
+    """
     key = (paths.database.resolve(), run_id)
     if _RUN_LISTINGS and _RUN_LISTINGS[0][0] == key:
         return _RUN_LISTINGS[0][1]
@@ -834,14 +847,17 @@ def _run_listings(paths: RuntimePaths) -> ListingScan:
     receipts = AcquisitionRepository(paths.database, paths.artifacts)
     with database_connection(paths.database) as connection:
         rows = connection.execute(
-            "SELECT a.acquisition_id, a.parameters_json, a.state FROM full_run_acquisition f "
-            "JOIN acquisition_request a USING(acquisition_id) "
-            "WHERE f.run_id=? AND a.api_name='official_listing_get' AND a.parser_version=? "
-            "ORDER BY a.rowid",
-            (run_id, _LISTING_PARSER),
+            "SELECT a.acquisition_id, a.parameters_json, a.state, a.parser_version "
+            "FROM full_run_acquisition f JOIN acquisition_request a USING(acquisition_id) "
+            "WHERE f.run_id=? AND a.api_name='official_listing_get' "
+            "AND coalesce(a.error_type, '') <> 'RetrievalBudgetBlocked' ORDER BY a.rowid",
+            (run_id,),
         ).fetchall()
-    for acquisition_id, parameters_json, state in rows:
+    for acquisition_id, parameters_json, state, parser_version in rows:
         parameters = json.loads(parameters_json)
+        if parser_version != _LISTING_PARSER:
+            scan.count_site(parameters["source_url"])
+            continue
         listing_url = parameters["listing"]
         scan.count_read(listing_url)
         if state == "validated" and listing_url not in scan.ended:
@@ -849,6 +865,25 @@ def _run_listings(paths: RuntimePaths) -> ListingScan:
             scan.keep(listing_url, _listing_page(parameters["source_url"], content))
     _RUN_LISTINGS[:] = [(key, scan)]
     return scan
+
+
+def read_listing_page(
+    paths: RuntimePaths,
+    *,
+    family: str,
+    listing_url: str,
+    period: str,
+    listings: ListingScan,
+    on_acquisition_started: Callable[[str], None] | None = None,
+    fetcher: Callable[[str], FetchedOfficialContextDocument] | None = None,
+) -> str | None:
+    """Read the listing's next older page into ``listings``, for ``period``; when there is
+    none to read, where the listing stopped. A failed read is raised (lookback L05)."""
+    listings.pages.setdefault(listing_url, [])
+    started = on_acquisition_started or (lambda _acquisition_id: None)
+    if _read_older_page(paths, family, listing_url, period, fetcher, started, listings):
+        return None
+    return listings.ended[listing_url]
 
 
 def _release_from_listing(
@@ -930,12 +965,15 @@ def _read_older_page(
     if scan.failures.get(page_url, 0) >= _LISTING_PAGE_TRIES:
         scan.ended[listing_url] = "unreadable_page"
         return False
-    scan.count_read(listing_url)
     try:
         page = _read_listing_page(paths, family, listing_url, page_url, period, fetcher, started)
-    except (LookupError, OSError, TypeError, ValueError):
-        scan.failures[page_url] = scan.failures.get(page_url, 0) + 1
+    except (LookupError, OSError, TypeError, ValueError) as error:
+        # One held back before it was sent (the retrieval ledger's cache) is no read.
+        if failed_step(error) != "start":
+            scan.count_read(listing_url)
+            scan.failures[page_url] = scan.failures.get(page_url, 0) + 1
         raise
+    scan.count_read(listing_url)
     return scan.keep(listing_url, page)
 
 

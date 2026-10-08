@@ -562,8 +562,14 @@ def test_an_earlier_reverse_repo_day_is_still_looked_up_on_the_omo_column(
     # The days before the first page are not covered by what was read; 9/23 was found.
     from pring_cycle.full_retrieval import _listing_uncovered
 
-    uncovered = _listing_uncovered(paths.database, run.run_id, plan["scopes"])
-    assert ("CN_OMO_7D_AMOUNT", "2026-08-31") in uncovered
+    uncovered = _listing_uncovered(paths, run.run_id, plan["scopes"])
+    # Its second page failed each read: the gap says which listing and why it stopped.
+    assert uncovered[("CN_OMO_7D_AMOUNT", "2026-08-31")] == {
+        "listing": OMO_COLUMN + "index.html",
+        "stopped": "unreadable_page",
+        "pages_read": 4,
+        "oldest_entry": "20260901",
+    }
     assert ("CN_OMO_7D_AMOUNT", "2026-09-23") not in uncovered
     with sqlite3.connect(paths.database) as connection:
         outcomes = dict(
@@ -591,7 +597,7 @@ def test_an_earlier_reverse_repo_day_is_still_looked_up_on_the_omo_column(
                 (run.run_id, uncovered_day["release_event_id"]),
             ).fetchall()
         )
-    assert channels == {"official": "listing_not_covered"}
+    assert channels == {"official": "listing_not_covered_unreadable_page"}
 
 
 def test_a_listing_read_to_the_site_s_page_limit_hands_the_period_on_to_search(
@@ -672,13 +678,13 @@ def test_a_listing_read_to_the_site_s_page_limit_hands_the_period_on_to_search(
     official_attempt = next(a for a in result.attempts if a.channel == "official")
     assert (official_attempt.outcome, official_attempt.classification) == (
         "failed",
-        "listing_not_covered",
+        "listing_not_covered_page_limit",
     )
     assert searched == ["cpi:2026-02"]
     with sqlite3.connect(paths.database) as connection:
         (expires,) = connection.execute(
             "SELECT cache_expires_at FROM retrieval_physical_request "
-            "WHERE classification='listing_not_covered'"
+            "WHERE classification='listing_not_covered_page_limit'"
         ).fetchall()
     # Not a source failure to wait out: nothing is held back by it.
     assert expires == (None,)
@@ -821,6 +827,188 @@ def test_a_day_s_notices_are_read_when_the_page_after_them_fails(tmp_path: Path)
     assert [a.classification for a in earlier.attempts if a.channel == "official"] == [
         "transient_transport_error",
         "transient_transport_error",
-        "listing_not_covered",
+        "listing_not_covered_unreadable_page",
     ]
     assert requested[4:] == [omo_url(2)] * 2
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_site_s_listings_share_its_pages_newest_period_first(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Lookback L05: the plan lists a family's periods oldest first, and the first listing
+    read went back a year before the next was read at all, the site's 50 pages spent on it.
+    A run reads its listings first, in turn, a page each: the readings list reaches back to
+    its August while the release list is still on September."""
+    from types import SimpleNamespace
+
+    from pring_cycle import full_retrieval
+    from pring_cycle.models import EFFECTIVE_CATALOG_VERSION
+    from pring_cycle.official_context import LISTING_PAGES_PER_SITE, run_listings
+    from tests.adapters.test_official_listing_scan import nbs_filler, nbs_page, nbs_url
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    run = _share_run(paths)
+    readings = "https://www.stats.gov.cn/sj/zxfbhjd/"
+    documents = {}
+    for index in range(LISTING_PAGES_PER_SITE + 5):
+        # The release list stays in September, page after page.
+        documents[nbs_url(LISTING, index)] = nbs_page(
+            index, 500, [nbs_filler(date(2026, 9, 30) - timedelta(days=index % 20), index)]
+        )
+        day = date(2026, 9, 20) if index == 0 else date(2026, 8, 20)
+        documents[nbs_url(readings, index)] = nbs_page(index, 500, [nbs_filler(day, index)])
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        requested.append(url)
+        return FetchedOfficialContextDocument(documents[url], "text/html", url, 200)
+
+    monkeypatch.setattr("pring_cycle.official_context._fetch_official_context_document", fetch)
+    # Every scope released and missing: what is read is the listings' turn alone.
+    monkeypatch.setattr(
+        full_retrieval.FullRunRetrieval, "_gate", lambda *_args: ("released", False)
+    )
+    monkeypatch.setattr(
+        full_retrieval, "select_retrieval_input", lambda *_args: SimpleNamespace(complete=False)
+    )
+
+    def scope(metric: str, period: str, source: str) -> dict[str, Any]:
+        return {
+            "release_event_id": f"full:{metric}:{period}",
+            "metric_ids": [metric],
+            "period": period,
+            "priority": "P1",
+            "source_url": source,
+        }
+
+    full_retrieval.FullRunRetrieval(paths)._read_listings(
+        run,
+        [
+            scope("CN_CORE_CPI", "2025-01", LISTING),
+            scope("CN_CORE_CPI", "2026-08", LISTING),
+            scope("CN_INDUSTRIAL_VA", "2026-08", readings),
+        ],
+        EFFECTIVE_CATALOG_VERSION,
+    )
+
+    # In turn, a page each: the readings list reaches August on its second page, before
+    # the release list has spent the site's pages, which it then reads on with.
+    assert requested[:4] == [LISTING, readings, LISTING + "index_1.html", readings + "index_1.html"]
+    assert [url for url in requested if url.startswith(readings)] == [
+        readings,
+        readings + "index_1.html",
+    ]
+    assert len(requested) == LISTING_PAGES_PER_SITE
+    listings = run_listings(paths, run.run_id)
+    assert listings.ended == {LISTING: "page_limit"}
+    assert listings.reads == {LISTING: LISTING_PAGES_PER_SITE - 2, readings: 2}
+
+
+def _share_run(paths: RuntimePaths) -> Any:
+    from pring_cycle.models import ModelRepository
+
+    models = ModelRepository(paths.database)
+    models.register(effective_model_manifest())
+    models.activate(CURRENT_MODEL, explicitly_approved=True)
+    runs = RunRepository(paths.database)
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-09-30",
+        client_request_id="listing-shares",
+        model_version_id=CURRENT_MODEL,
+        system_as_of=datetime.now(UTC),
+    )
+    return runs.advance(submitted.run_id, "refreshing_evidence")
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_listings_listing_no_dates_share_the_site_s_pages_too(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A listing whose entries carry no date never reaches back to a period: it takes its
+    turn like any other, and does not spend the site's pages alone."""
+    from types import SimpleNamespace
+
+    from pring_cycle import full_retrieval
+    from pring_cycle.models import EFFECTIVE_CATALOG_VERSION
+    from pring_cycle.official_context import LISTING_PAGES_PER_SITE, run_listings
+    from tests.adapters.test_official_listing_scan import nbs_page, nbs_url
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    run = _share_run(paths)
+    readings = "https://www.stats.gov.cn/sj/zxfbhjd/"
+    documents = {
+        nbs_url(listing, index): nbs_page(index, 500, [(f"./other_{index}.html", "其他")])
+        for listing in (LISTING, readings)
+        for index in range(LISTING_PAGES_PER_SITE)
+    }
+    monkeypatch.setattr(
+        "pring_cycle.official_context._fetch_official_context_document",
+        lambda url: FetchedOfficialContextDocument(documents[url], "text/html", url, 200),
+    )
+    monkeypatch.setattr(
+        full_retrieval.FullRunRetrieval, "_gate", lambda *_args: ("released", False)
+    )
+    monkeypatch.setattr(
+        full_retrieval, "select_retrieval_input", lambda *_args: SimpleNamespace(complete=False)
+    )
+    scopes = [
+        {
+            "release_event_id": f"full:{metric}:2026-08",
+            "metric_ids": [metric],
+            "period": "2026-08",
+            "priority": "P1",
+            "source_url": source,
+        }
+        for metric, source in (("CN_CORE_CPI", LISTING), ("CN_INDUSTRIAL_VA", readings))
+    ]
+
+    full_retrieval.FullRunRetrieval(paths)._read_listings(run, scopes, EFFECTIVE_CATALOG_VERSION)
+
+    half = LISTING_PAGES_PER_SITE // 2
+    assert run_listings(paths, run.run_id).reads == {LISTING: half, readings: half}
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_page_held_back_is_no_read_and_the_chronicle_s_pages_count_to_their_site(
+    tmp_path: Path,
+) -> None:
+    """The site's pages count what was sent: a request the retrieval ledger held back is
+    none; the policy chronicle the RRR backtrack reads is the PBC's too."""
+    from pring_cycle import official_context
+    from pring_cycle.acquisition import own_acquisitions
+    from pring_cycle.official_context import read_listing_page, run_listings
+    from pring_cycle.official_listing import RRR_CHRONICLE_LISTING
+    from pring_cycle.retrieval_ledger import RetrievalBudgetBlocked
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    run = _share_run(paths)
+    chronicle = (FIXTURES / "official_listing" / "pbc_125963_index_20260925.html").read_bytes()
+
+    def blocked(_acquisition_id: str) -> None:
+        raise RetrievalBudgetBlocked("negative_cache_active", cache_hit=True)
+
+    with own_acquisitions(paths.database, run.run_id, "gap_retrieval"):
+        listings = run_listings(paths, run.run_id)
+        with pytest.raises(RetrievalBudgetBlocked):
+            read_listing_page(
+                paths,
+                family="pbc_omo_notice",
+                listing_url=OMO_COLUMN + "index.html",
+                period="2026-09-23",
+                listings=listings,
+                on_acquisition_started=blocked,
+            )
+        assert (listings.reads, listings.sites, listings.failures) == ({}, {}, {})
+        official_context._read_chronicle_page(
+            paths,
+            RRR_CHRONICLE_LISTING,
+            lambda url: FetchedOfficialContextDocument(chronicle, "text/html", url, 200),
+            None,
+        )
+    official_context._RUN_LISTINGS.clear()  # Another process: rebuilt from the receipts.
+
+    assert run_listings(paths, run.run_id).sites == {"www.pbc.gov.cn": 1}

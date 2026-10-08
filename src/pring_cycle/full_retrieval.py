@@ -4,6 +4,7 @@ import hashlib
 import json
 import sqlite3
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 from functools import partial
@@ -30,10 +31,22 @@ from pring_cycle.full_run_requirements import (
 )
 from pring_cycle.metric_contracts import evidence_frequency, required_dimension_members
 from pring_cycle.models import ModelRepository
-from pring_cycle.official_context import official_family_for_metrics
-from pring_cycle.official_listing import is_release_listing, release_listing
+from pring_cycle.official_context import (
+    ListingScan,
+    official_family_for_metrics,
+    read_listing_page,
+    run_listings,
+)
+from pring_cycle.official_listing import (
+    LISTING_NOT_COVERED,
+    is_release_listing,
+    period_last_day,
+    reaches_back,
+    release_listing,
+)
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.retrieval import (
+    RetrievalAdapterResponse,
     RetrievalBudget,
     RetrievalRequest,
     matches_retrieval_period,
@@ -66,11 +79,7 @@ class FullRunRetrieval:
         plan reads the credit lookback as of then, so it asks for nothing that fetch left
         out (ticket 24).
         """
-        from pring_cycle.worker import (
-            EARLIER_SESSION,
-            _production_retrieval_adapters,
-            _retrieval_release_status,
-        )
+        from pring_cycle.worker import _production_retrieval_adapters
 
         plan = read_full_retrieval_plan(self.paths.database, run.run_id)
         if plan["final"] is not None:
@@ -93,28 +102,11 @@ class FullRunRetrieval:
                 )
             )
         runs = RunRepository(self.paths.database)
+        self._read_listings(run, initial["scopes"], version)
         for document in initial["scopes"]:
             scope = _scope(document)
             scoped = replace(run, retrieval_scope=scope)
-            # Publication is bounded to what the target market could have known.
-            known_at = (
-                utc_now()
-                if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen
-                else run.system_as_of
-            )
-            release = _retrieval_release_status(
-                self.paths,
-                scope,
-                known_at,
-                definition_version=version,
-                public_as_of=min(known_at, utc_now(), _target_end(run)),
-                latest_only=True,
-            )
-            # An earlier session is not searched, but its official listing is still read.
-            discover_release = release in {
-                "unknown_release_configuration",
-                EARLIER_SESSION,
-            } and _has_release_listing(scope)
+            release, discover_release = self._gate(run, scope, version)
             if release != "released" and not discover_release:
                 # Recorded also when the plan foresaw it: the final plan and the gap list
                 # say why each period went unrequested (lookback L01).
@@ -190,6 +182,132 @@ class FullRunRetrieval:
                     occurred_at=utc_now(),
                     physical_request_id=attempt.physical_request_id,
                 )
+
+    def _gate(self, run: RunRecord, scope: RetrievalScope, version: str) -> tuple[str, bool]:
+        """The scope's release status, and whether only its official listing may establish
+        it: an earlier session is not searched, but its listing is still read."""
+        from pring_cycle.worker import EARLIER_SESSION, _retrieval_release_status
+
+        # Publication is bounded to what the target market could have known.
+        known_at = (
+            utc_now()
+            if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen
+            else run.system_as_of
+        )
+        release = _retrieval_release_status(
+            self.paths,
+            scope,
+            known_at,
+            definition_version=version,
+            public_as_of=min(known_at, utc_now(), _target_end(run)),
+            latest_only=True,
+        )
+        discover_release = release in {
+            "unknown_release_configuration",
+            EARLIER_SESSION,
+        } and _has_release_listing(scope)
+        return release, discover_release
+
+    def _read_listings(self, run: RunRecord, scopes: list[dict[str, Any]], version: str) -> None:
+        """Read the official listings the run's periods are looked up on, before any period
+        is: a site's listings in turn, a page each, each until it reaches back past the
+        earliest period still missing on it, ends, or the site's pages of the run are spent
+        (lookback L05).
+
+        So the pages are shared out among the listings, newest first: one listing's long way
+        back does not spend the pages another needs. Each page is a request of the newest
+        period it is read for, as the scope's own reads are.
+        """
+        wanted: dict[str, list[RetrievalScope]] = {}
+        for document in scopes:
+            scope = _scope(document)
+            listing = _scope_listing(scope)
+            if listing is None:
+                continue
+            release, discover_release = self._gate(run, scope, version)
+            scoped = replace(run, retrieval_scope=scope)
+            if (release == "released" or discover_release) and not select_retrieval_input(
+                self.paths, scoped
+            ).complete:
+                wanted.setdefault(listing, []).append(scope)
+        listings = run_listings(self.paths, run.run_id)
+
+        def unread(listing: str) -> RetrievalScope | None:
+            """The newest period the listing has not yet been read back past, if any."""
+            days = listings.days(listing)
+            return next(
+                (
+                    scope
+                    for scope in sorted(
+                        wanted[listing], key=lambda item: period_last_day(item.period), reverse=True
+                    )
+                    if not reaches_back(days, scope.period)
+                ),
+                None,
+            )
+
+        held: set[str] = set()
+        while pending := {
+            listing: needed
+            for listing in wanted
+            if listing not in listings.ended
+            and listing not in held
+            and (needed := unread(listing)) is not None
+        }:
+            # In turn: the listing with the fewest pages read next, of those the one read
+            # least far back (a listing not read yet, or listing no dates, comes first).
+            listing = min(
+                pending,
+                key=lambda item: (
+                    listings.reads.get(item, 0),
+                    -int(min(listings.days(item), default="99999999")),
+                ),
+            )
+            read = listings.reads.get(listing, 0)
+            self._read_listing_page(run, listing, pending[listing], listings, version)
+            if listings.reads.get(listing, 0) == read and listing not in listings.ended:
+                # No request went out (the retrieval ledger held it back): its scopes ask
+                # for it themselves.
+                held.add(listing)
+
+    def _read_listing_page(
+        self,
+        run: RunRecord,
+        listing: str,
+        scope: RetrievalScope,
+        listings: ListingScan,
+        version: str,
+    ) -> None:
+        """One more page of the listing, a request of the period it is read for."""
+        scoped = replace(run, retrieval_scope=scope)
+        if RunRepository(self.paths.database).get(run.run_id).status != "running":
+            raise ValueError("full_retrieval_run_not_running")
+        ledger = RetrievalLedger(self.paths.database, scope_run=scoped)
+        ledger.bind_run(scoped, version)
+
+        def read(started: Callable[[str], None]) -> RetrievalAdapterResponse:
+            stopped = read_listing_page(
+                self.paths,
+                family=official_family_for_metrics(scope.metric_ids),
+                listing_url=listing,
+                period=scope.period,
+                listings=listings,
+                on_acquisition_started=started,
+            )
+            return RetrievalAdapterResponse(
+                "candidate_source", classification=stopped or "listing_page_read"
+            )
+
+        with own_acquisitions(
+            self.paths.database,
+            run.run_id,
+            "gap_retrieval",
+            metric_ids=scope.metric_ids,
+            period=scope.period,
+        ):
+            # A failed read is the page's: counted against its tries, it is read again in
+            # turn, or the listing ends there.
+            ledger.trace_acquisition(run.run_id, "official", scope.release_event_id, listing, read)
 
     def _pull_news(self, run: RunRecord) -> None:
         """One TuShare news pull for every gap of the run, before any gap is retried."""
@@ -708,7 +826,7 @@ class FullRunRetrieval:
             if any((metric, scope.period) in bound for metric in scope.metric_ids):
                 ledger.bind_run(scoped, initial["definition_version"])
         gated = _release_gated(self.paths.database, run.run_id, initial["scopes"], bound)
-        uncovered = _listing_uncovered(self.paths.database, run.run_id, initial["scopes"])
+        uncovered = _listing_uncovered(self.paths, run.run_id, initial["scopes"])
         for requirement in final_plan["requirements"]:
             if "period" not in requirement:
                 continue
@@ -736,7 +854,7 @@ class FullRunRetrieval:
                         else {}
                     ),
                     **(
-                        {"official_listing": "listing_not_covered"}
+                        {"listing_not_covered": uncovered[(metric, period)]}
                         if not selection.complete and (metric, period) in uncovered
                         else {}
                     ),
@@ -979,30 +1097,43 @@ def _release_gated(
 
 
 def _listing_uncovered(
-    database: Path, run_id: str, scopes: list[dict[str, Any]]
-) -> set[tuple[str, str]]:
-    """Each planned metric and period whose official listing stopped short of it.
+    paths: RuntimePaths, run_id: str, scopes: list[dict[str, Any]]
+) -> dict[tuple[str, str], dict[str, object]]:
+    """Each planned metric and period whose official listing stopped short of it: the
+    listing, where its reading stopped (``page_limit``: the site's pages of the run were
+    read), how many of its pages the run read, and the earliest entry they list.
 
     Its release may be listed further back: not found there says nothing of whether it was
     published, or (an OMO day) whether there was an operation (lookback L05). Attempts name
     only the event, which scopes of one release share: a scope read through a listing takes
     the event's, since its scopes read the one listing for the one period.
     """
-    with database_connection(database) as connection:
-        events = {
-            str(event)
-            for (event,) in connection.execute(
-                "SELECT release_event_id FROM run_retrieval_attempt WHERE run_id=? "
-                "AND channel='official' AND classification='listing_not_covered'",
-                (run_id,),
-            )
-        }
-    return {
-        (metric, document["period"])
-        for document in scopes
-        if document["release_event_id"] in events and _has_release_listing(_scope(document))
-        for metric in document["metric_ids"]
-    }
+    prefix = LISTING_NOT_COVERED + "_"
+    stopped: dict[str, str] = {}
+    with database_connection(paths.database) as connection:
+        for event, classification in connection.execute(
+            "SELECT release_event_id, classification FROM run_retrieval_attempt "
+            "WHERE run_id=? AND channel='official' AND substr(classification, 1, ?)=? "
+            "ORDER BY sequence",
+            (run_id, len(prefix), prefix),
+        ):
+            stopped[str(event)] = str(classification).removeprefix(prefix)
+    if not stopped:
+        return {}
+    scan = run_listings(paths, run_id)
+    uncovered: dict[tuple[str, str], dict[str, object]] = {}
+    for document in scopes:
+        listing = _scope_listing(_scope(document))
+        if listing is None or document["release_event_id"] not in stopped:
+            continue
+        for metric in document["metric_ids"]:
+            uncovered[(metric, document["period"])] = {
+                "listing": listing,
+                "stopped": stopped[document["release_event_id"]],
+                "pages_read": scan.reads.get(listing, 0),
+                "oldest_entry": min(scan.days(listing), default=None),
+            }
+    return uncovered
 
 
 def _scope(document: dict[str, Any]) -> RetrievalScope:
@@ -1048,13 +1179,18 @@ def _official_candidate(definitions: tuple[MetricDefinition, ...]) -> str | None
 
 
 def _has_release_listing(scope: RetrievalScope) -> bool:
+    return _scope_listing(scope) is not None
+
+
+def _scope_listing(scope: RetrievalScope) -> str | None:
+    """The official listing the scope's release is looked up on, if it is read from one."""
     if scope.source_url is None:
-        return False
+        return None
     try:
         family = official_family_for_metrics(scope.metric_ids)
     except ValueError:
-        return False
-    return is_release_listing(family, scope.source_url)
+        return None
+    return release_listing(family, scope.source_url)
 
 
 def _target_end(run: RunRecord) -> datetime:
