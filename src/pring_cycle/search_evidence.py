@@ -4,7 +4,7 @@ import hashlib
 import json
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -28,6 +28,8 @@ from pring_cycle.models import ModelRepository
 from pring_cycle.news_rules import rules_for
 from pring_cycle.official_context import (
     ParsedOfficialContextRelease,
+    official_family_for_metrics,
+    official_family_metrics,
 )
 from pring_cycle.official_lpr import ParsedLprRelease
 from pring_cycle.retrieval import RetrievalAdapterResponse, matches_retrieval_period
@@ -60,7 +62,7 @@ class ModelInputSelection:
     selected_claim_ids: tuple[str, ...]
     missing_members: tuple[str, ...]
     material_checks: tuple[MetricMaterialCheck, ...] = ()
-    # Required members already held, each by exactly one selected claim.
+    # Required members already held for the period, each by exactly one selected claim.
     held_members: tuple[str, ...] = ()
 
 
@@ -159,6 +161,22 @@ class ModelInputSelector:
                     point for point in points if matches_retrieval_period(point.period_end, period)
                 )
         return self._adoptable[key]
+
+    def official_held_members(self, scope: RetrievalScope) -> frozenset[str]:
+        """What an official page fetched for ``scope`` leaves out: each member another source
+        delivered of any metric of its family, named by the scope or not.
+
+        The page is stored whole (lookback fetch gaps 02), and restating such a member would
+        contest it: GDP's first-release levels against the revised ones already held (run
+        findings 2026-09-28, ticket 12).
+        """
+        family = official_family_for_metrics(scope.metric_ids)
+        metric_ids = official_family_metrics(
+            family, definition_version=self.version, database_path=self.database_path
+        )
+        return frozenset(
+            self.select(replace(scope, metric_ids=metric_ids, members=())).held_members
+        )
 
     def select(self, scope: RetrievalScope) -> ModelInputSelection:
         # Only the points this period can adopt are rechecked; an RRR announcement is
@@ -273,7 +291,10 @@ class ModelInputSelector:
                         accepted.append(claim.claim_id)
                 if len(accepted) == 1:
                     selected_ids.extend(accepted)
-                    held.append(member_key(metric_id, member))
+                    # An event in force from an earlier day is no announcement of this one:
+                    # the day's notice still records its own (ADR-0028; run findings 10).
+                    if not event_metric or matches_retrieval_period(latest, scope.period):
+                        held.append(member_key(metric_id, member))
                 else:
                     missing.append(member_key(metric_id, member))
         for metric_id in dict.fromkeys(scope.metric_ids):
@@ -783,7 +804,11 @@ def verify_search_candidates(
     strict = scope.priority in {"P0", "P1"}
     # An official page does not restate what another source delivered (run findings
     # 2026-09-28, ticket 12).
-    held = frozenset(ModelInputSelector(paths, run).select(scope).held_members)
+    held = (
+        ModelInputSelector(paths, run).official_held_members(scope)
+        if parser == "official_context"
+        else frozenset()
+    )
     for index, url in enumerate(urls[:3]):
         summary = summaries[index] if index < len(summaries) else ""
         validation_id = "candidate-validation-" + uuid4().hex
@@ -900,10 +925,7 @@ def verify_search_candidates(
                     )
                     claim_ids.extend(refreshed.claim_ids)
                 else:
-                    from pring_cycle.official_context import (
-                        official_family_for_metrics,
-                        refresh_official_context_document,
-                    )
+                    from pring_cycle.official_context import refresh_official_context_document
 
                     context_refreshed = refresh_official_context_document(
                         paths,

@@ -339,3 +339,72 @@ def test_a_passed_over_notice_does_not_stop_the_next_under_the_retrieval_ledger(
         "intermediate_acquisition_validated",
         "intermediate_candidate_skipped",
     ]
+
+
+@pytest.mark.parametrize(
+    "metric_ids", [("CN_OMO_7D_AMOUNT",), ("CN_OMO_7D_RATE", "CN_OMO_7D_AMOUNT")]
+)
+def test_the_day_s_notice_stores_its_rate_beside_the_amount_while_an_older_rate_holds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, metric_ids: tuple[str, ...]
+) -> None:
+    """Run findings 10: 9/29's notice stated 1.4% and 905, and only the amount was stored, the
+    rate in force from an earlier notice staying behind. A notice is stored whole, and a rate
+    held from an earlier day does not keep the day's own out (ADR-0028)."""
+    from pring_cycle.models import ModelRepository, effective_model_manifest
+    from pring_cycle.official_context import refresh_official_context_document
+    from pring_cycle.worker import _official_context_retrieval
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    models = ModelRepository(paths.database)
+    models.register(effective_model_manifest())
+    models.activate(CURRENT_MODEL, explicitly_approved=True)
+    version = str(effective_model_manifest()["metric_catalog_version"])
+    previous, today = OMO_REPO, OMO_COLUMN + "2026092408454713496/index.html"
+    documents = {
+        previous: FIXTURES / "pbc_omo_notice" / "2026092308513432696.html",
+        today: FIXTURES / "pbc_omo_notice" / "2026092408454713496.html",
+    }
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        return FetchedOfficialContextDocument(documents[url].read_bytes(), "text/html", url, 200)
+
+    refresh_official_context_document(
+        paths,
+        family="pbc_omo_notice",
+        source_url=previous,
+        expected_period="2026-09-23",
+        fetched_at=datetime.now(UTC),
+        fetcher=fetch,
+        definition_version=version,
+    )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-09-24",
+        client_request_id="omo-rate-beside-amount",
+        model_version_id=CURRENT_MODEL,
+        system_as_of=datetime.now(UTC),
+        release_event_id="omo:2026-09-24",
+        metric_ids=metric_ids,
+        period="2026-09-24",
+        source_url=today,
+    )
+    assert run.retrieval_scope is not None
+    monkeypatch.setattr("pring_cycle.official_context._fetch_official_context_document", fetch)
+    _official_context_retrieval(
+        paths, run.retrieval_scope, datetime.now(UTC), run_id=run.run_id, definition_version=version
+    )
+
+    evidence = EvidenceRepository(paths.database)
+    assert {
+        metric: {
+            p.period_end: p.selected_value
+            for p in evidence.metric_series(
+                metric, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
+            )
+        }
+        for metric in ("CN_OMO_7D_RATE", "CN_OMO_7D_AMOUNT")
+    } == {
+        "CN_OMO_7D_RATE": {"2026-09-23": 1.4, "2026-09-24": 1.4},
+        "CN_OMO_7D_AMOUNT": {"2026-09-23": 80.0, "2026-09-24": 515.0},
+    }

@@ -225,12 +225,16 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
     ) == {p.selected_claim_id for p in points}
     provider = "tushare" if delivered else "中国人民银行"
     assert all(c.provider == provider for p in points for c in p.claims)
-    assert not evidence.metric_series(
+    # The page fetched for the total states every component too: all of them are stored,
+    # not only what the gap asked for (lookback fetch gaps 02).
+    components = evidence.metric_series(
         "CN_SF_COMPONENTS",
         mode=AsOfMode.SYSTEM,
         as_of=datetime.now(UTC),
         definition_version=version,
     )
+    assert len(components) == (24 if not delivered and official_state == "available" else 0)
+    assert {c.provider for p in components for c in p.claims} <= {"中国人民银行"}
     if not delivered and official_state in {"transport_failed", "no_matching_period"}:
         transport_failed = official_state == "transport_failed"
         attempt = evidence.latest_retrieval_attempt(
@@ -424,3 +428,85 @@ def test_sf_total_rejects_legacy_semantics_and_unproven_evidence(
     assert not official_claims_matching_acquisitions(
         evidence, {"CN_SF_TOTAL": points}, definition_version=version
     )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_page_fetched_for_the_components_leaves_out_the_total_tushare_delivered(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The page states the total beside the components it was fetched for; the total TuShare
+    delivered is held, so the page's own (another stock) does not contest it (ticket 12)."""
+    from pring_cycle.worker import _official_context_retrieval
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    candidate, version = admit_sf_candidate(paths, capsys)
+
+    def transport(payload: dict) -> bytes:
+        return json.dumps(
+            {
+                "code": 0,
+                "data": {
+                    "fields": ["month", "inc_cumval", "stk_endval"],
+                    "items": [["202607", 220000.0, 460.0]],
+                },
+            }
+        ).encode()
+
+    adapter = TushareContextAdapter("fixture-only", transport=transport)
+    adapter.acquire_scalars(
+        paths,
+        lambda: adapter.social_financing_total(start_month="2026-07", end_month="2026-07"),
+        definition_version=version,
+    )
+    page = (
+        Path(__file__).parents[1] / "fixtures/official_period_fallback/pbc_money.html"
+    ).read_bytes()
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="sf-components-only",
+        model_version_id=candidate,
+        system_as_of=datetime.now(UTC),
+        release_event_id="pbc_social_financing:2026-07",
+        metric_ids=("CN_SF_COMPONENTS",),
+        period="2026-07",
+        source_url=ARTICLE,
+    )
+    assert run.retrieval_scope is not None
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        assert url == ARTICLE
+        return FetchedOfficialContextDocument(page, "text/html", url, 200)
+
+    monkeypatch.setattr("pring_cycle.official_context._fetch_official_context_document", fetch)
+    _official_context_retrieval(
+        paths, run.retrieval_scope, datetime.now(UTC), run_id=run.run_id, definition_version=version
+    )
+
+    evidence = EvidenceRepository(paths.database)
+
+    def series(metric_id: str) -> dict[tuple[str, ...], tuple[float | None, set[str]]]:
+        return {
+            (p.period_end, *(p.dimensions[key] for key in sorted(p.dimensions))): (
+                p.selected_value,
+                {c.provider for c in p.claims},
+            )
+            for p in evidence.metric_series(
+                metric_id, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
+            )
+        }
+
+    components = series("CN_SF_COMPONENTS")
+    assert len(components) == 24
+    assert {key[0] for key in components} == {"2026-07-31"}
+    assert {provider for _, providers in components.values() for provider in providers} == {
+        "中国人民银行"
+    }
+    assert components[("2026-07-31", "government_bonds", "stock_yoy")][0] is not None
+    # The stock growth TuShare does not deliver comes from the page; the rest stays TuShare's.
+    assert series("CN_SF_TOTAL") == {
+        ("2026-07-31", "stock_end"): (4600000.0, {"tushare"}),
+        ("2026-07-31", "ytd_increment"): (220000.0, {"tushare"}),
+        ("2026-07-31", "stock_yoy"): (7.4, {"中国人民银行"}),
+    }

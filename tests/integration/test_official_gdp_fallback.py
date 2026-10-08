@@ -383,6 +383,66 @@ def test_a_page_fetched_for_real_growth_admits_no_first_release_levels(
 
 
 @pytest.mark.usefixtures("runtime_clock")
+def test_a_lookback_naming_only_real_growth_still_holds_back_the_delivered_levels(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The page is stored whole (lookback fetch gaps 02), so what the Worker holds back is
+    every member TuShare delivered, not only those a lookback named."""
+    from pring_cycle.runs import member_keys
+    from pring_cycle.worker import _official_context_retrieval
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    candidate, version = admit_gdp_candidate(paths, capsys)
+    adapter = TushareContextAdapter("fixture-only", transport=delivery)
+    adapter.acquire_scalars(
+        paths,
+        lambda: adapter.gdp(start_quarter="2026Q2", end_quarter="2026Q2"),
+        definition_version=version,
+    )
+    article = (
+        Path(__file__).parents[1] / "fixtures/official_period_fallback/nbs_gdp.html"
+    ).read_bytes()
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        content = f'<a href="{ARTICLE}">{Q2_TITLE}</a>'.encode() if url == LISTING else article
+        return FetchedOfficialContextDocument(content, "text/html", url, 200)
+
+    monkeypatch.setattr("pring_cycle.official_context._fetch_official_context_document", fetch)
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="gdp-real-growth-lookback",
+        model_version_id=candidate,
+        system_as_of=datetime.now(UTC),
+        release_event_id="nbs_gdp:2026-Q2",
+        metric_ids=("CN_GDP",),
+        period="2026-Q2",
+        source_url=LISTING,
+    )
+    assert run.retrieval_scope is not None
+    scope = replace(
+        run.retrieval_scope,
+        members=member_keys(
+            "CN_GDP",
+            (
+                {"aggregate": aggregate, "measure": "real_quarter_yoy"}
+                for aggregate in ("total", "primary", "secondary", "tertiary")
+            ),
+        ),
+    )
+    _official_context_retrieval(
+        paths, scope, datetime.now(UTC), run_id=run.run_id, definition_version=version
+    )
+
+    points = EvidenceRepository(paths.database).metric_series(
+        "CN_GDP", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
+    )
+    providers = {p.dimensions["measure"]: {claim.provider for claim in p.claims} for p in points}
+    assert providers == {"nominal_ytd_level": {"tushare"}, "real_quarter_yoy": {"国家统计局"}}
+
+
+@pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize(
     "period,title,url,filename,end",
     [

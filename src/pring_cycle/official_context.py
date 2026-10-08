@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from html.parser import HTMLParser
+from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import Request
 from zoneinfo import ZoneInfo
@@ -289,6 +290,24 @@ def official_family_for_metrics(metric_ids: tuple[str, ...]) -> str:
     return matches[0]
 
 
+def official_family_metrics(
+    family: str, *, definition_version: str, database_path: Path | None = None
+) -> tuple[str, ...]:
+    """The official family's metrics this catalog defines (lookback fetch gaps 02)."""
+    defined = []
+    for metric_id in OFFICIAL_CONTEXT_FAMILIES[family].metric_ids:
+        try:
+            metric_definition(
+                metric_id, definition_version=definition_version, database_path=database_path
+            )
+        except KeyError as error:
+            if error.args != ("unknown_metric_id",):
+                raise
+            continue
+        defined.append(metric_id)
+    return tuple(defined)
+
+
 def parse_official_acquisition(
     receipt: AcquisitionReceipt, raw: bytes
 ) -> ParsedOfficialContextRelease:
@@ -561,20 +580,26 @@ def _ingest_acquired_official_release(
     held_members: frozenset[str] = frozenset(),
 ) -> OfficialContextIngestionResult:
     parsed, receipt = acquired.value, acquired.receipt
-    requested = (
-        frozenset(scalar.metric_id for scalar in parsed.scalars)
-        if metric_ids is None
-        else _official_metric_scope(parsed.family, metric_ids)
-    )
     # Keep the original and its normalized full announcement intact for revalidation.
-    # A retrieval scope controls which claims are admitted, not what the source published.
+    # A retrieval scope asks for some of the release; the others of its family it states
+    # that this catalog defines are stored with them, a rate beside its notice's amount,
+    # components beside their total (lookback fetch gaps 02; run findings 10).
+    if metric_ids is None:
+        requested = admitted = frozenset(scalar.metric_id for scalar in parsed.scalars)
+    else:
+        requested = _official_metric_scope(parsed.family, metric_ids)
+        admitted = requested | frozenset(
+            official_family_metrics(
+                parsed.family, definition_version=definition_version, database_path=paths.database
+            )
+        )
     scalars = tuple(
         scalar
         for scalar in parsed.scalars
-        if scalar.metric_id in requested
+        if scalar.metric_id in admitted
         and official_member(scalar.metric_id, scalar.dimensions) not in held_members
     )
-    if not scalars:
+    if not any(scalar.metric_id in requested for scalar in scalars):
         raise ValueError("official_context_requested_metrics_missing")
     if receipt.received_at is None or receipt.validated_at is None or receipt.raw_hash is None:
         raise ValueError("official_acquisition_incomplete")
