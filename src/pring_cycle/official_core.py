@@ -174,6 +174,9 @@ def refresh_csindex_core(
         parse=parse,
         normalize=lambda bars: [asdict(bar) for bar in bars],
         on_started=on_acquisition_started,
+        # The parser keeps every row of the answer or refuses it.
+        count_records=len,
+        count_scalars=len,
     )
     if not acquired.value:
         return ()
@@ -182,33 +185,35 @@ def refresh_csindex_core(
     unit = metric_definition(
         metric_id, definition_version=definition_version, database_path=paths.database
     ).unit
-    stored = EvidenceRepository(paths.database).append_source_claims(
-        tuple(
-            SourceClaimInput(
-                metric_id=metric_id,
-                definition_version=definition_version,
-                period_kind="business_day",
-                period_start=bar.business_date.isoformat(),
-                period_end=bar.business_date.isoformat(),
-                dimensions={},
-                value=bar.close,
-                value_state=EvidenceValueState.REPORTED_VALUE,
-                unit=unit,
-                provider=CSINDEX_PROVIDER,
-                source_reference=csindex_source_reference(metric_id, bar.business_date),
-                release_event_id=(
-                    f"{CSINDEX_PROVIDER}:{receipt.acquisition_id}:{bar.business_date.isoformat()}"
-                ),
-                release_at=None,
-                public_available_at=None,
-                fetched_at=receipt.received_at.astimezone(UTC),
-                available_at=receipt.validated_at.astimezone(UTC),
-                quality_status="validated",
-                acquisition_id=receipt.acquisition_id,
-            )
-            for bar in acquired.value
+    claims = tuple(
+        SourceClaimInput(
+            metric_id=metric_id,
+            definition_version=definition_version,
+            period_kind="business_day",
+            period_start=bar.business_date.isoformat(),
+            period_end=bar.business_date.isoformat(),
+            dimensions={},
+            value=bar.close,
+            value_state=EvidenceValueState.REPORTED_VALUE,
+            unit=unit,
+            provider=CSINDEX_PROVIDER,
+            source_reference=csindex_source_reference(metric_id, bar.business_date),
+            release_event_id=(
+                f"{CSINDEX_PROVIDER}:{receipt.acquisition_id}:{bar.business_date.isoformat()}"
+            ),
+            release_at=None,
+            public_available_at=None,
+            fetched_at=receipt.received_at.astimezone(UTC),
+            available_at=receipt.validated_at.astimezone(UTC),
+            quality_status="validated",
+            acquisition_id=receipt.acquisition_id,
         )
+        for bar in acquired.value
     )
+    with AcquisitionRepository(paths.database, paths.artifacts).ingesting(
+        (receipt.acquisition_id,)
+    ):
+        stored = EvidenceRepository(paths.database).append_source_claims(claims)
     return tuple(item.claim_id for item in stored)
 
 

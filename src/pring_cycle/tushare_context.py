@@ -373,9 +373,10 @@ class TushareContextAdapter:
                 f"context-acquisition:{self._receipts[0].acquisition_id}",
             )
             for receipt in self._receipts:
-                receipt_document: object = [
+                accepted = [
                     asdict(s) for s in linked if receipt.acquisition_id in s.acquisition_ids
                 ]
+                receipt_document: object = accepted
                 rejected = [
                     item for item in self._field_rejections if item["api_name"] == receipt.api_name
                 ]
@@ -383,12 +384,12 @@ class TushareContextAdapter:
                     rejected = list(gdp_deliveries[receipt.acquisition_id].rejected_fields)
                 if rejected:
                     receipt_document = {
-                        "accepted_scalars": receipt_document,
+                        "accepted_scalars": accepted,
                         "rejected_fields": rejected,
                     }
                 if receipt.api_name == "fut_wsr":
                     receipt_document = {
-                        "accepted_scalars": receipt_document,
+                        "accepted_scalars": accepted,
                         "warrant_reconciliation": _warrant_receipt_reconciliation(
                             receipt,
                             self._original(receipt),
@@ -397,6 +398,7 @@ class TushareContextAdapter:
                 self._acquisitions.complete_validation(
                     receipt.acquisition_id,
                     receipt_document,
+                    normalized_scalars=len(accepted),
                 )
             stage = "ingest"
             try:

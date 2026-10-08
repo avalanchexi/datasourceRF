@@ -212,6 +212,7 @@ def refresh_quote_source(
             parse=lambda raw: source.parse(raw, start_date, end_date),
             normalize=lambda rows: [asdict(row) for row in rows],
             on_started=identities.append,
+            count_scalars=len,
         )
     except (LookupError, OSError, TypeError, ValueError) as error:
         outcome, recorded = capture_failure(error)

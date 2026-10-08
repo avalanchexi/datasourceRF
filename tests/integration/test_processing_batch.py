@@ -108,7 +108,7 @@ def test_batch_registers_target_day_code_version_and_model_version(
     assert isinstance(batch["code_version"], str) and len(batch["code_version"]) == 64
 
 
-def test_every_interface_call_records_parameters_row_count_and_raw_hash(
+def test_every_interface_call_records_parameters_counts_and_raw_hash(
     completed_run: tuple[RuntimePaths, str],
 ) -> None:
     paths, run_id = completed_run
@@ -116,7 +116,9 @@ def test_every_interface_call_records_parameters_row_count_and_raw_hash(
     calls = _rows(
         paths,
         """
-        SELECT r.api_name, r.parameters_json, r.row_count, r.raw_hash, r.state
+        SELECT r.api_name, r.parameters_json, r.row_count, r.source_record_count,
+               r.normalized_scalar_count, r.ingest_result, r.ingested_claim_count,
+               r.raw_hash, r.state
         FROM full_run_acquisition a JOIN acquisition_request r USING (acquisition_id)
         WHERE a.run_id=?
         """,
@@ -129,8 +131,16 @@ def test_every_interface_call_records_parameters_row_count_and_raw_hash(
         parameters = json.loads(call["parameters_json"])
         assert parameters["start_date"] and parameters["end_date"]
         assert len(call["raw_hash"]) == 64
+        # The source's rows and the values read from them are kept apart (lookback 06).
         expected = _weekdays(parameters["start_date"], parameters["end_date"])
-        assert call["row_count"] == expected, call["api_name"]
+        assert call["row_count"] is None, call["api_name"]
+        assert call["source_record_count"] == expected, call["api_name"]
+        # A calendar answer states no metric value; a day's bar states its close.
+        assert call["normalized_scalar_count"] == (
+            None if call["api_name"] == "trade_cal" else expected
+        ), call["api_name"]
+        if call["api_name"] != "trade_cal":
+            assert (call["ingest_result"], call["ingested_claim_count"]) == ("accepted", expected)
 
 
 def test_summary_rows_carry_the_run_as_their_batch(

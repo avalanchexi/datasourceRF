@@ -9,8 +9,10 @@ from typing import Any
 
 import pytest
 
+from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.models import ModelRepository
+from pring_cycle.news_rules import MEDIA_PAGE_API
 from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.storage import database_connection
@@ -160,6 +162,12 @@ def test_a_media_page_without_a_usable_rule_sentence_gives_nothing(
     assert (validation["outcome"], validation["reason"]) == ("not_model_usable", reason)
     if reason != "date_after_cutoff":
         assert cpi_values(paths, version) == {}
+    else:
+        # The page passed its check; its value was refused at ingest (lookback 06).
+        receipts = AcquisitionRepository(paths.database, paths.artifacts)
+        [page_receipt] = [r for r in receipts.history() if r.api_name == MEDIA_PAGE_API]
+        assert receipts.ingest_result(page_receipt.acquisition_id) == ("rejected", reason)
+        assert receipts.counts(page_receipt.acquisition_id).ingested_claims == 0
 
 
 @pytest.mark.usefixtures("runtime_clock")

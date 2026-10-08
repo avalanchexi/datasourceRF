@@ -208,6 +208,7 @@ class TushareCoreAdapter:
             "ts_code,trade_date,close,pre_close,pct_chg",
             lambda response: _core_bars_response(response, metric_id, expected_business_dates),
             lambda bars: [asdict(bar) for bar in bars],
+            count_scalars=len,
         )
 
     def _acquire[T](
@@ -218,6 +219,7 @@ class TushareCoreAdapter:
         fields: str,
         parse: Callable[[dict[str, Any]], T],
         normalize: Callable[[T], object],
+        count_scalars: Callable[[T], int | None] | None = None,
     ) -> Acquired[T]:
         def fetch() -> bytes:
             response = self._transport(
@@ -242,6 +244,7 @@ class TushareCoreAdapter:
             parse=lambda raw: parse(_response_document(raw)),
             normalize=normalize,
             clock=self._clock,
+            count_scalars=count_scalars,
         )
 
     def core_bars(

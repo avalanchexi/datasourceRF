@@ -326,6 +326,7 @@ def ingest_lpr_document(
         parse=parse,
         normalize=asdict,
         clock=clock,
+        count_scalars=lambda release: len(release.observations),
     )
     return _ingest_lpr_acquisition(
         paths, acquired, definition_version=definition_version, clock=clock
@@ -443,6 +444,7 @@ def refresh_lpr_release(
             parse=parse,
             normalize=asdict,
             on_started=started,
+            count_scalars=lambda release: len(release.observations),
         )
         stage = "ingest"
         return _ingest_lpr_acquisition(paths, acquired, definition_version=definition_version)

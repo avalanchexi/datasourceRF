@@ -518,37 +518,42 @@ def _accept_lenient_candidate(
         parse=parse,
         normalize=lambda parsed: parsed,
         on_started=on_acquisition_started,
+        count_scalars=lambda _: 1,
     )
     receipt = acquired.receipt
     assert receipt.received_at is not None and receipt.validated_at is not None
-    public_at = public_available_at(metric_id, day, receipt.received_at, current_calendar())
-    if public_at is not None and public_at > run.system_as_of:
-        raise CandidateRejected(DATE_AFTER_CUTOFF)
-    definition = metric_definition(
-        metric_id, definition_version=definition_version, database_path=paths.database
-    )
-    stored = EvidenceRepository(paths.database).append_source_claim(
-        SourceClaimInput(
-            metric_id=metric_id,
-            definition_version=definition_version,
-            period_kind="business_day",
-            period_start=scope.period,
-            period_end=scope.period,
-            dimensions={},
-            value=value,
-            value_state=EvidenceValueState.REPORTED_VALUE,
-            unit=definition.unit,
-            provider=host,
-            source_reference=f"search_page:{url}",
-            release_event_id=f"search_page:{metric_id}:{scope.period}:{receipt.raw_hash}",
-            release_at=None,
-            public_available_at=None,
-            fetched_at=receipt.received_at,
-            available_at=receipt.validated_at,
-            quality_status="validated",
-            acquisition_id=receipt.acquisition_id,
+    # A value its page dates after the cutoff is refused at ingest.
+    with AcquisitionRepository(paths.database, paths.artifacts).ingesting(
+        (receipt.acquisition_id,)
+    ):
+        public_at = public_available_at(metric_id, day, receipt.received_at, current_calendar())
+        if public_at is not None and public_at > run.system_as_of:
+            raise CandidateRejected(DATE_AFTER_CUTOFF)
+        definition = metric_definition(
+            metric_id, definition_version=definition_version, database_path=paths.database
         )
-    )
+        stored = EvidenceRepository(paths.database).append_source_claim(
+            SourceClaimInput(
+                metric_id=metric_id,
+                definition_version=definition_version,
+                period_kind="business_day",
+                period_start=scope.period,
+                period_end=scope.period,
+                dimensions={},
+                value=value,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit=definition.unit,
+                provider=host,
+                source_reference=f"search_page:{url}",
+                release_event_id=f"search_page:{metric_id}:{scope.period}:{receipt.raw_hash}",
+                release_at=None,
+                public_available_at=None,
+                fetched_at=receipt.received_at,
+                available_at=receipt.validated_at,
+                quality_status="validated",
+                acquisition_id=receipt.acquisition_id,
+            )
+        )
     return (stored.claim_id,)
 
 
@@ -650,43 +655,48 @@ def _accept_media_candidate(
             ],
         },
         on_started=on_acquisition_started,
+        count_scalars=lambda parsed: len(parsed[2].values),
     )
     receipt = acquired.receipt
     content, text, extraction, published_text = acquired.value
     assert receipt.received_at is not None and receipt.validated_at is not None
-    published = parse_published_at(published_text)
-    for value in extraction.values:
-        # The page's own time when it shows one, else the registered release time.
-        _kind, _start, end = member_period(value.metric_id, value.dimensions, scope.period)
-        known = published or public_available_at(
-            value.metric_id, date.fromisoformat(end), receipt.received_at, current_calendar()
-        )
-        if known is not None and known > run.system_as_of:
-            raise CandidateRejected(DATE_AFTER_CUTOFF)
-    title = page_title(content)
-    return store_news_values(
-        paths.database,
-        tuple(
-            TakenValue(
-                value=value,
-                title=title,
-                source_name=outlet,
-                published_at=published.isoformat() if published else published_text,
-                body_hash=text_hash(text),
-                url=url,
-                acquisition_id=receipt.acquisition_id,
-                fetched_at=receipt.received_at,
-                release_at=published,
+    with AcquisitionRepository(paths.database, paths.artifacts).ingesting(
+        (receipt.acquisition_id,)
+    ):
+        published = parse_published_at(published_text)
+        for value in extraction.values:
+            # The page's own time when it shows one, else the registered release time.
+            _kind, _start, end = member_period(value.metric_id, value.dimensions, scope.period)
+            known = published or public_available_at(
+                value.metric_id, date.fromisoformat(end), receipt.received_at, current_calendar()
             )
-            for value in extraction.values
-        ),
-        route=MEDIA_PAGE,
-        provider=outlet,
-        source_reference=lambda _taken: f"{MEDIA_PAGE}:{url}#sha256={receipt.raw_hash}",
-        period=scope.period,
-        definition_version=definition_version,
-        available_at=receipt.validated_at,
-    )
+            if known is not None and known > run.system_as_of:
+                raise CandidateRejected(DATE_AFTER_CUTOFF)
+        title = page_title(content)
+        stored = store_news_values(
+            paths.database,
+            tuple(
+                TakenValue(
+                    value=value,
+                    title=title,
+                    source_name=outlet,
+                    published_at=published.isoformat() if published else published_text,
+                    body_hash=text_hash(text),
+                    url=url,
+                    acquisition_id=receipt.acquisition_id,
+                    fetched_at=receipt.received_at,
+                    release_at=published,
+                )
+                for value in extraction.values
+            ),
+            route=MEDIA_PAGE,
+            provider=outlet,
+            source_reference=lambda _taken: f"{MEDIA_PAGE}:{url}#sha256={receipt.raw_hash}",
+            period=scope.period,
+            definition_version=definition_version,
+            available_at=receipt.validated_at,
+        )
+    return stored
 
 
 def _refetch_csindex_candidate(

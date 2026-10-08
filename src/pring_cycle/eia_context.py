@@ -220,6 +220,9 @@ class EiaPetroleumAdapter:
             parse=parse,
             normalize=lambda prices: [asdict(p) for p in prices],
             on_started=self._started.append,
+            # The parser keeps every row of the answer or refuses it.
+            count_records=len,
+            count_scalars=len,
         )
         return tuple(
             replace(price, acquisition_id=acquired.receipt.acquisition_id)

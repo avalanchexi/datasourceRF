@@ -12,7 +12,7 @@ from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 if TYPE_CHECKING:
     from alembic.config import Config
 
-SCHEMA_HEAD = "0031_ingest_result"
+SCHEMA_HEAD = "0032_receipt_counts"
 
 
 @contextmanager

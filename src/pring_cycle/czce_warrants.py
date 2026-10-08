@@ -430,6 +430,9 @@ def _take(
             parse=lambda raw: parse_czce_warrants(raw, business_date=day, symbol=symbol),
             normalize=lambda members: [asdict(member) for member in members],
             on_started=identities.append,
+            count_scalars=lambda members: len(
+                warrant_scalars(members, business_date=day, symbol=symbol)
+            ),
         )
     except (LookupError, OSError, TypeError, ValueError) as error:
         outcome, recorded = capture_failure(error)

@@ -521,6 +521,8 @@ def _ingest(
                 **({"http_response": response_metadata} if fetcher else {}),
             },
             on_started=started,
+            count_records=lambda batch: batch.total_source_rows,
+            count_scalars=lambda batch: len(batch.rows),
         )
     except Exception as error:
         outcome, recorded = capture_failure(error)

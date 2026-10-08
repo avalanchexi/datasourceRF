@@ -422,6 +422,7 @@ def refresh_eia_history(
             parse=parse,
             normalize=lambda batch: {**asdict(batch), "http_response": response_metadata()},
             on_started=started,
+            count_scalars=lambda batch: sum(cell.value is not None for cell in batch.cells),
         )
         receipt, batch = acquired.receipt, acquired.value
         stage = "ingest"

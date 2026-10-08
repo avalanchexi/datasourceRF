@@ -211,7 +211,13 @@ def refresh_core_history(
             )
             for bar in bars
         )
-    evidence.append_source_claims(tuple(claims), availability_clock=lambda: datetime.now(UTC))
+    # Only the calls whose bars are stored: a core dropped after a later failure keeps none.
+    with acquisitions.ingesting(
+        receipts[metric_id, bar.business_date].acquisition_id
+        for metric_id, bars in collected.items()
+        for bar in bars
+    ):
+        evidence.append_source_claims(tuple(claims), availability_clock=lambda: datetime.now(UTC))
     fetched_at = datetime.now(UTC)
     for metric_id, bars in collected.items():
         evidence.record_retrieval_attempt(

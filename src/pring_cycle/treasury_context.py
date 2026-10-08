@@ -399,6 +399,8 @@ def refresh_treasury_yields(
             parse=parse,
             normalize=lambda batch: {**asdict(batch), "http_response": response_metadata()},
             on_started=started,
+            count_records=lambda batch: batch.total_source_rows,
+            count_scalars=lambda batch: sum(cell.value is not None for cell in batch.cells),
         )
         receipt, batch = acquired.receipt, acquired.value
         stage = "ingest"

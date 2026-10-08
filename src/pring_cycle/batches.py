@@ -2,9 +2,10 @@
 
 There is no batch table. ``parent_run`` already records the target business day and the
 model version, and ``full_run_acquisition`` already ties each interface call to its run;
-this adds the code version and each call's row count, and a plain-text ``batch_id`` on the
-summary tables. It is not a foreign key, so retention can delete runs and summaries in
-either order (ADR-0022). Batches are for tracing only and never reach a page or report.
+this adds the code version and a plain-text ``batch_id`` on the summary tables. It is not a
+foreign key, so retention can delete runs and summaries in either order (ADR-0022). Each
+call's counts are its receipt's; the ``row_count`` column is no longer written (lookback 06).
+Batches are for tracing only and never reach a page or report.
 """
 
 from __future__ import annotations
@@ -70,18 +71,3 @@ def code_version() -> str:
         digest.update(path.read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()
-
-
-def row_count(normalized: object) -> int:
-    """How many rows an interface call returned, read from its normalized value."""
-    if normalized is None:
-        return 0
-    if isinstance(normalized, (list, tuple)):
-        return len(normalized)
-    if isinstance(normalized, dict):
-        for key in ("items", "rows", "observations", "records"):
-            if isinstance(normalized.get(key), (list, tuple)):
-                return len(normalized[key])
-        if isinstance(normalized.get("data"), (dict, list, tuple)):
-            return row_count(normalized["data"])
-    return 1

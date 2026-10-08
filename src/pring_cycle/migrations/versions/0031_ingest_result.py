@@ -6,7 +6,7 @@ from typing import Any, cast
 
 from alembic import op
 
-from pring_cycle.acquisition import add_ingest_result_columns
+from pring_cycle.acquisition import add_receipt_columns
 
 revision = "0031_ingest_result"
 down_revision = "0030_claim_matched_quote"
@@ -15,7 +15,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    add_ingest_result_columns(cast(Any, op.get_bind().connection).driver_connection)
+    add_receipt_columns(cast(Any, op.get_bind().connection).driver_connection)
 
 
 def downgrade() -> None:

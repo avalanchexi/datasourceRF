@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
@@ -14,7 +14,6 @@ from urllib.error import HTTPError
 from uuid import uuid4
 
 from pring_cycle.artifacts import store_artifact
-from pring_cycle.batches import row_count
 from pring_cycle.storage import database_connection
 
 # A TuShare call refused for the day: the mark its receipt keeps (ticket 31).
@@ -138,6 +137,33 @@ class AcquisitionReceipt:
     error_type: str | None
 
 
+@dataclass(frozen=True)
+class ReceiptCounts:
+    """Three counts a receipt keeps apart (lookback 06); None where one is not defined.
+
+    ``source_records`` are the records the source returned (a TuShare row, a CSV line), none
+    for a page, which has no record of its own; ``normalized_scalars`` the values its answer
+    was read as; ``ingested_claims`` the claims linked to the call once its ingest said its
+    result. A claim already on file counts as well, and one claim shared by several calls
+    counts on each, so this is what the call's values became, not how many rows it added.
+    """
+
+    source_records: int | None
+    normalized_scalars: int | None
+    ingested_claims: int | None
+
+
+def tushare_records(raw: bytes) -> int | None:
+    """The rows a TuShare answer carries in ``data.items``, before any parser filters them."""
+    try:
+        document = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    data = document.get("data") if isinstance(document, dict) else None
+    items = data.get("items") if isinstance(data, dict) else None
+    return len(items) if isinstance(items, list) else None
+
+
 def receipt_key(receipt: AcquisitionReceipt) -> tuple[object, ...]:
     """A hashable identity of every receipt field, for caches of work derived from it."""
     return (
@@ -229,9 +255,18 @@ class AcquisitionRepository:
         defer_validation: bool = False,
         on_started: Callable[[str], None] | None = None,
         max_error_body_bytes: int | None = None,
+        count_records: Callable[[T], int | None] | None = None,
+        count_scalars: Callable[[T], int | None] | None = None,
     ) -> Acquired[T]:
+        """``count_records`` reads how many records the source returned from the parsed
+        answer, and ``count_scalars`` how many values it was read as (lookback 06); either
+        is left unknown when not given. A TuShare answer's records are its rows, counted as
+        received so that an answer its parser refuses still says how many it carried. A
+        deferred validation states its own counts."""
         if max_error_body_bytes is not None and max_error_body_bytes <= 0:
             raise ValueError("acquisition_error_body_limit_must_be_positive")
+        if defer_validation and (count_records is not None or count_scalars is not None):
+            raise ValueError("acquisition_deferred_count_unsupported")
         if provider == "tushare":
             from pring_cycle.tushare_quota import admit
 
@@ -291,15 +326,28 @@ class AcquisitionRepository:
                 raise
             received_at = clock()
             step = "store"
-            self._receive(acquisition_id, raw, received_at, started_at)
+            self._receive(
+                acquisition_id,
+                raw,
+                received_at,
+                started_at,
+                records=tushare_records(raw) if provider == "tushare" else None,
+            )
             step = "parse"
             value = parse(raw)
+            records = None if count_records is None else count_records(value)
+            scalars = None if count_scalars is None else count_scalars(value)
             step = "normalize"
-            receipt = (
-                self.get(acquisition_id)
-                if defer_validation
-                else self.complete_validation(acquisition_id, normalize(value), clock=clock)
-            )
+            if defer_validation:
+                receipt = self.get(acquisition_id)
+            else:
+                receipt = self.complete_validation(
+                    acquisition_id,
+                    normalize(value),
+                    clock=clock,
+                    source_records=records,
+                    normalized_scalars=scalars,
+                )
         except Exception as error:
             # Only the response's own check refuses it; a failure before the request went
             # out, of the source, or of this system storing it is no refusal (ticket 18).
@@ -334,7 +382,11 @@ class AcquisitionRepository:
         normalized_value: object,
         *,
         clock: Callable[[], datetime] = utc_now,
+        source_records: int | None = None,
+        normalized_scalars: int | None = None,
     ) -> AcquisitionReceipt:
+        """Close a received call as validated. A source record count kept when its answer was
+        received stays unless ``source_records`` gives one."""
         receipt = self.get(acquisition_id)
         if receipt.state != "received" or receipt.received_at is None:
             raise ValueError("acquisition_not_awaiting_validation")
@@ -358,12 +410,15 @@ class AcquisitionRepository:
         with self._connect() as connection:
             connection.execute(
                 """UPDATE acquisition_request SET state='validated', normalized_hash=?,
-                   validated_at=?, row_count=?, structure_check='passed'
+                   validated_at=?, structure_check='passed',
+                   source_record_count=COALESCE(?, source_record_count),
+                   normalized_scalar_count=?
                    WHERE acquisition_id=? AND state='received'""",
                 (
                     artifact.content_hash,
                     validated_at.isoformat(),
-                    row_count(normalized_value),
+                    source_records,
+                    normalized_scalars,
                     acquisition_id,
                 ),
             )
@@ -407,14 +462,20 @@ class AcquisitionRepository:
 
         The structure check and the ingest are separate: a response can pass the first and still
         be refused by the registered contract, which its receipt has to say (gap sources #03).
+        It also counts the claims now linked to the call: fewer than its scalars when members
+        were out of scope or already held, none when refused (lookback 06).
         """
         with self._connect() as connection:
             connection.execute(
-                """UPDATE acquisition_request SET ingest_result=?, ingest_rejection_reason=?
+                """UPDATE acquisition_request SET ingest_result=?, ingest_rejection_reason=?,
+                   ingested_claim_count=(
+                       SELECT COUNT(*) FROM source_claim_acquisition WHERE acquisition_id=?
+                   )
                    WHERE acquisition_id=? AND state='validated' AND ingest_result IS NULL""",
                 (
                     "accepted" if error is None else "rejected",
                     None if error is None else str(error)[:300],
+                    acquisition_id,
                     acquisition_id,
                 ),
             )
@@ -430,8 +491,39 @@ class AcquisitionRepository:
             raise LookupError("acquisition_not_found")
         return row[0], row[1]
 
+    @contextmanager
+    def ingesting(self, acquisition_ids: Iterable[str]) -> Iterator[None]:
+        """Record the ingest result of these calls once the block storing their values ends:
+        refused if the registered contract refused them (a ValueError), else accepted."""
+        ids = tuple(dict.fromkeys(acquisition_ids))
+        try:
+            yield
+        except ValueError as error:
+            for acquisition_id in ids:
+                self.record_ingest_result(acquisition_id, error)
+            raise
+        for acquisition_id in ids:
+            self.record_ingest_result(acquisition_id, None)
+
+    def counts(self, acquisition_id: str) -> ReceiptCounts:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT source_record_count, normalized_scalar_count, ingested_claim_count "
+                "FROM acquisition_request WHERE acquisition_id=?",
+                (acquisition_id,),
+            ).fetchone()
+        if row is None:
+            raise LookupError("acquisition_not_found")
+        return ReceiptCounts(row[0], row[1], row[2])
+
     def _receive(
-        self, acquisition_id: str, raw: bytes, received_at: datetime, started_at: datetime
+        self,
+        acquisition_id: str,
+        raw: bytes,
+        received_at: datetime,
+        started_at: datetime,
+        *,
+        records: int | None = None,
     ) -> None:
         _check_time(received_at, started_at)
         if not isinstance(raw, bytes):
@@ -451,9 +543,9 @@ class AcquisitionRepository:
         )
         with self._connect() as connection:
             connection.execute(
-                """UPDATE acquisition_request SET raw_hash=?
+                """UPDATE acquisition_request SET raw_hash=?, source_record_count=?
                    WHERE acquisition_id=? AND state='received'""",
-                (artifact.content_hash, acquisition_id),
+                (artifact.content_hash, records, acquisition_id),
             )
 
     def get(self, acquisition_id: str) -> AcquisitionReceipt:
@@ -597,7 +689,8 @@ BEFORE DELETE ON source_claim_acquisition BEGIN
 END;
 """
 
-# Every column but the ingest result: a terminal receipt never changes them.
+# Every column but the ingest result: a terminal receipt never changes them. ``row_count`` is
+# no longer written: it mixed source rows with normalized values (lookback 06).
 _TERMINAL_COLUMNS = (
     "acquisition_id",
     "provider",
@@ -615,14 +708,20 @@ _TERMINAL_COLUMNS = (
     "row_count",
     "structure_check",
     "rejection_reason",
+    "source_record_count",
+    "normalized_scalar_count",
 )
+# Written once, together, on a validated receipt.
+_INGEST_COLUMNS = ("ingest_result", "ingest_rejection_reason", "ingested_claim_count")
+_COUNT_COLUMNS = ("source_record_count", "normalized_scalar_count", "ingested_claim_count")
 
 
-def add_ingest_result_columns(connection: sqlite3.Connection) -> None:
-    """Let a validated receipt record its ingest result once; safe to repeat.
+def add_receipt_columns(connection: sqlite3.Connection) -> None:
+    """Let a validated receipt record its ingest result once, and every receipt its counts;
+    safe to repeat.
 
-    The terminal guard is narrowed to the other columns, and a second guard lets the two
-    ingest columns be written only while still empty on a validated receipt.
+    The terminal guard is narrowed to the other columns, and a second guard lets the ingest
+    columns be written only while still empty on a validated receipt.
     """
     existing = {str(row[1]) for row in connection.execute("PRAGMA table_info(acquisition_request)")}
     if not existing:
@@ -630,6 +729,9 @@ def add_ingest_result_columns(connection: sqlite3.Connection) -> None:
     for column in ("ingest_result", "ingest_rejection_reason"):
         if column not in existing:
             connection.execute(f"ALTER TABLE acquisition_request ADD COLUMN {column} TEXT")
+    for column in _COUNT_COLUMNS:
+        if column not in existing:
+            connection.execute(f"ALTER TABLE acquisition_request ADD COLUMN {column} INTEGER")
     guard = connection.execute(
         "SELECT sql FROM sqlite_master WHERE type='trigger' "
         "AND name='acquisition_request_terminal_no_update'"
@@ -640,9 +742,9 @@ def add_ingest_result_columns(connection: sqlite3.Connection) -> None:
     ).fetchone()
     if (
         guard is not None
-        and "UPDATE OF" in str(guard[0])
+        and "normalized_scalar_count" in str(guard[0])
         and once is not None
-        and "NEW.ingest_result IS NULL" in str(once[0])
+        and "NEW.ingested_claim_count IS NULL" in str(once[0])
     ):
         return
     connection.execute("DROP TRIGGER IF EXISTS acquisition_request_terminal_no_update")
@@ -652,12 +754,13 @@ def add_ingest_result_columns(connection: sqlite3.Connection) -> None:
         + " ON acquisition_request WHEN OLD.state IN ('validated', 'failed') BEGIN "
         "SELECT RAISE(ABORT, 'acquisition_receipt_is_immutable'); END"
     )
-    # Both ingest columns are written once, together, and only on a validated receipt.
     connection.execute("DROP TRIGGER IF EXISTS acquisition_request_ingest_result_once")
     connection.execute(
         "CREATE TRIGGER acquisition_request_ingest_result_once BEFORE UPDATE OF "
-        "ingest_result, ingest_rejection_reason ON acquisition_request "
+        + ", ".join(_INGEST_COLUMNS)
+        + " ON acquisition_request "
         "WHEN OLD.state <> 'validated' OR OLD.ingest_result IS NOT NULL "
-        "OR OLD.ingest_rejection_reason IS NOT NULL OR NEW.ingest_result IS NULL BEGIN "
+        "OR OLD.ingest_rejection_reason IS NOT NULL OR OLD.ingested_claim_count IS NOT NULL "
+        "OR NEW.ingest_result IS NULL OR NEW.ingested_claim_count IS NULL BEGIN "
         "SELECT RAISE(ABORT, 'acquisition_ingest_result_is_immutable'); END"
     )

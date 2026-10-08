@@ -510,6 +510,7 @@ def ingest_official_context_document(
         parse=parse,
         normalize=asdict,
         clock=clock,
+        count_scalars=lambda release: len(release.scalars),
     )
     return ingest_acquired_official_release(
         paths, acquired, definition_version=definition_version, clock=clock
@@ -850,6 +851,7 @@ def refresh_official_context_document(
             parse=parse,
             normalize=asdict,
             on_started=started,
+            count_scalars=lambda release: len(release.scalars),
         )
         stage[0] = "ingest"
         return ingest_acquired_official_release(

@@ -19,7 +19,7 @@ from pring_cycle.acquisition import (
     AcquisitionReceipt,
     AcquisitionRepository,
     acquisition_analysis_context,
-    add_ingest_result_columns,
+    add_receipt_columns,
     batch_analysis_context,
     receipt_from_row,
 )
@@ -1502,7 +1502,7 @@ class EvidenceRepository:
             connection.executescript(_EVIDENCE_INDEX_EXTENSIONS_SCHEMA)
             connection.executescript(ACQUISITION_SCHEMA)
             add_batch_columns(connection)
-            add_ingest_result_columns(connection)
+            add_receipt_columns(connection)
             add_inferred_public_time(connection)
 
     @contextmanager
