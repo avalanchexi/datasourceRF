@@ -21,4 +21,4 @@
 - 关键指标与读法：[key-indicators.md](key-indicators.md)；六阶段预期表、通用规则、债券归因、供需规则与扩充准入：[expectation-table.md](expectation-table.md)；决定汇总：[ADR-0037](../../docs/adr/0037-confirmation-counts-key-indicators-against-stage-narrative.md)；术语见 `CONTEXT.md`。
 - 用户方向：**先集中把普林格模型设计准确**，首页原型与页面改造暂缓。
 
-**规格**：[spec.md](spec.md)（2026-10-07）。**下一步**：01—11 全部完成（2026-10-08），验收见 [acceptance-20261008.md](acceptance-20261008.md)。待用户分流：真实运行暴露的回看历史期取数缺陷（验收记录第五节），建议另开 needs-triage 票。
+**规格**：[spec.md](spec.md)（2026-10-07）。**下一步**：01—11 全部完成（2026-10-08），验收见 [acceptance-20261008.md](acceptance-20261008.md)。取数缺口已开票（[lookback-fetch-gaps-20261008](../lookback-fetch-gaps-20261008/README.md)，needs-triage）。原文：待用户分流：真实运行暴露的回看历史期取数缺陷（验收记录第五节），建议另开 needs-triage 票。
