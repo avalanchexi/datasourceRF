@@ -4,6 +4,7 @@ answer normalized into, and the claims that entered the evidence store (lookback
 from __future__ import annotations
 
 import json
+import sqlite3
 from dataclasses import asdict
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -24,6 +25,7 @@ from pring_cycle.official_context import (
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_API_IDENTITIES, TushareCoreAdapter
+from pring_cycle.storage import SCHEMA_HEAD, _alembic_configuration, migrate_database
 from pring_cycle.tushare_context import TushareContextAdapter
 from tests.integration.test_context_acquisition_receipts import cpi_document, index_response
 from tests.integration.test_core_history_refresh import historical_response
@@ -330,6 +332,64 @@ def test_a_core_dropped_after_a_later_failure_says_no_ingest_result(tmp_path: Pa
     assert set(ingested.values()) == {"accepted"}
 
 
+def _upgrade(database: Path, revision: str) -> None:
+    """``migrate_database`` stopped at ``revision``."""
+    from alembic import command
+    from sqlalchemy import create_engine
+
+    configuration = _alembic_configuration()
+    engine = create_engine(f"sqlite+pysqlite:///{database}")
+    try:
+        with engine.connect() as connection:
+            configuration.attributes["connection"] = connection
+            command.upgrade(configuration, revision)
+    finally:
+        engine.dispose()
+
+
+def _receipt_schema(database: Path) -> tuple[frozenset[tuple[str, str]], frozenset[str]]:
+    """The receipt table's columns and its triggers' definitions."""
+    with sqlite3.connect(database) as connection:
+        columns = frozenset(
+            (str(row[1]), str(row[2]))
+            for row in connection.execute("PRAGMA table_info(acquisition_request)")
+        )
+        triggers = frozenset(
+            " ".join(str(row[0]).split())
+            for row in connection.execute(
+                "SELECT sql FROM sqlite_master WHERE type='trigger' "
+                "AND tbl_name='acquisition_request'"
+            )
+        )
+    connection.close()
+    return columns, triggers
+
+
+def test_a_database_upgraded_step_by_step_from_0030_ends_as_a_new_one(tmp_path: Path) -> None:
+    stepwise = tmp_path / "stepwise.sqlite3"
+    _upgrade(stepwise, "0030_claim_matched_quote")
+    columns, _ = _receipt_schema(stepwise)
+    assert not {name for name, _ in columns} & {
+        "ingest_result",
+        "source_record_count",
+        "normalized_scalar_count",
+        "ingested_claim_count",
+    }
+    # 0031 runs the shared helper as it is now, as 0022 runs add_batch_columns: it adds the
+    # count columns already, and 0032 then finds nothing left to do.
+    _upgrade(stepwise, "0031_ingest_result")
+    _upgrade(stepwise, "0032_receipt_counts")
+    fresh = tmp_path / "fresh.sqlite3"
+    migrate_database(fresh)
+
+    assert _receipt_schema(stepwise) == _receipt_schema(fresh)
+    with sqlite3.connect(stepwise) as connection:
+        assert connection.execute("SELECT version_num FROM alembic_version").fetchone() == (
+            SCHEMA_HEAD,
+        )
+    connection.close()
+
+
 # The receipt table and its guards as revision 0031 left them, with one receipt on file.
 _REVISION_0031 = """
 CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY);
@@ -365,10 +425,7 @@ CREATE TRIGGER acquisition_request_ingest_result_once BEFORE UPDATE OF ingest_re
 def test_the_counts_migration_keeps_old_receipts_and_guards_the_new_columns(
     tmp_path: Path,
 ) -> None:
-    import sqlite3
-
     from pring_cycle.acquisition import ACQUISITION_SCHEMA, add_receipt_columns
-    from pring_cycle.storage import SCHEMA_HEAD, migrate_database
 
     database = tmp_path / "runtime.sqlite3"
     with sqlite3.connect(database) as connection:
@@ -379,6 +436,9 @@ def test_the_counts_migration_keeps_old_receipts_and_guards_the_new_columns(
     with sqlite3.connect(database) as connection:
         add_receipt_columns(connection)  # safe to repeat
     connection.close()
+    fresh = tmp_path / "fresh.sqlite3"
+    migrate_database(fresh)
+    assert _receipt_schema(database) == _receipt_schema(fresh)
 
     with sqlite3.connect(database) as connection:
         assert connection.execute("SELECT version_num FROM alembic_version").fetchone() == (

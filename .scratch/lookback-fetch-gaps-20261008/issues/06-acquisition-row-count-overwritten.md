@@ -28,3 +28,12 @@ Type: task
 - **测试**：新增 `tests/integration/test_receipt_counts.py` 12 例（TuShare 多字段 2 行→2/16/16、GDP 包装 2 行→2/8/8、入库拒收→关联 0、解析拒收仍记来源行数、HTML→NULL、已持有成员过滤→入库少于标量、EIA JSON、运行审计、跨年核心中途失败不误记、延迟校验拒绝计数回调×2、0031→0032 迁移含重复执行／failed 收据／不完整首写）；改 `test_processing_batch.py`（断言三数）、`test_media_page_values.py`（日期拒收记入库结果）、`test_database_lifetime.py`（schema head）。受影响测试 76 个文件 1265 passed，2595.8s（共享 `capture` 改动按 testing.md 扩大范围，超出 3 分钟目标）；两例冒烟 2 passed 39.4s；重型 `test_worker_registered_catalog.py` 2 passed 380s、`test_core_carry_forward.py` 2 passed 36s。ruff check／format 通过；mypy 对改动文件无新错误（18 条均在未改动的 `test_core_history_refresh.py`、`test_context_acquisition_receipts.py`，既有）。
 - **审查**：Codex 标准轴、规格轴第一轮均阻断（入库结果在核心／中证／搜索路径缺失、触发器允许不完整首写、延迟校验丢弃计数），已修；第二轮阻断为对上一轮修复的缺陷（跨年核心错误归因、搜索日期拒收绕过记录），已修；定向复审"阻断：无"。
 - **未采纳／已知残余**：AI WebSearch 交换与 TuShare 新闻拉取回执不记入库结果（候选与新闻原件可被多次取值，一次性计数会误导；入库情况见候选校验记录）；Cboe CSV 与中国货币网 JSON 快照来源记录数为 NULL（解析器先按日期过滤，不能用选中行冒充来源返回数）；EIA／中证 JSON 被解析拒收时来源记录数为 NULL（仅 TuShare 在解析前计）；`ingested_claim_count` 是关联声明数，含已存在的同身份声明、跨回执共享的声明各计一次，不是新增行数，不可跨回执求和；测试以 PMI 代表多字段 TuShare 行（与 CPI／PPI 同形），未逐一建 CPI／PPI 替身；迁移夹具未含升级前已有入库结果的旧收据（守卫条件对其与本测已有入库结果的情形相同）。
+
+### 2026-10-08 补记：已发布迁移 0031 的改动
+
+主 agent 指出 `0031_ingest_result.py` 被改为调用 `add_receipt_columns`。核实结果与理由：
+
+1. **0031 在 0030 库上的效果与改动前不同**：它现在会提前加上 0032 的三列计数，并建出含这些列的触发器。随后 0032 再调同一助手，什么也不做。两条路径的最终结构一致。
+2. **仓库有同样的先例**：`0022_processing_batches` 与 `0026_structure_check` 都调用 `batches.add_batch_columns`。这个助手自 e9684fe 起也加 0026 的 `structure_check`、`rejection_reason`，所以今天对旧库跑 0022 同样会提前加上 0026 的列，0026 随后什么也不做。迁移调用的是演进中的幂等共享助手，而不是冻结的快照。`add_receipt_columns` 按列存在性补列，并按触发器定义判断是否重建，可重复执行。改名只是让 0031 跟着同一个助手，没有为迁移单独保留一份旧触发器 SQL。
+3. **0032 在跑过旧 0031 的库上能补齐**：`test_the_counts_migration_keeps_old_receipts_and_guards_the_new_columns` 手建旧 0031 的表、触发器与收据，升级后验证列、守卫、旧值，并断言结构与新库一致。
+4. **两条升级路径都有测试**：新增 `test_a_database_upgraded_step_by_step_from_0030_ends_as_a_new_one`。它从空库升到 0030，确认还没有入库与计数列，再逐级升到 0031、0032，断言列与触发器定义和新库一致。`test_receipt_counts.py` 共 13 passed，5.5s。
