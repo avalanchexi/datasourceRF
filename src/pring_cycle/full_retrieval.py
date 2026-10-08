@@ -31,7 +31,7 @@ from pring_cycle.full_run_requirements import (
 from pring_cycle.metric_contracts import evidence_frequency, required_dimension_members
 from pring_cycle.models import ModelRepository
 from pring_cycle.official_context import official_family_for_metrics
-from pring_cycle.official_listing import is_release_listing
+from pring_cycle.official_listing import is_release_listing, release_listing
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.retrieval import (
     RetrievalBudget,
@@ -66,7 +66,11 @@ class FullRunRetrieval:
         plan reads the credit lookback as of then, so it asks for nothing that fetch left
         out (ticket 24).
         """
-        from pring_cycle.worker import _production_retrieval_adapters, _retrieval_release_status
+        from pring_cycle.worker import (
+            EARLIER_SESSION,
+            _production_retrieval_adapters,
+            _retrieval_release_status,
+        )
 
         plan = read_full_retrieval_plan(self.paths.database, run.run_id)
         if plan["final"] is not None:
@@ -106,12 +110,14 @@ class FullRunRetrieval:
                 public_as_of=min(known_at, utc_now(), _target_end(run)),
                 latest_only=True,
             )
-            discover_release = release == "unknown_release_configuration" and _has_release_listing(
-                scope
-            )
+            # An earlier session is not searched, but its official listing is still read.
+            discover_release = release in {
+                "unknown_release_configuration",
+                EARLIER_SESSION,
+            } and _has_release_listing(scope)
             if release != "released" and not discover_release:
-                if release == document["release_status"]:
-                    continue
+                # Recorded also when the plan foresaw it: the final plan and the gap list
+                # say why each period went unrequested (lookback L01).
                 runs.record_retrieval_attempt(
                     run.run_id,
                     release_event_id=scope.release_event_id,
@@ -702,6 +708,7 @@ class FullRunRetrieval:
             scoped = replace(run, retrieval_scope=scope)
             if any((metric, scope.period) in bound for metric in scope.metric_ids):
                 ledger.bind_run(scoped, initial["definition_version"])
+        gated = _release_gated(self.paths.database, run.run_id, initial["scopes"], bound)
         for requirement in final_plan["requirements"]:
             if "period" not in requirement:
                 continue
@@ -723,6 +730,11 @@ class FullRunRetrieval:
                     "complete": selection.complete,
                     "selected_claim_ids": list(selection.selected_claim_ids),
                     "missing_members": list(selection.missing_members),
+                    **(
+                        {"release_gate": gated[(metric, period)]}
+                        if not selection.complete and (metric, period) in gated
+                        else {}
+                    ),
                 }
             )
         snapshot = ledger.for_run(run.run_id)
@@ -932,6 +944,35 @@ def read_full_retrieval_plan(database: Path, run_id: str) -> dict[str, Any]:
     return result
 
 
+def _release_gated(
+    database: Path, run_id: str, scopes: list[dict[str, Any]], bound: set[tuple[str, str]]
+) -> dict[tuple[str, str], str]:
+    """Each planned metric and period the release gate kept from being requested, with why.
+
+    One that passed the gate was bound to the ledger (``bound``) before any channel ran.
+    Scopes of one release can share its event, and attempts name only the event: of the
+    gate's reasons recorded for it, a scope takes its own plan's when among them.
+    """
+    reasons: dict[str, list[str]] = {}
+    with database_connection(database) as connection:
+        for event, classification in connection.execute(
+            "SELECT release_event_id, classification FROM run_retrieval_attempt "
+            "WHERE run_id=? AND channel='release_gate' ORDER BY sequence",
+            (run_id,),
+        ):
+            reasons.setdefault(event, []).append(str(classification))
+    gated = {}
+    for document in scopes:
+        recorded = reasons.get(document["release_event_id"])
+        if not recorded:
+            continue
+        reason = document["release_status"]
+        for metric in document["metric_ids"]:
+            if (metric, document["period"]) not in bound:
+                gated[(metric, document["period"])] = reason if reason in recorded else recorded[-1]
+    return gated
+
+
 def _scope(document: dict[str, Any]) -> RetrievalScope:
     return RetrievalScope(
         document["release_event_id"],
@@ -956,10 +997,10 @@ def _official_candidate(definitions: tuple[MetricDefinition, ...]) -> str | None
     if any(item.definition_version in BUILTIN_CATALOG_VERSIONS for item in definitions):
         return None
     try:
-        official_family_for_metrics(tuple(item.metric_id for item in definitions))
+        family = official_family_for_metrics(tuple(item.metric_id for item in definitions))
     except ValueError:
         return None
-    return next(
+    url = next(
         (
             url
             for url in definitions[0].source_candidates
@@ -968,6 +1009,10 @@ def _official_candidate(definitions: tuple[MetricDefinition, ...]) -> str | None
         ),
         None,
     )
+    if url is None:
+        return None
+    # The listing the release is read from: metrics one release states are one request.
+    return release_listing(family, url) or url
 
 
 def _has_release_listing(scope: RetrievalScope) -> bool:

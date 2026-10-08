@@ -153,7 +153,15 @@ def test_money_fallback_keeps_required_members_and_delivery_provenance(
     )
     run = runs.advance(submitted.run_id, "refreshing_evidence")
     FullRunRetrieval(paths).retrieve(run)
-    assert (ARTICLE in requested) == (not delivered)
+    # The report also carries loans, whose scope reads it whatever money holds (lookback
+    # L01): only money's own reads follow what TuShare delivered.
+    assert ARTICLE in requested
+    money_reads = {
+        r.parameters["source_url"]
+        for r in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if r.parameters.get("family") == "pbc_money"
+    }
+    assert (ARTICLE in money_reads) == (not delivered)
     after = series()
     if delivered:
         assert {p.selected_claim_id for p in after} == selected
@@ -179,8 +187,10 @@ def test_money_fallback_keeps_required_members_and_delivery_provenance(
         attempt = evidence.latest_retrieval_attempt(
             "CN_M1_M2", period="2026-07", as_of=datetime.now(UTC), definition_version=version
         )
-        assert attempt is not None and attempt.outcome == "source_failed"
-        assert attempt.safe_metadata["error_type"] == "OSError"
+        # The loans' scope reads the same report first. A run's retries of one page count
+        # across families: money's own read fails, and its retry is held back and says so.
+        assert attempt is not None and attempt.outcome == "not_attempted"
+        assert attempt.safe_metadata["condition"] == "negative_cache_active"
         acquisitions = {
             r.acquisition_id
             for r in AcquisitionRepository(paths.database, paths.artifacts).history()

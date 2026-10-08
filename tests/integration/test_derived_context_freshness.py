@@ -544,3 +544,71 @@ def test_a_parent_held_not_at_all_takes_its_periods_from_the_plan() -> None:
             "reason": "missing_periods",
         }
     ]
+
+
+def test_a_period_the_release_gate_kept_from_being_requested_is_listed_with_why() -> None:
+    """Lookback L01: a history period planned and never requested was skipped silently.
+    Each such period is named on its metric's gap with the gate's reason, a metric listed
+    for another reason keeping its row."""
+    listed = {
+        "metric_id": "CN_PPI",
+        "priority": "P1",
+        "category": "freshness_gap",
+        "reason": "one_period_behind_carried",
+        "due_period": "2026-08-31",
+        "held_period": "2026-07-31",
+        "periods_behind": 1,
+        "no_web_fallback": False,
+    }
+
+    gaps = add_projection_gaps(
+        (listed,),
+        (),
+        derived_requirements=(),
+        plan_gaps=(
+            {
+                "complete": False,
+                "metric_id": "CN_DR007",
+                "period": "2026-08-24",
+                "release_gate": "earlier_session_not_searched",
+            },
+            {"complete": False, "metric_id": "CN_DR007", "period": "2026-08-25"},
+            {
+                "complete": False,
+                "metric_id": "CN_DR007",
+                "period": "2026-08-21",
+                "release_gate": "earlier_session_not_searched",
+            },
+            {
+                "complete": False,
+                "metric_id": "CN_PPI",
+                "period": "2025-08",
+                "release_gate": "unknown_release_configuration",
+            },
+            # Complete after all: nothing is owed.
+            {
+                "complete": True,
+                "metric_id": "CN_M1_M2",
+                "period": "2026-07",
+                "release_gate": "unknown_release_configuration",
+            },
+        ),
+        definitions=metric_catalog_v0003(),
+    )
+
+    by_metric = {gap["metric_id"]: gap for gap in gaps}
+    assert set(by_metric) == {"CN_DR007", "CN_PPI"}
+    dr007 = by_metric["CN_DR007"]
+    assert (dr007["category"], dr007["reason"]) == ("missing", "period_not_requested")
+    assert dr007["not_requested"] == [
+        {"period": "2026-08-24", "reason": "earlier_session_not_searched"},
+        {"period": "2026-08-21", "reason": "earlier_session_not_searched"},
+    ]
+    ppi = by_metric["CN_PPI"]
+    assert (ppi["category"], ppi["reason"]) == ("freshness_gap", "one_period_behind_carried")
+    assert ppi["not_requested"] == [
+        {"period": "2025-08", "reason": "unknown_release_configuration"}
+    ]
+    page = str(_gap_list(gaps))
+    assert "未请求 2 期 2026-08-21 至 2026-08-24（较早交易日不逐日检索）" in page
+    assert "未请求 2025-08（发布规则未登记）" in page

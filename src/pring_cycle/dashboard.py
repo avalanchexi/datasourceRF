@@ -326,6 +326,31 @@ def _failed_members(value: object) -> str:
     )
 
 
+RELEASE_GATE_LABELS = {
+    "earlier_session_not_searched": "较早交易日不逐日检索",
+    "unknown_release_configuration": "发布规则未登记",
+    "awaiting_release": "等待发布",
+}
+
+
+def _not_requested(value: object) -> str:
+    """The periods the release gate kept from being requested, by why (lookback L01): a
+    daily series' earlier sessions are many, so several are given as a count and span."""
+    by_reason: dict[str, list[str]] = {}
+    for item in _document_list(value):
+        by_reason.setdefault(str(item.get("reason")), []).append(str(item.get("period")))
+    return "".join(
+        "；未请求 "
+        + (
+            periods[0]
+            if len(periods) == 1
+            else f"{len(periods)} 期 {min(periods)} 至 {max(periods)}"
+        )
+        + f"（{RELEASE_GATE_LABELS.get(reason, reason)}）"
+        for reason, periods in by_reason.items()
+    )
+
+
 def _gap_list(value: object) -> html.Div:
     """One row per gap, grouped under its category, in the order the batch listed them."""
     gaps = _document_list(value)
@@ -352,6 +377,7 @@ def _gap_list(value: object) -> html.Div:
                                     )
                                     + _candidate_reasons(item.get("candidates"))
                                     + _failed_members(item.get("failed_members"))
+                                    + _not_requested(item.get("not_requested"))
                                     + (
                                         "；来源复核失败"
                                         if item.get("source_failures")

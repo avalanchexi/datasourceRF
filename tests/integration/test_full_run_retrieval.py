@@ -465,6 +465,113 @@ def test_full_run_plan_includes_missing_historical_daily_members(
     assert min(item["period"] for item in dr007) == "2026-03-16"
 
 
+def test_a_period_the_release_gate_skips_is_recorded_and_listed_with_why(
+    tmp_path: Path,
+) -> None:
+    """Lookback L01: a planned period the release gate kept from being requested was
+    skipped silently. DR007's earlier sessions are not searched day by day (ticket 19);
+    each skip is a recorded gate attempt, and the final plan and gap list say why."""
+    paths, runs = prepare(tmp_path)
+    seed_core_history(paths)
+    run = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="gated-history",
+        model_version_id="model-v0001",
+        system_as_of=datetime.now(UTC),
+    )
+    process_pending_run(paths, report_adapters=())
+
+    stored = runs.get(run.run_id)
+    assert stored.status == "completed", stored.error_classification
+    gated = [
+        attempt
+        for attempt in stored.retrieval_attempts
+        if attempt["channel"] == "release_gate"
+        and attempt["classification"] == "earlier_session_not_searched"
+    ]
+    plan = runs.full_retrieval_plan(run.run_id)
+    foreseen = [
+        scope
+        for scope in plan["initial"]["scopes"]
+        if scope["release_status"] == "earlier_session_not_searched"
+    ]
+    # Each daily session before the newest, recorded although the plan foresaw it.
+    assert sum(scope["metric_ids"] == ["CN_DR007"] for scope in foreseen) == 119
+    assert len(gated) == len(foreseen)
+    assert all(attempt["outcome"] == "not_attempted" for attempt in gated)
+    final = plan["final"]
+    dr007 = {gap["period"]: gap for gap in final["gaps"] if gap["metric_id"] == "CN_DR007"}
+    assert dr007["2026-03-16"]["release_gate"] == "earlier_session_not_searched"
+    # The newest session was requested: no gate stood in its way.
+    assert "release_gate" not in dr007["2026-08-28"]
+    projection = ProjectionSetRepository(paths.database).current()
+    (listed,) = (
+        gap
+        for gap in projection.datasets["cycle_overview"]["gap_list"]
+        if gap["metric_id"] == "CN_DR007"
+    )
+    assert len(listed["not_requested"]) == 119
+    assert listed["not_requested"][0] == {
+        "period": "2026-03-16",
+        "reason": "earlier_session_not_searched",
+    }
+
+
+@pytest.mark.parametrize("gated_first", [True, False])
+def test_scopes_sharing_a_release_event_keep_their_own_release_gate(
+    tmp_path: Path, gated_first: bool
+) -> None:
+    """Two scopes of one release share its event, and attempts name only the event: what
+    passed the gate is what the ledger bound, whichever came first."""
+    from pring_cycle.full_retrieval import _release_gated
+
+    paths, runs = prepare(tmp_path)
+    run = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="shared-event",
+        model_version_id="model-v0001",
+        system_as_of=datetime.now(UTC),
+    )
+    event = "full:pbc_social_financing:2026-06"
+    gated = {
+        "release_event_id": event,
+        "metric_ids": ["CN_SF_COMPONENTS"],
+        "period": "2026-06",
+        "priority": "P1",
+        "source_url": None,
+        "members": [],
+        "release_status": "unknown_release_configuration",
+    }
+    requested = {
+        **gated,
+        "metric_ids": ["CN_SF_TOTAL"],
+        "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html",
+        "release_status": "released",
+    }
+    FullRunRetrieval(paths)._record(run.run_id, "initial", {"scopes": [gated, requested]})
+    attempts = [("release_gate", "unknown_release_configuration"), ("official", None)]
+    for channel, classification in attempts if gated_first else attempts[::-1]:
+        runs.record_retrieval_attempt(
+            run.run_id,
+            release_event_id=event,
+            channel=channel,
+            outcome="not_attempted" if channel == "release_gate" else "not_found",
+            classification=classification,
+            latency_ms=0,
+            remaining_run_budget=None,
+            remaining_daily_budget=None,
+            budget_charged=False,
+            cache_hit=False,
+            manual_budget_exemption=False,
+            candidate_source=None,
+            occurred_at=datetime.now(UTC),
+        )
+
+    assert _release_gated(
+        paths.database, run.run_id, [gated, requested], {("CN_SF_TOTAL", "2026-06")}
+    ) == {("CN_SF_COMPONENTS", "2026-06"): "unknown_release_configuration"}
+
+
 def test_full_run_adoption_excludes_uncertified_candidates(tmp_path: Path) -> None:
     paths, runs = prepare(tmp_path)
     seed_core_history(paths)

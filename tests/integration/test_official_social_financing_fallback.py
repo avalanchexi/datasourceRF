@@ -199,12 +199,31 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
     )
     run = runs.advance(submitted.run_id, "refreshing_evidence")
     FullRunRetrieval(paths).retrieve(run)
-    assert (ARTICLE in requested) == (not delivered and official_state != "no_matching_period")
+    # The components' scope reads the report whatever TuShare delivered of the total: the
+    # statistics directory it registers is read through the report's listing (lookback L01).
+    assert (ARTICLE in requested) == (official_state != "no_matching_period")
+    # The total and its components are one release: one scope, read through one listing.
+    (july,) = (
+        scope
+        for scope in runs.full_retrieval_plan(run.run_id)["initial"]["scopes"]
+        if scope["period"] == "2026-07"
+        and {"CN_SF_TOTAL", "CN_SF_COMPONENTS"} & set(scope["metric_ids"])
+    )
+    assert july["source_url"] == LISTING
+    assert july["metric_ids"] == (
+        ["CN_SF_COMPONENTS"] if delivered else ["CN_SF_COMPONENTS", "CN_SF_TOTAL"]
+    )
     points = series()
     expected = (
         {
             "stock_end": ("2026-07-01", "2026-07-31", 4600000.0),
             "ytd_increment": ("2026-01-01", "2026-07-31", 220000.0),
+            # What TuShare does not deliver comes from the report the components' scope read.
+            **(
+                {"stock_yoy": ("2026-07-01", "2026-07-31", 7.4)}
+                if official_state == "available"
+                else {}
+            ),
         }
         if delivered
         else {
@@ -218,13 +237,20 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
     assert {
         p.dimensions["measure"]: (p.period_start, p.period_end, p.selected_value) for p in points
     } == expected
+    # What TuShare delivered stands.
+    delivered_points = [
+        p for p in points if p.dimensions["measure"] != "stock_yoy" or not delivered
+    ]
     if delivered:
-        assert {p.selected_claim_id for p in points} == {p.selected_claim_id for p in before}
+        assert {p.selected_claim_id for p in delivered_points} == {
+            p.selected_claim_id for p in before
+        }
     assert official_claims_matching_acquisitions(
         evidence, {"CN_SF_TOTAL": points}, definition_version=version
     ) == {p.selected_claim_id for p in points}
     provider = "tushare" if delivered else "中国人民银行"
-    assert all(c.provider == provider for p in points for c in p.claims)
+    assert all(c.provider == provider for p in delivered_points for c in p.claims)
+    assert {c.provider for p in points for c in p.claims} - {provider} <= {"中国人民银行"}
     # The page fetched for the total states every component too: all of them are stored,
     # not only what the gap asked for (lookback fetch gaps 02).
     components = evidence.metric_series(
@@ -233,7 +259,7 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
         as_of=datetime.now(UTC),
         definition_version=version,
     )
-    assert len(components) == (24 if not delivered and official_state == "available" else 0)
+    assert len(components) == (24 if official_state == "available" else 0)
     assert {c.provider for p in components for c in p.claims} <= {"中国人民银行"}
     if not delivered and official_state in {"transport_failed", "no_matching_period"}:
         transport_failed = official_state == "transport_failed"
@@ -241,10 +267,14 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
             "CN_SF_TOTAL", period="2026-07", as_of=datetime.now(UTC), definition_version=version
         )
         assert attempt is not None
-        assert attempt.outcome == ("source_failed" if transport_failed else "structure_rejected")
-        assert attempt.safe_metadata["error_type"] == (
-            "OSError" if transport_failed else "ValueError"
-        )
+        if transport_failed:
+            # The loans' scope reads the same report first. A run's retries of one page
+            # count across families: this read fails, and its retry is held back and says so.
+            assert attempt.outcome == "not_attempted"
+            assert attempt.safe_metadata["condition"] == "negative_cache_active"
+        else:
+            assert attempt.outcome == "structure_rejected"
+            assert attempt.safe_metadata["error_type"] == "ValueError"
         acquisitions = {
             r.acquisition_id
             for r in AcquisitionRepository(paths.database, paths.artifacts).history()
@@ -270,8 +300,10 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
         assert len(rows) == 1 and rows[0]["claims"] == [] and rows[0]["value"] is None
         return
     assert len(rows) == len(expected)
-    assert_delivered_points(points, provider)
-    assert_delivered_rows(rows, provider)
+    assert_delivered_points(delivered_points, provider)
+    assert_delivered_rows(
+        [r for r in rows if r["dimensions"]["measure"] != "stock_yoy" or not delivered], provider
+    )
 
 
 @pytest.mark.usefixtures("runtime_clock")

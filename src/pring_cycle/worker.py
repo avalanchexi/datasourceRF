@@ -727,11 +727,14 @@ def _retrieval_release_status(
                     metric_id, scope.period, public_cutoff, latest_only=latest_only
                 )
             )
-    if "awaiting_release" in states:
-        return "awaiting_release"
-    return (
-        "unknown_release_configuration" if "unknown_release_configuration" in states else "released"
-    )
+    for state in ("awaiting_release", "unknown_release_configuration", EARLIER_SESSION):
+        if state in states:
+            return state
+    return "released"
+
+
+# A daily series' session before its newest released one, which a full run does not search.
+EARLIER_SESSION = "earlier_session_not_searched"
 
 
 def _registered_release_state(
@@ -739,10 +742,12 @@ def _registered_release_state(
 ) -> str:
     """Whether the freshness registry says ``period`` has been published by ``cutoff``.
 
-    One not yet released is awaiting release and triggers nothing (ticket 19). A full run
-    fills the gap list, which names each metric's newest released period, so with
-    ``latest_only`` an older history period keeps the unknown state and is not searched
-    day by day; a targeted run names its period and is judged on that period alone.
+    One not yet released is awaiting release and triggers nothing (ticket 19). A month or
+    quarter a model's lookback reads back to is judged by its own release rule, like the
+    newest (lookback L01). With ``latest_only`` a full run does not search a daily series
+    day by day, which would be a hundred cascades a run (ticket 19): a session before the
+    newest released one is an earlier session; a targeted run names its period and is
+    judged on that period alone.
     """
     from pring_cycle.freshness import (
         FRESHNESS_REGISTRY,
@@ -765,9 +770,13 @@ def _registered_release_state(
     end = period_end(rule.frequency, first, calendar)
     if release_at(rule, end, calendar) > cutoff:
         return "awaiting_release"
-    if not latest_only or end == latest_released_period(rule, cutoff, calendar):
+    if (
+        not latest_only
+        or rule.frequency != "daily"
+        or end == latest_released_period(rule, cutoff, calendar)
+    ):
         return "released"
-    return "unknown_release_configuration"
+    return EARLIER_SESSION
 
 
 def _production_retrieval_adapters(

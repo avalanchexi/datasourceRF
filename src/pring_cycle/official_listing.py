@@ -7,15 +7,28 @@ from urllib.parse import urljoin, urlsplit
 
 
 def is_release_listing(family: str, source_url: str) -> bool:
+    return release_listing(family, source_url) is not None
+
+
+def release_listing(family: str, source_url: str) -> str | None:
+    """The listing page the family's releases are looked up on, when ``source_url`` is one
+    of its registered listings; None when it is not (a release page itself, say).
+
+    The tool liquidity column is read through its index page: its directory answers 403.
+    The PBC statistics directory lists each year's tables, not releases; the monthly
+    financial statistics report, which carries money, loans and social financing, is
+    listed on the department's page.
+    """
     path = urlsplit(source_url).path
     if family in _NBS_FAMILIES:
-        return path in {"/sj/zxfb/", "/sj/zxfbhjd/"}
+        return source_url if path in {"/sj/zxfb/", "/sj/zxfbhjd/"} else None
     if family == "pbc_omo_notice":
-        return path == _OMO_LISTING
-    return (
-        family in {"pbc_money", "pbc_social_financing"}
-        and path == "/diaochatongjisi/116219/index.html"
-    )
+        return source_url if path == _OMO_LISTING else None
+    if family == "pbc_tool_liquidity_monthly":
+        return urljoin(source_url, "index.html") if path in _TOOL_LIQUIDITY_LISTING else None
+    if family in _PBC_REPORT_FAMILIES and path in {_PBC_STATISTICS_PATH, _PBC_DATA_DIRECTORY}:
+        return urljoin(source_url, _PBC_STATISTICS_PATH)
+    return None
 
 
 class _ReleaseLinks(HTMLParser):
@@ -45,7 +58,23 @@ _OMO_LISTING = "/zhengcehuobisi/125207/125213/125431/125475/index.html"
 _OMO_NOTICE = re.compile(r"/125475/(20\d{6})\d+/index\.html$")
 # Listing pages the NBS release list is followed back through (index, index_1, ...).
 NBS_LISTING_PAGES = 10
-_NBS_FAMILIES = {"nbs_core_cpi", "nbs_ppi", "nbs_pmi", "nbs_gdp", "nbs_industrial_finance"}
+_NBS_FAMILIES = {
+    "nbs_core_cpi",
+    "nbs_ppi",
+    "nbs_pmi",
+    "nbs_gdp",
+    "nbs_industrial_finance",
+    "nbs_industrial_value_added",
+    "nbs_capacity_utilization",
+}
+_TOOL_LIQUIDITY_LISTING = {
+    "/zhengcehuobisi/125207/125213/5727710/",
+    "/zhengcehuobisi/125207/125213/5727710/index.html",
+}
+# The families whose figures the PBC's monthly financial statistics report carries.
+_PBC_REPORT_FAMILIES = {"pbc_money", "pbc_social_financing", "pbc_loan_structure"}
+_PBC_STATISTICS_PATH = "/diaochatongjisi/116219/index.html"
+_PBC_DATA_DIRECTORY = "/diaochatongjisi/116219/116319/index.html"
 _AGGREGATE_MONTHS = {3: "一季度", 6: "上半年", 9: "前三季度", 12: "全年"}
 # Same-period pieces that are not the release itself.
 _NOT_THE_RELEASE = ("解读", "答记者问", "图解", "快报")
@@ -54,7 +83,7 @@ _NOT_THE_RELEASE = ("解读", "答记者问", "图解", "快报")
 def listing_page_url(family: str, listing_url: str, page: int) -> str | None:
     """The ``page``-th page of a release listing; only the NBS list goes back by pages."""
     if page == 0:
-        return listing_url
+        return release_listing(family, listing_url) or listing_url
     if family in _NBS_FAMILIES and page < NBS_LISTING_PAGES:
         return urljoin(listing_url, f"index_{page}.html")
     return None
@@ -71,8 +100,10 @@ def release_titles(family: str, period: str) -> tuple[str, ...]:
 
     if family == "nbs_gdp" and not re.fullmatch(r"[0-9]{4}-Q[1-4]", period):
         raise ValueError("official_context_period_invalid")
-    titles = [search_query((RETRIEVAL_FAMILIES[family].metric_ids[0],), period)]
-    if family in {"pbc_money", "pbc_social_financing"}:
+    # Loans are in the monthly report: listed by its title, not by the search's narrowing.
+    titled = "pbc_money" if family == "pbc_loan_structure" else family
+    titles = [search_query((RETRIEVAL_FAMILIES[titled].metric_ids[0],), period)]
+    if family in _PBC_REPORT_FAMILIES:
         # PBC titles a quarter-end month's report by the quarter; December's by the year.
         aggregate = _AGGREGATE_MONTHS.get(int(period[5:7]))
         if aggregate is not None:

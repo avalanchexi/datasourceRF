@@ -7,8 +7,9 @@ import hashlib
 import json
 import sqlite3
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -26,6 +27,7 @@ from tests.fixtures.model_registration import (
     save,
     submit,
 )
+from tests.integration.test_trading_calendar import record_sse_calendar
 
 # The newest model, whatever it is numbered.
 CURRENT_MODEL = str(effective_model_manifest()["model_version_id"])
@@ -408,3 +410,159 @@ def test_the_day_s_notice_stores_its_rate_beside_the_amount_while_an_older_rate_
         "CN_OMO_7D_RATE": {"2026-09-23": 1.4, "2026-09-24": 1.4},
         "CN_OMO_7D_AMOUNT": {"2026-09-23": 80.0, "2026-09-24": 515.0},
     }
+
+
+TOOLS = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/"
+TOOLS_JULY = TOOLS + "2026080416515912098/index.html"
+TOOLS_AUGUST = TOOLS + "2026090214213398506/index.html"
+
+
+def _confirmation_model(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str]
+) -> tuple[dict[str, Any], str]:
+    """A registered model reading the stage narrative's key indicators (model-v0015)."""
+    from pring_cycle.confirmation import MANIFEST_FIELDS
+    from pring_cycle.models import model_v0015_manifest
+
+    request, _ = prepared_request(paths)
+    new = model_v0015_manifest()
+    request["manifest"].update({field: new[field] for field in MANIFEST_FIELDS})
+    submit(paths, save(paths, request))
+    return request, json.loads(capsys.readouterr().out)["model_version_id"]
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_history_month_the_lookback_reads_is_requested_through_its_listing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Lookback L01: a month the stage narrative reads back to, older than the newest out,
+    was held as unknown publication and never requested. It is out by its own release
+    rule: its release is looked up on the column's listing, and what came back is kept."""
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, model_id = _confirmation_model(paths, capsys)
+    august_page = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair/evidence-13"
+        / "4d104698df655c19c27e4a697ef4bd55cc1c0b30ad9aae265e7db3c955bc90c2"
+    )
+    documents = {
+        TOOLS + "index.html": FIXTURES / "official_listing" / "pbc_5727710_index_20260925.html",
+        TOOLS_AUGUST: august_page,
+    }
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        requested.append(url)
+        if url not in documents:
+            raise OSError("fixture_official_page_unavailable")
+        return FetchedOfficialContextDocument(documents[url].read_bytes(), "text/html", url, 200)
+
+    monkeypatch.setattr("pring_cycle.official_context._fetch_official_context_document", fetch)
+    runs = RunRepository(paths.database)
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-09-10",
+        client_request_id="tool-liquidity-history",
+        model_version_id=model_id,
+        system_as_of=datetime.now(UTC),
+    )
+    run = runs.advance(submitted.run_id, "refreshing_evidence")
+
+    FullRunRetrieval(paths).retrieve(run)
+
+    plan = runs.full_retrieval_plan(run.run_id)["initial"]
+    assert {
+        s["period"]: s["release_status"]
+        for s in plan["scopes"]
+        if s["metric_ids"] == ["CN_TOOL_LIQUIDITY_MONTHLY"]
+    } == {"2026-06": "released", "2026-07": "released", "2026-08": "released"}
+    reads = [
+        (r.parameters["period"], r.api_name, r.parameters["source_url"], r.state)
+        for r in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if r.parameters.get("family") == "pbc_tool_liquidity_monthly"
+    ]
+    # July's release is requested; the fixture does not serve it, and the receipt says so.
+    assert reads[
+        reads.index(("2026-07", "official_listing_get", TOOLS + "index.html", "validated")) + 1
+    ] == (
+        "2026-07",
+        "official_http_get",
+        TOOLS_JULY,
+        "failed",
+    )
+    assert ("2026-08", "official_http_get", TOOLS_AUGUST, "validated") in reads
+    # The column's directory, which answers 403, is never read.
+    assert TOOLS not in requested
+    august = EvidenceRepository(paths.database).metric_series(
+        "CN_TOOL_LIQUIDITY_MONTHLY",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime.now(UTC),
+        definition_version=request["manifest"]["metric_catalog_version"],
+    )
+    assert {point.period_end for point in august} == {"2026-08-31"}
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_an_earlier_reverse_repo_day_is_still_looked_up_on_the_omo_column(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An earlier session is not searched day by day (ticket 19), but a release listing
+    can still establish it: the OMO column is read for each, the cascade stays shut."""
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    _request, model_id = _confirmation_model(paths, capsys)
+    # The window's 120 sessions, so the OMO amount is read on every one of them.
+    first = date(2026, 3, 2)
+    record_sse_calendar(
+        paths,
+        (
+            day
+            for n in range((date(2026, 9, 24) - first).days + 1)
+            if (day := first + timedelta(days=n)).weekday() < 5
+        ),
+    )
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        if url not in OMO_DOCUMENTS:
+            raise OSError("fixture_official_page_unavailable")
+        return FetchedOfficialContextDocument(
+            OMO_DOCUMENTS[url].read_bytes(), "text/html", url, 200
+        )
+
+    monkeypatch.setattr("pring_cycle.official_context._fetch_official_context_document", fetch)
+    runs = RunRepository(paths.database)
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-09-24",
+        client_request_id="omo-earlier-session",
+        model_version_id=model_id,
+        system_as_of=datetime.now(UTC),
+    )
+    run = runs.advance(submitted.run_id, "refreshing_evidence")
+
+    FullRunRetrieval(paths).retrieve(run)
+
+    plan = runs.full_retrieval_plan(run.run_id)["initial"]
+    (earlier,) = (
+        scope
+        for scope in plan["scopes"]
+        if "CN_OMO_7D_AMOUNT" in scope["metric_ids"] and scope["period"] == "2026-09-23"
+    )
+    assert earlier["release_status"] == "earlier_session_not_searched"
+    reads = [
+        (r.api_name, r.parameters["source_url"])
+        for r in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if r.parameters.get("family") == "pbc_omo_notice" and r.parameters["period"] == "2026-09-23"
+    ]
+    assert reads[0] == ("official_listing_get", OMO_COLUMN + "index.html")
+    assert ("official_http_get", OMO_REPO) in reads
+    with sqlite3.connect(paths.database) as connection:
+        outcomes = dict(
+            connection.execute(
+                "SELECT channel, outcome FROM run_retrieval_attempt "
+                "WHERE run_id=? AND release_event_id=?",
+                (run.run_id, earlier["release_event_id"]),
+            ).fetchall()
+        )
+    # Only the official listing was open to it; no channel searched.
+    assert outcomes.pop("official") == "verified"
+    assert set(outcomes.values()) == {"not_configured"}

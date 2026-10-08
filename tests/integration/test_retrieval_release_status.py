@@ -95,6 +95,35 @@ def test_shared_reads_give_the_status_each_fresh_read_gives(
     assert fresh[-1] == "awaiting_release"  # September's is fixed on the 21st
 
 
+@pytest.mark.parametrize(
+    ("metric_id", "period", "expected"),
+    [
+        # A month a model's lookback reads back to, out by its own release rule (L01).
+        ("CN_INDUSTRIAL_VA", "2025-08", "released"),
+        ("CN_CAPACITY_UTILIZATION", "2025-Q3", "released"),
+        ("CN_TOOL_LIQUIDITY_MONTHLY", "2026-06", "released"),
+        # A month not out yet stays behind the gate.
+        ("CN_INDUSTRIAL_VA", "2026-08", "awaiting_release"),
+        # No release rule to judge it by: an event, or a metric the registry does not know.
+        ("CN_RRR_EVENT", "2026-08-03", "unknown_release_configuration"),
+        ("CN_USDCNH_FXCM", "2026-08-03", "unknown_release_configuration"),
+        # An earlier session of a daily series is not searched day by day (ticket 19).
+        ("CN_DR007", "2026-08-24", "earlier_session_not_searched"),
+    ],
+)
+def test_a_full_run_judges_each_history_period_by_its_own_release_rule(
+    paths: RuntimePaths, metric_id: str, period: str, expected: str
+) -> None:
+    scope = RetrievalScope(f"full:{metric_id}:{period}", (metric_id,), period, "P1", None)
+
+    assert (
+        _retrieval_release_status(
+            paths, scope, CUTOFF, definition_version=VERSION, latest_only=True
+        )
+        == expected
+    )
+
+
 def test_a_public_cutoff_before_the_claims_is_respected_through_shared_reads(
     paths: RuntimePaths,
 ) -> None:

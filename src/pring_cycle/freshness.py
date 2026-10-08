@@ -902,9 +902,11 @@ def add_projection_gaps(
     not adoptable (their original, matched quote, members or registered
     contract failed the family's recheck) gets ``source_failures``; a metric with
     observations whose sources disagree gets ``conflicts``, each with the reason the
-    comparison gave (ADR-0033), also when the selected claim failed too. The list keeps
-    one row per metric: a metric not listed yet is added as ``derived_failed``,
-    ``source_failed`` or ``source_conflict``.
+    comparison gave (ADR-0033), also when the selected claim failed too. A period the
+    run plan could not complete and the release gate kept from being requested gets its
+    metric ``not_requested``, each period with the gate's reason (lookback L01). The list
+    keeps one row per metric: a metric not listed yet is added as ``derived_failed``,
+    ``source_failed``, ``source_conflict`` or, never requested, ``missing``.
     """
     from pring_cycle.retrieval_registry import is_searchable_gap
 
@@ -952,6 +954,14 @@ def add_projection_gaps(
         )
 
     incomplete = [gap for gap in plan_gaps if not gap.get("complete", True)]
+    not_requested: dict[str, list[dict[str, object]]] = {}
+    for gap in incomplete:
+        if gap.get("release_gate") is not None:
+            not_requested.setdefault(str(gap["metric_id"]), []).append(
+                {"period": gap.get("period"), "reason": gap["release_gate"]}
+            )
+    for metric_id, periods in not_requested.items():
+        entry(metric_id, "missing", "period_not_requested")["not_requested"] = periods
     for requirement in derived_requirements:
         metric_id = str(requirement["metric_id"])
         parents = requirement.get("required_input_periods")

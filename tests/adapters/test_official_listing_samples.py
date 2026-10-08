@@ -97,6 +97,104 @@ def test_industrial_finance_is_followed_from_its_registered_listing() -> None:
     )
 
 
+TOOLS = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/"
+PBC_DATA = "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html"
+NBS_READINGS = "https://www.stats.gov.cn/sj/zxfbhjd/"
+
+
+@pytest.mark.parametrize(
+    ("family", "source_url", "listing"),
+    [
+        ("nbs_industrial_value_added", NBS_READINGS, NBS_READINGS),
+        ("nbs_capacity_utilization", NBS_READINGS, NBS_READINGS),
+        # The column's directory answers 403 (five real reads); its index page lists it.
+        ("pbc_tool_liquidity_monthly", TOOLS, TOOLS + "index.html"),
+        ("pbc_tool_liquidity_monthly", TOOLS + "index.html", TOOLS + "index.html"),
+        # The statistics directory lists each year's tables; the monthly report, which
+        # carries loans and social financing, is listed on the department's page.
+        ("pbc_loan_structure", PBC_DATA, PBC),
+        ("pbc_social_financing", PBC_DATA, PBC),
+        ("pbc_social_financing", PBC, PBC),
+        ("pbc_money", PBC, PBC),
+    ],
+)
+def test_each_lookback_family_is_looked_up_on_the_listing_of_its_releases(
+    family: str, source_url: str, listing: str
+) -> None:
+    """Lookback L01: these families' history periods went unrequested, their registered
+    pages not recognized as the listings their releases are found on."""
+    from pring_cycle.official_listing import is_release_listing, listing_page_url, release_listing
+
+    assert is_release_listing(family, source_url)
+    assert release_listing(family, source_url) == listing
+    assert listing_page_url(family, source_url, 0) == listing
+
+
+def test_a_release_page_is_not_a_listing() -> None:
+    from pring_cycle.official_listing import is_release_listing, release_listing
+
+    release = TOOLS + "2026080416515912098/index.html"
+    assert release_listing("pbc_tool_liquidity_monthly", release) is None
+    assert not is_release_listing("pbc_tool_liquidity_monthly", release)
+    assert not is_release_listing("pbc_loan_structure", TOOLS)
+
+
+def test_only_the_nbs_listings_are_followed_back_by_pages() -> None:
+    from pring_cycle.official_listing import listing_page_url
+
+    assert listing_page_url("nbs_industrial_value_added", NBS_READINGS, 1) == (
+        NBS_READINGS + "index_1.html"
+    )
+    assert listing_page_url("pbc_tool_liquidity_monthly", TOOLS, 1) is None
+
+
+@pytest.mark.parametrize(
+    ("family", "name", "listing", "period", "release"),
+    [
+        (
+            "nbs_industrial_value_added",
+            "nbs_zxfbhjd_index_20260924.html",
+            NBS_READINGS,
+            "2026-08",
+            NBS_READINGS + "202609/t20260915_1965308.html",
+        ),
+        (
+            "pbc_tool_liquidity_monthly",
+            "pbc_5727710_index_20260925.html",
+            TOOLS + "index.html",
+            "2026-06",
+            TOOLS + "2026070216555861498/index.html",
+        ),
+        (
+            "pbc_tool_liquidity_monthly",
+            "pbc_5727710_index_20260925.html",
+            TOOLS + "index.html",
+            "2025-11",
+            TOOLS + "5920112/index.html",
+        ),
+        (
+            "pbc_loan_structure",
+            "pbc_116219_index_20260923.html",
+            PBC,
+            "2026-08",
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026091417020862747/index.html",
+        ),
+        # June's report is titled by the half year, for loans as for money.
+        (
+            "pbc_loan_structure",
+            "pbc_116219_index_20260923.html",
+            PBC,
+            "2026-06",
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026071515025183948/index.html",
+        ),
+    ],
+)
+def test_a_lookback_family_s_release_is_selected_on_its_real_listing(
+    family: str, name: str, listing: str, period: str, release: str
+) -> None:
+    assert select(name, family, period, listing) == release
+
+
 OMO = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html"
 
 
