@@ -41,6 +41,13 @@
 - 长任务（全套、真实运行、重型测试）自己守到结束：前台轮询或 Monitor，不要丢在后台就转空闲。
 - 票 09 的全套与真实运行带 C 盘保护：`/tmp/claude-1000/-mnt-d-cursor-datasourceRF/0ddce97e-08f2-4fa9-b673-d3e3fb478c4c/scratchpad/disk_guard.sh <pytest或worker PID> <log> 12`（2026-10-08 实测全套 basetemp 峰值 11G、C 盘最低 51G）。
 
+## 并行规则（2026-10-08 用户要求能并行就并行）
+
+- 可并行的判据：改动的模块不重叠。L01、L04、L03、L05 共用 `worker.py`／`full_retrieval.py`／`official_listing.py`，串行；L08（留存与投影依赖）与它们不重叠，可与之并行。09 在全部完成后。
+- 并行的子代理在**独立 git worktree** 中工作（Agent `isolation: "worktree"`），并用**自己的 venv**：`UV_PROJECT_ENVIRONMENT=$HOME/.local/share/pring-cycle/dev-venv-<票名> uv sync --extra dev --no-editable`，测试用该 venv 的 python 跑 `tools/check.py`；pytest 临时目录用 `PYTEST_ADDOPTS=--basetemp=/tmp/pytest-of-$USER-<票名>` 隔开。共享的 `dev-venv` 只留给主工作区的串行票。
+- **重型测试全局排队**：`flock /tmp/pring-heavy.lock <命令>`（重型两例、`check.py full`、真实运行都要），同一时刻只跑一个。
+- worktree 里的票在自己的分支上提交；收尾前 `git rebase main` 并确认受影响测试仍通过，回报分支名，由主 agent 在主工作区 `git merge --ff-only` 并入 main。
+
 ## 约束
 
 - 外部真实调用（TuShare、官网、检索）一律串行，普通回归保持离线。
