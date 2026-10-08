@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent
 Category: bug
 Type: task
 
@@ -19,3 +19,9 @@ run-8a3779cff80f6bd586a0 的最终计划中，`CN_CREDIT_IMPULSE` 的 `input_cov
 ## 验收草案
 
 - [ ] 替身：公式用到的成员齐全，同家族另有一个不用的成员缺期；断言标志为 true（或改名后语义一致）。
+
+## Comments
+
+### 2026-10-09 分流
+
+按 goal-round2.md 预设决定实施。

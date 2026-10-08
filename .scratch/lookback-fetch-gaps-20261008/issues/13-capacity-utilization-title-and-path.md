@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent
 Category: bug
 Type: task
 
@@ -22,3 +22,9 @@ run-8a3779cff80f6bd586a0 中，产能利用率 2026-Q1（`quarter_rate`、`yoy_c
 
 - [ ] 用真实列表原件（含"规模以上"标题）做替身，能选出 2026-Q1、2025-Q2 的发布稿。
 - [ ] `/zwfwck/sjfb/` 下的统计局发布稿能通过白名单，并经期次校验。
+
+## Comments
+
+### 2026-10-09 分流
+
+按 goal-round2.md 预设决定实施。

@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent
 Category: bug
 Type: task
 
@@ -22,3 +22,9 @@ run-8a3779cff80f6bd586a0 中，社融存量同比（`CN_SF_TOTAL measure=stock_y
 
 - [ ] 用真实 2025-07 列表与社融存量报告原件做替身，能取到存量同比。
 - [ ] AI 候选的引句同时含金额和同比、而缺的是同比时，入库的是同比。
+
+## Comments
+
+### 2026-10-09 分流
+
+按 goal-round2.md 预设决定实施。

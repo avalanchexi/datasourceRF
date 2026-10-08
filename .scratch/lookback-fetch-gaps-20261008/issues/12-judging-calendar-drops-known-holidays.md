@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent
 Category: bug
 Type: task
 
@@ -24,3 +24,9 @@ run-8a3779cff80f6bd586a0 的目标日为 2026-09-30，取数截止冻结在北�
 
 - [ ] 替身：日历回执覆盖到 T，截止日为 T+1，窗口末日与 T 之间有长假；断言假期内不计交易日，日频指标判为 `current`。
 - [ ] 截止日完全在已存日历内时，行为不变。
+
+## Comments
+
+### 2026-10-09 分流
+
+按 goal-round2.md 预设决定实施。

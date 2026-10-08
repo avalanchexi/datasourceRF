@@ -70,3 +70,10 @@
 
 | 线 | 票 | 状态 | 提交 |
 |---|---|---|---|
+| A | 12 | ready-for-agent | |
+| A | 16 | ready-for-agent | |
+| A | 11 | ready-for-agent | |
+| B | 13 | ready-for-agent | |
+| B | 14 | ready-for-agent | |
+| C | 15 | ready-for-agent | |
+| — | 17 验收 | 阻塞于 11–16 | |

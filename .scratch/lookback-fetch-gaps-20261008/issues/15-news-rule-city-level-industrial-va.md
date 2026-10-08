@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent
 Category: bug
 Type: task
 
@@ -20,3 +20,9 @@ run-8a3779cff80f6bd586a0 中，工业增加值 2026-07 的 `ytd_real_yoy` 选中
 
 - [ ] 以上原话不产生 `CN_INDUSTRIAL_VA` 声明。
 - [ ] 现有全国口径的真实样本仍能取值。
+
+## Comments
+
+### 2026-10-09 分流
+
+按 goal-round2.md 预设决定实施。

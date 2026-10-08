@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent
 Category: enhancement
 Type: task
 
@@ -16,3 +16,9 @@ L01 放行历史期后，一次完整运行产生约 746 个历史期的检索�
 
 - [ ] 读取运行不再随尝试记录数平方增长（加计数或耗时断言）。
 - [ ] 运行审计与恢复行为不变。
+
+## Comments
+
+### 2026-10-09 分流
+
+按 goal-round2.md 预设决定实施。
