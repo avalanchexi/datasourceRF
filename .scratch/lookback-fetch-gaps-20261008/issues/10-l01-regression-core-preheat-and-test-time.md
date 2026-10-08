@@ -19,3 +19,9 @@ Type: task
 - [ ] 回归测试：同一目标日连续三次运行，三核心不出现 `insufficient_history`（修复前红、修复后绿）；L08 的已知代价断言可恢复到原位置。
 - [ ] 受影响测试与冒烟耗时回到 L01 前的量级，或在票面写明不可避免的原因。
 - [ ] 受影响测试、冒烟、重型两例通过；Codex 两轴审查无阻断。
+
+## Comments
+
+### 2026-10-08 追加现象 3（L04 发现）
+
+`tests/integration/test_gap_source_repairs.py::test_the_basket_is_chained_from_its_base_on_settlements` 在 HEAD 源码上失败、在 130a337（L01 前）源码上通过：断言篮子与板块贡献不应出现在缺口里，现在出现了。疑同为 L01（aa46a60）引入，一并定位修复。
