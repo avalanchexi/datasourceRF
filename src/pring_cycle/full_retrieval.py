@@ -369,8 +369,9 @@ class FullRunRetrieval:
         ) -> str | None:
             """The official page, unless TuShare delivered the period.
 
-            A scope naming its members (``missing`` of them) is still sent to the page for
-            one TuShare does not deliver: social financing's official stock growth.
+            A gap (``missing`` members) is still sent to the page for one TuShare does not
+            deliver, named or not: social financing's official stock growth, GDP's real
+            growth beside the levels held (lookback fetch gaps 04).
             """
             url = _official_candidate((definition,))
             if url is None:
@@ -507,9 +508,7 @@ class FullRunRetrieval:
                             required_period,
                             definition.priority,
                             official_candidate(
-                                definition,
-                                required_period,
-                                selection.missing_members if scope.members else (),
+                                definition, required_period, selection.missing_members
                             ),
                         ),
                         definition.metric_id,

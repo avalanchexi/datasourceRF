@@ -23,7 +23,7 @@ from pring_cycle.official_context import (
     refresh_official_context_document,
 )
 from pring_cycle.retrieval_ledger import RetrievalLedger
-from pring_cycle.runs import RetrievalScope, RunRepository
+from pring_cycle.runs import RetrievalScope, RunRepository, member_keys
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.search_evidence import ModelInputSelector
 from pring_cycle.tushare_context import TushareContextAdapter, ingest_context_scalars
@@ -177,13 +177,16 @@ def test_gdp_batch_links_each_quarter_and_rejection_to_its_physical_response(
 @pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize("delivered", [False, True])
 @pytest.mark.parametrize("official_state", ["available", "transport_failed", "no_matching_period"])
-def test_gdp_fallback_respects_delivered_period_without_loosening_required_members(
+def test_gdp_fallback_fetches_the_growth_tushare_withholds_without_loosening_members(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
     delivered: bool,
     official_state: str,
 ) -> None:
+    """TuShare's levels held, its disputed growth refused, and no lookback naming GDP's
+    members: the page is still fetched for the real growth, and the levels stay TuShare's
+    (lookback fetch gaps 04)."""
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     candidate, version = admit_gdp_candidate(paths, capsys)
@@ -246,24 +249,46 @@ def test_gdp_fallback_respects_delivered_period_without_loosening_required_membe
     )
     run = runs.advance(submitted.run_id, "refreshing_evidence")
     FullRunRetrieval(paths).retrieve(run)
-    assert (ARTICLE in requested) == (not delivered and official_state != "no_matching_period")
+    plan = read_full_retrieval_plan(paths.database, run.run_id)["initial"]
+    (planned,) = [
+        s for s in plan["scopes"] if s["metric_ids"] == ["CN_GDP"] and s["period"] == "2026-Q2"
+    ]
+    # The scope names no members, and the levels held do not cancel the page.
+    assert "members" not in planned and planned["source_url"] == LISTING
+    assert (ARTICLE in requested) == (official_state != "no_matching_period")
     points = series()
+    official = {
+        ("total", "nominal_ytd_level"): 695704.0,
+        ("primary", "nominal_ytd_level"): 31522.0,
+        ("secondary", "nominal_ytd_level"): 250473.0,
+        ("tertiary", "nominal_ytd_level"): 413709.0,
+        ("total", "real_quarter_yoy"): 4.3,
+        ("primary", "real_quarter_yoy"): 3.7,
+        ("secondary", "real_quarter_yoy"): 3.0,
+        ("tertiary", "real_quarter_yoy"): 5.1,
+    }
+    levels = [p for p in points if p.dimensions["measure"] == "nominal_ytd_level"]
+    growth = [p for p in points if p.dimensions["measure"] == "real_quarter_yoy"]
     if delivered:
-        assert {p.selected_claim_id for p in points} == {p.selected_claim_id for p in before}
-        assert len(points) == 4
+        # The page adds only the growth TuShare withholds; the levels stay TuShare's
+        # (run findings 2026-09-28, ticket 12), not the page's first release.
+        assert {p.selected_claim_id for p in levels} == {p.selected_claim_id for p in before}
+        assert all({claim.provider for claim in p.claims} == {"tushare"} for p in levels)
+        assert len(levels) == 4
+        assert {
+            (p.dimensions["aggregate"], p.dimensions["measure"]): p.selected_value for p in growth
+        } == (
+            {key: value for key, value in official.items() if key[1] == "real_quarter_yoy"}
+            if official_state == "available"
+            else {}
+        )
+        # TuShare's 4.6 stays refused (gdp_yoy_period_semantics_unverified): the page's
+        # 4.3 is the real quarter growth, and nothing contests it.
+        assert all({claim.provider for claim in p.claims} == {"国家统计局"} for p in growth)
     elif official_state == "available":
         assert {
             (p.dimensions["aggregate"], p.dimensions["measure"]): p.selected_value for p in points
-        } == {
-            ("total", "nominal_ytd_level"): 695704.0,
-            ("primary", "nominal_ytd_level"): 31522.0,
-            ("secondary", "nominal_ytd_level"): 250473.0,
-            ("tertiary", "nominal_ytd_level"): 413709.0,
-            ("total", "real_quarter_yoy"): 4.3,
-            ("primary", "real_quarter_yoy"): 3.7,
-            ("secondary", "real_quarter_yoy"): 3.0,
-            ("tertiary", "real_quarter_yoy"): 5.1,
-        }
+        } == official
         assert all(p.period_end == "2026-06-30" for p in points)
         assert all(
             p.period_start
@@ -272,6 +297,7 @@ def test_gdp_fallback_respects_delivered_period_without_loosening_required_membe
         )
     else:
         assert points == ()
+    if official_state != "available":
         transport_failed = official_state == "transport_failed"
         attempt = evidence.latest_retrieval_attempt(
             "CN_GDP", period="2026-Q2", as_of=datetime.now(UTC), definition_version=version
@@ -299,18 +325,26 @@ def test_gdp_fallback_respects_delivered_period_without_loosening_required_membe
     selection = ModelInputSelector(paths, run).select(
         RetrievalScope("gdp-quarter", ("CN_GDP",), "2026-Q2", "P2", LISTING)
     )
-    assert selection.complete == (not delivered and official_state == "available")
+    assert selection.complete == (official_state == "available")
+    assert set(selection.selected_claim_ids) == {p.selected_claim_id for p in points}
     if delivered:
         # The delivered TuShare levels are selectable without publication evidence
-        # (ADR-0021); only the real YoY members TuShare does not carry stay missing.
-        assert set(selection.selected_claim_ids) == {p.selected_claim_id for p in points}
-        assert selection.missing_members
-        assert all("real_quarter_yoy" in member for member in selection.missing_members)
+        # (ADR-0021); only the real YoY members the page did not supply stay missing.
+        assert set(selection.missing_members) == (
+            set()
+            if official_state == "available"
+            else set(
+                member_keys(
+                    "CN_GDP",
+                    (
+                        {"aggregate": aggregate, "measure": "real_quarter_yoy"}
+                        for aggregate in ("total", "primary", "secondary", "tertiary")
+                    ),
+                )
+            )
+        )
         # What an official page fetched for the gap must not restate (ticket 12).
-        assert len(selection.held_members) == 4
-        assert all("nominal_ytd_level" in member for member in selection.held_members)
-    else:
-        assert set(selection.selected_claim_ids) == {p.selected_claim_id for p in points}
+        assert sum("nominal_ytd_level" in member for member in selection.held_members) == 4
     context = build_context_projection(
         evidence,
         as_of=datetime.now(UTC),
@@ -321,9 +355,16 @@ def test_gdp_fallback_respects_delivered_period_without_loosening_required_membe
         assert len(rows) == 1 and rows[0]["value"] is None and rows[0]["claims"] == []
         return
     assert len(rows) == len(points)
-    provider = "tushare" if delivered else "国家统计局"
-    assert_delivered_points(points, provider)
-    assert_delivered_rows(rows, provider)
+    for measure, provider in (
+        ("nominal_ytd_level", "tushare" if delivered else "国家统计局"),
+        ("real_quarter_yoy", "国家统计局"),
+    ):
+        measured = [p for p in points if p.dimensions["measure"] == measure]
+        if measured:
+            assert_delivered_points(measured, provider)
+            assert_delivered_rows(
+                [r for r in rows if r["dimensions"]["measure"] == measure], provider
+            )
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -388,7 +429,6 @@ def test_a_lookback_naming_only_real_growth_still_holds_back_the_delivered_level
 ) -> None:
     """The page is stored whole (lookback fetch gaps 02), so what the Worker holds back is
     every member TuShare delivered, not only those a lookback named."""
-    from pring_cycle.runs import member_keys
     from pring_cycle.worker import _official_context_retrieval
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
