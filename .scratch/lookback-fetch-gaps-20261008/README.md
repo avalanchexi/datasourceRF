@@ -16,7 +16,8 @@
 | 8 | [05](issues/05-nbs-pboc-historical-listing-paging.md) | 统计局与人民银行历史列表按日期区间扫描 | ready-for-agent |
 | 9 | [08](issues/08-pre-window-lookback-claims-untraceable.md) | 保留被投影引用的窗口前声明 | done |
 | 10 | [10](issues/10-l01-regression-core-preheat-and-test-time.md) | L01 后回归：同日第三次运行三核心预热未读入；测试变慢 | ready-for-agent（与 L04 并行，worktree） |
-| 11 | [09](issues/09-real-run-acceptance.md) | 全套测试与真实运行验收 | ready-for-agent（阻塞于以上全部） |
+| 11 | [11](issues/11-runs-get-rereads-all-attempts.md) | `runs.get` 重读全部检索尝试（平方增长） | needs-triage（不阻塞验收） |
+| 12 | [09](issues/09-real-run-acceptance.md) | 全套测试与真实运行验收 | ready-for-agent（阻塞于以上全部） |
 
 **下一步**：序 8，[05](issues/05-nbs-pboc-historical-listing-paging.md)（统计局与人民银行历史列表按日期区间扫描）。
 
