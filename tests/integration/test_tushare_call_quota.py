@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
 from email.message import Message
 from pathlib import Path
+from time import monotonic
 from typing import Any
 from urllib.error import HTTPError
 from zoneinfo import ZoneInfo
@@ -22,15 +23,17 @@ from pring_cycle.acquisition_outcome import (
     capture_failure,
 )
 from pring_cycle.batches import processing_batch
+from pring_cycle.core_history import refresh_core_history
 from pring_cycle.evidence import EvidenceRepository
 from pring_cycle.models import ModelRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
-from pring_cycle.source_adapters import TushareRefused
+from pring_cycle.source_adapters import TushareCoreAdapter, TushareRefused
 from pring_cycle.storage import database_connection
 from pring_cycle.tushare_context import ContextRequestFailed, TushareContextAdapter
 from pring_cycle.tushare_quota import InterfaceGrant, TushareCallNotAttempted
 from tests.conftest import _clock_datetime
 from tests.integration.test_acquisition_outcome import submit
+from tests.integration.test_core_history_refresh import historical_response
 
 _SHANGHAI = ZoneInfo("Asia/Shanghai")
 DAILY_REFUSAL = (
@@ -468,3 +471,48 @@ def test_a_stop_for_the_quota_does_not_undo_the_success_before_it(paths: Runtime
         )
 
     assert AcquisitionOutcomes(paths.database).for_batch(run).failures() == {}
+
+
+@pytest.fixture(scope="module")
+def module_wait() -> float:
+    """How long a quota's wait took in a module's fixture, where a full run often runs."""
+    started = monotonic()
+    tushare_quota.PACING.sleep(5)
+    return monotonic() - started
+
+
+def test_a_module_fixture_s_wait_is_skipped_too(module_wait: float) -> None:
+    """Lookback 10: a full run in a module's fixture waited out each minute for real."""
+    assert module_wait < 1
+
+
+def test_a_skipped_wait_leaves_the_receipts_behind_the_clocks_that_read_them(
+    paths: RuntimePaths,
+) -> None:
+    """Lookback 10: a skipped wait moved the receipts on and not the cores' availability
+    clock, which then refused the cores' bars as available before they were fetched."""
+    tushare_quota.PACING.skip(120)
+
+    result = refresh_core_history(
+        paths,
+        TushareCoreAdapter("fixture-token", transport=historical_response),
+        start=date(2025, 12, 30),
+        end=date(2026, 1, 2),
+        definition_version="metric-catalog-v0001",
+    )
+
+    assert result.status == "validated"
+
+
+def test_a_wait_is_skipped_on_a_test_s_own_clock(
+    paths: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Lookback 10: on a receipts' clock a test sets itself, a skipped wait never moved the
+    quota's clock on, so the call spun until the minute had passed."""
+    monkeypatch.setattr("pring_cycle.acquisition.datetime", datetime)
+    calls(paths, 40, "fut_wsr")
+    started = monotonic()
+
+    call(paths, "fut_wsr")
+
+    assert monotonic() - started < 5 and receipts(paths, "fut_wsr") == 41

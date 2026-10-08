@@ -187,6 +187,7 @@ def test_core_prices_a_projection_cites_do_not_pile_up_run_after_run(
     are not kept for it; otherwise each run would read, cite and keep them again."""
     paths = pruned["paths"]
     cores = sorted(CORE_API_IDENTITIES)
+    assert len(pruned["states"]) == 3 and all(state is not None for _, state in pruned["states"])
 
     for request_id in ("target-day-third", "target-day-fourth"):
         run = pruned["runner"].run(TARGET, request_id)
@@ -200,11 +201,13 @@ def test_core_prices_a_projection_cites_do_not_pile_up_run_after_run(
             start,
             json.dumps(cores),
         ) == [(0,)]
-        if request_id == "target-day-third":
-            # The known cost: the trend's preheat before the window, though cited, is gone.
-            current = ProjectionSetRepository(paths.database).current().datasets["core_assets"]
-            claims = {row[0] for row in query(paths, "SELECT claim_id FROM source_claim")}
-            assert set(current["model_input_observation_version_ids"]) - claims
+        # Lookback 10: each run reads the preheat it fetched, however many ran that day.
+        current = ProjectionSetRepository(paths.database).current().datasets["core_assets"]
+        assert [(a["asset"], a["state"]) for a in current["assets"]] == pruned["states"]
+    # The known cost: the trend's preheat before the window, though cited, is gone.
+    current = ProjectionSetRepository(paths.database).current().datasets["core_assets"]
+    claims = {row[0] for row in query(paths, "SELECT claim_id FROM source_claim")}
+    assert set(current["model_input_observation_version_ids"]) - claims
 
 
 def test_a_failed_run_deletes_nothing_and_the_command_does(

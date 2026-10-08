@@ -3,8 +3,12 @@ from collections.abc import Callable, Iterator
 from datetime import UTC, datetime, timedelta
 from itertools import count
 from time import monotonic
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from pring_cycle.tushare_quota import Pacing
 
 
 def _clock_datetime(now: Callable[[], datetime]) -> type[datetime]:
@@ -15,27 +19,39 @@ def _clock_datetime(now: Callable[[], datetime]) -> type[datetime]:
     class ClockDateTime(datetime, metaclass=ClockMeta):
         @classmethod
         def now(cls, tz=None):
-            from pring_cycle import tushare_quota
-
-            # A TuShare quota's wait, skipped, moves every patched clock on alike (ticket 31).
-            value = now() + tushare_quota.PACING.skipped
+            value = now()
             return value.astimezone(tz) if tz is not None else value.replace(tzinfo=None)
 
     return ClockDateTime
 
 
-@pytest.fixture(autouse=True)
-def quota_pacing(monkeypatch: pytest.MonkeyPatch) -> None:
-    """TuShare's minute rate kept without waiting: the quota's clock moves on (ticket 31)."""
+def _skipping_pacing() -> "Pacing":
+    """A TuShare quota's wait skipped: only the quota's own clock moves on (ticket 31).
+
+    Moving the receipts' clock too put them ahead of every clock reading them that a test
+    had not patched alike (lookback 10). Calls after a skip are behind the quota's clock, so
+    an ordinary test no longer keeps the minute's rate; the quota's own tests keep it on a
+    timeline that moves the receipts too (test_tushare_call_quota).
+    """
     from pring_cycle import tushare_quota
 
     pacing = tushare_quota.Pacing()
-    monkeypatch.setattr(pacing, "sleep", pacing.skip)
-    monkeypatch.setattr(tushare_quota, "PACING", pacing)
-    # The receipts' clock, unless a test sets its own: both add what was skipped.
-    monkeypatch.setattr(
-        "pring_cycle.acquisition.datetime", _clock_datetime(lambda: datetime.now(UTC))
-    )
+    pacing.sleep = pacing.skip  # type: ignore[method-assign]
+    return pacing
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _module_quota_pacing() -> Iterator[None]:
+    """A full run in a module's fixture, set up before ``quota_pacing``, waits alike."""
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr("pring_cycle.tushare_quota.PACING", _skipping_pacing())
+        yield
+
+
+@pytest.fixture(autouse=True)
+def quota_pacing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Each test starts with nothing skipped."""
+    monkeypatch.setattr("pring_cycle.tushare_quota.PACING", _skipping_pacing())
 
 
 @pytest.fixture

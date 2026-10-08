@@ -14,6 +14,8 @@ from zoneinfo import ZoneInfo
 
 from pring_cycle import credit_impulse, lookback
 from pring_cycle.acquisition import own_acquisitions
+from pring_cycle.basket import BASE_DATE as BASKET_BASE_DATE
+from pring_cycle.basket import BASKET_METRICS
 from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.context_projection import ContextProjectionRules
@@ -599,6 +601,14 @@ class FullRunRetrieval:
                     _catalog_members, definition.metric_id, rules.metric_catalog_version
                 ),
             )
+            if definition.metric_id in BASKET_METRICS:
+                # The basket's first day is the one after its base: no earlier session of the
+                # window is one of its periods, to request or to list as a gap (lookback 10).
+                required = {
+                    period: members
+                    for period, members in required.items()
+                    if date.fromisoformat(period) > BASKET_BASE_DATE
+                }
             for required_period, members in required.items():
                 scope = RetrievalScope(
                     f"full:{definition.release_event_family}:{required_period}",

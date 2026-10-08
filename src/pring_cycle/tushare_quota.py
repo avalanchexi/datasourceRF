@@ -127,13 +127,14 @@ class Pacing:
     def now(self) -> datetime:
         from pring_cycle import acquisition
 
-        return acquisition.utc_now()
+        return acquisition.utc_now() + self.skipped
 
     def sleep(self, seconds: float) -> None:
         time.sleep(seconds)
 
     def skip(self, seconds: float) -> None:
-        """Wait without waiting, for tests: their clocks add what was skipped."""
+        """Wait without waiting, for tests: the quota's clock moves on and no other does,
+        so a receipt is never stamped later than the clocks that read it (lookback 10)."""
         self.skipped += timedelta(seconds=seconds)
 
 

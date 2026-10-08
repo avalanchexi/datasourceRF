@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from pring_cycle import tushare_quota
-from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
+from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions, utc_now
 from pring_cycle.context_projection import build_context_projection
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.full_retrieval import FullRunRetrieval
@@ -534,7 +534,9 @@ def test_a_pull_cut_short_by_the_daily_quota_is_read_again_by_the_next_run(
 
 
 def test_a_pull_stopped_for_the_day_s_quota_is_read_again_by_the_next_run(
-    registered_late: tuple[RuntimePaths, str, str], monkeypatch: pytest.MonkeyPatch
+    registered_late: tuple[RuntimePaths, str, str],
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
 ) -> None:
     """Ticket 31: stopped before the source refused, no page failed; it is still cut short."""
     paths, model_id, _version = registered_late
@@ -552,8 +554,9 @@ def test_a_pull_stopped_for_the_day_s_quota_is_read_again_by_the_next_run(
     hole = datetime(2026, 9, 21, 12, tzinfo=SHANGHAI)
     assert hole not in news_times(paths, short)
 
-    # The next day, the quota whole again, and as it is granted.
-    tushare_quota.PACING.skip(timedelta(days=1).total_seconds())
+    # The next day, the quota whole again, and as it is granted: every clock a day on, so
+    # the next run's calls count against that day (lookback 10).
+    install_runtime_clock(monkeypatch, request, utc_now() + timedelta(days=1))
     monkeypatch.setitem(tushare_quota.INTERFACE_GRANTS, "major_news", InterfaceGrant(daily=40))
     after, outcome = pulled_run(
         paths, model_id, feed, target="2026-09-24", at=datetime(2026, 9, 25, 15, tzinfo=SHANGHAI)
