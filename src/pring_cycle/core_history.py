@@ -28,10 +28,6 @@ from pring_cycle.trading_calendar import CalendarAdapter, acquire_sse_calendar
 from pring_cycle.tushare_quota import TushareCallNotAttempted
 
 CORE_HISTORY_SCHEMA_VERSION = "tushare-core-history-v0001"
-# The sessions each run fetches for a core and its stateful trend reads: the 120-session
-# window plus the preheat before it. Older history a kept projection still cites stays
-# held (lookback 08), but the trend never reads further back than this.
-CORE_TREND_SESSIONS = 160
 
 
 @dataclass(frozen=True)

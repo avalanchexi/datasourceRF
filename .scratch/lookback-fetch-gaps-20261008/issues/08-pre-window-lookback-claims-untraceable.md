@@ -1,4 +1,4 @@
-Status: needs-info
+Status: done
 Category: bug
 Type: task
 
@@ -54,3 +54,20 @@ Type: task
 - 方案 C：截取按日历 160 个交易日，或改为与官方兜底同长。语义更贴近"交易日"，但需要日历覆盖更早区间，改动更大。
 
 **已知残余风险**（读码推断，未实测）：核心历史不足时政策动作窗口起点可为空，会引用该指标全部历史（`context_projection.py:1452`）；逆回购 v0002 到期顺延没有最大回看距离（`context_projection.py:2397`）。两者在新例外下都可能让少量声明持续续留，仅在降级状态下触发。
+
+### 2026-10-08 实施（方案 B，2026-10-08 用户确认）
+
+用户选方案 B，取代上一节的 160 条截取。验收框的含义相应收窄：三核心价格的窗口前预热除外（已知代价，见下）。
+
+- **撤销截取**：`day_summary.py`、`core_history.py`、`worker.py` 及 `test_worker_execution.py`、`test_core_history_refresh.py` 恢复为 130a337 原样，核心趋势计算与 main 一致。
+- **`retention.py`**：三核心价格（`CORE_API_IDENTITIES`）不纳入"被投影引用即保留"，仍随窗口清理。宏观、确认度等其余被引用的窗口前声明照旧保留到投影过期。派生父声明与事件基准两个例外不变。
+- **测试**：
+  - 新增 `test_core_prices_a_projection_cites_do_not_pile_up_run_after_run`：再跑两轮，每轮后窗口前核心价格为 0；当前投影引用的核心预热已不在库中，即已知代价。上一版在同一替身里保留了 600 条核心价格，所以本用例能拦住回退。
+  - M1 用例照旧证明宏观声明保留。原"窗口前声明为零"等断言恢复原样。
+- **文档**：ADR-0035、ADR-0022、`CONTEXT.md` 改为方案 B 的说法：核心价格输入不纳入保留，窗口前约 40 个交易日的核心输入查不到原始来源，是已知代价。
+- **测试与耗时**：
+  - 受影响测试 58 passed，423 秒，含 `test_retention.py`、`test_core_history_refresh.py`、`test_backfill.py`、`test_tushare_news.py`、冒烟两例和核心就绪用例。
+  - 重型两例 4 passed。第一次 560 秒，当时主工作区有测试在跑，负载约 2；复跑 477 秒，其中完整目录正例 307＋122 秒、三核心反例 26＋20 秒，回到约 7.5–8 分钟的水平。
+  - ruff 和 mypy（`retention.py`）通过。
+- **审查**：Codex 定向审查。A（SQL 逻辑与两个原有例外）、B（五个文件与 130a337 一致）、C（断言有效）通过；D 指出 `CONTEXT.md` 未写明代价，已补，定向复审"阻断：无"。
+- 上一节的政策动作和逆回购残余风险仍在，与本方案无关。

@@ -1947,7 +1947,7 @@ def _refresh_core_sources(
     The SSE calendar comes with them, reaching back ``calendar_sessions`` sessions with a
     margin for holidays when that is further than the cores' range.
     """
-    from pring_cycle.core_history import CORE_TREND_SESSIONS, refresh_core_history
+    from pring_cycle.core_history import refresh_core_history
     from pring_cycle.official_core import CSINDEX_CORES, refresh_csindex_core
     from pring_cycle.source_adapters import CORE_API_IDENTITIES
 
@@ -1978,7 +1978,7 @@ def _refresh_core_sources(
                 start=start,
                 end=target,
                 definition_version=definition_version,
-                latest_observations=CORE_TREND_SESSIONS,
+                latest_observations=160,
                 metric_ids=missing,
             )
             missing = result.rejected_metrics

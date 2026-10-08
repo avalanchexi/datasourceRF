@@ -25,6 +25,7 @@ from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.retention import QUOTA_COUNTED, prune_to_window
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
+from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.worker import process_pending_run
 from tests.integration.test_core_history_refresh import historical_response
 
@@ -113,44 +114,13 @@ def window_start(paths: RuntimePaths, run_id: str) -> str:
     return str(json.loads(document)["daily_window"]["dates"][0])
 
 
-def projection_citations(paths: RuntimePaths) -> set[str]:
-    """Every string a kept projection holds, in its datasets or the evidence it froze."""
-    found: set[str] = set()
-
-    def walk(value: object) -> None:
-        if isinstance(value, str):
-            found.add(value)
-        elif isinstance(value, dict):
-            for child in value.values():
-                walk(child)
-        elif isinstance(value, list):
-            for child in value:
-                walk(child)
-
-    for (document,) in query(paths, "SELECT document_json FROM analytical_dataset"):
-        walk(json.loads(document))
-    for (frozen,) in query(
-        paths,
-        "SELECT s.observation_version_ids_json FROM projection_set AS p JOIN evidence_snapshot "
-        "AS s ON s.evidence_snapshot_id=json_extract(p.envelope_json, '$.evidence_snapshot_id')",
-    ):
-        walk(json.loads(frozen))
-    return found
-
-
 def test_details_summaries_and_batches_before_the_window_are_deleted(
     pruned: dict[str, Any],
 ) -> None:
     paths = pruned["paths"]
     start = window_start(paths, pruned["latest"])
 
-    # Before the window only what a kept projection cites stays: the lookback its core
-    # trends were read from (lookback 08).
-    before = {
-        row[0]
-        for row in query(paths, "SELECT claim_id FROM source_claim WHERE period_end < ?", start)
-    }
-    assert before and before <= projection_citations(paths)
+    assert query(paths, "SELECT count(*) FROM source_claim WHERE period_end < ?", start) == [(0,)]
     assert query(paths, "SELECT count(*) FROM source_claim WHERE period_end >= ?", start)[0][0] > 0
     assert query(paths, "SELECT run_id FROM parent_run") == [(pruned["latest"],)]
     assert query(
@@ -177,7 +147,7 @@ def test_unreferenced_originals_are_removed_from_disk(pruned: dict[str, Any]) ->
     assert all((paths.artifacts / h[:2] / h).exists() for h in kept if h)
 
 
-def test_the_batch_keeps_its_lookback_calls(pruned: dict[str, Any]) -> None:
+def test_lookback_is_not_kept_but_the_batch_keeps_its_calls(pruned: dict[str, Any]) -> None:
     paths = pruned["paths"]
     start = window_start(paths, pruned["latest"])
     calls = query(
@@ -189,7 +159,7 @@ def test_the_batch_keeps_its_lookback_calls(pruned: dict[str, Any]) -> None:
         pruned["latest"],
     )
 
-    # The core series was fetched with lookback before the window; its call remains.
+    # The core series was fetched with lookback before the window, and only its call remains.
     core = [
         c
         for c in calls
@@ -208,6 +178,32 @@ def test_rerunning_with_transient_lookback_computes_the_same_states(
 
     current = ProjectionSetRepository(paths.database).current().datasets["core_assets"]
     assert [(a["asset"], a["state"]) for a in current["assets"]] == pruned["states"]
+
+
+def test_core_prices_a_projection_cites_do_not_pile_up_run_after_run(
+    pruned: dict[str, Any],
+) -> None:
+    """Lookback 08: the cores' trend reads every price held, so prices a projection cites
+    are not kept for it; otherwise each run would read, cite and keep them again."""
+    paths = pruned["paths"]
+    cores = sorted(CORE_API_IDENTITIES)
+
+    for request_id in ("target-day-third", "target-day-fourth"):
+        run = pruned["runner"].run(TARGET, request_id)
+
+        assert RunRepository(paths.database).get(run).status == "completed"
+        start = window_start(paths, run)
+        assert query(
+            paths,
+            "SELECT count(*) FROM source_claim WHERE period_end < ? "
+            "AND metric_id IN (SELECT value FROM json_each(?))",
+            start,
+            json.dumps(cores),
+        ) == [(0,)]
+    # The known cost: the trend's preheat before the window, though cited, is gone.
+    current = ProjectionSetRepository(paths.database).current().datasets["core_assets"]
+    claims = {row[0] for row in query(paths, "SELECT claim_id FROM source_claim")}
+    assert set(current["model_input_observation_version_ids"]) - claims
 
 
 def test_a_failed_run_deletes_nothing_and_the_command_does(

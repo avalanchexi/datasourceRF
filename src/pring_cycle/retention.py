@@ -13,9 +13,10 @@ Formula lookback older than the window is fetched by each run, used, and removed
 the run's end; the run's own acquisition rows keep the call parameters and response hashes.
 Three kinds of older claims stay: a metric in force until changed keeps its current baseline
 (ADR-0028); a derived observation still kept keeps the claims it was computed from (ticket
-29); and a projection still kept keeps the claims it cites until it expires (lookback 08).
-The last two keep them with their acquisition links and originals, so what was computed or
-published can be read back to its source.
+29); and a projection still kept keeps the claims it cites until it expires (lookback 08),
+except the three cores' prices, which go with the window as before. The last two keep them
+with their acquisition links and originals, so what was computed or published can be read
+back to its source.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from pathlib import Path
 
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
 from pring_cycle.runtime import RuntimePaths
+from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.storage import database_connection
 
 RETENTION_SESSIONS = 120
@@ -165,7 +167,9 @@ def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> Rete
         # current baseline, however old (ADR-0028). A derived observation still kept keeps
         # the claims it was computed from; the expired ones are already gone (ticket 29).
         # A projection still kept keeps every claim it cites, in its datasets or in the
-        # evidence it froze, until it expires itself (lookback 08).
+        # evidence it froze, until it expires itself (lookback 08). The three cores' prices
+        # are the exception: their trend reads all the history held, so prices kept for
+        # being cited would be read and cited again, and pile up run after run.
         baselines = sorted(EFFECTIVE_UNTIL_CHANGED_METRICS)
         connection.execute(
             "CREATE TEMP TABLE retired_claim AS SELECT claim_id FROM source_claim AS c "
@@ -175,13 +179,14 @@ def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> Rete
             "AND claim_id NOT IN (SELECT parent.value FROM derived_observation AS d, "
             "json_each(d.input_observation_version_ids_json) AS parent "
             "WHERE parent.value IS NOT NULL) "
-            "AND claim_id NOT IN (SELECT cited.value FROM analytical_dataset AS a, "
+            "AND (metric_id IN (SELECT value FROM json_each(?)) "
+            "OR claim_id NOT IN (SELECT cited.value FROM analytical_dataset AS a, "
             "json_tree(a.document_json) AS cited WHERE cited.type='text') "
             "AND claim_id NOT IN (SELECT frozen.value FROM projection_set AS p "
             "JOIN evidence_snapshot AS s "
             "ON s.evidence_snapshot_id=json_extract(p.envelope_json, '$.evidence_snapshot_id'), "
-            "json_each(s.observation_version_ids_json) AS frozen WHERE frozen.value IS NOT NULL)",
-            (start, json.dumps(baselines)),
+            "json_each(s.observation_version_ids_json) AS frozen WHERE frozen.value IS NOT NULL))",
+            (start, json.dumps(baselines), json.dumps(sorted(CORE_API_IDENTITIES))),
         )
         delete("claim_matched_quote", "claim_id IN (SELECT claim_id FROM retired_claim)")
         delete("source_claim_acquisition", "claim_id IN (SELECT claim_id FROM retired_claim)")

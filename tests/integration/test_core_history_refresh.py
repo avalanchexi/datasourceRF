@@ -141,6 +141,8 @@ def test_unknown_core_catalog_is_rejected_before_any_request(tmp_path: Path) -> 
     assert AcquisitionRepository(paths.database, paths.artifacts).history() == ()
 
 
+
+
 @pytest.mark.usefixtures("runtime_clock")
 def test_core_claim_trace_retains_each_request_original(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -252,9 +254,8 @@ def test_manual_run_cannot_backdate_daily_core_availability(
         as_of=StableDateTime.now(UTC),
         definition_version="metric-catalog-v0001",
     )
-    # 160 sessions were fetched for the trend over the run's 120-session window; the
-    # projection cites the 40 before it, so they stay until it expires (lookback 08).
-    assert len(after) == 160
+    # 160 sessions were fetched for the trend; the run keeps its 120-session window.
+    assert len(after) == 120
     # The source states no publication time, so public time is the earlier of the
     # registered 17:00 close update and the moment the system first held the value.
     for point in after:
