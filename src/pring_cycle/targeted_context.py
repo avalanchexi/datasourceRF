@@ -23,6 +23,7 @@ from pring_cycle.tushare_context import (
     ContextRows,
     ContextScalar,
     TushareContextAdapter,
+    reviewed_delivery,
 )
 
 
@@ -68,8 +69,17 @@ def retrieve_tushare_context(
             ({"CN_M1_M2"}, adapter.money),
             ({"CN_SF_TOTAL"}, adapter.social_financing),
         )
+        # Asked as a full run's refresh asks: the old methods' extra members are refused by
+        # the contracts of a catalog registering the reviewed delivery (lookback L03).
+        reviewed: dict[str, Callable[..., tuple[ContextScalar, ...]]] = {
+            "CN_M1_M2": partial(adapter.money, include_month_on_month=False),
+            "CN_SF_TOTAL": adapter.social_financing_total,
+        }
         for members, method in methods:
             if metrics <= members:
+                metric = min(metrics)
+                if metric in reviewed and reviewed_delivery(paths, metric, version):
+                    method = reviewed[metric]
                 retrieve = partial(method, start_month=scope.period, end_month=scope.period)
                 break
     elif len(scope.period) == 7 and "-Q" in scope.period and metrics == {"CN_GDP"}:

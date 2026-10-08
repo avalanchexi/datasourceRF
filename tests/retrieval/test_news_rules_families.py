@@ -136,6 +136,8 @@ CASES = [
         {
             ("CN_SF_TOTAL", "ytd_increment"): 239100.0,
             ("CN_SF_TOTAL", "stock_end"): 4648000.0,
+            # The stock's growth, which TuShare does not deliver (lookback L03).
+            ("CN_SF_TOTAL", "stock_yoy"): 7.2,
             ("CN_M1_M2", "balance", "m2"): 3568100.0,
             ("CN_M1_M2", "m2", "yoy"): 7.5,
             ("CN_M1_M2", "balance", "m1"): 1157700.0,
@@ -271,9 +273,32 @@ def test_every_rule_is_exercised_by_a_real_sample() -> None:
     assert registered <= covered
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "2026年8月末社会融资规模存量为464.8万亿元，同比增长7.2%，其中，"
+        "对实体经济发放的人民币贷款余额278.63万亿元，同比增长5%。",
+        "8月末，对实体经济发放的人民币贷款余额278.63万亿元，同比增长5%，"
+        "社会融资规模存量为464.8万亿元，同比增长7.2%。",
+    ],
+    ids=["total-first", "component-first"],
+)
+def test_the_total_and_a_component_in_one_sentence_keep_their_own_growth(text: str) -> None:
+    def growth(metric_id: str) -> dict[str, float]:
+        return {
+            value.dimensions.get("component", "total"): value.value
+            for value in extract((metric_id,), "2026-08", text).values
+            if value.dimensions["measure"] == "stock_yoy"
+        }
+
+    assert growth("CN_SF_TOTAL") == {"total": 7.2}
+    assert growth("CN_SF_COMPONENTS") == {"renminbi_loans": 5.0}
+
+
 def test_every_rule_writes_a_member_the_catalog_requires() -> None:
-    """A news value must land on the same observation as the official one."""
-    from pring_cycle.metric_contracts import required_dimension_members
+    """A news value must land on the same observation as the official one: a member the
+    catalog requires, or one a lookback names (social financing's stock growth)."""
+    from pring_cycle.metric_contracts import official_source_members, required_dimension_members
 
     for rule in (rule for rules in NEWS_RULES.values() for rule in rules):
         period = {
@@ -288,7 +313,11 @@ def test_every_rule_writes_a_member_the_catalog_requires() -> None:
         )
         if members is None:  # Members come from the notice: an RRR change's scopes.
             continue
-        assert dict(rule.dimensions) in [dict(m) for m in members], rule.metric_id
+        named = official_source_members(rule.metric_id, period) or ()
+        assert dict(rule.dimensions) in [
+            *(dict(m) for m in members),
+            *(m.dimensions for m in named),
+        ], rule.metric_id
 
 
 def test_a_monthly_fixing_stated_by_its_day_is_that_month_s() -> None:

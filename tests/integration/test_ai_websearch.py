@@ -370,3 +370,84 @@ def test_ai_websearch_is_on_unless_turned_off(
     paths.config_file.write_text("[retrieval]\nai_websearch = true\n")
     monkeypatch.setenv("PRING_CYCLE_AI_WEBSEARCH", "off")
     assert not ai_websearch_enabled(paths)
+
+
+GDP_TOTAL_GROWTH = 'CN_GDP:{"aggregate": "total", "measure": "real_quarter_yoy"}'
+GDP_PRIMARY_GROWTH = 'CN_GDP:{"aggregate": "primary", "measure": "real_quarter_yoy"}'
+SF_STOCK_GROWTH = 'CN_SF_TOTAL:{"measure": "stock_yoy"}'
+
+
+@pytest.mark.parametrize(
+    ("metric_id", "period", "members", "stock_growth_ruled", "asked"),
+    [
+        # A lookback reads the total's quarterly growth alone, which the news states.
+        pytest.param("CN_GDP", "2026-Q2", (GDP_TOTAL_GROWTH,), True, True, id="gdp-total"),
+        # Each industry's quarterly growth is not stated in the news.
+        pytest.param(
+            "CN_GDP",
+            "2026-Q2",
+            (GDP_TOTAL_GROWTH, GDP_PRIMARY_GROWTH),
+            True,
+            False,
+            id="gdp-industry",
+        ),
+        pytest.param("CN_SF_TOTAL", "2026-07", (SF_STOCK_GROWTH,), True, True, id="sf-growth"),
+        # Without a rule for the stock's growth, the flow and stock it states do not count.
+        pytest.param(
+            "CN_SF_TOTAL", "2026-07", (SF_STOCK_GROWTH,), False, False, id="sf-growth-unruled"
+        ),
+    ],
+)
+def test_ai_websearch_is_asked_only_for_members_its_rules_can_state(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    metric_id: str,
+    period: str,
+    members: tuple[str, ...],
+    stock_growth_ruled: bool,
+    asked: bool,
+) -> None:
+    """Lookback L03: what a scope's lookback names decides it, not the catalog's required
+    members; otherwise the AI was asked eight times for a growth no rule could take."""
+    from dataclasses import replace
+
+    from pring_cycle import news_rules
+    from pring_cycle.models import EFFECTIVE_CATALOG_VERSION, effective_model_manifest
+    from pring_cycle.runs import RetrievalScope
+    from pring_cycle.worker import _production_retrieval_adapters
+
+    monkeypatch.delenv("PRING_CYCLE_AI_WEBSEARCH")
+    if not stock_growth_ruled:
+        monkeypatch.setitem(
+            news_rules.NEWS_RULES,
+            "pbc_social_financing",
+            tuple(
+                rule
+                for rule in news_rules.NEWS_RULES["pbc_social_financing"]
+                if (rule.metric_id, rule.dimensions) != ("CN_SF_TOTAL", (("measure", "stock_yoy"),))
+            ),
+        )
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = effective_model_manifest()
+    models = ModelRepository(paths.database)
+    models.register(manifest)
+    models.activate(str(manifest["model_version_id"]), explicitly_approved=True)
+    run = RunRepository(paths.database).submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="ai-websearch-members",
+        model_version_id=str(manifest["model_version_id"]),
+        system_as_of=datetime.now(UTC),
+    )
+    scope = RetrievalScope(f"full:{metric_id}:{period}", (metric_id,), period, "P1", None, members)
+
+    adapters = _production_retrieval_adapters(
+        paths,
+        scope,
+        datetime.now(UTC),
+        definition_version=EFFECTIVE_CATALOG_VERSION,
+        run_id=run.run_id,
+        scope_run=replace(run, retrieval_scope=scope),
+    )
+
+    assert ("ai_websearch" in adapters) is asked

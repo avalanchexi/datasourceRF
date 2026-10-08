@@ -46,6 +46,7 @@ from pring_cycle.source_families import (
     TUSHARE_CPI_FIELDS,
     TUSHARE_GDP_FIELDS,
     TUSHARE_MONEY_FIELDS,
+    TUSHARE_OFFICIAL_DELIVERY_CODES,
     TUSHARE_PMI_FIELDS,
     TUSHARE_PPI_FIELDS,
     TUSHARE_SF_TOTAL_FIELDS,
@@ -1151,6 +1152,21 @@ class TushareContextAdapter:
         )
         with build_opener(NoRedirect()).open(request, timeout=30) as response:
             return bytes(response.read())
+
+
+def reviewed_delivery(paths: RuntimePaths, metric_id: str, definition_version: str) -> bool:
+    """Whether the catalog registers TuShare's reviewed delivery of ``metric_id``.
+
+    Such a metric is fetched with only the members its contract supports: social
+    financing's annual flow and stock, M1/M2 without month-on-month changes. A full run's
+    refresh and a gap's refetch ask alike (lookback L03).
+    """
+    return (
+        TUSHARE_OFFICIAL_DELIVERY_CODES[metric_id]
+        in metric_definition(
+            metric_id, definition_version=definition_version, database_path=paths.database
+        ).source_codes
+    )
 
 
 def ingest_context_scalars(

@@ -110,6 +110,7 @@ from pring_cycle.tushare_context import (
     ContextScalar,
     TushareContextAdapter,
     TushareSourceError,
+    reviewed_delivery,
 )
 
 
@@ -806,7 +807,7 @@ def _production_retrieval_adapters(
     if (
         parser is not None
         and scope.priority != "P0"
-        and (parser == "lenient" or rules_cover(scope.metric_ids, scope.period))
+        and (parser == "lenient" or rules_cover(scope))
         and ai_websearch_enabled(paths)
     ):
         # The last level: the AI CLIs' own web search, checked like news (ADR-0026).
@@ -1493,7 +1494,6 @@ def refresh_context_sources(
     from pring_cycle.acquisition import acquisition_metrics
     from pring_cycle.catalog_registry import registered_definitions
     from pring_cycle.ecb_reference import ECB_HISTORY_URL, ECB_METRIC, refresh_ecb_reference_cross
-    from pring_cycle.source_families import TUSHARE_OFFICIAL_DELIVERY_CODES
 
     secrets = parse_data_source_secrets(paths.secrets)
     target = date.fromisoformat(target_business_date)
@@ -1633,16 +1633,9 @@ def refresh_context_sources(
         return min([daily_start, *(date.fromisoformat(item) for item in further if item)])
 
     adapter = _context_adapter(token)
-    reviewed_deliveries = {
-        metric_id: source_code
-        in metric_definition(
-            metric_id, definition_version=definition_version, database_path=paths.database
-        ).source_codes
-        for metric_id, source_code in TUSHARE_OFFICIAL_DELIVERY_CODES.items()
-    }
     financing = (
         adapter.social_financing_total
-        if reviewed_deliveries["CN_SF_TOTAL"]
+        if reviewed_delivery(paths, "CN_SF_TOTAL", definition_version)
         else adapter.social_financing
     )
 
@@ -1724,7 +1717,7 @@ def refresh_context_sources(
             lambda: adapter.money(
                 start_month=start("CN_M1_M2"),
                 end_month=end_month,
-                include_month_on_month=not reviewed_deliveries["CN_M1_M2"],
+                include_month_on_month=not reviewed_delivery(paths, "CN_M1_M2", definition_version),
             ),
         ),
         (

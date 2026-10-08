@@ -24,9 +24,12 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pring_cycle.evidence import MetricSeriesPoint
+
+if TYPE_CHECKING:
+    from pring_cycle.runs import RetrievalScope
 
 NEWS_RULES_VERSION = "news-rules-v0001"
 RULE_NOT_MATCHED = "rule_not_matched"
@@ -387,6 +390,12 @@ NEWS_RULES: dict[str, tuple[NewsRule, ...]] = {
             ("year_to_month",),
         ),
         _rule("CN_SF_TOTAL", {"measure": "stock_end"}, r"社会融资规模存量为" + _AMOUNT),
+        # The growth right after the stock it belongs to, not a component's in the sentence.
+        _rule(
+            "CN_SF_TOTAL",
+            {"measure": "stock_yoy"},
+            r"社会融资规模存量为\d+(?:\.\d+)?(?:万亿元|亿元)" + _SEP + "同比" + _GROWTH + _PCT,
+        ),
         *_sf("renminbi_loans", r"对实体经济发放的人民币贷款"),
         *_sf("foreign_currency_loans_rmb", r"对实体经济发放的外币贷款折合人民币"),
         *_sf("entrusted_loans", r"委托贷款"),
@@ -528,17 +537,19 @@ def rules_for(metric_ids: tuple[str, ...]) -> tuple[NewsRule, ...]:
     )
 
 
-def rules_cover(metric_ids: tuple[str, ...], period: str) -> bool:
-    """Whether the rules can state every member the catalog requires of these metrics.
+def rules_cover(scope: RetrievalScope) -> bool:
+    """Whether the rules can state every member the scope asks for.
 
-    Only then can a text complete the model input; AI WebSearch is asked only for those.
+    That is each member its lookback names, or each the catalog requires of a metric it
+    names none of, as the model input is selected (lookback L03). Only then can a text
+    complete the model input; AI WebSearch is asked only for those.
     """
     from pring_cycle.metric_contracts import required_dimension_members
 
-    covered = {(rule.metric_id, rule.dimensions) for rule in rules_for(metric_ids)}
-    for metric_id in metric_ids:
-        members = required_dimension_members(
-            metric_id, definition_version="registered", period=period
+    covered = {(rule.metric_id, rule.dimensions) for rule in rules_for(scope.metric_ids)}
+    for metric_id in scope.metric_ids:
+        members = scope.named_members(metric_id) or required_dimension_members(
+            metric_id, definition_version="registered", period=scope.period
         )
         if members is None:
             # The notice decides its members (an RRR change's scopes): any rule states one.
