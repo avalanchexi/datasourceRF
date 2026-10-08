@@ -286,7 +286,7 @@ def test_every_rule_writes_a_member_the_catalog_requires() -> None:
         members = required_dimension_members(
             rule.metric_id, definition_version="registered", period=period
         )
-        if members is None:  # Members come from the parser: central parity, LPR.
+        if members is None:  # Members come from the notice: an RRR change's scopes.
             continue
         assert dict(rule.dimensions) in [dict(m) for m in members], rule.metric_id
 

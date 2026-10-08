@@ -167,10 +167,6 @@ def test_core_cpi_contract_accepts_live_nbs_table_and_slash_timestamp() -> None:
     assert {item.value for item in parsed.scalars} == {0.3, 0.9, 1.1}
 
 
-
-
-
-
 @pytest.mark.usefixtures("runtime_clock")
 def test_scoped_fallback_preserves_revision_time_for_the_whole_announcement(
     tmp_path: Path,
@@ -659,6 +655,20 @@ def test_pbc_usdcny_central_parity_contract_preserves_quote_direction() -> None:
     }
     assert scalar.value == 7.2005
     assert scalar.unit == "cny_per_usd"
+    # The one member a selection requires, in the frozen catalogs as in registered ones.
+    from pring_cycle.metric_contracts import required_dimension_members
+
+    for version in ("metric-catalog-v0002", "metric-catalog-v0003", "registered"):
+        assert required_dimension_members(
+            scalar.metric_id, definition_version=version, period="2025-05-07"
+        ) == (scalar.dimensions,)
+    # v0001 registered it without dimensions: its dimensionless claims stay selectable.
+    assert (
+        required_dimension_members(
+            scalar.metric_id, definition_version="metric-catalog-v0001", period="2025-05-07"
+        )
+        is None
+    )
 
 
 def test_pbc_usdcny_central_parity_rejects_reverse_or_ambiguous_quotes() -> None:

@@ -541,7 +541,7 @@ def rules_cover(metric_ids: tuple[str, ...], period: str) -> bool:
             metric_id, definition_version="registered", period=period
         )
         if members is None:
-            # The parser names the one member (central parity): any rule states it.
+            # The notice decides its members (an RRR change's scopes): any rule states one.
             if not any(metric == metric_id for metric, _dimensions in covered):
                 return False
         elif not all((metric_id, tuple(sorted(member.items()))) in covered for member in members):

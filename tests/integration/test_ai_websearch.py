@@ -86,6 +86,8 @@ def ai_run(
     plan: dict[str, Any],
     *,
     metric_ids: tuple[str, ...] = ("CN_CPI_HEADLINE",),
+    release_event_id: str = "ai:cpi:2026-08",
+    period: str = "2026-08",
 ) -> tuple[RunRecord, RuntimePaths, str, list[dict[str, Any]]]:
     calls = install(tmp_path, monkeypatch, plan)
     monkeypatch.delenv("PRING_CYCLE_AI_WEBSEARCH")
@@ -105,9 +107,9 @@ def ai_run(
         client_request_id="ai-websearch",
         model_version_id=model_id,
         system_as_of=datetime.now(UTC) + timedelta(days=1),
-        release_event_id="ai:cpi:2026-08",
+        release_event_id=release_event_id,
         metric_ids=metric_ids,
-        period="2026-08",
+        period=period,
     )
     process_pending_run(paths, report_adapters=())
     made = [json.loads(line) for line in calls.read_text().splitlines()] if calls.exists() else []
@@ -279,6 +281,79 @@ def test_a_gap_the_rules_cannot_complete_is_not_asked(
     assert calls == []
     [attempt] = [a for a in stored.retrieval_attempts if a["channel"] == "ai_websearch"]
     assert attempt["outcome"] == "not_configured"
+
+
+PARITY = "2026年9月9日银行间外汇市场人民币汇率中间价为1美元对人民币6.7351元，下调17个基点。"
+
+
+def parity_run(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    quote: str,
+    value: float,
+) -> tuple[RunRecord, dict[tuple[str, tuple[tuple[str, str], ...]], float | None]]:
+    found = {"url": CLS, "quote": quote, "value": value, "period": "2026-09-09"}
+    stored, paths, version, _calls = ai_run(
+        tmp_path,
+        monkeypatch,
+        capsys,
+        {
+            "codex": {"mode": "ok", "candidates": [{**found, "published_date": "2026-09-09"}]},
+            "claude": {"mode": "ok", "candidates": []},
+        },
+        metric_ids=("CN_USDCNY_CENTRAL_PARITY",),
+        release_event_id="ai:usdcny:2026-09-09",
+        period="2026-09-09",
+    )
+    series = EvidenceRepository(paths.database).metric_series(
+        "CN_USDCNY_CENTRAL_PARITY",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime.now(UTC) + timedelta(days=2),
+        definition_version=version,
+    )
+    return stored, {
+        (p.period_end, tuple(sorted(p.dimensions.items()))): p.selected_value for p in series
+    }
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_stored_central_parity_completes_its_gap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Lookback ticket 07: the one member the parity has is the contract it is selected by."""
+    stored, parity = parity_run(tmp_path, monkeypatch, capsys, PARITY, 6.7351)
+
+    member = (("currency_pair", "USD/CNY"), ("quote_direction", "CNY per USD"))
+    assert parity == {("2026-09-09", member): 6.7351}
+    ledger = stored.retrieval_ledger
+    assert ledger is not None
+    [request] = [r for r in ledger["requests"] if r["channel"] == "ai_websearch"]
+    assert (request["outcome"], request["classification"]) == (
+        "verified",
+        "complete_model_input",
+    )
+    assert stored.status == "completed", stored.error_classification
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_parity_quoted_the_other_way_round_is_not_taken(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Dollars per yuan is not the member: 0.1485 must not stand as the CNY-per-USD rate."""
+    reversed_quote = "2026年9月9日银行间外汇市场人民币汇率中间价为1人民币对美元0.1485美元。"
+
+    stored, parity = parity_run(tmp_path, monkeypatch, capsys, reversed_quote, 0.1485)
+
+    assert parity == {}
+    ledger = stored.retrieval_ledger
+    assert ledger is not None
+    assert [(v["outcome"], v["reason"]) for v in ledger["candidate_validations"]] == [
+        ("not_model_usable", "rule_not_matched")
+    ]
+    [request] = [r for r in ledger["requests"] if r["channel"] == "ai_websearch"]
+    assert request["classification"] == "candidate_validation_unresolved"
+    assert stored.status != "completed"
 
 
 def test_ai_websearch_is_on_unless_turned_off(

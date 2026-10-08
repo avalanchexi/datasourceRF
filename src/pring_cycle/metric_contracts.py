@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
+from pring_cycle.catalog import METRIC_CATALOG_V0001
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 
 # The OMO policy rate is announced by event and remains effective until the
@@ -75,6 +76,8 @@ REQUIRED_DIMENSION_MEMBERS: dict[str, tuple[dict[str, str], ...]] = {
         for measure in ("balance", "yoy")
     ),
     "CN_OMO_7D_AMOUNT": ({"measure": "injection"},),
+    # The PBOC states one fixing, yuan per dollar; dollars per yuan is not this member.
+    "CN_USDCNY_CENTRAL_PARITY": ({"currency_pair": "USD/CNY", "quote_direction": "CNY per USD"},),
     "CN_FUTURES_WARRANTS": tuple(
         {"symbol": symbol, "measure": "registered_receipts"}
         for symbol in ("CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA")
@@ -310,4 +313,7 @@ def required_dimension_members(
                 for member in members
                 if metric_id != "CN_SF_TOTAL" or member.dimensions["measure"] != "stock_yoy"
             )
+    if metric_id == "CN_USDCNY_CENTRAL_PARITY" and definition_version == METRIC_CATALOG_V0001:
+        # v0001 registered the parity without dimensions, so its claims carry none.
+        return None
     return REQUIRED_DIMENSION_MEMBERS.get(metric_id)
