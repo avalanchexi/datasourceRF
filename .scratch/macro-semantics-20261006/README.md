@@ -14,11 +14,11 @@
 | [08](issues/08-inventory-quadrant-and-warrants.md) | 库存象限新规则与仓单读法 | done（不足→未分类且未确认、不一致→未分类且仅观察；库存卡可用性按成员自身证据，关系随象限；仓单为附注不计数） |
 | [09](issues/09-price-consistency-and-observation-interfaces.md) | 价格内部一致性、观察接口与商品供需附注 | done（Q1 广度用站上 90 日均线占比、50% 多数线；Q2 篮子按同向分项个数；Q3 "明显回升"＝收益差转正：用户确认） |
 | [10](issues/10-bond-trend-attribution.md) | 债券归因 | done（Q1 政策轴＝三项动作与 DR007 四者一致；Q2 增长通胀轴＝五项同步指标至少 3 项同向：用户确认） |
-| [11](issues/11-activate-model-and-acceptance.md) | 启用新模型与真实运行验收 | ready-for-agent（阻塞于 01、05–10） |
+| [11](issues/11-activate-model-and-acceptance.md) | 启用新模型与真实运行验收 | done（v0015 已登记并激活；全套 2012 例通过；真实运行目标日为非典型组合，17 项不适用，见[验收记录](acceptance-20261008.md)） |
 
 ## 访谈结论（2026-10-06）
 
 - 关键指标与读法：[key-indicators.md](key-indicators.md)；六阶段预期表、通用规则、债券归因、供需规则与扩充准入：[expectation-table.md](expectation-table.md)；决定汇总：[ADR-0037](../../docs/adr/0037-confirmation-counts-key-indicators-against-stage-narrative.md)；术语见 `CONTEXT.md`。
 - 用户方向：**先集中把普林格模型设计准确**，首页原型与页面改造暂缓。
 
-**规格**：[spec.md](spec.md)（2026-10-07）。**下一步**：按阻塞关系逐票 `/implement`，每票之间清空上下文；01—10 已完成（2026-10-08），下一张是 11。
+**规格**：[spec.md](spec.md)（2026-10-07）。**下一步**：01—11 全部完成（2026-10-08），验收见 [acceptance-20261008.md](acceptance-20261008.md)。待用户分流：真实运行暴露的回看历史期取数缺陷（验收记录第五节），建议另开 needs-triage 票。

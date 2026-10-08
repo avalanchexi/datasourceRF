@@ -411,8 +411,9 @@ def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
         for claim in row["claims"]
         if claim["selected"]
     )
-    # The report names the source of its price conclusion, not the evidence rows (ADR-0027).
-    assert "国家统计局" in report.body["verified_results"]["price_pressure"]["source"]
+    # The report names the source of its PPI reading, not the evidence rows (ADR-0027).
+    ppi = report.body["verified_results"]["confirmation"]["key_indicators"]["ppi"]
+    assert "国家统计局" in ppi["source"]
     assert projection.datasets["cycle_overview"]["gap_list"]
 
 
@@ -529,11 +530,11 @@ def test_a_fetch_from_before_the_window_concludes_what_two_years_did(
     # Every summarized day concludes the same, the window's first day included.
     narrow_days, wide_days = _days(tmp_path / "narrow"), _days(tmp_path / "wide")
     assert len(narrow_days) > 100
-    # Save one: February's cumulative PPI. January has none, so the narrow range has no
-    # previous period; the wide one compares it with December's, across the year.
+    # February's cumulative PPI, which January lacks, is compared with December's in both:
+    # the narrow range reaches back as far as the confirmation readings declare (macro
+    # semantics 02), past the year's turn.
     narrow_kept = {
-        _february_cumulative_ppi(day, conclusions, "unknown")
-        for day, conclusions in narrow_days.items()
+        _february_cumulative_ppi(day, conclusions, "up") for day, conclusions in narrow_days.items()
     }
     assert narrow_kept == {
         _february_cumulative_ppi(day, conclusions, "up") for day, conclusions in wide_days.items()

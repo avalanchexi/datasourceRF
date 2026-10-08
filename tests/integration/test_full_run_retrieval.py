@@ -1069,6 +1069,9 @@ def test_full_run_before_the_fixing_day_plans_the_lpr_in_force(tmp_path: Path) -
     )
     process_pending_run(paths, report_adapters=())
     plan = runs.full_retrieval_plan(run.run_id)
-    assert {
+    # The newest month planned is August's; the months before it are the action history
+    # the effective model reads back (macro semantics 06).
+    periods = {
         r["period"] for r in plan["initial"]["requirements"] if r["metric_id"] == "CN_LPR_1Y_5Y"
-    } == {"2026-08"}
+    }
+    assert max(periods) == "2026-08"

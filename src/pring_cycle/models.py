@@ -476,8 +476,8 @@ _OFFICIAL_SAMPLED = {
 
 
 def effective_model_manifest() -> dict[str, Any]:
-    """The newest model, ready to register: model-v0014."""
-    return model_v0014_manifest()
+    """The newest model, ready to register: model-v0015."""
+    return model_v0015_manifest()
 
 
 def model_v0015_manifest() -> dict[str, Any]:
@@ -486,8 +486,9 @@ def model_v0015_manifest() -> dict[str, Any]:
     v0014's rules and catalog, with the confirmation rules frozen in: the macro rules
     version and projection output structure say the context is read as a dimension summary
     of key indicators against the formal stage, not as the four single-dimension labels.
-    Built up ticket by ticket (macro semantics 03-10), it is registered and activated
-    only when complete (ticket 11), as an explicit step (ADR-0022).
+    Built up ticket by ticket (macro semantics 03-10) and made the newest model in ticket
+    11; registering and activating it stays an explicit step (ADR-0022). Its catalog is
+    v0014's, so the effective catalog version does not change.
     """
     from pring_cycle.confirmation import MACRO_RULES_VERSION, OUTPUT_STRUCTURE, rules_v0001
 
