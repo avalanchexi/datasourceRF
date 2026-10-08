@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent
 Category: bug
 Type: task
 
@@ -19,3 +19,12 @@ Type: task
 
 - [ ] 社融存量同比有可用的补缺适配器，拒收原因若属契约问题则修正。
 - [ ] 资讯或 AI 规则能提取社融存量同比（若分流决定走这条路）。
+
+## Comments
+
+### 2026-10-08 分流（Codex 只读调查 + 主会话核验，见 [triage-20261008.md](../triage-20261008.md)）
+
+- 两层根因属实：补缺仍调用旧适配器，输出契约外的 `monthly_increment`（`targeted_context.py:69`、`tushare_context.py:619`），13 次单月 `sf_month` 均被身份契约拒收而直取成功；总量 `stock_yoy` 无资讯规则（`news_rules.py:382`），覆盖门禁又忽略它，AI 实际被调用 8 次（`metric_contracts.py:311`、`worker.py:800`）。
+- 缺 8 个月中目标日一年读法缺 6 个月，另 2 个月服务更早回看。
+- 修复：补缺复用正确适配器、补总量同比规则、规则覆盖按实际请求成员判断。约 3–5 模块。
+- 无需用户决定（沿 ADR-0026 降级顺序与现有预算）。接在 02 之后。

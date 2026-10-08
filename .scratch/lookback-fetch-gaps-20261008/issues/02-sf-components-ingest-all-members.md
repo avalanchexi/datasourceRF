@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent
 Category: bug
 Type: task
 
@@ -15,3 +15,12 @@ Type: task
 
 - [ ] 同一原件内的分项按维度成员全部入库，不因请求只要总量而丢弃。
 - [ ] F3"只靠政府债撑"所需的 7 个分项在真实运行中可读。
+
+## Comments
+
+### 2026-10-08 分流（Codex 只读调查 + 主会话核验，见 [triage-20261008.md](../triage-20261008.md)）
+
+- 根因属实（`official_context.py:563–575` 按请求 metric_id 过滤完整公告）。实测 2026-06、07 两份原件各规范化出 24 个分项与 3 个总量，却只关联 1 条总量声明。
+- **并入 run-findings 10（OMO 公告利率被丢），同一过滤点**；本票为实施主票。
+- 修复：同一原件中目录支持的同族成员一并处理，保留 `held_members` 保护（旧公告名义 GDP 与已持有修订值的冲突，`worker.py:990`）与查重。改正 `test_official_social_financing_fallback.py:228` 断言分项不存在的旧预期，补"只请求总量但原件含分项""只请求金额但公告含利率"替身。约 2–3 模块。
+- 无需用户决定（ADR-0028 已要求随操作量检查利率变化）。

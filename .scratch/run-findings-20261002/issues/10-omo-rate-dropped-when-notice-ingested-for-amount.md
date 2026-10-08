@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: duplicate（并入 lookback-fetch-gaps 02）
 Category: bug
 Type: task
 
@@ -17,3 +17,7 @@ Type: task
 ## 待决定
 
 - 是否修：一份公告取得后，同族全部成员一并入库。
+
+### 2026-10-08 分流
+
+原推测已实测证实（回执 `acquisition-d8a46a7e4baf49e287065fe82556a60e` 规范化含利率 1.4 与金额 905，只关联金额声明）。与社融分项被丢是同一过滤点（`official_context.py:563–575`），**并入 [lookback-fetch-gaps 02](../../lookback-fetch-gaps-20261008/issues/02-sf-components-ingest-all-members.md) 一并修复**。
