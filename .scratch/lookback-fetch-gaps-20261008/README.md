@@ -27,3 +27,5 @@
 **下一步**：本批（序 1–12）已完成，验收见 [acceptance-20261009.md](acceptance-20261009.md)。票 11 及 09 新开的票 12–16（序 13–17）待用户分流；其中票 13（产能利用率 2026Q1，17 项中唯一仍缺的主要成员）与票 12（日历误判使日频指标显示陈旧）对读法影响最大。
 
 相关：[run-findings 10](../run-findings-20261002/issues/10-omo-rate-dropped-when-notice-ingested-for-amount.md)（duplicate，并入 02）。DR007 09-30 单日 0 行属上游，不另开票（2026-10-09 验收运行时已回填，取到 1.3665）。
+
+**第二轮**（2026-10-09 规划）：遗留票 11–16 与第 17 张验收，见 [goal-round2.md](goal-round2.md)；以 `/goal` 启动。
