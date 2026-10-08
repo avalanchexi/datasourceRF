@@ -200,10 +200,11 @@ def test_core_prices_a_projection_cites_do_not_pile_up_run_after_run(
             start,
             json.dumps(cores),
         ) == [(0,)]
-    # The known cost: the trend's preheat before the window, though cited, is gone.
-    current = ProjectionSetRepository(paths.database).current().datasets["core_assets"]
-    claims = {row[0] for row in query(paths, "SELECT claim_id FROM source_claim")}
-    assert set(current["model_input_observation_version_ids"]) - claims
+        if request_id == "target-day-third":
+            # The known cost: the trend's preheat before the window, though cited, is gone.
+            current = ProjectionSetRepository(paths.database).current().datasets["core_assets"]
+            claims = {row[0] for row in query(paths, "SELECT claim_id FROM source_claim")}
+            assert set(current["model_input_observation_version_ids"]) - claims
 
 
 def test_a_failed_run_deletes_nothing_and_the_command_does(
