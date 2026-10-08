@@ -35,7 +35,7 @@ from pring_cycle.evidence import (
     StoredSourceClaim,
 )
 from pring_cycle.http_transport import NoRedirect
-from pring_cycle.metric_contracts import CZCE_WARRANT_SYMBOLS
+from pring_cycle.metric_contracts import CZCE_WARRANT_SYMBOLS, official_source_members
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import (
     TUSHARE_ENDPOINT,
@@ -594,7 +594,7 @@ class TushareContextAdapter:
         )
         return (
             *_monthly_scalars("cn_cpi", cpi, cpi_fields),
-            *_monthly_scalars("cn_ppi", ppi, ppi_fields),
+            *_official_ppi_members(_monthly_scalars("cn_ppi", ppi, ppi_fields)),
         )
 
     def money(
@@ -1735,15 +1735,33 @@ def _parse_monthly_acquisition(
 
 def parse_ppi_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[ContextScalar, ...]:
     """Rebuild the reviewed PPI delivery from its exact API, fields and period range."""
-    return _parse_monthly_acquisition(
-        receipt,
-        raw,
-        api_name="cn_ppi",
-        contract="ppi",
-        scalar_fields=tuple(
-            _Field("CN_PPI", field, {"category": category, "measure": measure}, "percent")
-            for field, category, measure in TUSHARE_PPI_FIELDS
-        ),
+    return _official_ppi_members(
+        _parse_monthly_acquisition(
+            receipt,
+            raw,
+            api_name="cn_ppi",
+            contract="ppi",
+            scalar_fields=tuple(
+                _Field("CN_PPI", field, {"category": category, "measure": measure}, "percent")
+                for field, category, measure in TUSHARE_PPI_FIELDS
+            ),
+        )
+    )
+
+
+def _official_ppi_members(scalars: tuple[ContextScalar, ...]) -> tuple[ContextScalar, ...]:
+    """Leave out the PPI fields the official release has no member for in their month.
+
+    TuShare fills the cumulative columns for January as well, where the official table has
+    none; that one value refused the whole CPI and PPI delivery (run findings 06).
+    """
+    return tuple(
+        scalar
+        for scalar in scalars
+        if any(
+            member.dimensions == scalar.dimensions
+            for member in official_source_members("CN_PPI", scalar.period_end) or ()
+        )
     )
 
 

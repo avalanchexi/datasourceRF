@@ -18,7 +18,7 @@ import pytest
 
 import pring_cycle.tushare_context as tushare_context
 from pring_cycle import credit_impulse
-from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
+from pring_cycle.acquisition import AcquisitionRepository, ReceiptCounts, own_acquisitions
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.full_retrieval import FullRunRetrieval
@@ -658,3 +658,66 @@ def test_other_reviewed_families_keep_empty_delivery_as_an_acquisition_gap(
         assert not evidence.metric_series(
             metric, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
         )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_january_ppi_cumulative_field_refuses_neither_ppi_nor_cpi(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """TuShare fills January's cumulative PPI the official contract has no member for; it is
+    left out, so CPI and PPI over a year boundary are both accepted (run findings 06)."""
+    paths, _run, version = reviewed_run(
+        tmp_path,
+        capsys,
+        extra_markers={
+            "CN_CPI_HEADLINE": "tushare:cn_cpi:official-sampled-v0001",
+            "CN_PPI": "tushare:cn_ppi:official-sampled-v0001",
+        },
+    )
+    months = ("202512", "202601", "202602")
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        fields = payload["fields"].split(",")
+        # Every field of every month non-empty, January's cumulative columns included.
+        items = [
+            [month if field == "month" else round(-1.0 + index * 0.1, 1) for field in fields]
+            for index, month in enumerate(months)
+        ]
+        return json.dumps({"code": 0, "data": {"fields": fields, "items": items}}).encode()
+
+    adapter = tushare_context.TushareContextAdapter("fixture-only", transport=transport)
+    adapter.acquire_scalars(
+        paths,
+        lambda: adapter.prices(start_month="202512", end_month="202602"),
+        definition_version=version,
+    )
+
+    receipts = AcquisitionRepository(paths.database, paths.artifacts)
+    by_api = {receipt.api_name: receipt for receipt in receipts.history()}
+    for api, scalars in (("cn_cpi", 9), ("cn_ppi", 3 * 9 - 3)):
+        identity = by_api[api].acquisition_id
+        assert receipts.ingest_result(identity) == ("accepted", None)
+        assert receipts.counts(identity) == ReceiptCounts(
+            source_records=3, normalized_scalars=scalars, ingested_claims=scalars
+        )
+    evidence = EvidenceRepository(paths.database)
+    points = evidence.metric_series(
+        "CN_PPI", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
+    )
+    assert {
+        (point.period_end[:7], point.dimensions["category"], point.dimensions["measure"])
+        for point in points
+    } == {
+        (month, category, measure)
+        for month in ("2025-12", "2026-01", "2026-02")
+        for category in ("headline", "means_of_production", "consumer_goods")
+        for measure in ("mom", "yoy", "cumulative_average_yoy")
+        if month != "2026-01" or measure != "cumulative_average_yoy"
+    }
+    # Rebuilding from the original leaves out the same field, so every selected claim holds.
+    assert tushare_context.tushare_claims_matching_acquisitions(
+        evidence,
+        points,
+        definition_version=version,
+        parse=tushare_context.parse_ppi_acquisition,
+    ) == {point.selected_claim_id for point in points}

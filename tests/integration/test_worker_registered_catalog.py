@@ -204,8 +204,8 @@ MACRO_APIS = frozenset({"cn_pmi", "cn_cpi", "cn_ppi", "cn_m", "sf_month", "cn_gd
 def macro_rows(api: str, params: dict[str, Any], fields: list[str]) -> list[list[Any]]:
     """Every requested field of each month (quarter) from 2024 to the requested end, rising.
 
-    Only the requested range is answered, so a narrower request holds fewer periods. PPI has
-    no cumulative average for January, which has no such official member.
+    Only the requested range is answered, so a narrower request holds fewer periods. Like
+    TuShare, January PPI carries a cumulative average the official contract has no member for.
     """
     if api == "cn_gdp":
         periods = [f"{year}Q{quarter}" for year in (2024, 2025, 2026) for quarter in (1, 2, 3, 4)]
@@ -215,11 +215,7 @@ def macro_rows(api: str, params: dict[str, Any], fields: list[str]) -> list[list
         start, end = params["start_m"], params["end_m"]
     return [
         [
-            period
-            if field in {"month", "quarter"}
-            else None
-            if api == "cn_ppi" and period.endswith("01") and field.endswith("_accu")
-            else round(50.0 + index * 0.3, 2)
+            period if field in {"month", "quarter"} else round(50.0 + index * 0.3, 2)
             for field in fields
         ]
         for index, period in enumerate(periods)
