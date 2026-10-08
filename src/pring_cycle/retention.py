@@ -11,9 +11,11 @@ The tables were append-only by trigger. Their delete guards are lifted inside th
 transaction and put back before it commits, so every other writer still cannot delete.
 Formula lookback older than the window is fetched by each run, used, and removed here at
 the run's end; the run's own acquisition rows keep the call parameters and response hashes.
-Two kinds of older claims stay: a metric in force until changed keeps its current baseline
-(ADR-0028), and a derived observation still kept keeps the claims it was computed from, with
-their acquisition links and originals, so its lineage can be read back (ticket 29).
+Three kinds of older claims stay: a metric in force until changed keeps its current baseline
+(ADR-0028); a derived observation still kept keeps the claims it was computed from (ticket
+29); and a projection still kept keeps the claims it cites until it expires (lookback 08).
+The last two keep them with their acquisition links and originals, so what was computed or
+published can be read back to its source.
 """
 
 from __future__ import annotations
@@ -150,11 +152,20 @@ def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> Rete
         delete("analytical_dataset", retired_projection)
         delete("projection_set", retired_projection)
         delete("derived_observation", "date(as_of_cutoff) < ?", start)
-        delete("evidence_snapshot", "date(as_of_cutoff) < ?", start)
+        # The evidence a kept projection froze goes only with the projection (lookback 08).
+        delete(
+            "evidence_snapshot",
+            "date(as_of_cutoff) < ? AND evidence_snapshot_id NOT IN (SELECT "
+            "json_extract(envelope_json, '$.evidence_snapshot_id') FROM projection_set "
+            "WHERE json_extract(envelope_json, '$.evidence_snapshot_id') IS NOT NULL)",
+            start,
+        )
         # Details.
         # A metric in force until changed keeps each member's latest period: it is the
         # current baseline, however old (ADR-0028). A derived observation still kept keeps
         # the claims it was computed from; the expired ones are already gone (ticket 29).
+        # A projection still kept keeps every claim it cites, in its datasets or in the
+        # evidence it froze, until it expires itself (lookback 08).
         baselines = sorted(EFFECTIVE_UNTIL_CHANGED_METRICS)
         connection.execute(
             "CREATE TEMP TABLE retired_claim AS SELECT claim_id FROM source_claim AS c "
@@ -163,7 +174,13 @@ def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> Rete
             "WHERE latest.metric_id=c.metric_id AND latest.dimensions_json=c.dimensions_json)) "
             "AND claim_id NOT IN (SELECT parent.value FROM derived_observation AS d, "
             "json_each(d.input_observation_version_ids_json) AS parent "
-            "WHERE parent.value IS NOT NULL)",
+            "WHERE parent.value IS NOT NULL) "
+            "AND claim_id NOT IN (SELECT cited.value FROM analytical_dataset AS a, "
+            "json_tree(a.document_json) AS cited WHERE cited.type='text') "
+            "AND claim_id NOT IN (SELECT frozen.value FROM projection_set AS p "
+            "JOIN evidence_snapshot AS s "
+            "ON s.evidence_snapshot_id=json_extract(p.envelope_json, '$.evidence_snapshot_id'), "
+            "json_each(s.observation_version_ids_json) AS frozen WHERE frozen.value IS NOT NULL)",
             (start, json.dumps(baselines)),
         )
         delete("claim_matched_quote", "claim_id IN (SELECT claim_id FROM retired_claim)")

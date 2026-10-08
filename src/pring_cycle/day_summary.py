@@ -35,6 +35,7 @@ from pring_cycle.context_projection import (
     ContextProjectionRules,
     build_context_projection,
 )
+from pring_cycle.core_history import CORE_TREND_SESSIONS
 from pring_cycle.domain import FormalStage, StageResult
 from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend, proxy_12m_enabled
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
@@ -375,7 +376,8 @@ class DaySummaries:
         Gate ①: a session of the 120 to ``day`` that the visible series lacks holds the
         stage, ``day`` itself aside (the carry-forward case). Sessions before the series'
         first close are short history, left to the trend, and a window the calendar does
-        not reach is a LookupError (ticket 11).
+        not reach is a LookupError (ticket 11). The series is the last sessions a run fetches,
+        never older history a kept projection still holds on to (lookback 08).
         """
         rules = self._model.trend_rules
         target = date.fromisoformat(day)
@@ -392,7 +394,7 @@ class DaySummaries:
                     definition_version=self._model.definition_version,
                 )
                 if point.period_end <= day
-            )
+            )[-CORE_TREND_SESSIONS:]
             reason = "validated"
             state = None
             candidate_state = None

@@ -188,9 +188,13 @@ def test_runtime_policy_rate_does_not_require_duplicate_daily_claims() -> None:
 
 
 @pytest.mark.usefixtures("unavailable_optional_http")
+@pytest.mark.parametrize("held", [160, 200])
 def test_core_readiness_ignores_observations_after_historical_target(
-    tmp_path: Path,
+    tmp_path: Path, held: int
 ) -> None:
+    """The trend reads the 160 sessions a run fetches, however long a history is held: a
+    kept projection keeps what it cited, so held history no longer ends where the last
+    run's lookback began (lookback 08)."""
     paths = runtime(tmp_path)
     target = date(2026, 8, 3)
     runs = RunRepository(paths.database)
@@ -203,9 +207,10 @@ def test_core_readiness_ignores_observations_after_historical_target(
     )
     evidence = EvidenceRepository(paths.database)
     future_ids = set()
+    older_ids: set[str] = set()
     days = []
     day = target
-    while len(days) < 160:
+    while len(days) < held:
         if day.weekday() < 5:
             days.append(day)
         day -= timedelta(days=1)
@@ -239,6 +244,7 @@ def test_core_readiness_ignores_observations_after_historical_target(
             )
         stored = evidence.append_source_claims(tuple(claims))
         future_ids.add(stored[-1].claim_id)
+        older_ids.update(claim.claim_id for claim in stored[: held - 160])
     process_pending_run(paths, report_adapters=())
     assert runs.get(run.run_id).status == "completed"
     projection = ProjectionSetRepository(paths.database).current()
@@ -252,6 +258,9 @@ def test_core_readiness_ignores_observations_after_historical_target(
     assert len(adoption["selected_claim_ids"]) == 480
     assert future_ids.isdisjoint(adoption["selected_claim_ids"])
     assert future_ids.isdisjoint(adoption["referenced_observation_version_ids"])
+    model_inputs = projection.datasets["core_assets"]["model_input_observation_version_ids"]
+    assert len(model_inputs) == 480
+    assert older_ids.isdisjoint(model_inputs)
 
 
 @pytest.mark.usefixtures("runtime_clock")

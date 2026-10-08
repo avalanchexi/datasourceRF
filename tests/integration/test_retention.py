@@ -113,13 +113,44 @@ def window_start(paths: RuntimePaths, run_id: str) -> str:
     return str(json.loads(document)["daily_window"]["dates"][0])
 
 
+def projection_citations(paths: RuntimePaths) -> set[str]:
+    """Every string a kept projection holds, in its datasets or the evidence it froze."""
+    found: set[str] = set()
+
+    def walk(value: object) -> None:
+        if isinstance(value, str):
+            found.add(value)
+        elif isinstance(value, dict):
+            for child in value.values():
+                walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+
+    for (document,) in query(paths, "SELECT document_json FROM analytical_dataset"):
+        walk(json.loads(document))
+    for (frozen,) in query(
+        paths,
+        "SELECT s.observation_version_ids_json FROM projection_set AS p JOIN evidence_snapshot "
+        "AS s ON s.evidence_snapshot_id=json_extract(p.envelope_json, '$.evidence_snapshot_id')",
+    ):
+        walk(json.loads(frozen))
+    return found
+
+
 def test_details_summaries_and_batches_before_the_window_are_deleted(
     pruned: dict[str, Any],
 ) -> None:
     paths = pruned["paths"]
     start = window_start(paths, pruned["latest"])
 
-    assert query(paths, "SELECT count(*) FROM source_claim WHERE period_end < ?", start) == [(0,)]
+    # Before the window only what a kept projection cites stays: the lookback its core
+    # trends were read from (lookback 08).
+    before = {
+        row[0]
+        for row in query(paths, "SELECT claim_id FROM source_claim WHERE period_end < ?", start)
+    }
+    assert before and before <= projection_citations(paths)
     assert query(paths, "SELECT count(*) FROM source_claim WHERE period_end >= ?", start)[0][0] > 0
     assert query(paths, "SELECT run_id FROM parent_run") == [(pruned["latest"],)]
     assert query(
@@ -146,7 +177,7 @@ def test_unreferenced_originals_are_removed_from_disk(pruned: dict[str, Any]) ->
     assert all((paths.artifacts / h[:2] / h).exists() for h in kept if h)
 
 
-def test_lookback_is_not_kept_but_the_batch_keeps_its_calls(pruned: dict[str, Any]) -> None:
+def test_the_batch_keeps_its_lookback_calls(pruned: dict[str, Any]) -> None:
     paths = pruned["paths"]
     start = window_start(paths, pruned["latest"])
     calls = query(
@@ -158,7 +189,7 @@ def test_lookback_is_not_kept_but_the_batch_keeps_its_calls(pruned: dict[str, An
         pruned["latest"],
     )
 
-    # The core series was fetched with lookback before the window, and only its call remains.
+    # The core series was fetched with lookback before the window; its call remains.
     core = [
         c
         for c in calls
@@ -409,6 +440,143 @@ def test_a_derived_value_in_the_window_keeps_the_claims_it_was_computed_from(
     assert not {expired, unread} & claims
     assert not {expired_call, unread_call} & calls
     assert not any((paths.artifacts / h[:2] / h).exists() for h in (expired_raw, unread_raw))
+
+
+def test_a_kept_projection_keeps_the_claims_it_cites_until_it_expires(
+    pruned: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Lookback 08: a kept projection's cited claims stay with their originals, however old.
+
+    Shaped as the real run cited M1: twelve months, seven of them before the window. A claim
+    only expired projections cited goes with the last of them; one an expired projection
+    shares with a kept one stays, and so does the evidence a kept one froze.
+    """
+    paths = pruned["paths"]
+    start = window_start(paths, pruned["latest"])
+    evidence = EvidenceRepository(paths.database)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+
+    def m1_claim(period: date) -> tuple[str, str, str]:
+        receipt = acquisitions.capture(
+            provider="fixture",
+            api_name="lookback_m1",
+            parameters={"month": period.strftime("%Y%m")},
+            fields="m1_yoy",
+            parser_version="fixture-parser",
+            fetch=lambda: f"m1 {period}".encode(),
+            parse=lambda raw: raw,
+            normalize=lambda raw: raw.decode(),
+        ).receipt
+        assert receipt.received_at and receipt.validated_at
+        [claim] = evidence.append_source_claims(
+            (
+                SourceClaimInput(
+                    metric_id="CN_M1_M2",
+                    definition_version="metric-catalog-v0001",
+                    period_kind="month",
+                    period_start=period.replace(day=1).isoformat(),
+                    period_end=period.isoformat(),
+                    dimensions={"aggregate": "m1", "measure": "yoy"},
+                    value=4.0,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="percent",
+                    provider="fixture",
+                    source_reference=f"fixture:m1:{period}",
+                    release_event_id=f"fixture:m1:{period}",
+                    release_at=None,
+                    public_available_at=None,
+                    fetched_at=receipt.received_at,
+                    available_at=receipt.validated_at,
+                    quality_status="validated",
+                    acquisition_id=receipt.acquisition_id,
+                ),
+            )
+        )
+        return claim.claim_id, receipt.acquisition_id, str(receipt.raw_hash)
+
+    def month_end(year: int, month: int) -> date:
+        return date(year + month // 12, month % 12 + 1, 1) - timedelta(days=1)
+
+    first = date.fromisoformat(start)
+    months = [month_end(first.year, first.month - 7 + offset) for offset in range(12)]
+    assert sum(month.isoformat() < start for month in months) == 7
+    m1 = [m1_claim(month) for month in months]
+    cited = tuple(claim for claim, _call, _raw in m1)
+    alone, alone_call, alone_raw = m1_claim(month_end(first.year, first.month - 9))
+    framed, framed_call, framed_raw = m1_claim(month_end(first.year, first.month - 10))
+
+    [(envelope_json,)] = query(
+        paths,
+        "SELECT envelope_json FROM projection_set WHERE projection_set_id="
+        "(SELECT projection_set_id FROM current_projection)",
+    )
+
+    def publish(
+        target: str, macro_cites: tuple[str, ...], frozen: tuple[str, ...], frozen_on: str
+    ) -> str:
+        """A published set citing claims as the real one does: in its documents and in
+        the evidence it froze."""
+        projection_set_id = f"projection-cites-{target}"
+        snapshot = evidence.freeze_snapshot(
+            frozen,
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime.fromisoformat(f"{frozen_on}T07:00:00+00:00"),
+        )
+        envelope = {
+            **json.loads(envelope_json),
+            "projection_set_id": projection_set_id,
+            "target_business_date": target,
+            "evidence_snapshot_id": snapshot.evidence_snapshot_id,
+        }
+        member = {"name": "m1", "observation_version_ids": list(macro_cites)}
+        macro = {
+            "confirmation": {
+                "dimensions": [
+                    {"key": "credit", "key_indicators": [{"key": "money", "members": [member]}]}
+                ]
+            }
+        }
+        connection = sqlite3.connect(paths.database)
+        try:
+            with connection:
+                connection.execute(
+                    "INSERT INTO projection_set(projection_set_id, envelope_json) VALUES (?, ?)",
+                    (projection_set_id, json.dumps(envelope)),
+                )
+                connection.execute(
+                    "INSERT INTO analytical_dataset(projection_set_id, dataset_name, "
+                    "document_json) VALUES (?, 'macro', ?)",
+                    (projection_set_id, json.dumps(macro)),
+                )
+        finally:
+            connection.close()
+        return projection_set_id
+
+    # Two expired sets share a claim and one of them M1; two kept sets share M1 in their
+    # documents alone, and the later one froze its evidence, a claim of its own, before
+    # the window.
+    expired = publish(OLD, (*cited, alone), (alone,), OLD)
+    expired_too = publish("2026-01-06", (alone,), (alone,), "2026-01-06")
+    earliest_kept = publish(start, cited, ("fixture:unrelated",), start)
+    later_kept = publish(TARGET, cited, (framed,), OLD)
+
+    main(["retention-prune", "--runtime-root", str(paths.override_root), "--json"])
+    capsys.readouterr()
+
+    projections = {row[0] for row in query(paths, "SELECT projection_set_id FROM projection_set")}
+    claims = {row[0] for row in query(paths, "SELECT claim_id FROM source_claim")}
+    links = set(query(paths, "SELECT claim_id, acquisition_id FROM source_claim_acquisition"))
+    calls = {row[0] for row in query(paths, "SELECT acquisition_id FROM acquisition_request")}
+    assert not {expired, expired_too} & projections
+    assert {earliest_kept, later_kept} <= projections
+    # Every month of M1 a kept projection cites can be read back to its source and original,
+    # the seven before the window included; so can a claim only its frozen evidence lists.
+    for claim, call, raw in (*m1, (framed, framed_call, framed_raw)):
+        assert claim in claims and (claim, call) in links and call in calls
+        assert (paths.artifacts / raw[:2] / raw).exists()
+    # What only expired sets cited goes once the last of them has expired.
+    assert alone not in claims and alone_call not in calls
+    assert not (paths.artifacts / alone_raw[:2] / alone_raw).exists()
 
 
 def test_quarters_and_months_read_back_past_the_window_are_cleared_by_a_successful_run(
