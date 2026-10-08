@@ -591,18 +591,22 @@ def _execute_retrieval_run(
         definition_version=definition_version,
         run_id=run.run_id,
     )
-    result = run_retrieval_cascade(
-        RetrievalRequest(
-            release_event_id=scope.release_event_id,
-            metric_ids=scope.metric_ids,
-            priority=scope.priority,
-            released=True,
-            manual_deep_search=run.command_type == "manual_deep_search",
-            persistent_accounting=adapters is None,
-        ),
-        configured_adapters,
-        budget,
-    )
+    from pring_cycle.official_context import listing_scan
+
+    # The official listing and the candidates search finds read it once (lookback L05).
+    with listing_scan():
+        result = run_retrieval_cascade(
+            RetrievalRequest(
+                release_event_id=scope.release_event_id,
+                metric_ids=scope.metric_ids,
+                priority=scope.priority,
+                released=True,
+                manual_deep_search=run.command_type == "manual_deep_search",
+                persistent_accounting=adapters is None,
+            ),
+            configured_adapters,
+            budget,
+        )
     for attempt in result.attempts:
         runs.record_retrieval_attempt(
             run.run_id,

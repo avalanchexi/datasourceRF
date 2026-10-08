@@ -6,11 +6,15 @@ from pathlib import Path
 
 import pytest
 
-from pring_cycle.official_listing import listing_months, release_url, worth_older_pages
+from pring_cycle.official_listing import entry_days, next_listing_page, reaches_back, release_url
 
 SAMPLES = Path(__file__).parents[1] / "fixtures" / "official_listing"
 NBS = "https://www.stats.gov.cn/sj/zxfb/"
 PBC = "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+PBC_REPORTS = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/index.html"
+TOOLS = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/"
+PBC_DATA = "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html"
+NBS_READINGS = "https://www.stats.gov.cn/sj/zxfbhjd/"
 
 
 def page(name: str) -> bytes:
@@ -55,12 +59,88 @@ def test_the_first_run_asked_for_2024_periods_the_listing_no_longer_shows() -> N
 
 def test_second_quarter_gdp_is_two_pages_back_and_is_the_one_release() -> None:
     assert select("nbs_zxfb_index.html", "nbs_gdp", "2026-Q2") is None
-    assert worth_older_pages(listing_months(page("nbs_zxfb_index.html")), "2026-Q2")
+    assert not reaches_back(entry_days(page("nbs_zxfb_index.html")), "2026-Q2")
+    assert next_listing_page(page("nbs_zxfb_index.html"), NBS) == NBS + "index_1.html"
     assert select("nbs_zxfb_index_1.html", "nbs_gdp", "2026-Q2", NBS + "index_1.html") is None
-    assert worth_older_pages(listing_months(page("nbs_zxfb_index_1.html")), "2026-Q2")
+    assert not reaches_back(entry_days(page("nbs_zxfb_index_1.html")), "2026-Q2")
+    assert next_listing_page(page("nbs_zxfb_index_1.html"), NBS + "index_1.html") == (
+        NBS + "index_2.html"
+    )
     assert select("nbs_zxfb_index_2.html", "nbs_gdp", "2026-Q2", NBS + "index_2.html") == (
         NBS + "202607/t20260716_1964142.html"
     )
+
+
+OMO_PAGES = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/"
+
+
+@pytest.mark.parametrize(
+    ("name", "page_url", "following"),
+    [
+        # The NBS list states its page count: createPageHTML(67, 0, "index", "html").
+        ("nbs_zxfb_index.html", NBS, NBS + "index_1.html"),
+        ("nbs_zxfb_index_2.html", NBS + "index_2.html", NBS + "index_3.html"),
+        ("nbs_zxfbhjd_index_20260924.html", NBS_READINGS, NBS_READINGS + "index_1.html"),
+        # A PBC column names its next page in the pager ("下一页").
+        ("pbc_125475_index_20260924.html", OMO_PAGES + "index.html", OMO_PAGES + "17081-2.html"),
+        (
+            "pbc_125475_17081-2_20261009.html",
+            OMO_PAGES + "17081-2.html",
+            OMO_PAGES + "17081-3.html",
+        ),
+        (
+            "pbc_116225_index_20261009.html",
+            PBC_REPORTS,
+            PBC_REPORTS.replace("index.html", "11871-2.html"),
+        ),
+        # The tool liquidity page leaves its pager unfilled: it is all there is.
+        ("pbc_5727710_index_20260925.html", TOOLS + "index.html", None),
+        # The department page has no pager.
+        ("pbc_116219_index_20260923.html", PBC, None),
+    ],
+)
+def test_a_listing_names_its_next_page(name: str, page_url: str, following: str | None) -> None:
+    """Lookback L05: history periods are found by going back the listings' pages."""
+    assert next_listing_page(page(name), page_url) == following
+
+
+def test_the_last_nbs_page_has_no_next_one() -> None:
+    last = b'<script>createPageHTML(67, 66, "index", "html");</script>'
+
+    assert next_listing_page(last, NBS + "index_66.html") is None
+
+
+@pytest.mark.parametrize(
+    ("name", "newest", "oldest"),
+    [
+        ("nbs_zxfb_index_1.html", "20260821", "20260730"),
+        ("pbc_125475_17081-2_20261009.html", "20260904", "20260811"),
+        ("pbc_116225_index_20261009.html", "20260914", "20251212"),
+    ],
+)
+def test_entries_are_dated_by_their_paths(name: str, newest: str, oldest: str) -> None:
+    days = entry_days(page(name))
+
+    assert (max(days), min(days)) == (newest, oldest)
+
+
+@pytest.mark.parametrize(
+    ("days", "period", "reached"),
+    [
+        (["20260915", "20260820"], "2026-08", True),
+        (["20260915", "20260901"], "2026-08", False),
+        # A day's notices may go on to the next page until an earlier day is listed.
+        (["20260912", "20260911"], "2026-09-11", False),
+        (["20260911", "20260910"], "2026-09-11", True),
+        (["20260716", "20260701"], "2026-Q2", False),
+        (["20260701", "20260629"], "2026-Q2", True),
+        ([], "2026-08", False),
+    ],
+)
+def test_a_page_reaches_back_to_a_period_once_an_entry_predates_its_end(
+    days: list[str], period: str, reached: bool
+) -> None:
+    assert reaches_back(days, period) is reached
 
 
 @pytest.mark.parametrize("period", ["2026-08", "2026-07"])
@@ -97,11 +177,6 @@ def test_industrial_finance_is_followed_from_its_registered_listing() -> None:
     )
 
 
-TOOLS = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/"
-PBC_DATA = "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html"
-NBS_READINGS = "https://www.stats.gov.cn/sj/zxfbhjd/"
-
-
 @pytest.mark.parametrize(
     ("family", "source_url", "listing"),
     [
@@ -110,12 +185,14 @@ NBS_READINGS = "https://www.stats.gov.cn/sj/zxfbhjd/"
         # The column's directory answers 403 (five real reads); its index page lists it.
         ("pbc_tool_liquidity_monthly", TOOLS, TOOLS + "index.html"),
         ("pbc_tool_liquidity_monthly", TOOLS + "index.html", TOOLS + "index.html"),
-        # The statistics directory lists each year's tables; the monthly report, which
-        # carries loans and social financing, is listed on the department's page.
-        ("pbc_loan_structure", PBC_DATA, PBC),
-        ("pbc_social_financing", PBC_DATA, PBC),
-        ("pbc_social_financing", PBC, PBC),
-        ("pbc_money", PBC, PBC),
+        # The statistics directory lists each year's tables; the department's page only
+        # the latest few reports. The monthly report, which carries loans and social
+        # financing, is listed page by page in its column (lookback L05).
+        ("pbc_loan_structure", PBC_DATA, PBC_REPORTS),
+        ("pbc_social_financing", PBC_DATA, PBC_REPORTS),
+        ("pbc_social_financing", PBC, PBC_REPORTS),
+        ("pbc_money", PBC, PBC_REPORTS),
+        ("pbc_money", PBC_REPORTS, PBC_REPORTS),
     ],
 )
 def test_each_lookback_family_is_looked_up_on_the_listing_of_its_releases(
@@ -123,11 +200,10 @@ def test_each_lookback_family_is_looked_up_on_the_listing_of_its_releases(
 ) -> None:
     """Lookback L01: these families' history periods went unrequested, their registered
     pages not recognized as the listings their releases are found on."""
-    from pring_cycle.official_listing import is_release_listing, listing_page_url, release_listing
+    from pring_cycle.official_listing import is_release_listing, release_listing
 
     assert is_release_listing(family, source_url)
     assert release_listing(family, source_url) == listing
-    assert listing_page_url(family, source_url, 0) == listing
 
 
 def test_a_release_page_is_not_a_listing() -> None:
@@ -137,15 +213,6 @@ def test_a_release_page_is_not_a_listing() -> None:
     assert release_listing("pbc_tool_liquidity_monthly", release) is None
     assert not is_release_listing("pbc_tool_liquidity_monthly", release)
     assert not is_release_listing("pbc_loan_structure", TOOLS)
-
-
-def test_only_the_nbs_listings_are_followed_back_by_pages() -> None:
-    from pring_cycle.official_listing import listing_page_url
-
-    assert listing_page_url("nbs_industrial_value_added", NBS_READINGS, 1) == (
-        NBS_READINGS + "index_1.html"
-    )
-    assert listing_page_url("pbc_tool_liquidity_monthly", TOOLS, 1) is None
 
 
 @pytest.mark.parametrize(

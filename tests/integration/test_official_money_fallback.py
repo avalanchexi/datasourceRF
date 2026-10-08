@@ -33,6 +33,8 @@ from tests.fixtures.model_registration import (
 )
 
 LISTING = "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+# The monthly report's column, its releases listed page by page (lookback L05).
+COLUMN = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/index.html"
 ARTICLE = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html"
 
 
@@ -133,7 +135,7 @@ def test_money_fallback_keeps_required_members_and_delivery_provenance(
 
     def fetch(url: str) -> FetchedOfficialContextDocument:
         requested.append(url)
-        if url == LISTING:
+        if url == COLUMN:
             content = f'<a href="{ARTICLE}">2026年7月金融统计数据报告</a>'.encode()
         elif url == ARTICLE and official_available:
             content = (

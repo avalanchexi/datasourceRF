@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 import re
 from dataclasses import dataclass
 from html.parser import HTMLParser
@@ -15,9 +16,9 @@ def release_listing(family: str, source_url: str) -> str | None:
     of its registered listings; None when it is not (a release page itself, say).
 
     The tool liquidity column is read through its index page: its directory answers 403.
-    The PBC statistics directory lists each year's tables, not releases; the monthly
-    financial statistics report, which carries money, loans and social financing, is
-    listed on the department's page.
+    The PBC statistics directory lists each year's tables, not releases, and the
+    department's page only the latest few; the monthly financial statistics report, which
+    carries money, loans and social financing, is listed page by page in its column.
     """
     path = urlsplit(source_url).path
     if family in _NBS_FAMILIES:
@@ -26,8 +27,8 @@ def release_listing(family: str, source_url: str) -> str | None:
         return source_url if path == _OMO_LISTING else None
     if family == "pbc_tool_liquidity_monthly":
         return urljoin(source_url, "index.html") if path in _TOOL_LIQUIDITY_LISTING else None
-    if family in _PBC_REPORT_FAMILIES and path in {_PBC_STATISTICS_PATH, _PBC_DATA_DIRECTORY}:
-        return urljoin(source_url, _PBC_STATISTICS_PATH)
+    if family in _PBC_REPORT_FAMILIES and path in _PBC_REPORT_LISTINGS:
+        return urljoin(source_url, _PBC_REPORT_COLUMN)
     return None
 
 
@@ -56,8 +57,11 @@ class _ReleaseLinks(HTMLParser):
 _OMO_LISTING = "/zhengcehuobisi/125207/125213/125431/125475/index.html"
 # An OMO notice is dated only by its path: .../125475/2026092308513432696/index.html.
 _OMO_NOTICE = re.compile(r"/125475/(20\d{6})\d+/index\.html$")
-# Listing pages the NBS release list is followed back through (index, index_1, ...).
-NBS_LISTING_PAGES = 10
+# An entry's day: an NBS release's file ("./202609/t20260915_1965263.html"), a PBC entry's
+# directory (".../2026091417020862747/index.html"). Older PBC entries are not dated.
+_ENTRY_DAY = re.compile(r"^\./20\d{4}/t(20\d{6})_|/(20\d{6})\d{6,}/index\.html$")
+# The NBS list's page count and this page's index: createPageHTML(67, 0, "index", "html").
+_NBS_PAGER = re.compile(r"createPageHTML\((\d+),\s*(\d+),")
 _NBS_FAMILIES = {
     "nbs_core_cpi",
     "nbs_ppi",
@@ -73,20 +77,16 @@ _TOOL_LIQUIDITY_LISTING = {
 }
 # The families whose figures the PBC's monthly financial statistics report carries.
 _PBC_REPORT_FAMILIES = {"pbc_money", "pbc_social_financing", "pbc_loan_structure"}
-_PBC_STATISTICS_PATH = "/diaochatongjisi/116219/index.html"
-_PBC_DATA_DIRECTORY = "/diaochatongjisi/116219/116319/index.html"
+_PBC_REPORT_COLUMN = "/diaochatongjisi/116219/116225/index.html"
+# The department's page and its statistics directory, as registered, and the column.
+_PBC_REPORT_LISTINGS = {
+    "/diaochatongjisi/116219/index.html",
+    "/diaochatongjisi/116219/116319/index.html",
+    _PBC_REPORT_COLUMN,
+}
 _AGGREGATE_MONTHS = {3: "一季度", 6: "上半年", 9: "前三季度", 12: "全年"}
 # Same-period pieces that are not the release itself.
 _NOT_THE_RELEASE = ("解读", "答记者问", "图解", "快报")
-
-
-def listing_page_url(family: str, listing_url: str, page: int) -> str | None:
-    """The ``page``-th page of a release listing; only the NBS list goes back by pages."""
-    if page == 0:
-        return release_listing(family, listing_url) or listing_url
-    if family in _NBS_FAMILIES and page < NBS_LISTING_PAGES:
-        return urljoin(listing_url, f"index_{page}.html")
-    return None
 
 
 def _normal(title: str) -> str:
@@ -158,41 +158,73 @@ def release_urls(content: bytes, *, family: str, listing_url: str, period: str) 
     return tuple(dict.fromkeys(urls))
 
 
-def listing_months(content: bytes) -> list[str]:
-    """The YYYYMM of each entry of the list itself ("./202609/t20260915_..."), newest first.
+def entry_days(content: bytes) -> list[str]:
+    """The YYYYMMDD of each dated entry of the list itself, in its order (newest first).
 
     Fixed page links (contact, terms) are not entries and are left out.
     """
     parser = _ReleaseLinks()
     parser.feed(content.decode("utf-8-sig", "replace"))
     return [
-        match.group(1)
+        match.group(1) or match.group(2)
         for href, _title in parser.links
-        if (match := re.match(r"\./(20\d{4})/t\d{8}", href or ""))
+        if (match := _ENTRY_DAY.search(href or ""))
     ]
 
 
-def period_last_month(period: str) -> str:
-    if "-Q" in period:
-        return f"{period[:4]}{int(period[-1]) * 3:02d}"
-    return period[:4] + period[5:7]
+def listing_entries(content: bytes) -> list[str]:
+    """What a page lists, to tell one page from another: its dated entries, else (a page
+    of older, undated entries) every link on it."""
+    parser = _ReleaseLinks()
+    parser.feed(content.decode("utf-8-sig", "replace"))
+    hrefs = [href for href, _title in parser.links if href]
+    return [href for href in hrefs if _ENTRY_DAY.search(href)] or hrefs
 
 
-def worth_older_pages(months: list[str], period: str) -> bool:
-    """Whether a release missing from a page may still be further down the NBS list.
+def period_last_day(period: str) -> str:
+    """The YYYYMMDD a day, month (YYYY-MM) or quarter (YYYY-Qn) ends on."""
+    if len(period) == 10:
+        return period.replace("-", "")
+    month = int(period[-1]) * 3 if "-Q" in period else int(period[5:7])
+    last = calendar.monthrange(int(period[:4]), month)[1]
+    return f"{period[:4]}{month:02d}{last:02d}"
 
-    Not once the page already reaches back to the period's last month (a release comes out
-    after its period), and not for a period more than six months older than the list's
-    newest entry: ten pages cover a few months, so a history period is not listed at all.
+
+def reaches_back(days: list[str], period: str) -> bool:
+    """Whether the pages read so far list everything published since ``period`` ended.
+
+    A release comes out after its period: once an entry predates the period's last day, the
+    release, if listed, was on the pages read. A day's notices may run on to the next page,
+    so its own day does not reach back yet.
     """
-    if not months:
-        return False
-    last = period_last_month(period)
-    if min(months) <= last:
-        return False
-    newest = max(months)
-    gap = (int(newest[:4]) - int(last[:4])) * 12 + int(newest[4:]) - int(last[4:])
-    return gap <= 6
+    return bool(days) and min(days) < period_last_day(period)
+
+
+class ListingNotCovered(ValueError):
+    """The listing read stopped before reaching back to the period: its release may be
+    listed further back, so not finding it says nothing about whether it was published.
+
+    ``stopped`` says where: ``page_limit`` (the run's pages of the site are read),
+    ``repeated_page`` (a page listed what the one before did), ``unreadable_page`` (a page
+    failed each read the run made of it) or ``last_page``.
+    """
+
+    def __init__(self, stopped: str, pages: int, oldest: str | None) -> None:
+        super().__init__("official_listing_not_covered")
+        self.stopped = stopped
+        self.pages = pages
+        self.oldest = oldest
+
+
+def next_listing_page(content: bytes, page_url: str) -> str | None:
+    """The listing's next page: named in a PBC column's pager, counted in the NBS list's;
+    None on the last page, and on a page without a pager."""
+    if (following := chronicle_next_page(content, page_url)) is not None:
+        return following
+    match = _NBS_PAGER.search(content.decode("utf-8-sig", "replace"))
+    if match is None or int(match[2]) + 1 >= int(match[1]):
+        return None
+    return urljoin(page_url, f"index_{int(match[2]) + 1}.html")
 
 
 RRR_CHRONICLE_LISTING = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125963/index.html"

@@ -612,3 +612,47 @@ def test_a_period_the_release_gate_kept_from_being_requested_is_listed_with_why(
     page = str(_gap_list(gaps))
     assert "未请求 2 期 2026-08-21 至 2026-08-24（较早交易日不逐日检索）" in page
     assert "未请求 2025-08（发布规则未登记）" in page
+
+
+def test_a_period_its_listing_was_not_read_back_to_is_listed_as_not_covered() -> None:
+    """Lookback L05: 100 OMO days not on the listing pages read were left as if the column
+    had nothing for them. Each is named on its metric as not covered, not as "none"."""
+    gaps = add_projection_gaps(
+        (),
+        (),
+        derived_requirements=(),
+        plan_gaps=(
+            *(
+                {
+                    "complete": False,
+                    "metric_id": "CN_OMO_7D_AMOUNT",
+                    "period": period,
+                    "official_listing": "listing_not_covered",
+                }
+                for period in ("2026-04-09", "2026-08-31", "2026-06-01")
+            ),
+            # Found by search after the listing stopped: nothing is owed.
+            {
+                "complete": True,
+                "metric_id": "CN_INDUSTRIAL_PROFIT",
+                "period": "2026-02",
+                "official_listing": "listing_not_covered",
+            },
+        ),
+        definitions=metric_catalog_v0003(),
+    )
+
+    (omo,) = gaps
+    assert (omo["metric_id"], omo["category"], omo["reason"]) == (
+        "CN_OMO_7D_AMOUNT",
+        "missing",
+        "listing_not_covered",
+    )
+    assert [item["period"] for item in omo["not_covered"]] == [
+        "2026-04-09",
+        "2026-08-31",
+        "2026-06-01",
+    ]
+    page = str(_gap_list(gaps))
+    assert "列表未覆盖 3 期 2026-04-09 至 2026-08-31" in page
+    assert "无操作" not in page

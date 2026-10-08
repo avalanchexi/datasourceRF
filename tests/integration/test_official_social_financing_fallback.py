@@ -34,6 +34,8 @@ from tests.fixtures.model_registration import (
 )
 
 LISTING = "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+# The monthly report's column, its releases listed page by page (lookback L05).
+COLUMN = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/index.html"
 ARTICLE = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html"
 
 
@@ -175,7 +177,7 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
 
     def fetch(url: str) -> FetchedOfficialContextDocument:
         requested.append(url)
-        if url == LISTING:
+        if url == COLUMN:
             content = (
                 b"<p>No matching release in this fixture</p>"
                 if official_state == "no_matching_period"
@@ -209,7 +211,7 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
         if scope["period"] == "2026-07"
         and {"CN_SF_TOTAL", "CN_SF_COMPONENTS"} & set(scope["metric_ids"])
     )
-    assert july["source_url"] == LISTING
+    assert july["source_url"] == COLUMN
     assert july["metric_ids"] == (
         ["CN_SF_COMPONENTS"] if delivered else ["CN_SF_COMPONENTS", "CN_SF_TOTAL"]
     )
@@ -278,8 +280,9 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
         acquisitions = {
             r.acquisition_id
             for r in AcquisitionRepository(paths.database, paths.artifacts).history()
-            if r.parameters.get("source_url") == (ARTICLE if transport_failed else LISTING)
-            and r.parameters.get("period") == "2026-07"
+            if r.parameters.get("source_url") == (ARTICLE if transport_failed else COLUMN)
+            # The run reads the column once, for whichever family first needs it (L05).
+            and (not transport_failed or r.parameters.get("period") == "2026-07")
         }
         ledger = RetrievalLedger(paths.database).for_run(run.run_id)
         assert ledger is not None
@@ -342,7 +345,7 @@ def test_a_confirmation_model_takes_the_official_stock_growth_tushare_does_not_d
 
     def fetch(url: str) -> FetchedOfficialContextDocument:
         requested.append(url)
-        if url == LISTING:
+        if url == COLUMN:
             content = f'<a href="{ARTICLE}">2026年7月金融统计数据报告</a>'.encode()
         elif url == ARTICLE and official_state == "available":
             content = (

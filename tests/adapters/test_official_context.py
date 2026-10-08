@@ -990,9 +990,9 @@ def test_official_refresh_follows_listing_for_requested_period(tmp_path: Path) -
         (
             "pbc_money",
             "2026-07",
-            "https://www.pbc.gov.cn/diaochatongjisi/116219/",
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/",
             "2026年7月金融统计数据报告",
-            "116225/2026081416320925645/index.html",
+            "2026081416320925645/index.html",
             4,
         ),
     ],
@@ -1136,7 +1136,7 @@ def test_official_money_listing_accepts_aggregate_period_titles(
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
-    listing = "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+    listing = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/index.html"
     article = "https://www.pbc.gov.cn/diaochatongjisi/report.html"
     title = f"2025年{label}金融统计数据报告"
     # Synthetic values isolate title/period identity; this is not a historical source package.

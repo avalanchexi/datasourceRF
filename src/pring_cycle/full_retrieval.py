@@ -708,6 +708,7 @@ class FullRunRetrieval:
             if any((metric, scope.period) in bound for metric in scope.metric_ids):
                 ledger.bind_run(scoped, initial["definition_version"])
         gated = _release_gated(self.paths.database, run.run_id, initial["scopes"], bound)
+        uncovered = _listing_uncovered(self.paths.database, run.run_id, initial["scopes"])
         for requirement in final_plan["requirements"]:
             if "period" not in requirement:
                 continue
@@ -732,6 +733,11 @@ class FullRunRetrieval:
                     **(
                         {"release_gate": gated[(metric, period)]}
                         if not selection.complete and (metric, period) in gated
+                        else {}
+                    ),
+                    **(
+                        {"official_listing": "listing_not_covered"}
+                        if not selection.complete and (metric, period) in uncovered
                         else {}
                     ),
                 }
@@ -970,6 +976,33 @@ def _release_gated(
             if (metric, document["period"]) not in bound:
                 gated[(metric, document["period"])] = reason if reason in recorded else recorded[-1]
     return gated
+
+
+def _listing_uncovered(
+    database: Path, run_id: str, scopes: list[dict[str, Any]]
+) -> set[tuple[str, str]]:
+    """Each planned metric and period whose official listing stopped short of it.
+
+    Its release may be listed further back: not found there says nothing of whether it was
+    published, or (an OMO day) whether there was an operation (lookback L05). Attempts name
+    only the event, which scopes of one release share: a scope read through a listing takes
+    the event's, since its scopes read the one listing for the one period.
+    """
+    with database_connection(database) as connection:
+        events = {
+            str(event)
+            for (event,) in connection.execute(
+                "SELECT release_event_id FROM run_retrieval_attempt WHERE run_id=? "
+                "AND channel='official' AND classification='listing_not_covered'",
+                (run_id,),
+            )
+        }
+    return {
+        (metric, document["period"])
+        for document in scopes
+        if document["release_event_id"] in events and _has_release_listing(_scope(document))
+        for metric in document["metric_ids"]
+    }
 
 
 def _scope(document: dict[str, Any]) -> RetrievalScope:

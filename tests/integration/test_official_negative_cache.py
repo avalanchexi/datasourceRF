@@ -9,6 +9,8 @@ from pring_cycle.worker import process_pending_run
 from tests.integration.test_retrieval_ledger import prepared_runtime
 
 PBC_LISTING = "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+# The monthly report's column, its releases listed page by page (lookback L05).
+PBC_COLUMN = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/index.html"
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -65,7 +67,7 @@ def test_same_official_release_reuses_negative_cache_across_target_dates(
         process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
         ledger = runs.get(submitted.run_id).retrieval_ledger
         assert ledger is not None
-        assert calls == [PBC_LISTING] * 3
+        assert calls == [PBC_COLUMN] * 3
         if target == "2026-09-11":
             first_requests = ledger["requests"]
             assert len(first_requests) == 3
@@ -120,4 +122,4 @@ def test_a_changed_contract_is_not_held_back_by_the_old_contracts_negative_cache
         )
         process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
 
-    assert calls == [PBC_LISTING] * 6
+    assert calls == [PBC_COLUMN] * 6

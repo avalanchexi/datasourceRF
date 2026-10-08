@@ -102,6 +102,12 @@ def own_acquisitions(
         _acquisition_owner.reset(token)
 
 
+def owning_run(database: Path) -> str | None:
+    """The run whose acquisitions against ``database`` are being made now, if any."""
+    owner = _acquisition_owner.get()
+    return owner.run_id if owner is not None and owner.database == database.resolve() else None
+
+
 @contextmanager
 def acquisition_metrics(metric_ids: tuple[str, ...]) -> Iterator[None]:
     owner = _acquisition_owner.get()
@@ -141,11 +147,12 @@ class AcquisitionReceipt:
 class ReceiptCounts:
     """Three counts a receipt keeps apart (lookback 06); None where one is not defined.
 
-    ``source_records`` are the records the source returned (a TuShare row, a CSV line), none
-    for a page, which has no record of its own; ``normalized_scalars`` the values its answer
-    was read as; ``ingested_claims`` the claims linked to the call once its ingest said its
-    result. A claim already on file counts as well, and one claim shared by several calls
-    counts on each, so this is what the call's values became, not how many rows it added.
+    ``source_records`` are the records the source returned (a TuShare row, a CSV line, a
+    listing's dated entry), none for a page, which has no record of its own;
+    ``normalized_scalars`` the values its answer was read as; ``ingested_claims`` the claims
+    linked to the call once its ingest said its result. A claim already on file counts as
+    well, and one claim shared by several calls counts on each, so this is what the call's
+    values became, not how many rows it added.
     """
 
     source_records: int | None

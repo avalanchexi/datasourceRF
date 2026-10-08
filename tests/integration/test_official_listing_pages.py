@@ -92,24 +92,25 @@ def test_full_run_follows_the_nbs_listing_back_to_the_gdp_release(
         if point.period_end == "2026-06-30"
     ]
     assert len(points) == 8
-    reads = [
-        (r.api_name, r.parameters["source_url"], r.state)
-        for r in AcquisitionRepository(paths.database, paths.artifacts).history()
-        if r.parameters.get("family") == "nbs_gdp" and r.parameters["period"] == "2026-Q2"
+    receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+    assert [
+        (r.parameters["source_url"], r.state)
+        for r in receipts
+        if r.parameters.get("family") == "nbs_gdp" and r.api_name == "official_http_get"
+    ] == [(ARTICLE, "validated")]
+    # The run reads each page of the list once, whichever period first needs it (lookback
+    # L05); the fixture serves three, and the fourth fails each of its tries.
+    pages = [
+        (r.parameters["source_url"], r.state)
+        for r in receipts
+        if r.api_name == "official_listing_get" and r.parameters["source_url"].startswith(LISTING)
     ]
-    assert reads == [
-        ("official_listing_get", LISTING, "validated"),
-        ("official_listing_get", LISTING + "index_1.html", "validated"),
-        ("official_listing_get", LISTING + "index_2.html", "validated"),
-        ("official_http_get", ARTICLE, "validated"),
+    assert pages[:3] == [
+        (LISTING, "validated"),
+        (LISTING + "index_1.html", "validated"),
+        (LISTING + "index_2.html", "validated"),
     ]
-    # A two-year-old history quarter is not on the recent pages: read once, not found.
-    history = [
-        r.parameters["source_url"]
-        for r in AcquisitionRepository(paths.database, paths.artifacts).history()
-        if r.parameters.get("family") == "nbs_gdp" and r.parameters["period"] == "2024-Q2"
-    ]
-    assert history == [LISTING]
+    assert pages[3:] == [(LISTING + "index_3.html", "failed")] * 3
 
 
 def test_the_day_s_reverse_repo_notice_is_read_from_the_omo_column(tmp_path: Path) -> None:
@@ -481,15 +482,12 @@ def test_a_history_month_the_lookback_reads_is_requested_through_its_listing(
         for r in AcquisitionRepository(paths.database, paths.artifacts).history()
         if r.parameters.get("family") == "pbc_tool_liquidity_monthly"
     ]
-    # July's release is requested; the fixture does not serve it, and the receipt says so.
-    assert reads[
-        reads.index(("2026-07", "official_listing_get", TOOLS + "index.html", "validated")) + 1
-    ] == (
-        "2026-07",
-        "official_http_get",
-        TOOLS_JULY,
-        "failed",
-    )
+    # The column is read once for the run's three months (lookback L05). July's release is
+    # requested; the fixture does not serve it, and the receipt says so.
+    assert [read[2:] for read in reads if read[1] == "official_listing_get"] == [
+        (TOOLS + "index.html", "validated")
+    ]
+    assert ("2026-07", "official_http_get", TOOLS_JULY, "failed") in reads
     assert ("2026-08", "official_http_get", TOOLS_AUGUST, "validated") in reads
     # The column's directory, which answers 403, is never read.
     assert TOOLS not in requested
@@ -549,12 +547,24 @@ def test_an_earlier_reverse_repo_day_is_still_looked_up_on_the_omo_column(
     )
     assert earlier["release_status"] == "earlier_session_not_searched"
     reads = [
-        (r.api_name, r.parameters["source_url"])
+        (r.api_name, r.parameters["source_url"], r.parameters["period"], r.state)
         for r in AcquisitionRepository(paths.database, paths.artifacts).history()
-        if r.parameters.get("family") == "pbc_omo_notice" and r.parameters["period"] == "2026-09-23"
+        if r.parameters.get("family") == "pbc_omo_notice"
     ]
-    assert reads[0] == ("official_listing_get", OMO_COLUMN + "index.html")
-    assert ("official_http_get", OMO_REPO) in reads
+    assert ("official_http_get", OMO_REPO, "2026-09-23", "validated") in reads
+    # The column's first page is read once for all of the run's days, not once each
+    # (lookback L05: 100 days had read the one page 100 times). The fixture does not serve
+    # the second page: it fails each of its tries, and is not asked for again day by day.
+    listing = [read for read in reads if read[0] == "official_listing_get"]
+    assert [read[1] for read in listing] == [OMO_COLUMN + "index.html"] + [
+        OMO_COLUMN + "17081-2.html"
+    ] * 3
+    # The days before the first page are not covered by what was read; 9/23 was found.
+    from pring_cycle.full_retrieval import _listing_uncovered
+
+    uncovered = _listing_uncovered(paths.database, run.run_id, plan["scopes"])
+    assert ("CN_OMO_7D_AMOUNT", "2026-08-31") in uncovered
+    assert ("CN_OMO_7D_AMOUNT", "2026-09-23") not in uncovered
     with sqlite3.connect(paths.database) as connection:
         outcomes = dict(
             connection.execute(
@@ -566,3 +576,251 @@ def test_an_earlier_reverse_repo_day_is_still_looked_up_on_the_omo_column(
     # Only the official listing was open to it; no channel searched.
     assert outcomes.pop("official") == "verified"
     assert set(outcomes.values()) == {"not_configured"}
+    # A day the listing read did not reach is not searched either: an earlier session is
+    # not searched day by day (ticket 19), whatever stopped the listing.
+    (uncovered_day,) = (
+        scope
+        for scope in plan["scopes"]
+        if "CN_OMO_7D_AMOUNT" in scope["metric_ids"] and scope["period"] == "2026-08-31"
+    )
+    with sqlite3.connect(paths.database) as connection:
+        channels = dict(
+            connection.execute(
+                "SELECT channel, classification FROM run_retrieval_attempt "
+                "WHERE run_id=? AND release_event_id=? AND outcome <> 'not_configured'",
+                (run.run_id, uncovered_day["release_event_id"]),
+            ).fetchall()
+        )
+    assert channels == {"official": "listing_not_covered"}
+
+
+def test_a_listing_read_to_the_site_s_page_limit_hands_the_period_on_to_search(
+    tmp_path: Path,
+) -> None:
+    """Lookback L05: a run reads at most 50 listing pages a site. A period they do not
+    reach is not covered, which is no failure of the source to cache: search is next, on
+    its own budget."""
+    from pring_cycle.catalog import METRIC_CATALOG_VERSION
+    from pring_cycle.models import EFFECTIVE_CATALOG_VERSION, ModelRepository
+    from pring_cycle.official_context import (
+        LISTING_PAGES_PER_SITE,
+        ListingScan,
+        refresh_official_context_document,
+    )
+    from pring_cycle.retrieval import RetrievalBudget, RetrievalRequest, run_retrieval_cascade
+    from pring_cycle.retrieval_ledger import RetrievalLedger
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    models = ModelRepository(paths.database)
+    models.register(effective_model_manifest())
+    models.activate(CURRENT_MODEL, explicitly_approved=True)
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-09-23",
+        client_request_id="listing-page-limit",
+        model_version_id=CURRENT_MODEL,
+        system_as_of=datetime.now(UTC),
+        release_event_id="cpi:2026-02",
+        metric_ids=("CN_CORE_CPI",),
+        period="2026-02",
+    )
+    # Every page lists September; the list goes on for 500 pages.
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        requested.append(url)
+        index = int(url.rsplit("_", 1)[1].removesuffix(".html")) if "index_" in url else 0
+        page = (
+            f'<a href="./202609/t202609{1 + index % 28:02d}_{index}.html">其他发布</a>'
+            f'<script>createPageHTML(500, {index}, "index", "html");</script>'
+        )
+        return FetchedOfficialContextDocument(page.encode(), "text/html", url, 200)
+
+    ledger = RetrievalLedger(paths.database)
+    ledger.bind_run(run, EFFECTIVE_CATALOG_VERSION)
+
+    def official(event: str) -> object:
+        return ledger.trace_acquisition(
+            run.run_id,
+            "official",
+            event,
+            LISTING,
+            lambda started: (
+                refresh_official_context_document(
+                    paths,
+                    family="nbs_core_cpi",
+                    source_url=LISTING,
+                    expected_period="2026-02",
+                    fetched_at=datetime.now(UTC),
+                    fetcher=fetch,
+                    definition_version=METRIC_CATALOG_VERSION,
+                    on_acquisition_started=started,
+                    listings=ListingScan(),
+                ).release_event_id
+            ),
+        )
+
+    searched: list[str] = []
+    result = run_retrieval_cascade(
+        RetrievalRequest("cpi:2026-02", ("CN_CORE_CPI",), "P1"),
+        {"official": official, "tavily": lambda event: searched.append(event)},  # type: ignore[dict-item]
+        RetrievalBudget(),
+    )
+
+    assert len(requested) == LISTING_PAGES_PER_SITE
+    official_attempt = next(a for a in result.attempts if a.channel == "official")
+    assert (official_attempt.outcome, official_attempt.classification) == (
+        "failed",
+        "listing_not_covered",
+    )
+    assert searched == ["cpi:2026-02"]
+    with sqlite3.connect(paths.database) as connection:
+        (expires,) = connection.execute(
+            "SELECT cache_expires_at FROM retrieval_physical_request "
+            "WHERE classification='listing_not_covered'"
+        ).fetchall()
+    # Not a source failure to wait out: nothing is held back by it.
+    assert expires == (None,)
+
+
+def _omo_run(paths: RuntimePaths, day: str) -> Any:
+    from pring_cycle.models import ModelRepository
+
+    models = ModelRepository(paths.database)
+    try:
+        models.active()
+    except LookupError:
+        models.register(effective_model_manifest())
+        models.activate(CURRENT_MODEL, explicitly_approved=True)
+    return RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-09-30",
+        client_request_id=f"omo-{day}",
+        model_version_id=CURRENT_MODEL,
+        system_as_of=datetime.now(UTC),
+        release_event_id=f"omo:{day}",
+        metric_ids=("CN_OMO_7D_AMOUNT",),
+        period=day,
+    )
+
+
+def test_a_resumed_run_reads_on_from_the_listing_pages_it_had_read(tmp_path: Path) -> None:
+    """Lookback L05: a run reads a listing once. Resumed in another process, it reads the
+    pages it kept from their receipts, and goes on from the last."""
+    from pring_cycle import official_context
+    from pring_cycle.acquisition import own_acquisitions
+    from pring_cycle.official_context import refresh_official_context_document
+    from tests.adapters.test_official_listing_scan import Site, omo_column, omo_url
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    run = _omo_run(paths, "2026-09-23")
+    site = Site(omo_column())
+
+    def refresh(day: str) -> None:
+        with own_acquisitions(paths.database, run.run_id, "gap_retrieval"):
+            refresh_official_context_document(
+                paths,
+                family="pbc_omo_notice",
+                source_url=omo_url(1),
+                expected_period=day,
+                fetched_at=datetime.now(UTC),
+                fetcher=site,
+            )
+
+    refresh("2026-09-23")
+    official_context._RUN_LISTINGS.clear()  # Another process: nothing read in memory.
+    refresh("2026-09-24")
+    with pytest.raises(ValueError, match="official_context_release_link_not_found"):
+        refresh("2026-09-18")
+
+    listing = [url for url in site.requested if "/17081-" in url or url.endswith("5/index.html")]
+    assert listing == [omo_url(1), omo_url(2), omo_url(3), omo_url(4)]
+
+
+def test_a_day_s_notices_are_read_when_the_page_after_them_fails(tmp_path: Path) -> None:
+    """9/23's notices end the first page: the next one, which could list more of them,
+    fails. A failed read ends its retrieval; the retry reads the notices found. An earlier
+    day waits on that page through the retrieval's own retries, and is then not covered,
+    not found missing."""
+    from pring_cycle.models import EFFECTIVE_CATALOG_VERSION
+    from pring_cycle.official_context import ListingScan, refresh_official_context_document
+    from pring_cycle.retrieval import (
+        RetrievalBudget,
+        RetrievalRequest,
+        RetrievalResult,
+        run_retrieval_cascade,
+    )
+    from pring_cycle.retrieval_ledger import RetrievalLedger
+    from tests.adapters.test_official_listing_scan import omo_page, omo_url
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    documents = {
+        omo_url(1): omo_page(
+            1,
+            [
+                "2026092508450000001",
+                "2026092408454713496",
+                "2026092311141529051",
+                "2026092308513432696",
+            ],
+            following=2,
+        ),
+        OMO_BILLS: OMO_DOCUMENTS[OMO_BILLS].read_bytes(),
+        OMO_REPO: OMO_DOCUMENTS[OMO_REPO].read_bytes(),
+    }
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        requested.append(url)
+        if url not in documents:
+            raise OSError("fixture_official_page_unavailable")
+        return FetchedOfficialContextDocument(documents[url], "text/html", url, 200)
+
+    scan = ListingScan()
+
+    def retrieve(day: str) -> RetrievalResult:
+        run = _omo_run(paths, day)
+        ledger = RetrievalLedger(paths.database)
+        ledger.bind_run(run, EFFECTIVE_CATALOG_VERSION)
+        return run_retrieval_cascade(
+            RetrievalRequest(f"omo:{day}", ("CN_OMO_7D_AMOUNT",), "P1"),
+            {
+                "official": lambda event: ledger.trace_acquisition(
+                    run.run_id,
+                    "official",
+                    event,
+                    omo_url(1),
+                    lambda started: (
+                        refresh_official_context_document(
+                            paths,
+                            family="pbc_omo_notice",
+                            source_url=omo_url(1),
+                            expected_period=day,
+                            fetched_at=datetime.now(UTC),
+                            fetcher=fetch,
+                            on_acquisition_started=started,
+                            listings=scan,
+                        ).release_event_id
+                    ),
+                )
+            },
+            RetrievalBudget(),
+        )
+
+    found = retrieve("2026-09-23")
+    assert [(a.outcome, a.classification) for a in found.attempts if a.channel == "official"] == [
+        ("failed", "transient_transport_error"),
+        ("verified", None),
+    ]
+    assert requested == [omo_url(1), omo_url(2), OMO_BILLS, OMO_REPO]
+
+    earlier = retrieve("2026-09-01")
+    assert [a.classification for a in earlier.attempts if a.channel == "official"] == [
+        "transient_transport_error",
+        "transient_transport_error",
+        "listing_not_covered",
+    ]
+    assert requested[4:] == [omo_url(2)] * 2

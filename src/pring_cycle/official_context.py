@@ -4,8 +4,10 @@ import calendar
 import hashlib
 import json
 import re
-from collections.abc import Callable, Iterable, Mapping
-from dataclasses import asdict, dataclass
+from collections.abc import Callable, Iterable, Iterator, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from html.parser import HTMLParser
@@ -20,10 +22,12 @@ from pring_cycle.acquisition import (
     AcquisitionRepository,
     CandidateSkipped,
     SourceFailed,
+    owning_run,
     receipt_key,
     utc_now,
 )
 from pring_cycle.acquisition_outcome import (
+    NOT_ATTEMPTED,
     SUCCEEDED,
     attempt_details,
     capture_failure,
@@ -43,17 +47,21 @@ from pring_cycle.http_transport import open_no_redirects as urlopen
 from pring_cycle.official_listing import (
     RRR_CHRONICLE_LISTING,
     ChronicleEntry,
+    ListingNotCovered,
     chronicle_entries,
     chronicle_next_page,
-    is_release_listing,
-    listing_months,
-    listing_page_url,
+    entry_days,
+    listing_entries,
+    next_listing_page,
+    reaches_back,
+    release_listing,
+    release_titles,
     release_urls,
-    worth_older_pages,
 )
 from pring_cycle.release_calendar import month_bounds
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
+from pring_cycle.storage import database_connection
 from pring_cycle.tushare_context import (
     ContextScalar,
     parse_cpi_acquisition,
@@ -738,6 +746,111 @@ def _official_metric_scope(family: str, metric_ids: tuple[str, ...] | None) -> f
     return requested
 
 
+# Listing pages one run reads from a site, all its listings together (lookback L05).
+LISTING_PAGES_PER_SITE = 50
+# Reads of one listing page a run makes before taking it as unreadable: a retrieval's own
+# retries of a transient failure, not one more for each period still to look up.
+_LISTING_PAGE_TRIES = 3
+_LISTING_PARSER = "official-release-listing-v0003"
+
+
+@dataclass(frozen=True)
+class _ListingPage:
+    url: str
+    content: bytes
+    days: list[str]
+    following: str | None
+
+
+def _listing_page(url: str, content: bytes) -> _ListingPage:
+    return _ListingPage(url, content, entry_days(content), next_listing_page(content, url))
+
+
+@dataclass
+class ListingScan:
+    """The listing pages one run has read, shared by every period looked up on them.
+
+    A listing is read newest first, page by page, only as far back as the periods asked
+    for so far need: a later, older period reads on from the last page read. A site's
+    listings read at most ``LISTING_PAGES_PER_SITE`` pages together. A listing ends at its
+    last page, at a page listing what the one before did (the site serves no older one),
+    or at a page that failed each of its reads.
+    """
+
+    pages: dict[str, list[_ListingPage]] = field(default_factory=dict)
+    ended: dict[str, str] = field(default_factory=dict)
+    sites: dict[str, int] = field(default_factory=dict)
+    reads: dict[str, int] = field(default_factory=dict)
+    failures: dict[str, int] = field(default_factory=dict)
+
+    def count_read(self, listing_url: str) -> None:
+        site = urlsplit(listing_url).netloc
+        self.sites[site] = self.sites.get(site, 0) + 1
+        self.reads[listing_url] = self.reads.get(listing_url, 0) + 1
+
+    def keep(self, listing_url: str, page: _ListingPage) -> bool:
+        """Keep a page read of the listing; False when it lists what the one before did."""
+        pages = self.pages.setdefault(listing_url, [])
+        if pages and listing_entries(page.content) == listing_entries(pages[-1].content):
+            self.ended[listing_url] = "repeated_page"
+            return False
+        pages.append(page)
+        return True
+
+
+# The run whose listing pages were last read in this process, and its scan.
+_RUN_LISTINGS: list[tuple[tuple[Path, str], ListingScan]] = []
+# The scan the lookups made inside ``listing_scan`` share.
+_SHARED_LISTINGS: ContextVar[ListingScan | None] = ContextVar("listing_scan", default=None)
+
+
+@contextmanager
+def listing_scan() -> Iterator[None]:
+    """Share one scan of the listings among the lookups made inside: a targeted run's
+    official channel and the search candidates it checks (lookback L05)."""
+    token = _SHARED_LISTINGS.set(ListingScan())
+    try:
+        yield
+    finally:
+        _SHARED_LISTINGS.reset(token)
+
+
+def _run_listings(paths: RuntimePaths) -> ListingScan:
+    """The listing pages read so far by the run now acquiring, a fresh scan outside a run.
+
+    A full run's are rebuilt from its receipts when this process has not read them, so a
+    run resumed reads on from where it stopped and keeps counting its pages; a failed page
+    is tried afresh. A targeted run's are shared within ``listing_scan``.
+    """
+    if (shared := _SHARED_LISTINGS.get()) is not None:
+        return shared
+    run_id = owning_run(paths.database)
+    if run_id is None:
+        return ListingScan()
+    key = (paths.database.resolve(), run_id)
+    if _RUN_LISTINGS and _RUN_LISTINGS[0][0] == key:
+        return _RUN_LISTINGS[0][1]
+    scan = ListingScan()
+    receipts = AcquisitionRepository(paths.database, paths.artifacts)
+    with database_connection(paths.database) as connection:
+        rows = connection.execute(
+            "SELECT a.acquisition_id, a.parameters_json, a.state FROM full_run_acquisition f "
+            "JOIN acquisition_request a USING(acquisition_id) "
+            "WHERE f.run_id=? AND a.api_name='official_listing_get' AND a.parser_version=? "
+            "ORDER BY a.rowid",
+            (run_id, _LISTING_PARSER),
+        ).fetchall()
+    for acquisition_id, parameters_json, state in rows:
+        parameters = json.loads(parameters_json)
+        listing_url = parameters["listing"]
+        scan.count_read(listing_url)
+        if state == "validated" and listing_url not in scan.ended:
+            content = receipts.read_content(acquisition_id, "raw")
+            scan.keep(listing_url, _listing_page(parameters["source_url"], content))
+    _RUN_LISTINGS[:] = [(key, scan)]
+    return scan
+
+
 def _release_from_listing(
     paths: RuntimePaths,
     family: str,
@@ -745,34 +858,96 @@ def _release_from_listing(
     expected_period: str,
     fetcher: Callable[[str], FetchedOfficialContextDocument] | None,
     started: Callable[[str], None],
+    scan: ListingScan,
 ) -> tuple[str, ...]:
-    """The period's release, looked up on the listing and, for NBS, on its older pages.
+    """The period's release, looked up on the listing's pages the run has read and, while
+    they do not reach back to the period, on the older pages read next.
 
-    Each page read is kept. A page without the release that already reaches back to the
-    period ends the search: the release is not listed (not found, which is not ambiguous).
-    An OMO day may list several notices: all are returned, and parsing tells them apart.
+    A listing read back past the period without the release does not list it (not found,
+    which is not ambiguous); so does one read to its end with no dated entry. One that
+    stopped short of the period has not covered it. An OMO day may list several notices,
+    on to the next page: all are returned, and parsing tells them apart; once that next
+    page failed a read, those found are.
     """
-    page = 0
-    while (page_url := listing_page_url(family, listing_url, page)) is not None:
-        resolved, months = _read_listing_page(
-            paths, family, page_url, expected_period, fetcher, started
+    pages = scan.pages.setdefault(listing_url, [])
+    found: list[str] = []
+    index = 0
+    while True:
+        if index == len(pages):
+            # The page after the day's notices found failed already: read those found, in a
+            # retrieval of their own (a failed read ends the one it is part of).
+            if found and scan.failures.get(pages[-1].following or "", 0):
+                return tuple(dict.fromkeys(found))
+            if not _read_older_page(
+                paths, family, listing_url, expected_period, fetcher, started, scan
+            ):
+                break
+        page = pages[index]
+        resolved = release_urls(
+            page.content, family=family, listing_url=page.url, period=expected_period
         )
-        if resolved:
-            return resolved
-        if not worth_older_pages(months, expected_period):
-            break
-        page += 1
-    raise ValueError("official_context_release_link_not_found")
+        for url in resolved:
+            _validate_source_identity(family, url)
+        found += resolved
+        index += 1
+        reached = reaches_back(
+            [day for read in pages[:index] for day in read.days], expected_period
+        )
+        if found and (reached or family != "pbc_omo_notice"):
+            return tuple(dict.fromkeys(found))
+        if reached:
+            raise ValueError("official_context_release_link_not_found")
+    if found:
+        return tuple(dict.fromkeys(found))
+    days = [day for read in pages for day in read.days]
+    stopped = scan.ended[listing_url]
+    if stopped == "last_page" and not days:
+        raise ValueError("official_context_release_link_not_found")
+    raise ListingNotCovered(stopped, scan.reads.get(listing_url, 0), min(days, default=None))
+
+
+def _read_older_page(
+    paths: RuntimePaths,
+    family: str,
+    listing_url: str,
+    period: str,
+    fetcher: Callable[[str], FetchedOfficialContextDocument] | None,
+    started: Callable[[str], None],
+    scan: ListingScan,
+) -> bool:
+    """Read the listing's next older page into the scan, for ``period``; False once there is
+    none to read. A failed read is raised, and counted against the page's tries."""
+    pages = scan.pages[listing_url]
+    if listing_url in scan.ended:
+        return False
+    page_url = pages[-1].following if pages else listing_url
+    if page_url is None:
+        scan.ended[listing_url] = "last_page"
+        return False
+    if scan.sites.get(urlsplit(listing_url).netloc, 0) >= LISTING_PAGES_PER_SITE:
+        scan.ended[listing_url] = "page_limit"
+        return False
+    if scan.failures.get(page_url, 0) >= _LISTING_PAGE_TRIES:
+        scan.ended[listing_url] = "unreadable_page"
+        return False
+    scan.count_read(listing_url)
+    try:
+        page = _read_listing_page(paths, family, listing_url, page_url, period, fetcher, started)
+    except (LookupError, OSError, TypeError, ValueError):
+        scan.failures[page_url] = scan.failures.get(page_url, 0) + 1
+        raise
+    return scan.keep(listing_url, page)
 
 
 def _read_listing_page(
     paths: RuntimePaths,
     family: str,
+    listing_url: str,
     page_url: str,
-    expected_period: str,
+    period: str,
     fetcher: Callable[[str], FetchedOfficialContextDocument] | None,
     started: Callable[[str], None],
-) -> tuple[tuple[str, ...], list[str]]:
+) -> _ListingPage:
     responses: list[FetchedOfficialContextDocument] = []
 
     def fetch_listing() -> bytes:
@@ -780,31 +955,36 @@ def _read_listing_page(
         responses.append(response)
         return response.content
 
-    def parse_listing(content: bytes) -> tuple[tuple[str, ...], list[str]]:
+    def parse_listing(content: bytes) -> _ListingPage:
         _validate_fetched_document(family, page_url, responses[0])
         if not content or len(content) > MAX_OFFICIAL_CONTEXT_BYTES:
             raise ValueError("official_context_document_size_invalid")
-        resolved = release_urls(
-            content, family=family, listing_url=page_url, period=expected_period
-        )
-        for url in resolved:
-            _validate_source_identity(family, url)
-        return resolved, listing_months(content)
+        # A period no release is titled for is refused with the page read for it.
+        release_titles(family, period)
+        page = _listing_page(page_url, content)
+        if page.following is not None:
+            _validate_source_identity(family, page.following)
+        return page
 
     discovered = AcquisitionRepository(paths.database, paths.artifacts).capture(
         provider=_validate_source_identity(family, page_url),
         api_name="official_listing_get",
-        parameters={"source_url": page_url, "period": expected_period, "family": family},
+        # The period it was read for; later ones of the run read it from the scan, which a
+        # resumed run rebuilds by the listing each page belongs to.
+        parameters={
+            "source_url": page_url,
+            "listing": listing_url,
+            "period": period,
+            "family": family,
+        },
         fields="href,title",
-        parser_version="official-release-listing-v0002",
+        parser_version=_LISTING_PARSER,
         fetch=fetch_listing,
         parse=parse_listing,
-        normalize=lambda value: {
-            "source_url": value[0][0] if value[0] else None,
-            "candidates": list(value[0]),
-            "entry_months": value[1],
-        },
+        normalize=lambda page: {"entry_days": page.days, "next_page": page.following},
         on_started=started,
+        # The list's dated entries; an HTML page holds no values (lookback L06).
+        count_records=lambda page: len(page.days),
     )
     return discovered.value
 
@@ -822,9 +1002,12 @@ def refresh_official_context_document(
     metric_ids: tuple[str, ...] | None = None,
     admit: Callable[[ParsedOfficialContextRelease], None] | None = None,
     held_members: frozenset[str] = frozenset(),
+    listings: ListingScan | None = None,
 ) -> OfficialContextIngestionResult:
     """Fetch and store one release; ``admit`` may reject the parsed release first, and
-    ``held_members`` another source delivered are left out."""
+    ``held_members`` another source delivered are left out. A release looked up on a listing
+    reads the pages the run acquiring has read (``listings``, when given) before any older
+    one."""
     _validate_source_identity(family, source_url)
     requested = _official_metric_scope(family, metric_ids)
     if fetched_at.tzinfo is None:
@@ -888,9 +1071,18 @@ def refresh_official_context_document(
         )
 
     try:
+        listing = release_listing(family, source_url)
         candidates = (
-            _release_from_listing(paths, family, source_url, expected_period, fetcher, started)
-            if is_release_listing(family, source_url)
+            _release_from_listing(
+                paths,
+                family,
+                listing,
+                expected_period,
+                fetcher,
+                started,
+                listings if listings is not None else _run_listings(paths),
+            )
+            if listing is not None
             else (source_url,)
         )
         # Another of the day's notices (central bank bills) has another table: try the next.
@@ -906,6 +1098,19 @@ def refresh_official_context_document(
         outcome, recorded = (
             ingest_failure(error) if stage[0] == "ingest" else capture_failure(error)
         )
+        if isinstance(error, ListingNotCovered):
+            # No request for the release: the listing read did not reach back to it.
+            outcome, recorded = (
+                NOT_ATTEMPTED,
+                attempt_details(
+                    step="request",
+                    condition=str(error),
+                    listing_stopped=error.stopped,
+                    listing_pages=str(error.pages),
+                ),
+            )
+            if error.oldest is not None:
+                recorded["listing_oldest_entry"] = error.oldest
         repository = EvidenceRepository(paths.database)
         for metric_id in sorted(requested):
             repository.record_retrieval_attempt(

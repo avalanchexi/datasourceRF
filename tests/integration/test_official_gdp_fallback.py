@@ -304,12 +304,14 @@ def test_gdp_fallback_fetches_the_growth_tushare_withholds_without_loosening_mem
         )
         assert attempt is not None
         assert attempt.outcome == ("source_failed" if transport_failed else "structure_rejected")
+        # The run reads the listing once, for whichever period first needs it (lookback L05).
         acquired = {
             r.acquisition_id
             for r in AcquisitionRepository(paths.database, paths.artifacts).history()
             if r.parameters.get("source_url") == (ARTICLE if transport_failed else LISTING)
-            and r.parameters.get("period") == "2026-Q2"
+            and (not transport_failed or r.parameters.get("period") == "2026-Q2")
         }
+        assert requested.count(LISTING) == 1
         ledger = RetrievalLedger(paths.database).for_run(run.run_id)
         assert ledger is not None
         physical = [r for r in ledger["requests"] if r["acquisition_id"] in acquired]

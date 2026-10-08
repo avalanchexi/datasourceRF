@@ -33,6 +33,8 @@ from tests.fixtures.model_registration import bind_synthetic_review, encode, sav
 from tests.integration.test_ecb_reference_acquisition import certified_request
 
 PBC_LISTING = "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+# The monthly report's column, its releases listed page by page (lookback L05).
+PBC_COLUMN = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/index.html"
 
 
 @pytest.fixture
@@ -471,7 +473,7 @@ def test_missing_rows_reach_official_fallback_instead_of_stopping_the_refresh(
     def official(request: Any, *, timeout: float) -> Response:
         url = request.full_url
         requested.append(url)
-        if url == PBC_LISTING:
+        if url == PBC_COLUMN:
             content = f'<a href="{article}">2026年7月金融统计数据报告</a>'.encode()
         elif url == article:
             content = (

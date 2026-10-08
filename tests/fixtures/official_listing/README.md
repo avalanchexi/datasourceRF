@@ -14,3 +14,5 @@
 | pbc_125963_17134-2_20260925.html | https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125963/17134-2.html（第 2 页） | 2026-09-25 | `95c15a94…` |
 | pbc_5727710_index_20260925.html | https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/index.html（各项工具流动性投放情况栏目，回看 L01；栏目目录地址 `…/5727710/` 五次均答 403） | 2026-09-25 06:08 UTC | `4a2f15c3…` |
 | nbs_zxfbhjd_index_20260924.html | https://www.stats.gov.cn/sj/zxfbhjd/（发布和解读，回看 L01） | 2026-09-23 19:58 UTC | `f64b559d…` |
+| pbc_116225_index_20261009.html | https://www.pbc.gov.cn/diaochatongjisi/116219/116225/index.html（月度金融统计数据报告所在栏目第 1 页，分页"下一页"指向 `11871-2.html`，回看 L05） | 2026-10-09 00:19 UTC+8 | `c231c987…` |
+| pbc_125475_17081-2_20261009.html | https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/17081-2.html（公开市场业务交易公告第 2 页，回看 L05） | 2026-10-09 00:19 UTC+8 | `57911fa7…` |

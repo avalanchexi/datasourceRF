@@ -351,6 +351,17 @@ def _not_requested(value: object) -> str:
     )
 
 
+def _not_covered(value: object) -> str:
+    """The periods the official listing, as far as the run read it, did not reach: not
+    listed there, which is not "none published" nor "no operation" (lookback L05)."""
+    periods = sorted(str(item.get("period")) for item in _document_list(value))
+    if not periods:
+        return ""
+    return "；列表未覆盖 " + (
+        periods[0] if len(periods) == 1 else f"{len(periods)} 期 {periods[0]} 至 {periods[-1]}"
+    )
+
+
 def _gap_list(value: object) -> html.Div:
     """One row per gap, grouped under its category, in the order the batch listed them."""
     gaps = _document_list(value)
@@ -378,6 +389,7 @@ def _gap_list(value: object) -> html.Div:
                                     + _candidate_reasons(item.get("candidates"))
                                     + _failed_members(item.get("failed_members"))
                                     + _not_requested(item.get("not_requested"))
+                                    + _not_covered(item.get("not_covered"))
                                     + (
                                         "；来源复核失败"
                                         if item.get("source_failures")
