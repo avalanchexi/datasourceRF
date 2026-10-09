@@ -27,39 +27,57 @@ def database_connection(database: Path | str, *, uri: bool = False) -> Iterator[
     (ticket 24). A reused connection is handed out as a new one would be: no statement still
     reading, no transaction, default settings, and a file that is still the one at the path.
     """
+    owner = os.getpid()
     pool = None if uri else _active_pool(database)
-    if pool is None:
-        connection = sqlite3.connect(database, uri=uri)
-        try:
-            with connection:
-                yield connection
-        finally:
-            connection.close()
-        return
-    pooled = pool.checkout(database)
+    pooled = pool.checkout(database) if pool is not None else None
+    connection = pooled if pooled is not None else sqlite3.connect(database, uri=uri)
     try:
-        with pooled:
-            yield pooled
+        try:
+            yield connection
+        except BaseException:
+            if os.getpid() == owner:
+                connection.rollback()
+            raise
+        if os.getpid() == owner:
+            try:
+                connection.commit()
+            except BaseException:
+                connection.rollback()
+                raise
     finally:
-        pool.checkin(pooled)
+        if os.getpid() != owner:
+            # A child forked inside the operation: the transaction and connection are the
+            # parent's. Committing, rolling back or closing them here would act on its file.
+            _INHERITED.append(connection)
+        elif pool is not None and pooled is not None:
+            pool.checkin(pooled)
+        else:
+            connection.close()
 
 
 class _PooledConnection(sqlite3.Connection):
-    """A connection that remembers its cursors, so returning it can finish their reads.
+    """A connection that remembers its cursors and blobs, so returning it can finish them.
 
-    A half-read SELECT keeps its read transaction open: reused as it is, the connection would
-    go on reading the snapshot it started, not what other connections committed since.
+    A half-read SELECT or an open blob keeps its read transaction: reused as it is, the
+    connection would go on reading the snapshot it started, not what others committed since.
+    Statements started around these methods, through ``sqlite3.Cursor(connection)`` or the
+    base class's own, are not seen; nothing here starts them that way.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.pool_generation = 0
-        self._cursors: weakref.WeakSet[sqlite3.Cursor] = weakref.WeakSet()
+        self._readers: weakref.WeakSet[Any] = weakref.WeakSet()
 
     def cursor(self, factory: Any = sqlite3.Cursor) -> Any:
         cursor = super().cursor(factory)
-        self._cursors.add(cursor)
+        self._readers.add(cursor)
         return cursor
+
+    def blobopen(self, *args: Any, **kwargs: Any) -> sqlite3.Blob:
+        blob = super().blobopen(*args, **kwargs)
+        self._readers.add(blob)
+        return blob
 
     def execute(self, sql: str, parameters: Any = (), /) -> sqlite3.Cursor:
         cursor: sqlite3.Cursor = self.cursor()
@@ -74,12 +92,16 @@ class _PooledConnection(sqlite3.Connection):
         return cursor.executescript(script)
 
     def reset(self) -> None:
-        """Finish every statement, end any transaction and restore the connection's defaults.
+        """Finish every read, end any transaction and restore what callers may have changed.
 
-        As when the connection was closed, a cursor kept past the operation is finished.
+        As when the connection was closed, a cursor or blob kept past the operation is
+        finished. Restored: transaction control, row and text factories, foreign keys; no
+        caller sets functions, callbacks or other pragmas on these connections.
         """
-        for cursor in list(self._cursors):
-            cursor.close()
+        for reader in list(self._readers):
+            reader.close()
+        # Before the rollback: with autocommit off, a rollback opens the next transaction.
+        self.autocommit = sqlite3.LEGACY_TRANSACTION_CONTROL
         if self.in_transaction:
             self.rollback()
         self.row_factory = None
@@ -93,6 +115,7 @@ class _Pool:
     """One thread's idle connections to one kept database."""
 
     def __init__(self) -> None:
+        self.owner = os.getpid()
         self.depth = 0
         self.closed = False
         self.generation = 0
@@ -132,7 +155,7 @@ class _Pool:
 # Each thread's pools by database, only while the thread keeps that database open. A child
 # made by fork starts with none: the parent's connections stay the parent's (ticket 24).
 _POOLS = threading.local()
-_INHERITED: list[threading.local] = []
+_INHERITED: list[object] = []
 _CONNECT = sqlite3.connect
 
 
@@ -192,10 +215,11 @@ def keep_database_open(database: Path) -> Iterator[None]:
 
     Opening a Python connection alone does not open SQLite's pager. Read the
     journal mode and exhaust the cursor without starting a transaction; callers
-    keep using their own short-lived connections for all reads and writes.
+    keep checking out their own connections for all reads and writes.
 
     Meanwhile this thread's checkouts of the database reuse pooled connections, all closed
-    before this one, which stays the last to close (ticket 24).
+    before this one, which stays the last to close (ticket 24). It also keeps a deleted
+    database file open until the scope ends, as it always has.
     """
     key = _pool_key(database)
     with database_connection(database) as connection:
@@ -212,13 +236,13 @@ def keep_database_open(database: Path) -> Iterator[None]:
             yield
         finally:
             pool.depth -= 1
-            if pool.depth == 0:
+            if pool.owner != os.getpid():
+                # A child forked inside the scope: these connections are the parent's.
+                _INHERITED.append(pool)
+            elif pool.depth == 0:
                 pool.closed = True
                 pool.close_idle()
-                # A fork in between leaves this thread a fresh set of pools without it.
-                current: dict[str, _Pool] | None = getattr(_POOLS, "pools", None)
-                if current is not None and current.get(key) is pool:
-                    del current[key]
+                del pools[key]
 
 
 def migrate_database(database_path: Path) -> None:

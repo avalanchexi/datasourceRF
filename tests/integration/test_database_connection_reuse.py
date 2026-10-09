@@ -238,6 +238,94 @@ def test_a_forked_child_opens_its_own_connections(tmp_path: Path) -> None:
             assert again.execute("SELECT COUNT(*) FROM item").fetchone() == (4,)
 
 
+class InChild(Exception):
+    """Unwinds a forked child through the scopes it inherited, as a normal exit would."""
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="fork is POSIX only")
+def test_a_forked_child_leaving_inherited_scopes_never_touches_the_parent_connections(
+    tmp_path: Path,
+) -> None:
+    """The parent's open transaction is the parent's: the child must neither commit nor close
+    it, nor any pooled connection, when it unwinds the scopes it was forked inside."""
+    database = make_database(tmp_path / "runtime.sqlite3")
+
+    try:
+        with pytest.raises(RuntimeError), keep_database_open(database):
+            with database_connection(database) as idle:
+                idle.execute("SELECT 1").fetchall()
+            with database_connection(database) as busy:
+                busy.execute("INSERT INTO item (id) VALUES (100)")
+                pid = os.fork()
+                if pid != 0:
+                    _, status = os.waitpid(pid, 0)
+                    assert os.waitstatus_to_exitcode(status) == 0
+                    assert busy.in_transaction
+                    raise RuntimeError("the parent rolls its own transaction back")
+            # Only the child gets here, having left the operation as if it succeeded.
+            raise InChild  # pragma: no cover
+    except InChild:  # pragma: no cover - only the child gets here
+        os._exit(0)
+
+    assert count(database) == 3
+    with sqlite3.connect(database) as check:
+        assert check.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+    check.close()
+
+
+def test_a_connection_left_in_explicit_transaction_mode_is_returned_to_the_default(
+    tmp_path: Path,
+) -> None:
+    """Python 3.12's ``autocommit=False`` reopens a transaction on every rollback."""
+    database = make_database(tmp_path / "runtime.sqlite3")
+
+    with keep_database_open(database):
+        with database_connection(database) as changed:
+            changed.autocommit = False
+            changed.execute("PRAGMA foreign_keys=ON")
+        with database_connection(database) as connection:
+            assert connection is changed
+            assert connection.autocommit == sqlite3.LEGACY_TRANSACTION_CONTROL
+            assert not connection.in_transaction
+            assert connection.execute("PRAGMA foreign_keys").fetchone() == (0,)
+
+
+def test_an_open_blob_does_not_pin_the_next_checkout_to_an_old_snapshot(tmp_path: Path) -> None:
+    database = make_database(tmp_path / "runtime.sqlite3")
+    with sqlite3.connect(database) as setup:
+        setup.execute("CREATE TABLE payload (data BLOB)")
+        setup.execute("INSERT INTO payload VALUES (zeroblob(8))")
+    setup.close()
+
+    with keep_database_open(database):
+        with database_connection(database) as connection:
+            blob = connection.blobopen("payload", "data", 1, readonly=True)
+        writer = sqlite3.connect(database)
+        with writer:
+            writer.execute("INSERT INTO item (id) VALUES (100)")
+        writer.close()
+
+        assert count(database) == 4
+        with pytest.raises(sqlite3.ProgrammingError):
+            blob.read()
+
+
+def test_an_inner_kept_scope_leaves_the_outer_pool_in_place(tmp_path: Path) -> None:
+    """The Worker's loop keeps the database open around each run, which keeps it again."""
+    database = make_database(tmp_path / "runtime.sqlite3")
+
+    with keep_database_open(database):
+        with keep_database_open(database), database_connection(database) as inner:
+            inner.execute("SELECT 1").fetchall()
+        with database_connection(database) as after:
+            after.execute("SELECT 1").fetchall()
+        with database_connection(database) as again:
+            pass
+        assert again is after
+    with pytest.raises(sqlite3.ProgrammingError):
+        after.execute("SELECT 1")
+
+
 def test_memory_and_uri_databases_are_never_pooled(tmp_path: Path) -> None:
     """Every :memory: connection is its own database; sharing one would share its tables."""
     database = make_database(tmp_path / "runtime.sqlite3")
