@@ -28,6 +28,7 @@ from pring_cycle.freshness import (
 )
 from pring_cycle.full_run_requirements import (
     formula_requirements,
+    input_coverage_complete,
     required_calendar,
     run_lookback,
 )
@@ -533,13 +534,14 @@ class FullRunRetrieval:
             )
             for definition in rules.metric_definitions
         }
+        direct_held = credit_impulse.direct_periods(selector)
         read = run_lookback(
             self.paths,
             rules,
             run,
             # The window as the SSE calendar stood at the decision, as the Worker read it.
             decided_at=decided_at or utc_now(),
-            direct_held=credit_impulse.direct_periods(selector),
+            direct_held=direct_held,
         )
         # A daily reading counts its sessions back past the window, as far as the SSE
         # calendar states them (macro semantics ticket 06).
@@ -554,7 +556,14 @@ class FullRunRetrieval:
             tuple(day.isoformat() for day in stretch.stated_to(last))[-reach:] if stretch else ()
         )
         sessions = stated if len(stated) > len(daily_window) else daily_window
-        derived = formula_requirements(rules, read)
+        derived = formula_requirements(
+            rules,
+            read,
+            anchors=period_by_metric,
+            sessions=sessions,
+            direct_held=direct_held,
+            held=partial(_held, selector),
+        )
         turned_off = credit_impulse.metrics_off(rules.formula_versions)
         derived_ids = {
             r["metric_id"] for r in derived if r["metric_id"] not in r["required_input_periods"]
@@ -933,11 +942,8 @@ class FullRunRetrieval:
                 "derived_requirements": [
                     {
                         **r,
-                        "input_coverage_complete": bool(r["required_input_periods"])
-                        and all(
-                            g["complete"]
-                            for g in gaps
-                            if g["metric_id"] in r["required_input_periods"]
+                        "input_coverage_complete": input_coverage_complete(
+                            r, partial(_held, selector)
                         ),
                         "computation_status": "pending_projection",
                     }
@@ -1155,6 +1161,14 @@ def _scope(document: dict[str, Any]) -> RetrievalScope:
         document["source_url"],
         tuple(document.get("members", ())),
     )
+
+
+def _held(
+    selector: ModelInputSelector, metric_id: str, period: str, members: list[str] | None
+) -> bool:
+    """Whether ``selector`` holds ``members`` of ``metric_id`` for ``period``, or every one."""
+    scope = RetrievalScope("evaluation", (metric_id,), period, "P1", None, tuple(members or ()))
+    return selector.select(scope).complete
 
 
 def _catalog_members(

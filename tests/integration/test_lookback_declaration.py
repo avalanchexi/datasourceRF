@@ -18,7 +18,9 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from pring_cycle import full_retrieval, worker
-from pring_cycle.lookback import Lookback, Periods, Reading, own_reading, resolve
+from pring_cycle.context_projection import ContextProjectionRules
+from pring_cycle.full_run_requirements import formula_requirements, input_coverage_complete
+from pring_cycle.lookback import Lookback, Periods, Reading, declare, own_reading, resolve
 from pring_cycle.models import ModelRepository, model_v0014_manifest, model_v0015_manifest
 from pring_cycle.runs import RetrievalScope, RunRepository, member_keys
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
@@ -1121,3 +1123,152 @@ def test_a_scope_naming_members_is_complete_without_the_others(
     # A plan stores the members it named, and a scope naming none as it always did.
     assert named.document()["members"] == member_keys("CN_GDP", levels)
     assert "members" not in RetrievalScope("gdp-all", ("CN_GDP",), "2026-Q2", "P2", None).document()
+
+
+def _year_to_date_inputs(skip: str | None) -> Callable[[dict[str, Any]], bytes]:
+    """TuShare's inputs as the formulas read them: social financing's year-to-date flows and
+    GDP's total nominal levels from 2024 on, no stock, no sector or real growth, no ``skip``
+    month; July's PMI production, new orders and finished goods, none of its other series.
+    """
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        fields = str(payload["fields"]).split(",")
+        if payload["api_name"] == "cn_pmi":
+            rows = {"202607": {"pmi010400": 51.0, "pmi010500": 49.8, "pmi011400": 48.2}}
+            key = "month"
+        elif payload["api_name"] == "sf_month":
+            rows = {
+                f"{year}{month:02d}": {"inc_cumval": 20_000.0 * month}
+                for year in (2024, 2025, 2026)
+                for month in range(1, 13)
+                if f"{year}-{month:02d}" <= "2026-07" and f"{year}-{month:02d}" != skip
+            }
+            key = "month"
+        else:
+            rows = {
+                f"{year}Q{quarter}": {"gdp": 300_000.0 * quarter}
+                for year in (2024, 2025, 2026)
+                for quarter in range(1, 5)
+                if f"{year}-Q{quarter}" <= "2026-Q2"
+            }
+            key = "quarter"
+        items = [
+            [period if field == key else values.get(field) for field in fields]
+            for period, values in rows.items()
+        ]
+        return json.dumps({"code": 0, "data": {"fields": fields, "items": items}}).encode()
+
+    return transport
+
+
+@pytest.mark.parametrize(("skip", "complete"), [(None, True), ("2026-03", False)])
+def test_a_formula_s_input_coverage_counts_the_members_and_periods_it_reads(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, skip: str | None, complete: bool
+) -> None:
+    # The impulse reads social financing's flows and GDP's total nominal levels alone. The
+    # family's other members (the stock and its growth, the sectors' levels, real growth)
+    # missing leave its inputs whole; a month of the flows it reads missing does not
+    # (lookback fetch gaps 16). The PMI's spreads read July's series they difference, not
+    # the headline or purchase volume.
+    manifest = model_v0015_manifest()
+    version = str(manifest["metric_catalog_version"])
+
+    def hold(paths: RuntimePaths) -> None:
+        adapter = TushareContextAdapter("fixture-only", transport=_year_to_date_inputs(skip))
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.social_financing_total(start_month="2024-01", end_month="2026-07"),
+            definition_version=version,
+        )
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.gdp(start_quarter="2024Q1", end_quarter="2026Q2"),
+            definition_version=version,
+        )
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.pmi(start_month="202607", end_month="202607"),
+            definition_version=version,
+        )
+
+    plan, _requests = _full_run(tmp_path, monkeypatch, manifest, hold)
+
+    final = plan["final"]
+    social = {
+        gap["period"]: gap["missing_members"]
+        for gap in final["gaps"]
+        if gap["metric_id"] == "CN_SF_TOTAL"
+    }
+    stock = member_keys("CN_SF_TOTAL", ({"measure": "stock_end"},))[0]
+    assert social
+    assert all(stock in missing for missing in social.values())
+    impulse = next(
+        item for item in final["derived_requirements"] if item["metric_id"] == "CN_CREDIT_IMPULSE"
+    )
+    assert impulse["input_coverage_complete"] is complete
+    pmi = {
+        gap["period"]: gap["missing_members"]
+        for gap in final["gaps"]
+        if gap["metric_id"] == "CN_PMI_ACTIVITY"
+    }
+    headline = member_keys("CN_PMI_ACTIVITY", ({"series": "manufacturing", "measure": "level"},))
+    assert headline[0] in pmi["2026-07"]
+    spreads = {
+        item["metric_id"]: item["input_coverage_complete"]
+        for item in final["derived_requirements"]
+        if item["metric_id"] in {"CN_PRODUCTION_ORDER_SPREAD", "CN_ORDER_INVENTORY_SPREAD"}
+    }
+    assert spreads == {"CN_PRODUCTION_ORDER_SPREAD": True, "CN_ORDER_INVENTORY_SPREAD": True}
+
+
+_INJECTION = member_keys("CN_OMO_7D_AMOUNT", ({"measure": "injection"},))[0]
+_MATURITY = member_keys("CN_OMO_7D_AMOUNT", ({"measure": "maturity"},))[0]
+
+
+@pytest.mark.parametrize(
+    ("version", "held", "complete"),
+    [
+        # Put in on the day, and what matures then: injections a week before, rolled to the
+        # session (2026-08-21 matures on 2026-08-28), unless the day reports its maturity.
+        ("repo-net-injection-trading-calendar-v0002", {"2026-08-28", "2026-08-21"}, True),
+        ("repo-net-injection-trading-calendar-v0002", {"2026-08-28"}, False),
+        ("repo-net-injection-trading-calendar-v0002", {"2026-08-28", "maturity"}, True),
+        # The same-day version reads the day's injection and maturity alone.
+        ("repo-net-injection-v0001", {"2026-08-28", "2026-08-21"}, False),
+        ("repo-net-injection-v0001", {"2026-08-28", "maturity"}, True),
+    ],
+)
+def test_the_repo_net_injection_s_coverage_counts_what_its_version_reads(
+    version: str, held: set[str], complete: bool
+) -> None:
+    # Lookback fetch gaps 16: the day's injection alone held is not enough.
+    manifest = model_v0015_manifest()
+    manifest["derived_formula_versions"] = {"omo_net_injection": version}
+    rules = ContextProjectionRules.from_manifest(manifest)
+    window = _window_to(date(2026, 8, 28))
+    read = resolve(
+        declare(rules),
+        formula_versions=rules.formula_versions,
+        window=window,
+        public_cutoff=datetime.combine(window[-1], time.max, tzinfo=ZoneInfo("Asia/Shanghai")),
+        calendar=WEEKDAYS,
+    )
+    holdings = {(_INJECTION, day) for day in held if day != "maturity"}
+    if "maturity" in held:
+        holdings.add((_MATURITY, "2026-08-28"))
+
+    def holds(metric: str, period: str, members: list[str] | None) -> bool:
+        return metric == "CN_OMO_7D_AMOUNT" and all(
+            (member, period) in holdings for member in members or [_INJECTION]
+        )
+
+    (entry,) = formula_requirements(
+        rules,
+        read,
+        anchors={"CN_OMO_7D_AMOUNT": "2026-08-28"},
+        sessions=[day.isoformat() for day in window],
+        held=holds,
+    )
+
+    assert entry["metric_id"] == "CN_OMO_7D_AMOUNT"
+    assert input_coverage_complete(entry, holds) is complete

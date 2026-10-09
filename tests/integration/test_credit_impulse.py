@@ -105,6 +105,36 @@ def test_a_day_needs_a_base_period_only_when_differencing_needs_one(
     }
 
 
+@pytest.mark.parametrize(
+    ("version", "held_sf", "expected"),
+    [
+        # Read directly when the version may not difference, or every period is held so;
+        # else from year-to-date figures, base period and all (lookback fetch gaps 16).
+        (V1, 0, ("monthly_increment", "nominal_quarterly_level")),
+        (SHARE, 0, ("monthly_increment", "nominal_ytd_level")),
+        (TWELVE_MONTH, 0, ("ytd_increment", "nominal_ytd_level")),
+        (TWELVE_MONTH, 13, ("monthly_increment", "nominal_ytd_level")),
+    ],
+)
+def test_a_day_s_minimum_is_read_by_the_measure_its_rule_reads_it_by(
+    version: str, held_sf: int, expected: tuple[str, str]
+) -> None:
+    held = {"CN_SF_TOTAL": frozenset(preceding_periods("2026-08", held_sf) if held_sf else ())}
+    minimum = credit_impulse.minimum_requirements(
+        version,
+        public_cutoff=day_end(date(2026, 9, 18)),
+        calendar=current_calendar(),
+        direct_held=held,
+    )
+
+    members = credit_impulse.minimum_members(version, minimum, held)
+
+    assert members == {
+        "CN_SF_TOTAL": f'CN_SF_TOTAL:{{"measure": "{expected[0]}"}}',
+        "CN_GDP": f'CN_GDP:{{"aggregate": "total", "measure": "{expected[1]}"}}',
+    }
+
+
 def test_a_day_s_need_ends_at_the_release_rule_not_at_what_is_held() -> None:
     # Held only to 2026-06 / 2026-Q1, the need still ends at what was out (ticket 24).
     held = {

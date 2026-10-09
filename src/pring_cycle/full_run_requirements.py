@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
+from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import date, datetime, time
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from pring_cycle import lookback
-from pring_cycle.context_projection import ContextProjectionRules
-from pring_cycle.runs import RunRecord
+from pring_cycle import credit_impulse, lookback
+from pring_cycle.context_projection import (
+    LOAN_YTD_FORMULA,
+    REPO_CALENDAR_FORMULA,
+    ContextProjectionRules,
+    repo_maturity_trading_day,
+)
+from pring_cycle.runs import RunRecord, member_key, member_keys
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector
 from pring_cycle.trading_calendar import CalendarMaterialError, SseCalendar, current_calendar
@@ -102,15 +107,30 @@ def run_lookback(
 
 
 def formula_requirements(
-    rules: ContextProjectionRules, read: lookback.Lookback
+    rules: ContextProjectionRules,
+    read: lookback.Lookback,
+    *,
+    anchors: Mapping[str, str | None] | None = None,
+    sessions: Sequence[str] = (),
+    direct_held: Mapping[str, Collection[str]] | None = None,
+    held: Callable[[str, str, list[str] | None], bool] | None = None,
 ) -> list[dict[str, Any]]:
     """Each derived metric's entry: its formula version and how many periods each input needs.
 
     A formula read on every day of the window, the credit impulse's, lists its inputs by
     period instead: the target day's minimum, and the first and last periods the window's
     fetch covers.
+
+    ``formula_inputs`` is what the formula computes from (lookback fetch gaps 16): of each
+    input, the periods it reads and the members it reads of each, None for every member the
+    catalog requires. The credit impulse reads its minimum, each parent by the measure its
+    module reads it by (``direct_held``). Another formula reads back from the input's
+    newest period as the plan requires it (``anchors``, sessions counted on ``sessions``),
+    or from another input's where it reads that one's period. The repo's net injection
+    reads what its version reads on the day (``_repo_inputs``, by what is ``held``).
     """
     derived = []
+    anchors = anchors or {}
     for name, version in rules.formula_versions.items():
         metric, _inputs = lookback.FORMULA_INPUTS[name]
         entry: dict[str, Any] = {"metric_id": metric, "formula_version": version}
@@ -121,11 +141,83 @@ def formula_requirements(
                 source: [periods[0], periods[-1]]
                 for source, periods in resolved.covered.periods.items()
             }
+            members = credit_impulse.minimum_members(version, resolved.minimum, direct_held)
+            entry["formula_inputs"] = {
+                source: {period: [members[source]] for period in periods}
+                for source, periods in resolved.minimum.periods.items()
+            }
         else:
             entry["required_input_periods"] = {
                 item.metric_id: len(item.periods.offsets)
                 for item in read.readings
                 if item.reading == name
             }
+            own = lookback.Lookback(
+                tuple(item for item in read.readings if item.reading == name), read.resolved
+            )
+            inputs: dict[str, dict[str, list[str] | None]] = {}
+            for item in own.readings:
+                source = item.metric_id
+                anchor = anchors.get(lookback.FORMULA_ANCHORS.get(version, {}).get(source, source))
+                if anchor is None:
+                    continue
+                periods = tuple(own.required(source, anchor, sessions=sessions))
+                if version == LOAN_YTD_FORMULA and anchor.endswith("-01"):
+                    # January's year-to-date figure is the month's change itself.
+                    periods = (anchor,)
+                named = lookback.FORMULA_MEMBERS.get(name, {}).get(source)
+                inputs[source] = {
+                    period: None if named is None else list(member_keys(source, named))
+                    for period in periods
+                }
+            if name == "omo_net_injection" and (day := anchors.get("CN_OMO_7D_AMOUNT")):
+                inputs = {"CN_OMO_7D_AMOUNT": _repo_inputs(version, day, sessions, held)}
+            entry["formula_inputs"] = inputs
         derived.append(entry)
     return derived
+
+
+def _repo_inputs(
+    version: str,
+    day: str,
+    sessions: Sequence[str],
+    held: Callable[[str, str, list[str] | None], bool] | None,
+) -> dict[str, list[str] | None]:
+    """What the repo's net injection reads on ``day``: the day's injection and maturity.
+
+    The calendar version reads the day's maturity when reported (``held``), else the
+    injections maturing then: those of the sessions a week before, rolled to the day.
+    """
+    injection, maturity = (
+        member_key("CN_OMO_7D_AMOUNT", {"measure": measure})
+        for measure in ("injection", "maturity")
+    )
+    if version != REPO_CALENDAR_FORMULA or (
+        held is not None and held("CN_OMO_7D_AMOUNT", day, [maturity])
+    ):
+        return {day: [injection, maturity]}
+    target = date.fromisoformat(day)
+    days = tuple(date.fromisoformat(session) for session in sessions)
+    maturing = (put_in for put_in in days if repo_maturity_trading_day(put_in, days) == target)
+    return {**{put_in.isoformat(): [injection] for put_in in maturing}, day: [injection]}
+
+
+def input_coverage_complete(
+    requirement: Mapping[str, Any], held: Callable[[str, str, list[str] | None], bool]
+) -> bool:
+    """Whether a run holds what a formula computes from (lookback fetch gaps 16).
+
+    Each period of each input it reads must be ``held`` in the members it reads: another
+    member of the input's family, or another period, missing leaves its inputs whole. An
+    input it reads no period of is not held, and a formula without an input rule never is.
+    """
+    reads = requirement.get("formula_inputs", {})
+    return (
+        bool(requirement["required_input_periods"])
+        and all(reads.get(metric) for metric in requirement["required_input_periods"])
+        and all(
+            held(metric, period, members)
+            for metric, periods in reads.items()
+            for period, members in periods.items()
+        )
+    )

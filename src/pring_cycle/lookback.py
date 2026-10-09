@@ -162,6 +162,30 @@ FORMULA_INPUTS: dict[str, tuple[str, dict[str, int]]] = {
         {"UST2Y_NOMINAL_YIELD": 1, "UST10Y_NOMINAL_YIELD": 1},
     ),
 }
+# What a formula computes from, to judge whether a run holds it (lookback fetch gaps 16); the
+# plan still requires and fetches each input whole. The members a formula reads of an input,
+# where fewer than the catalog requires (the credit impulse's are its version's); by formula
+# version, an input read at another input's newest period (the common-month approximation
+# deflates the inventory's month by that month's PPI).
+FORMULA_MEMBERS: dict[str, dict[str, tuple[Mapping[str, str], ...]]] = {
+    "order_inventory_spread": {
+        "CN_PMI_ACTIVITY": ({"series": "new_orders", "measure": "level"},),
+        "CN_PMI_INVENTORY": ({"series": "finished_goods", "measure": "level"},),
+    },
+    "production_order_spread": {
+        "CN_PMI_ACTIVITY": (
+            {"series": "production", "measure": "level"},
+            {"series": "new_orders", "measure": "level"},
+        ),
+    },
+    "real_inventory_approximation": {
+        "CN_FINISHED_GOODS_INVENTORY": ({"measure": "nominal_end_level"},),
+        "CN_PPI": ({"category": "headline", "measure": "yoy"},),
+    },
+}
+FORMULA_ANCHORS: dict[str, dict[str, str]] = {
+    "inventory-ppi-common-month-v0002": {"CN_PPI": "CN_FINISHED_GOODS_INVENTORY"},
+}
 _CREDIT_INPUTS = {"CN_SF_TOTAL": "month", "CN_GDP": "quarter"}
 
 

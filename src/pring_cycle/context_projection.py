@@ -145,16 +145,22 @@ class _MetricRows:
     adoptable: frozenset[str] | None = None
 
 
+# The loan change read off year-to-date increments: January's is the month's change itself.
+LOAN_YTD_FORMULA = "loan-ytd-monthly-change-v0002"
+# The repo's net injection on the newest day both measures are reported, or on the newest
+# day with its maturity reported or derived from the injections a week before.
+REPO_SAME_DAY_FORMULA = "repo-net-injection-v0001"
+REPO_CALENDAR_FORMULA = "repo-net-injection-trading-calendar-v0002"
 _SUPPORTED_FORMULA_VERSIONS = {
     "credit_impulse": set(credit_impulse.VERSIONS),
     "dr007_policy_spread": {"dr007-policy-spread-v0001"},
     "loan_monthly_change": {
         "loan-stock-monthly-change-v0001",
-        "loan-ytd-monthly-change-v0002",
+        LOAN_YTD_FORMULA,
     },
     "omo_net_injection": {
-        "repo-net-injection-v0001",
-        "repo-net-injection-trading-calendar-v0002",
+        REPO_SAME_DAY_FORMULA,
+        REPO_CALENDAR_FORMULA,
     },
     "order_inventory_spread": {
         "order-inventory-v0001",
@@ -2021,7 +2027,7 @@ def _derived_market_context_rows(
         for period, measures in amount_by_period.items()
         if set(measures) == {"injection", "maturity"}
     ]
-    if complete_periods and omo_formula == "repo-net-injection-v0001":
+    if complete_periods and omo_formula == REPO_SAME_DAY_FORMULA:
         period = max(complete_periods)
         measures = amount_by_period[period]
         derived_row, derived_versions = _difference_row(
@@ -2039,7 +2045,7 @@ def _derived_market_context_rows(
         )
         rows["CN_OMO_7D_AMOUNT"] = (derived_row,)
         version_ids.extend(derived_versions)
-    elif amount_by_period and omo_formula == "repo-net-injection-trading-calendar-v0002":
+    elif amount_by_period and omo_formula == REPO_CALENDAR_FORMULA:
         trading_day_points = (
             _trading_day_candidates(
                 repository,
@@ -2057,7 +2063,7 @@ def _derived_market_context_rows(
         }
         derived_maturities: dict[date, list[MetricSeriesPoint]] = {}
         for point in injection_points:
-            maturity_day = _repo_maturity_trading_day(
+            maturity_day = repo_maturity_trading_day(
                 date.fromisoformat(point.period_end),
                 trading_days,
             )
@@ -2068,7 +2074,7 @@ def _derived_market_context_rows(
             for point in invalid_amount_points
             if point.dimensions.get("measure") == "injection"
             and (
-                maturity_day := _repo_maturity_trading_day(
+                maturity_day := repo_maturity_trading_day(
                     date.fromisoformat(point.period_end), trading_days
                 )
             )
@@ -2289,9 +2295,7 @@ def _derived_market_context_rows(
         version_ids.extend(derived_versions)
 
     loan_formula = formula_versions.get("loan_monthly_change")
-    loan_input_measure = (
-        "ytd_increment" if loan_formula == "loan-ytd-monthly-change-v0002" else "stock_end"
-    )
+    loan_input_measure = "ytd_increment" if loan_formula == LOAN_YTD_FORMULA else "stock_end"
     loan_stock_points = [
         point
         for point in repository.metric_series(
@@ -2319,7 +2323,7 @@ def _derived_market_context_rows(
             current = ordered[-1]
             previous: MetricSeriesPoint | None
             if (
-                loan_formula == "loan-ytd-monthly-change-v0002"
+                loan_formula == LOAN_YTD_FORMULA
                 and date.fromisoformat(current.period_end).month == 1
             ):
                 previous = None
@@ -2390,10 +2394,12 @@ def _trading_day_candidates(
     )
 
 
-def _repo_maturity_trading_day(
+def repo_maturity_trading_day(
     operation_date: date,
     trading_days: tuple[date, ...],
 ) -> date | None:
+    """The session a seven-day repo put in on ``operation_date`` matures on: seven days on,
+    rolled to the next of ``trading_days``."""
     nominal_maturity = operation_date + timedelta(days=7)
     return next((day for day in trading_days if day >= nominal_maturity), None)
 

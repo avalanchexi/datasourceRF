@@ -210,6 +210,31 @@ def fetch_coverage(
     return InputPeriods({metric_id: tuple(sorted(periods)) for metric_id, periods in union.items()})
 
 
+def minimum_members(
+    formula_version: str,
+    minimum: InputPeriods,
+    direct_held: Mapping[str, Collection[str]] | None = None,
+) -> dict[str, str]:
+    """The member each parent's ``minimum`` periods are read by, as a run plan names it.
+
+    By ``minimum_requirements``' rule: the direct measure when the version may not
+    difference the parent or every period is held directly, else the year-to-date one.
+    """
+    version = VERSIONS.get(formula_version, _DIRECT_ONLY)
+    held = direct_held or {}
+    differenced = {"CN_SF_TOTAL": version.social_financing_from_ytd, "CN_GDP": version.gdp_from_ytd}
+    members = {}
+    for metric_id, periods in minimum.periods.items():
+        direct, ytd = _MEASURES[metric_id]
+        read = (
+            direct
+            if not differenced[metric_id] or set(periods) <= set(held.get(metric_id, ()))
+            else ytd
+        )
+        members[metric_id] = official_member(metric_id, read)
+    return members
+
+
 def direct_periods(selector: Any) -> dict[str, frozenset[str]]:
     """The periods held as usable direct flows and quarterly levels, by parent.
 
