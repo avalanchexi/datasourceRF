@@ -31,10 +31,10 @@
 | 23 | [23](issues/23-suspect-legacy-news-claim-refetch.md) | 嫌疑旧资讯声明的判定规则与补上下文（方案 A 后 `c8dcb77e…` 已由已存标题排除，现有嫌疑集为空） | done（第三轮线 A；嫌疑声明候选与选值动态排除，补上下文助手离线三态；运行库嫌疑集为空、未外部重取；878 观测选值不变） |
 | 24 | [21](issues/21-capacity-search-fallback-chain-unverified.md) | 产能利用率检索补救经 `/zwfwck/sjfb/` 的离线端到端用例（只补测试） | done（`test_capacity_search_rescue.py` 两例：列表缺稿时 Tavily 候选补齐 2026-Q1 73.6／-0.5，同一原件给其他季度按期次拒收；未改生产代码） |
 | 25 | [24](issues/24-test-feedback-too-slow.md) | 测试反馈过慢（受影响测试 15–70 分钟） | needs-triage（不进第三轮） |
-| 26 | [25](issues/25-round3-acceptance.md) | 第三轮全套测试与真实运行验收 | ready-for-agent（阻塞于 20–23） |
+| 26 | [25](issues/25-round3-acceptance.md) | 第三轮全套测试与真实运行验收 | done（[验收记录](acceptance-20261009-round3.md)：全套 2208 通过 1:16:56；真实运行模型输入缺失 7→7，17 项完整 17→17，资讯选值 20 项不变；票 22 一框因本次无新入库资讯声明未核验） |
 | 27 | [26](issues/26-ai-websearch-claims-lack-subject-context.md) | AI WebSearch 原话无标题与主语分句，地方原话仍可能入库（22 发现） | needs-triage（不进第三轮） |
 
-**下一步**：第一轮（序 1–12）与第二轮（序 13–18，票 11–17）均已完成，验收见 [acceptance-20261009.md](acceptance-20261009.md) 与 [acceptance-20261009-round2.md](acceptance-20261009-round2.md)：17 项计数指标按主要成员缺期计已全部完整，最终计划只剩 7 个上游、时效或凭据类缺口。遗留票 18、19 与 17 新开的票 20、21（序 19–22）均 needs-triage，待用户分流；其中只有票 20 可能影响选值（某期没有全国值时，旧地方口径声明仍可能被选中），其余三张只涉及审计标志、读取耗时或测试覆盖。
+**下一步**：三轮均已完成，验收见 [acceptance-20261009.md](acceptance-20261009.md)、[acceptance-20261009-round2.md](acceptance-20261009-round2.md) 与 [acceptance-20261009-round3.md](acceptance-20261009-round3.md)。17 项计数指标按主要成员缺期计全部完整；最终计划只剩 7 个上游、时效或凭据类缺口；资讯声明只取全国口径，4 条旧地方声明已退出候选与选值。遗留票 24（测试反馈过慢）与 26（AI WebSearch 原话无标题与主语分句）均为 needs-triage，待用户分流。票 22"新入库声明带主语分句与标题"在真实运行中尚无实例可核，等以后有新资讯声明入库时再看。另记一项观察：历史目标日在晚间重跑时，日频时效与模型输入会随截止时点变化（见第三轮验收记录第五节），按既有口径不开票。
 
 相关：[run-findings 10](../run-findings-20261002/issues/10-omo-rate-dropped-when-notice-ingested-for-amount.md)（duplicate，并入 02）。DR007 09-30 单日 0 行属上游，不另开票（2026-10-09 验收运行时已回填，取到 1.3665）。
 
