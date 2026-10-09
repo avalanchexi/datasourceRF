@@ -72,6 +72,14 @@ _MENTION = re.compile(
     r")"
 )
 _CONTEXT_CHARS = 600
+# Every rule states a national figure. A city's or province's own one ("1-7月，全市规模以上
+# 工业增加值…", lookback 15) names its place before the figure, where the release says
+# nothing or "全国"; a figure without a subject keeps its paragraph's ("1—8月份，全省…；
+# 8月份，规模以上工业增加值同比增长6.9%" is Guangdong's month too). A market (资本市场,
+# 全市场) or a range (区间, 区域) names no place.
+_SUBJECT = re.compile(
+    r"(?P<local>[全本我](?:市(?!场)|区(?![间域])|[省县州盟旗]))|全国|国家统计局|我国"
+)
 
 
 def _mention_keys(match: re.Match[str]) -> dict[Form, tuple[int, ...]]:
@@ -613,6 +621,8 @@ def extract(
                 continue
             if rule.section and not recheck and not _in_section(text, match.start(), rule.section):
                 continue
+            if _local(text, match):
+                continue
             stated = 0.0 if match.groupdict().get("flat") else float(match["value"])
             value = stated
             if match.groupdict().get("dir") in _NEGATIVE:
@@ -689,6 +699,14 @@ def _in_section(text: str, at: int, section: tuple[str, str]) -> bool:
     good = [m.end() for m in re.finditer(section[0], before)]
     bad = [m.end() for m in re.finditer(section[1], before)]
     return bool(good) and (not bad or good[-1] > bad[-1])
+
+
+def _local(text: str, match: re.Match[str]) -> bool:
+    """Whether the figure's subject is a local place: its own ("全国居民消费价格…"), else
+    the nearest one before it in its paragraph."""
+    start = max(text.rfind("\n", 0, match.start()) + 1, match.start() - _CONTEXT_CHARS)
+    subjects = list(_SUBJECT.finditer(text, start, match.end()))
+    return bool(subjects) and subjects[-1]["local"] is not None
 
 
 def _sentence(text: str, match: re.Match[str]) -> str:

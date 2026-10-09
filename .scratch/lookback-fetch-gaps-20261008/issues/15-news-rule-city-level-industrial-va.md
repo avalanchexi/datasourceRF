@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Category: bug
 Type: task
 
@@ -18,11 +18,21 @@ run-8a3779cff80f6bd586a0 中，工业增加值 2026-07 的 `ytd_real_yoy` 选中
 
 ## 验收草案
 
-- [ ] 以上原话不产生 `CN_INDUSTRIAL_VA` 声明。
-- [ ] 现有全国口径的真实样本仍能取值。
+- [x] 以上原话不产生 `CN_INDUSTRIAL_VA` 声明。
+- [x] 现有全国口径的真实样本仍能取值。
 
 ## Comments
 
 ### 2026-10-09 分流
 
 按 goal-round2.md 预设决定实施。
+
+### 2026-10-09 实施
+
+- **改动**：`src/pring_cycle/news_rules.py` 新增主语守卫 `_SUBJECT`／`_local()`，`extract()` 对全部登记规则生效（规则都是全国口径）：取该数所在段落（上一换行之后、至多 `_CONTEXT_CHARS` 字）里截至匹配末尾的最近主语，地方主语（`全／本／我` + `市／区／省／县／州／盟／旗`，排除"市场""区间""区域"）即不取；`全国`、`国家统计局`、`我国` 视为全国主语。主语像期次一样沿用前文，所以广东简况"1—8月份，全省…；8月份，规模以上工业增加值同比增长6.9%"里的 6.9 也不取；规则匹配内部的"全国"（CPI、PPI）覆盖前文的地方主语。复核路径（`news_claims_matching_quotes` → `extract(recheck=True)`）对已存的西安原话也不再认可。
+- **夹具**：`tests/fixtures/news/local_industrial_value_added_202609.json`，从本机运行库制品原样摘取：TuShare 资讯《比亚迪加码投资西安》（西安原句）、证券时报网与财联社省级简况两条 Tavily 结果（同页附国家统计局 8 月发布句，作全国正例）。
+- **测试**（`tests/retrieval/test_news_rules_families.py` 新增 5 个测试，共 7 例）：西安原句全文与原话复核都不出 `CN_INDUSTRIAL_VA`；广东段落沿用的当月值不取；混排页面的国家统计局 5.2／0.54／5.3 仍取；同段先地方后"全国"的 CPI 仍取；"资本市场／全市场／债券市场"不算地方主语。既有全国口径真实样本（`CASES`、CPI／PPI 样本）全部照旧取值。
+- **真实正文前后比对**：本机运行库全部 TuShare 资讯与搜索结果制品加 `tests/fixtures/news`，去重 3426 篇 × 24 个期次，新旧规则对比：1634 个值不变；少取 6 个（西安 -1.0、广东 6.1／6.9，各两个年份期次）；多取 4 个（证券时报网同页国家统计局 8 月当月 5.2、累计 5.3，地方值不再与之矛盾）。
+- **验证**：资讯规则三份测试 48 passed（约 1 秒）；受影响测试 10 个文件（资讯规则三份、`test_tushare_news`、`test_media_page_values`、`test_ai_websearch`、`test_retention`、`test_claim_adoption`、`test_rrr_backtrack`、`test_search_evidence`）首轮 141 passed（16:31）；修复审查意见并 rebase main（78ba0ea）后复跑 145 passed（16:29）；两例冒烟 2 passed，2:50；`ruff check`、`ruff format --check` 通过；`mypy` 仅剩 `test_news_rules_families.py:256` 的既有 3 条（改动前即有，与本票无关）。
+- **审查**：Codex 标准轴阻断：无。规格轴首轮阻断两条（匹配内部的"全国"被前文地方主语覆盖；"资本市场／全市场"被误判为地方主语），修复并补测试后定向复审阻断：无。第一次两轴调用因网络与模型容量、超时未出结论，重跑得出上述结论。
+- **已知残余风险**（不阻断，规格轴同意另票跟踪）：①"西安市1-7月规模以上…"这类"某某市"直接作主语、地方只写在标题、或地方上下文跨段／超过 600 字时仍可能漏过；②已存的广东 6.9 声明（`c8dcb77e…`）其原话只保存了分号后的"8月份，规模以上工业增加值同比增长6.9%…"，复核时不带"全省"，仍会被认可。它是否进入投影，留给票 17 真实验收核查。

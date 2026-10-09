@@ -330,3 +330,48 @@ def test_a_monthly_fixing_stated_by_its_day_is_that_month_s() -> None:
     lpr = extract(("CN_LPR_1Y_5Y",), "2026-09", quote)
     assert {v.dimensions["tenor"]: v.value for v in lpr.values} == {"1y": 3.0, "5y_plus": 3.5}
     assert extract(("CN_LPR_1Y_5Y",), "2026-08", quote).values == ()
+
+
+LOCAL = "local_industrial_value_added_202609.json"
+
+
+def test_a_city_s_own_figure_is_not_the_national_one() -> None:
+    """Lookback 15: "全市" is Xi'an's year to date (-1.0), not the country's."""
+    xian = texts(LOCAL)[0]
+    assert "1-7月，全市规模以上工业增加值同比下降1.0%" in xian
+
+    assert extract(("CN_INDUSTRIAL_VA",), "2026-07", xian).values == ()
+    # The quote kept with the real run's claim no longer gives its value either.
+    quote = "1-7月，全市规模以上工业增加值同比下降1.0%，其中，汽车制造业增加值下降7.1%。"
+    assert extract(("CN_INDUSTRIAL_VA",), "2026-07", quote, recheck=True).values == ()
+
+
+def test_a_province_s_figure_after_its_own_subject_is_not_the_national_one() -> None:
+    """After "1—8月份，全省…；", "8月份，规模以上工业增加值同比增长6.9%" is Guangdong's too."""
+    guangdong = texts(LOCAL)[2]
+
+    assert extract(("CN_INDUSTRIAL_VA",), "2026-08", guangdong).values == ()
+
+
+def test_the_national_release_beside_provincial_ones_is_still_taken() -> None:
+    """The page lists Hebei, Guangdong and Jiangsu, and the NBS release in its own paragraph."""
+    page = texts(LOCAL)[1]
+
+    assert {
+        value.dimensions["measure"]: value.value
+        for value in extract(("CN_INDUSTRIAL_VA",), "2026-08", page).values
+    } == {"current_month_real_yoy": 5.2, "mom_seasonally_adjusted": 0.54, "ytd_real_yoy": 5.3}
+
+
+def test_a_national_figure_after_a_local_one_in_its_paragraph_is_taken() -> None:
+    """The figure's own "全国" is its subject, whatever place the paragraph named before."""
+    text = "全省经济运行平稳；2026年8月份，全国居民消费价格同比上涨0.8%。"
+
+    assert [v.value for v in extract(("CN_CPI_HEADLINE",), "2026-08", text).values] == [0.8]
+
+
+@pytest.mark.parametrize("market", ["资本市场", "全市场", "债券市场"])
+def test_a_market_is_not_a_local_subject(market: str) -> None:
+    text = f"2026年9月21日，{market}关注中国人民银行开展1650亿元7天逆回购操作。"
+
+    assert [v.value for v in extract(("CN_OMO_7D_AMOUNT",), "2026-09-21", text).values] == [1650.0]
