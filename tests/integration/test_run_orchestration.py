@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import sqlite3
+from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
 from pring_cycle.runs import RunRepository
+from tests.fixtures.attempt_reads import AttemptRowCounter
 
 NOW = datetime(2026, 8, 28, 10, tzinfo=UTC)
 
@@ -171,3 +174,105 @@ def test_explicit_manual_run_is_queued_ahead_of_an_unstarted_schedule(
 
     assert scheduled.run_id != manual.run_id
     assert runs.next_queued().run_id == manual.run_id  # type: ignore[union-attr]
+
+
+def _record_attempt(runs: RunRepository, run_id: str, index: int) -> None:
+    runs.record_retrieval_attempt(
+        run_id,
+        release_event_id="chinamoney-lpr:2026-08-20",
+        channel="tavily",
+        outcome="not_found",
+        classification=None,
+        latency_ms=index,
+        remaining_run_budget=None,
+        remaining_daily_budget=None,
+        budget_charged=False,
+        cache_hit=False,
+        manual_budget_exemption=False,
+        candidate_source=None,
+        occurred_at=NOW + timedelta(seconds=index),
+    )
+
+
+def _targeted_run(runs: RunRepository, client_request_id: str) -> str:
+    return runs.submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-20",
+        client_request_id=client_request_id,
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 8, 20, 2, tzinfo=UTC),
+        release_event_id="chinamoney-lpr:2026-08-20",
+        metric_ids=("CN_LPR_1Y_5Y",),
+        period="2026-08",
+    ).run_id
+
+
+def test_polling_a_runs_status_after_each_attempt_reads_none_of_them(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A full run looks at its status after each of its thousands of attempts (lookback
+    # ticket 11): reading the whole run for it reread every attempt, a cost growing with
+    # their square.
+    runs = RunRepository.create(tmp_path / "runs.sqlite3")
+    run_id = _targeted_run(runs, "attempts-polled")
+    counter = AttemptRowCounter()
+    counter.install(monkeypatch)
+    polled = 0
+
+    for index in range(200):
+        _record_attempt(runs, run_id, index)
+        before = counter.rows
+        assert runs.status(run_id) == "queued"
+        polled += counter.rows - before
+
+    assert polled == 0
+    # The whole run still reads them all, as it always did (and the count sees it).
+    before = counter.rows
+    assert [item["latency_ms"] for item in runs.get(run_id).retrieval_attempts] == list(range(200))
+    assert counter.rows - before == 200
+
+
+def test_a_run_read_after_its_database_is_restored_shows_the_restored_attempts(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "runs.sqlite3"
+    runs = RunRepository.create(database)
+    run_id = _targeted_run(runs, "attempts-restored")
+    _record_attempt(runs, run_id, 0)
+    with sqlite3.connect(database) as live, sqlite3.connect(tmp_path / "copy.sqlite3") as copy:
+        live.backup(copy)
+    _record_attempt(runs, run_id, 1)
+    _record_attempt(runs, run_id, 2)
+    assert [item["latency_ms"] for item in runs.get(run_id).retrieval_attempts] == [0, 1, 2]
+
+    with sqlite3.connect(tmp_path / "copy.sqlite3") as copy, sqlite3.connect(database) as live:
+        copy.backup(live)
+    # The restored run goes on to the same sequences and row ids as the attempts it lost, and
+    # to the very last of them.
+    _record_attempt(runs, run_id, 7)
+    _record_attempt(runs, run_id, 2)
+
+    assert [item["latency_ms"] for item in runs.get(run_id).retrieval_attempts] == [0, 7, 2]
+
+
+def test_a_run_read_in_steps_audits_as_one_read_whole_through_interruption_and_resume(
+    tmp_path: Path,
+) -> None:
+    runs = RunRepository.create(tmp_path / "runs.sqlite3")
+    run_id = _targeted_run(runs, "attempts-in-steps")
+    other_id = _targeted_run(runs, "attempts-other-run")
+    _record_attempt(runs, run_id, 0)
+    earlier = runs.get(run_id)
+    _record_attempt(runs, run_id, 1)
+    _record_attempt(runs, other_id, 5)
+    assert [item["latency_ms"] for item in runs.get(other_id).retrieval_attempts] == [5]
+    runs.mark_interrupted(run_id, "worker_process_lost")
+    runs.resume(run_id, client_request_id="resume-1", confirm_external_calls=True)
+    _record_attempt(runs, run_id, 2)
+
+    audited = runs.get(run_id)
+
+    assert [item["latency_ms"] for item in earlier.retrieval_attempts] == [0]
+    assert [item["latency_ms"] for item in audited.retrieval_attempts] == [0, 1, 2]
+    assert audited.status == "queued"
+    assert asdict(audited) == asdict(RunRepository(tmp_path / "runs.sqlite3").get(run_id))

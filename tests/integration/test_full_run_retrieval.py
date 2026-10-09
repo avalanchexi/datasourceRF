@@ -24,6 +24,7 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.storage import database_connection
 from pring_cycle.worker import process_pending_run
+from tests.fixtures.attempt_reads import AttemptRowCounter
 from tests.integration.test_trading_calendar import record_sse_calendar
 
 # The newest model, whatever it is numbered.
@@ -709,8 +710,15 @@ def test_full_run_shares_hard_search_budget_across_periods(
     # test_full_run_searches_real_gap_and_publishes_traceable_adoption.
     run = runs.advance(submitted.run_id, "refreshing_evidence")
     retrieval = FullRunRetrieval(paths)
+    counter = AttemptRowCounter()
+    counter.install(monkeypatch)
     retrieval.retrieve(run)
+    read = counter.rows
     stored = runs.get(run.run_id)
+    # Each attempt recorded reads back only the run's last sequence. Looking at the run's
+    # status by reading the whole run reread every attempt for each period: 3.7 million
+    # rows for this run's 7,878 attempts (lookback ticket 11).
+    assert read <= len(stored.retrieval_attempts)
     # Tavily's per-run cap is 16; Exa waits for Tavily's monthly quota (ticket 20).
     assert stored.consumed_budget == {"tavily": 16, "exa": 0, "ai_websearch": 0}
     assert calls.count("https://api.tavily.com/search") == 16

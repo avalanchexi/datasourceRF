@@ -240,14 +240,14 @@ def process_pending_run(
                 )
         except (LookupError, OSError, TypeError, ValueError) as error:
             RetrievalLedger(paths.database).interrupt(queued.run_id)
-            if runs.get(queued.run_id).status != "cancelled":
+            if runs.status(queued.run_id) != "cancelled":
                 runs.mark_action_required(
                     queued.run_id,
                     f"worker_failure:{type(error).__name__}:{error}",
                 )
         except BaseException:
             RetrievalLedger(paths.database).interrupt(queued.run_id)
-            if runs.get(queued.run_id).status != "cancelled":
+            if runs.status(queued.run_id) != "cancelled":
                 runs.mark_interrupted(queued.run_id, "worker_process_interrupted")
             raise
         finally:
@@ -390,7 +390,7 @@ def _execute_run(
                 decided_at=decided_at,
             )
         full_retrieval.retrieve(run, decided_at=decided_at)
-        if runs.get(run.run_id).status != "running":
+        if runs.status(run.run_id) != "running":
             return
         if not run.cutoffs_frozen:
             run = runs.freeze_cutoffs(run.run_id, system_as_of=datetime.now(UTC))
@@ -2007,7 +2007,7 @@ def _generate_report(
     _validate_projection_for_run(run, projection)
 
     def cancel_requested() -> bool:
-        return runs.get(run.run_id).status == "cancelled"
+        return runs.status(run.run_id) == "cancelled"
 
     adapters = (
         report_adapters

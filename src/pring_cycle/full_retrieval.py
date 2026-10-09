@@ -129,7 +129,7 @@ class FullRunRetrieval:
                     occurred_at=utc_now(),
                 )
                 continue
-            if runs.get(run.run_id).status != "running":
+            if runs.status(run.run_id) != "running":
                 raise ValueError("full_retrieval_run_not_running")
             ledger = RetrievalLedger(self.paths.database, scope_run=scoped)
             ledger.bind_run(scoped, version)
@@ -283,7 +283,7 @@ class FullRunRetrieval:
     ) -> None:
         """One more page of the listing, a request of the period it is read for."""
         scoped = replace(run, retrieval_scope=scope)
-        if RunRepository(self.paths.database).get(run.run_id).status != "running":
+        if RunRepository(self.paths.database).status(run.run_id) != "running":
             raise ValueError("full_retrieval_run_not_running")
         ledger = RetrievalLedger(self.paths.database, scope_run=scoped)
         ledger.bind_run(scoped, version)

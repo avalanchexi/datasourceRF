@@ -372,6 +372,21 @@ class RunRepository:
                 raise LookupError("run_not_found")
             return self._run_record(connection, row)
 
+    def status(self, run_id: str) -> str:
+        """The run's status alone, read without the rest of its record.
+
+        A full run looks at its status after each of its thousands of retrieval attempts;
+        reading its whole record for it reread every attempt each time, a cost growing with
+        their square (lookback ticket 11).
+        """
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT status FROM parent_run WHERE run_id=?", (run_id,)
+            ).fetchone()
+        if row is None:
+            raise LookupError("run_not_found")
+        return str(row[0])
+
     def count(self) -> int:
         with self._connect() as connection:
             row = connection.execute("SELECT COUNT(*) FROM parent_run").fetchone()
