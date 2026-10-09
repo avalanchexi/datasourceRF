@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+import json
+import sqlite3
 from collections.abc import Iterator
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
 
+from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.day_summary import DaySummaries, ModelRules, RunMaterials
 from pring_cycle.evidence import EvidenceRepository
+from pring_cycle.freshness import gap_list
 from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import ReportRepository
@@ -202,6 +207,108 @@ def test_page_and_report_show_the_same_gap_list(published: tuple[RuntimePaths, A
     assert report.body["gap_list"] == projection.datasets["cycle_overview"]["gap_list"]
     for label in ("缺口清单", "无网页补缺渠道", "时效缺口", "未配置时效", "CN_EQ_CSI500"):
         assert label in page
+
+
+@pytest.fixture
+def batch_copy(published: tuple[RuntimePaths, Any], tmp_path: Path) -> tuple[Path, str]:
+    """A copy of the published batch's database, to record rejected candidates in."""
+    paths, _projection = published
+    database = tmp_path / "batch.sqlite3"
+    with sqlite3.connect(paths.database) as source, sqlite3.connect(database) as target:
+        source.backup(target)
+    with sqlite3.connect(database) as connection:
+        [(run_id,)] = connection.execute("SELECT DISTINCT batch_id FROM batch_freshness")
+    return database, run_id
+
+
+def reject(database: Path, run_id: str, metric_id: str, period: str) -> str:
+    """Record a search candidate the batch rejected for one period of a metric."""
+    url = f"https://mirror.example/{metric_id}/{period}"
+    gap_id = f"gap-fixture-{metric_id}-{period}"
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "INSERT INTO retrieval_gap VALUES (?, ?, 'fixture')",
+            (gap_id, json.dumps({"metric_id": metric_id, "period": period})),
+        )
+        connection.execute(
+            "INSERT INTO retrieval_candidate_validation(validation_id, run_id, "
+            "search_request_id, candidate_url, outcome, reason, checked_at, gap_ids_json, "
+            "claim_ids_json, selected_claim_ids_json) "
+            "VALUES (?, ?, 'fixture', ?, 'not_model_usable', 'period_mismatch', ?, ?, '[]', '[]')",
+            (f"validation-{gap_id}", run_id, url, CUTOFF.isoformat(), json.dumps([gap_id])),
+        )
+    return url
+
+
+def listed(database: Path, run_id: str) -> dict[str, dict[str, object]]:
+    rules = ContextProjectionRules.from_manifest(ModelRepository(database).manifest("model-v0001"))
+    gaps = gap_list(database, run_id, rules.metric_definitions)
+    return {str(gap["metric_id"]): gap for gap in gaps}
+
+
+def test_candidate_rejected_for_a_period_held_since_leaves_the_metric_gap_alone(
+    batch_copy: tuple[Path, str],
+) -> None:
+    # Run findings 1002 ticket 05: the 26th was searched, a candidate refused, then the
+    # 26th was filled; the metric is still a session behind, which is no failed retrieval.
+    database, run_id = batch_copy
+    reject(database, run_id, "CN_EQ_CSI500", "2026-08-26")
+    # A period outside the run's window that is held long since is resolved too.
+    reject(database, run_id, "CN_EQ_CSI500", "2026-01-05")
+
+    gap = listed(database, run_id)["CN_EQ_CSI500"]
+
+    assert (gap["category"], gap["reason"]) == ("freshness_gap", "one_period_behind_carried")
+    assert "candidates" not in gap
+
+
+def test_candidate_rejected_for_a_period_still_missing_is_a_failed_retrieval(
+    batch_copy: tuple[Path, str],
+) -> None:
+    database, run_id = batch_copy
+    reject(database, run_id, "CN_EQ_CSI500", "2026-08-26")
+    url = reject(database, run_id, "CN_EQ_CSI500", "2026-08-27")
+
+    gap = listed(database, run_id)["CN_EQ_CSI500"]
+
+    assert gap["category"] == "retrieval_failed"
+    assert gap["candidates"] == [{"url": url, "reason": "period_mismatch"}]
+
+
+def test_candidate_rejected_for_a_held_period_still_short_of_a_member_is_a_failed_retrieval(
+    batch_copy: tuple[Path, str],
+) -> None:
+    # The final plan, member by member, outranks the period held: the 26th lacks a member.
+    database, run_id = batch_copy
+    with sqlite3.connect(database) as connection:
+        connection.execute("DROP TRIGGER full_run_gap_plan_no_update")
+        [(document,)] = connection.execute(
+            "SELECT document_json FROM full_run_gap_plan WHERE run_id=? AND phase='final'",
+            (run_id,),
+        )
+        plan = json.loads(document)
+        for gap in plan["gaps"]:
+            if (gap["metric_id"], gap["period"]) == ("CN_EQ_CSI500", "2026-08-26"):
+                gap.update(complete=False, missing_members=["fixture-member"])
+        connection.execute(
+            "UPDATE full_run_gap_plan SET document_json=? WHERE run_id=? AND phase='final'",
+            (json.dumps(plan), run_id),
+        )
+    url = reject(database, run_id, "CN_EQ_CSI500", "2026-08-26")
+
+    gap = listed(database, run_id)["CN_EQ_CSI500"]
+
+    assert gap["category"] == "retrieval_failed"
+    assert gap["candidates"] == [{"url": url, "reason": "period_mismatch"}]
+
+
+def test_candidate_rejected_for_a_metric_current_adds_no_gap(
+    batch_copy: tuple[Path, str],
+) -> None:
+    database, run_id = batch_copy
+    reject(database, run_id, "CN_EQ_CSI300", "2026-08-28")
+
+    assert "CN_EQ_CSI300" not in listed(database, run_id)
 
 
 def test_unconfigured_p0_blocks_the_run(tmp_path: Any, monkeypatch: pytest.MonkeyPatch) -> None:

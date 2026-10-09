@@ -699,8 +699,16 @@ def period_status(metric_id: str, held_period_end: str, as_of: datetime) -> str:
     return "stale" if behind >= 2 else "current"
 
 
-def _failed_candidates(database: Path, run_id: str) -> dict[str, list[dict[str, str]]]:
-    """Per metric, up to three distinct candidate URLs the batch rejected, with reasons."""
+def _failed_candidates(
+    database: Path, run_id: str, held: Mapping[str, object]
+) -> dict[str, list[dict[str, str]]]:
+    """Per metric, up to three distinct candidate URLs the batch rejected for a period it
+    still lacks, with reasons.
+
+    A rejected candidate speaks for its own period alone: one the final plan completed (with
+    every member), or, a period the plan did not require, one ``held`` since, leaves the
+    metric's other gaps as they are (run findings 1002 ticket 05).
+    """
     from pring_cycle.storage import database_connection
 
     with database_connection(database) as connection:
@@ -710,7 +718,8 @@ def _failed_candidates(database: Path, run_id: str) -> dict[str, list[dict[str, 
             return {}
         rows = connection.execute(
             """
-            SELECT json_extract(g.identity_json, '$.metric_id'), v.candidate_url, v.reason
+            SELECT json_extract(g.identity_json, '$.metric_id'),
+                   json_extract(g.identity_json, '$.period'), v.candidate_url, v.reason
             FROM retrieval_candidate_validation v, json_each(v.gap_ids_json) j
             JOIN retrieval_gap g ON g.gap_id = j.value
             WHERE v.run_id=? AND v.outcome='not_model_usable'
@@ -719,13 +728,37 @@ def _failed_candidates(database: Path, run_id: str) -> dict[str, list[dict[str, 
             """,
             (run_id,),
         ).fetchall()
+        plan = (
+            connection.execute(
+                "SELECT document_json FROM full_run_gap_plan WHERE run_id=? AND phase='final'",
+                (run_id,),
+            ).fetchone()
+            if connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE name='full_run_gap_plan'"
+            ).fetchone()
+            else None
+        )
+    complete = {
+        (str(item["metric_id"]), str(item["period"])): bool(item["complete"])
+        for item in (json.loads(plan[0])["gaps"] if plan else ())
+    }
     failed: dict[str, dict[str, str]] = {}
-    for metric_id, url, reason in rows:
-        failed.setdefault(str(metric_id), {})[str(url)] = str(reason)
+    for metric_id, period, url, reason in rows:
+        key = (str(metric_id), str(period))
+        if complete.get(key, _held_through(held.get(key[0]), key[1])):
+            continue
+        failed.setdefault(key[0], {})[str(url)] = str(reason)
     return {
         metric_id: [{"url": url, "reason": reason} for url, reason in list(urls.items())[:3]]
         for metric_id, urls in failed.items()
     }
+
+
+def _held_through(held: object, period: str) -> bool:
+    """Whether a held period end reaches a retrieval period: a day, a month or a quarter."""
+    if "-Q" in period:
+        period = f"{period[:4]}-{int(period[-1]) * 3:02d}"
+    return isinstance(held, str) and held[: len(period)] >= period
 
 
 def backtracked(database: Path, run_id: str) -> dict[str, str]:
@@ -804,8 +837,9 @@ def gap_list(
     handling it; ``ingest_rejected``, it answered and the response's structure check or the
     registered contract refused the values, with the reason code (ticket 18: an answer that
     was itself a failure is no refusal); a delivery that was partial or empty is no failure;
-    ``retrieval_failed``, still missing after search candidates were refetched and none
-    passed, listing up to three URLs each with its reason (ticket 19); ``license_missing``,
+    ``retrieval_failed``, a period still missing after search candidates for it were
+    refetched and none passed, listing up to three URLs each with its reason (ticket 19; a
+    period resolved since does not count, run findings 1002 ticket 05); ``license_missing``,
     a restricted source that is never taken or searched; ``missing``, nothing held for
     another reason. Timing keeps its own categories:
     ``freshness_gap``, one period behind and carried forward; ``unconfigured``, no freshness
@@ -815,11 +849,14 @@ def gap_list(
     from pring_cycle.retrieval_registry import is_searchable_gap
 
     priorities = {item.metric_id: item.priority for item in definitions}
-    failed_candidates = _failed_candidates(database, run_id)
+    freshness = batch_freshness(database, run_id)
+    failed_candidates = _failed_candidates(
+        database, run_id, {metric_id: row["held_period"] for metric_id, row in freshness.items()}
+    )
     traced = backtracked(database, run_id)
     acquisition_failures = _acquisition_failures(database, run_id)
     gaps: list[dict[str, object]] = []
-    for metric_id, row in batch_freshness(database, run_id).items():
+    for metric_id, row in freshness.items():
         status, behind = row["status"], row["periods_behind"]
         if status == "missing" and traced.get(metric_id) == "none_found":
             # Traced back to the source's end without one: nothing is owed (ADR-0028).
