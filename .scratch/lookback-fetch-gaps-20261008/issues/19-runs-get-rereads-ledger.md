@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: wontfix
 Category: enhancement
 Type: task
 
@@ -25,3 +25,7 @@ Type: task
 - [ ] 若实施：运行审计 API、仪表盘、CLI 输出不变；账本的快照时点与 `raw_status` 过期判定要么不变，要么经用户确认后再改。
 
 ## Comments
+
+### 2026-10-09 分流
+
+用户决定 `wontfix`：票 11 之后，账本读取在冒烟剖析中只剩 29 次、约 0.33 秒／50 秒；优化会改变 `retrieval_ledger` 的快照时点与 `raw_status` 过期判定时点，风险与票 11 方案 A 相同。见 [goal-round3.md](../goal-round3.md)"用户决定"。

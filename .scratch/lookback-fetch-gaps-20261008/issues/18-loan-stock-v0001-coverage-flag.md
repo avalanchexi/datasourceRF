@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: wontfix
 Category: bug
 Type: task
 
@@ -27,3 +27,7 @@ Type: task
 - [ ] 替身：内置目录、存量版本，连续两月各组合 `stock_end` 齐全时标志为 true；缺一个组合的一个月时为 false。
 
 ## Comments
+
+### 2026-10-09 分流
+
+用户决定 `wontfix`：只影响内置目录下存量版本的审计标志（`input_coverage_complete`），v0015 用的新目录不受影响；修它还需要另定（借款人，期限）组合清单的来源（已持有组合或给内置目录补契约），收益不抵成本。见 [goal-round3.md](../goal-round3.md)"用户决定"。

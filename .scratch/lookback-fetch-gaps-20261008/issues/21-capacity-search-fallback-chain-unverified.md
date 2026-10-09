@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent
 Category: enhancement
 Type: task
 
@@ -25,3 +25,7 @@ run-8574024f816500ec1a39 中，产能利用率 2026-Q1、2025-Q2 都由统计局
 - [ ] 同一路径下的错期页面按期次校验被拒。
 
 ## Comments
+
+### 2026-10-09 分流
+
+用户决定本轮（第三轮）实施，**只补离线端到端测试，不改生产代码**。若发现必须改生产代码才能走通链路，先停下回报主 agent（那就是缺陷，需要另行分流）。见 [goal-round3.md](../goal-round3.md)。
