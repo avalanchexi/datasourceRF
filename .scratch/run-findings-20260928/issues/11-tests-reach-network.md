@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Category: bug
 Type: task
 
@@ -12,8 +12,8 @@ Type: task
 
 ## 待决定
 
-- 在断网条件下跑全套（进程级代理指向不可达端口即可，不需要真的断网），列出所有依赖网络的测试。
-- 把剩余的 `open_no_redirects` 取数加进会话级离线默认，由需要的测试自己提供数据。
+- [x] 在断网条件下跑全套（进程级代理指向不可达端口即可，不需要真的断网），列出所有依赖网络的测试。
+- [x] 把剩余的 `open_no_redirects` 取数加进会话级离线默认，由需要的测试自己提供数据。
 
 ## Comments
 
@@ -38,3 +38,9 @@ Type: task
 - `EvidenceRepository.metric_series` 每次调用开一个连接查一次（一例 1.7 万次，13 秒）；
 - `_retrieval_release_status` 每次新建仓储、重查整条序列（9519 次，6.6 秒），可以在计划阶段共享一个预加载的仓储；
 - `_backfill_missed_days` 为 119 个回补日各建一次投影（11.5 秒）。
+
+**2026-10-09 分流**（Codex 只读取证，输出存会话 scratchpad `triage/g1–g4.out`；主 agent 核验了标 ★ 的条目）：已实施，只是状态没改，关闭。
+- `tests/conftest.py:135` 的会话级 `_network_offline`（代理指向 `127.0.0.1:9`＋`getaddrinfo` 只解析本机）覆盖 EIA `eia_html.py:329`、ECB `ecb_reference.py:392`：二者都经 `http_transport.py:16` 的标准 urllib opener 出网，走代理即被挡。
+- 第三轮全套（`b54e57d`，2208 passed／4616.83 秒）日志中 `network_offline_in_tests`、`FAILED`、`ERROR` 命中均为 0；此后 `tests/conftest.py` 无改动。
+- 已知局限（不属本票验收）：未拦截底层 `socket.connect`，忽略代理的子进程仍可能出网。
+- 上文三个"提速候选"并入 [lookback/24](../../lookback-fetch-gaps-20261008/issues/24-test-feedback-too-slow.md) 的诊断，不另开票；其中第二项（计划阶段共享仓储）已由 `full_retrieval.py:712` 的 `SeriesReads` 实现。

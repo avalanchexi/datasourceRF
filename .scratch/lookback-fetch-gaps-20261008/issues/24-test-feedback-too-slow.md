@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent（先诊断，不走普通实施）
 Category: enhancement
 Type: task
 
@@ -16,4 +16,23 @@ Type: task
 
 不进第三轮（用户决定，2026-10-09）。
 
+## 验收
+
+- [ ] 诊断：同一提交下补齐全部阶段耗时，能列出前 30 用例、前 15 文件及前 50／前 10% 占比
+- [ ] 诊断：对固定慢节点串行重复测量，分开报告初始化、取数／检索、汇总、清理，冷建与热材料分开
+- [ ] 实施后：代表性单票的受影响测试明显缩短（给出前后同口径计时），必要消费者与 ADR-0025 收尾覆盖不缩减
+- [ ] 若采用建库模板：副本修改不污染模板或其他用例，准备＋复制＋清理净收益为正
+- [ ] 全套不缩减覆盖，记录 C 盘峰值；不以并行争用下的时间宣称提速
+
+## 主要模块
+
+`tests/`（夹具、完整运行级替身）、`tools/check.py`（耗时采集与选择）、`docs/agents/testing.md`；如证据读取是热点，再涉及 `evidence.py`、`day_summary.py`、`context_projection.py`。调整 ADR-0025 分层属领域决定，先问用户。
+
 ## Comments
+
+**2026-10-09 分流**（Codex 只读取证，输出存会话 scratchpad `triage/g1–g4.out`；主 agent 核验了标 ★ 的条目）：`ready-for-agent`，按用户指示先走 `/diagnosing-bugs` 找到慢在哪里；结论若是测试结构没有好的切入点，再转架构加深（`/improve-codebase-architecture` 的做法）。
+- 第三轮全套只留了 `--durations=10`（`tools/check.py:120` 硬编码），前十阶段合计 968 秒、占 4617 秒的 21%，完整排名无法恢复。最慢：窗口前取数双运行 277.6 秒、官方 PPI 回退 114.3 秒、美债来源 setup 91.3 秒（含一次完整运行）、模型切换三轮 85.0 秒、留存 setup 82.1 秒（两次完整运行）。
+- 读码推断的主因是**重复完整业务运行**（每轮约 28–139 秒），其次检索层本身已到分钟级（`FullRunRetrieval.retrieve` 直调用例 63–67 秒）。原件体积已排除（四份 JSON＋PPI HTML 读取 0.02 秒）；轮询对主要慢例收益约 0；33 个迁移的建库成本**没有测量数据**，不能认定为主因。
+- 15–70 分钟来自选择宽（`testing.md:13` 覆盖消费者、`:22` 追加重型）叠加重型文件，`check.py` 无依赖选择器也无时间预算。ADR-0025 明确不引入并行，所以 pytest-xdist 不在范围内。
+- Codex 判断：没有证据表明"无切入点、必须先做架构加深"。建议顺序：补全测量（`--durations=0` 或 JUnit 逐阶段）→ 定位单个慢节点的成本分解 → 细化受影响选择、减少无关完整运行 → 视测量结果再看证据重复读取（`evidence.py:1144` 预加载分支在生产中未用）。
+- 诊断反馈环候选（单节点，冷启动，须 `flock`）：`tests/integration/test_gap_source_repairs.py::test_treasury_yields_are_held_from_tushare_us_tycr`，配 `/usr/bin/time` 与 `--durations=0`。
