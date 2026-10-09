@@ -1,4 +1,4 @@
-Status: needs-info（口径待用户决定）
+Status: ready-for-agent
 Category: enhancement
 Type: task
 
@@ -13,6 +13,17 @@ Type: task
 
 验收记录判断这是既有口径，不是回归，本票由该节"口径要不要调整，可另行分流"一句开出。
 
+## 验收
+
+- [ ] 缺口清单每项（或清单整体）带时效判定时点；报告确定性骨架与页面缺口区并列写出"目标日 YYYY-MM-DD；时效截至 YYYY-MM-DD HH:MM（北京）"，三处为同一时点
+- [ ] 选值、时效状态、缺口类别与模型输入编号都不变（用既有测试与一次投影前后比对证明）
+- [ ] 历史目标日（截止点晚于目标日之后的交易日）与当日运行两种情形都有用例
+- [ ] `CONTEXT.md` 或时效契约补一句：历史目标日重跑时时效按运行截止点判定，报告并列标注
+
+## 主要模块
+
+`src/pring_cycle/freshness.py`（缺口材料带 `assessed_at`／统一判定时点，`:844` 一带）、`reports.py`（确定性骨架，`:128` 已有截止点）、`dashboard.py`（`:401` 缺口区、`:2042` 截止点展示）；测试 `test_gap_list.py`、`test_report_input.py` 一带。不改运行冻结与选值算法。
+
 ## Comments
 
 **2026-10-09 分流**（Codex 只读取证，输出存会话 scratchpad `triage/g4.out`）：口径属领域决定，交用户。
@@ -20,3 +31,5 @@ Type: task
 - 截止点：默认完整运行取数结束后冻结（`worker.py:395`、`runs.py:679`），不是提交时；显式 `--as-of` 提交即固定，但它同时限制证据可见性，不能拿来只改时效。冻结与批次时效都没有"目标日早于今天"的分支。
 - 批次时效（`freshness.py:579`）不受目标日公开时间限制，投影则受限——这是收盘价批次 `awaiting_release`、投影行 `stale` 两层状态不一致的原因。
 - 方案：(1) 保持口径，只在报告、页面与缺口清单并列标注"目标日 09-30；时效截至 10-09 22:30（北京）"——改 `freshness.py` 输出、`reports.py`、`dashboard.py`，选值与模型输入不变；(2) 显式"历史模式"，引入独立 `freshness_as_of`（如目标日日终），证据读取仍用真实截止点——改 `runs.py`／`run_cutoffs.py`、`worker.py`、`day_summary.py`、`context_projection.py`、`freshness.py`，并修订时效契约、规格与 `CONTEXT.md`；不宜按"目标日早于今天"自动切换，否则周二上午分析周一这类正常运行也会变；(3) 维持现状，`wontfix`。Codex 推荐 (1)。
+
+**2026-10-09 用户决定**：保持现口径（按目标日限制选值、按运行截止点判定时效），只补标注：报告、页面与缺口清单并列写出目标日与时效判定时点。选值与模型输入不变，符合"时效 T+1 即可"。→ `ready-for-agent`（积压批次线 A，排在 1002/05 之后，因同改 `freshness.py`）。

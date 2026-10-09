@@ -45,16 +45,25 @@
 
 另外顺手修正 [run-findings-20261002 README](../run-findings-20261002/README.md) 票表里过时的状态：06 已在 lookback 批次完成（693db3f），10 作为 duplicate 并入 lookback 02。
 
+## 用户决定（2026-10-09）
+
+| 项 | 决定 |
+|---|---|
+| 1002/04(b) 时钟回跳防护 | 不加，`wontfix`；靠 (a) 的品种逐日隔离与下一轮补取兜底，回执时间保持墙钟原值 |
+| lookback/26 AI 原话缺上下文 | 按网址重取页面走媒体流程，取不到拒收；存量 35 条串行重取一次，取不到不再采用 |
+| lookback/27 历史重跑时效口径 | 保持口径，报告、页面与缺口清单并列标注目标日与时效判定时点；选值与模型输入不变 |
+| lookback/24 改 `storage.py` 连接复用 | 主 agent 批准（工程实现，非领域语义）：诊断显示每次完整运行约 7.1 万次开连接、约 38 秒 schema 解析，原型提速 37–44% |
+
 ## 阶段 2：实施
 
 模块不重叠的票并行，按任务线组织。分流结束后，主 agent 按实际的 `ready-for-agent` 票删减下表：
 
 | 线 | 位置 | 顺序 | 主要模块 |
 |---|---|---|---|
-| A | 主工作区、共享 `dev-venv` | 1002/11 → 1002/05 → 1002/12 → 时效口径（lookback/27，用户决定后） | `full_retrieval.py`、`trading_calendar.py`、`freshness.py`、`worker.py`、`context_projection.py` |
-| B | worktree（`dev-venv-czce`） | 1002/04(a) → 1002/04(b，用户批准后) → 1002/03 | `czce_warrants.py`、`acquisition.py`、郑商所传输 |
-| C | worktree（`dev-venv-news`） | lookback/26（用户决定后） | `news_rules.py`、AI WebSearch 候选入库、`claim_adoption` 复核 |
-| D | worktree（`dev-venv-tests`） | lookback/24：先诊断，后按结论实施 | `tests/` 夹具与替身、`check.py`、`docs/agents/testing.md` |
+| A | 主工作区、共享 `dev-venv` | 1002/11 → 1002/05 → 1002/12 → lookback/27 | `full_retrieval.py`、`trading_calendar.py`、`freshness.py`、`worker.py`、`context_projection.py` |
+| B | worktree（`dev-venv-czce`） | 1002/04(a)（done，dd2058c） | `czce_warrants.py`、`acquisition.py`、郑商所传输 |
+| C | worktree（`dev-venv-news`） | lookback/26 | `news_rules.py`、AI WebSearch 候选入库、`claim_adoption` 复核 |
+| D | worktree（`dev-venv-tests`） | lookback/24：诊断完成（慢在 SQLite 反复开连接）→ `check.py` 计时采集 → `storage.py` 连接复用 | `tools/check.py`、`tools/timings.py`、`storage.py`、`docs/agents/testing.md` |
 
 - **每张票一个新的命名子代理**，上下文从零开始（相当于每张之间 `/clear`），按 `/implement` 的做法：读票 → 受影响测试 → 实现 → Codex 两轴审查 → 提交。同一线内逐张串行，前一张合入后再派下一张。
 - 线 D 与其他线都可能动 `tests/conftest.py`：D 的改动最后合入，合入前 rebase 并复跑受影响测试；D 若需要改生产代码的测试接缝，先回报主 agent。
@@ -87,6 +96,6 @@
 
 | 阶段 | 票 | 状态 | 提交 |
 |---|---|---|---|
-| 1 | 分流（8 张＋时效口径） | 预设部分完成：0928/11 done；1002/03 wontfix；1002/04(a)、05、11、12、lookback/24 ready-for-agent（05 偏离预设：现象未复现但根因仍在）；1002/04(b)、lookback/26、lookback/27（时效口径）待用户决定 | |
-| 2 | 实施 | 未开始 | |
+| 1 | 分流（8 张＋时效口径） | done：0928/11 done；1002/03 wontfix；1002/04(a)、05、11、12、lookback/24 ready-for-agent（05 偏离预设：现象未复现但根因仍在）；1002/04(b) 用户决定 wontfix；lookback/26、27 按用户决定转 ready-for-agent | 4a72eaa |
+| 2 | 实施 | 进行中：B 线 04(a) 已合入；A 线 1002/11（a11）、D 线 24（d24，storage 连接复用）、C 线 26 实施中 | dd2058c |
 | 3 | 收尾验收 | 未开始 | |

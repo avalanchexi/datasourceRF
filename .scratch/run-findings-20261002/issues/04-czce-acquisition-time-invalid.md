@@ -1,4 +1,4 @@
-Status: ready-for-agent（(a) done；(b) 待用户决定）
+Status: done（(a) dd2058c；(b) wontfix，用户决定 2026-10-09）
 Category: bug
 Type: task
 
@@ -45,3 +45,5 @@ Type: task
 - **测试**（`tests/integration/test_czce_warrant_refresh.py`）：新增 `test_a_clock_stepping_back_fails_only_that_symbol_day`（received／validated 两阶段：在 5/19 日报应答后的第 1／2 次读钟回退 7 秒，确定性时间线；断言 CF 回执失败阶段与原因、TA 同日与 9/02 两品种入库、每日只请求一次），修复前两例均红；新增 `test_any_other_local_failure_still_stops_the_refresh`（产物存储 OSError／ValueError、数据库 `OperationalError`、入库阶段 OSError 四例均上抛且不再请求后续日期）。既有不可达用例保持。
 - **验证**（专用 venv `dev-venv-czce`）：本文件 13 passed 约 10 秒；受影响集（`tests/adapters/test_czce_warrants.py`、本文件、`test_warrant_symbol_isolation.py`、`test_gap_source_repairs.py`）＋两例冒烟 46 passed 3:44（超 3 分钟目标，慢在 `test_gap_source_repairs.py` 等既有完整运行替身）；重型 `test_worker_registered_catalog.py`＋`test_core_carry_forward.py` 4 passed 10:20（`flock`，含少量排队）；`ruff check`、`ruff format --check` 通过；`mypy` 仅报既有 `tests/conftest.py:21` 缺注解。
 - **审查**（Codex 两轴）：标准轴阻断无；规格轴阻断无。采纳两条非阻断：测试时间线改为确定性（原用真实墙钟减 7 秒）、补数据库与入库阶段本地故障用例。
+
+**2026-10-09 用户决定（(b)）**：不加代码层防护，`wontfix`。理由：10-03 以来 `acquisition_time_invalid` 0 张，Windows／WSL 偏差约 0.25 秒；(a) 合入后一次时钟回跳只让一个品种的一天失败，下一轮按 ADR-0032 补取。回执时间保持墙钟原值，证据时间语义不变。若日常运行再出现成批时间倒退，先查系统校时再重开。(a) 已合入 main（`dd2058c`，主 agent `git merge --ff-only`）。
