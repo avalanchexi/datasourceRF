@@ -379,6 +379,7 @@ def test_a_database_upgraded_step_by_step_from_0030_ends_as_a_new_one(tmp_path: 
     # count columns already, and 0032 then finds nothing left to do.
     _upgrade(stepwise, "0031_ingest_result")
     _upgrade(stepwise, "0032_receipt_counts")
+    _upgrade(stepwise, SCHEMA_HEAD)
     fresh = tmp_path / "fresh.sqlite3"
     migrate_database(fresh)
 

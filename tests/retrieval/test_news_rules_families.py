@@ -391,8 +391,9 @@ def test_a_kept_provincial_quote_no_longer_states_the_national_figure(quote: str
         "1—7月份，内蒙古自治区规模以上工业增加值同比下降1.0%。",
         "1—7月份，延边州规模以上工业增加值同比下降1.0%。",
         "1—7月份，昆山县规模以上工业增加值同比下降1.0%。",
-        # A city whose name ends as a common word does ("城市").
+        # A city whose name ends as a common word does ("城市", "金市").
         "桐城市1—7月规模以上工业增加值同比下降1.0%。",
+        "瑞金市1—7月规模以上工业增加值同比下降1.0%。",
     ],
 )
 def test_a_place_named_before_the_figure_in_its_clause_is_its_subject(text: str) -> None:
@@ -443,3 +444,91 @@ def test_a_market_is_not_a_local_subject(market: str) -> None:
     text = f"2026年9月21日，{market}关注中国人民银行开展1650亿元7天逆回购操作。"
 
     assert [v.value for v in extract(("CN_OMO_7D_AMOUNT",), "2026-09-21", text).values] == [1650.0]
+
+
+# Lookback 22: c8dcb77e's page as CLS published it. The month figure names no subject in its
+# paragraph; the title is Guangdong's.
+GUANGDONG_TITLE = "广东：1—8月份全省规模以上工业增加值同比增长6.1%"
+GUANGDONG_MONTH = "8月份，规模以上工业增加值同比增长6.9%，比上月加快1.0个百分点。"
+
+
+@pytest.mark.parametrize("title", [GUANGDONG_TITLE, "瑞金市：8月份规模以上工业增加值同比增长6.9%"])
+def test_a_place_s_title_makes_every_figure_of_its_page_the_place_s(title: str) -> None:
+    assert [v.value for v in extract(("CN_INDUSTRIAL_VA",), "2026-08", GUANGDONG_MONTH).values] == [
+        6.9
+    ]
+    assert extract(("CN_INDUSTRIAL_VA",), "2026-08", GUANGDONG_MONTH, title=title).values == ()
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "国家统计局：2026年8月份规模以上工业增加值增长6.9%_新浪财经_新浪网",
+        "1—8月份全国规模以上工业增加值同比增长6.1%",
+        "国家统计局陕西调查总队转发：全国规模以上工业增加值",
+        "8月经济数据点评：工业生产加快，A股市场情绪回暖",
+        # Sina's FX morning note: "汇市" ends a longer word, still a market.
+        "今日汇市晨报（2026年9月11日）：人民币兑美元中间价报6.7468",
+        "全球股市震荡，工业生产加快",
+        "【焦点复盘】两市成交额萎缩，后市聚焦地产链",
+        "",
+    ],
+)
+def test_a_title_naming_the_country_or_no_place_leaves_the_page_s_figures(title: str) -> None:
+    values = extract(("CN_INDUSTRIAL_VA",), "2026-08", GUANGDONG_MONTH, title=title).values
+    assert [v.value for v in values] == [6.9]
+
+
+@pytest.mark.parametrize(
+    ("text", "subject"),
+    [
+        (
+            "国家统计局今天发布数据显示，8月份，规模以上工业增加值同比增长6.9%。",
+            "国家统计局今天发布数据显示",
+        ),
+        # The figure's own clause names the country: it is the nearest.
+        (
+            "据介绍，8月份全国规模以上工业增加值同比增长6.9%。",
+            "8月份全国规模以上工业增加值同比增长6.9%",
+        ),
+        # A subject of another paragraph is not the figure's.
+        ("广东省统计局发布数据。\n" + GUANGDONG_MONTH, ""),
+        (GUANGDONG_MONTH, ""),
+    ],
+)
+def test_a_figure_keeps_its_paragraph_s_nearest_subject_clause(text: str, subject: str) -> None:
+    (value,) = extract(("CN_INDUSTRIAL_VA",), "2026-08", text).values
+    assert value.subject == subject
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # Lookback 20's residual: the place is named in the clause before the figure's.
+        "广东省统计局发布数据，8月份，规模以上工业增加值同比增长6.9%。",
+        "据上海证券报报道，8月份，规模以上工业增加值同比增长6.9%。",
+        # However far back in its paragraph.
+        "广东省统计局发布数据，" + "生产稳步恢复，" * 100 + GUANGDONG_MONTH,
+    ],
+)
+def test_a_place_in_the_nearest_subject_clause_makes_the_figure_the_place_s(text: str) -> None:
+    assert extract(("CN_INDUSTRIAL_VA",), "2026-08", text).values == ()
+    # A kept quote is read with its kept subject clause, not one found in the quote anew:
+    # one kept before the clause was recorded reads as it did (lookback 20).
+    assert [
+        v.value for v in extract(("CN_INDUSTRIAL_VA",), "2026-08", text, recheck=True).values
+    ] == [6.9]
+
+
+@pytest.mark.parametrize(
+    "lead",
+    [
+        # pbc_20260914_financial_statistics.json's dateline.
+        "新华财经北京9月14日电 中国人民银行发布数据显示",
+        "新华社北京9月15日讯",
+        "北京时间9月15日",
+    ],
+)
+def test_beijing_s_clock_or_dateline_names_no_subject(lead: str) -> None:
+    (value,) = extract(("CN_INDUSTRIAL_VA",), "2026-08", f"{lead}，{GUANGDONG_MONTH}").values
+    assert (value.value, value.subject) == (6.9, "")

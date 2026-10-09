@@ -9,6 +9,7 @@ inputs, ECB, LPR news, RRR backtrack, warrants, treasury).
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -33,18 +34,21 @@ from pring_cycle.news_rules import (
     MEDIA_PAGE,
     TUSHARE_NEWS,
     MatchedQuote,
+    add_subject_column,
+    matched_quotes,
     member_period,
     member_unit,
     record_matched_quotes,
 )
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CoreInputValidator, TushareCoreAdapter
-from pring_cycle.storage import database_connection
+from pring_cycle.storage import SCHEMA_HEAD, database_connection, migrate_database
 from pring_cycle.treasury_context import treasury_claims_matching_acquisitions
 from pring_cycle.tushare_context import TushareContextAdapter
 from tests.fixtures.model_registration import prepared_request, save, submit
 from tests.integration.test_core_history_refresh import core_response
 from tests.integration.test_gap_source_repairs import treasury_response
+from tests.integration.test_receipt_counts import _upgrade
 
 
 def adoption_of(
@@ -241,11 +245,20 @@ def test_treasury_yields_from_us_tycr_are_adoptable_while_their_delivery_agrees(
 
 
 def news_claim(
-    paths: RuntimePaths, version: str, provider: str, value: float, quote: str, known: datetime
+    paths: RuntimePaths,
+    version: str,
+    provider: str,
+    value: float,
+    quote: str,
+    known: datetime,
+    *,
+    measure: str = "ytd_real_yoy",
+    title: str = "标题",
+    subject: str | None = None,
 ) -> str:
-    """A 2026-08 year-to-date industrial value claim kept with its matched quote, as stored
-    whatever rules took it then."""
-    dimensions = {"measure": "ytd_real_yoy"}
+    """A 2026-08 industrial value claim kept with its matched quote, as stored whatever rules
+    took it then; year to date unless ``measure`` says otherwise."""
+    dimensions = {"measure": measure}
     kind, start, end = member_period("CN_INDUSTRIAL_VA", dimensions, "2026-08")
     [claim] = EvidenceRepository(paths.database).append_source_claims(
         (
@@ -278,11 +291,12 @@ def news_claim(
                     claim.claim_id,
                     TUSHARE_NEWS if provider == "tushare_news" else MEDIA_PAGE,
                     quote,
-                    "标题",
+                    title,
                     provider,
                     None,
                     "0" * 64,
                     None,
+                    subject,
                 ),
             ),
         )
@@ -362,6 +376,116 @@ def test_a_kept_news_claim_the_current_rules_no_longer_state_is_no_candidate(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_kept_news_claim_whose_title_or_subject_names_a_place_is_no_candidate(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Lookback 22: Guangdong's month 6.9 (c8dcb77e) names no subject in its quote; its page
+    is titled Guangdong's and its paragraph's subject clause is "全省". Kept with either, it
+    is neither listed nor selected, even for a period with no national value. A quote kept
+    before either was recorded is read as lookback 20 reads it."""
+    version = registered_version(paths, capsys)
+    evidence = EvidenceRepository(paths.database)
+    first = datetime(2026, 9, 16, 2, tzinfo=UTC)
+    month = "8月份，规模以上工业增加值同比增长6.9%，比上月加快1.0个百分点。"
+    local = (
+        news_claim(
+            paths,
+            version,
+            "cls",
+            6.9,
+            month,
+            first + timedelta(days=5),
+            measure="current_month_real_yoy",
+            title="广东：1—8月份全省规模以上工业增加值同比增长6.1%",
+            subject="",
+        ),
+        news_claim(
+            paths,
+            version,
+            "tushare_news",
+            6.9,
+            month,
+            first + timedelta(days=5),
+            measure="current_month_real_yoy",
+            title="8月经济数据",
+            subject="1—8月份全省规模以上工业增加值同比增长6.1%",
+        ),
+    )
+    with database_connection(paths.database) as connection:
+        kept = {
+            str(row["claim_id"]): (row["title"], row["subject"])
+            for row in matched_quotes(connection, local)
+        }
+    assert kept == {
+        local[0]: ("广东：1—8月份全省规模以上工业增加值同比增长6.1%", ""),
+        local[1]: ("8月经济数据", "1—8月份全省规模以上工业增加值同比增长6.1%"),
+    }
+    as_of = first + timedelta(days=10)
+
+    def series(preloaded: bool = False) -> tuple[MetricSeriesPoint, ...]:
+        repository = EvidenceRepository(paths.database)
+        if preloaded:
+            repository.preload_metric_series({("CN_INDUSTRIAL_VA", version)})
+        return repository.metric_series(
+            "CN_INDUSTRIAL_VA", mode=AsOfMode.SYSTEM, as_of=as_of, definition_version=version
+        )
+
+    assert series() == series(preloaded=True) == ()
+
+    # Kept before lookback 22: no subject clause, and an AI WebSearch quote has no title.
+    legacy = news_claim(
+        paths,
+        version,
+        "ai_websearch",
+        5.2,
+        "8月份，规模以上工业增加值同比增长5.2%。",
+        first,
+        measure="current_month_real_yoy",
+        title="",
+    )
+    (point,) = (p for p in series() if p.dimensions == {"measure": "current_month_real_yoy"})
+    assert [claim.claim_id for claim in point.claims] == [legacy]
+    assert (point.selected_claim_id, point.selected_value) == (legacy, 5.2)
+    adoption = ClaimAdoption(evidence, definition_version=version).check(
+        {"CN_INDUSTRIAL_VA": (point,)}
+    )["CN_INDUSTRIAL_VA"]
+    assert adoption.adoptable == {legacy}
+
+
 def query_one(paths: RuntimePaths, sql: str, *parameters: object) -> object:
     with database_connection(paths.database) as connection:
         return connection.execute(sql, parameters).fetchone()[0]
+
+
+def test_a_quote_kept_before_subject_clauses_were_recorded_upgrades_without_one(
+    tmp_path: Path,
+) -> None:
+    """Lookback 22 adds the subject clause to the matched quote table; a quote kept before
+    has none, and its other columns stay as they were."""
+    database = tmp_path / "runtime.sqlite3"
+    _upgrade(database, "0032_receipt_counts")
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "INSERT INTO claim_matched_quote VALUES ('claim-old', 'media_page', '原话', '标题', "
+            "'财联社', NULL, ?, NULL, 'news-rules-v0001')",
+            ("0" * 64,),
+        )
+    connection.close()
+
+    migrate_database(database)
+    with sqlite3.connect(database) as connection:
+        add_subject_column(connection)  # safe to repeat
+        assert connection.execute(
+            "SELECT claim_id, quote, title, subject FROM claim_matched_quote"
+        ).fetchall() == [("claim-old", "原话", "标题", None)]
+        assert connection.execute("SELECT version_num FROM alembic_version").fetchone() == (
+            SCHEMA_HEAD,
+        )
+        upgraded = connection.execute("PRAGMA table_info(claim_matched_quote)").fetchall()
+    connection.close()
+    fresh = tmp_path / "fresh.sqlite3"
+    migrate_database(fresh)
+    with sqlite3.connect(fresh) as connection:
+        assert connection.execute("PRAGMA table_info(claim_matched_quote)").fetchall() == upgraded
+    connection.close()

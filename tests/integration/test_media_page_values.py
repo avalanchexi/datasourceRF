@@ -12,7 +12,7 @@ import pytest
 from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.models import ModelRepository
-from pring_cycle.news_rules import MEDIA_PAGE_API
+from pring_cycle.news_rules import MEDIA_PAGE_API, news_claims_no_longer_stated
 from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.storage import database_connection
@@ -24,9 +24,13 @@ from tests.retrieval.test_news_rules import item
 CLS = "https://www.cls.cn/detail/2140001"
 
 
-def page(content: str, published: str = "2026-09-09T09:41:00+08:00") -> bytes:
+def page(
+    content: str,
+    published: str = "2026-09-09T09:41:00+08:00",
+    title: str = "国家统计局：8月份CPI同比上涨0.8% PPI同比上涨3.8%",
+) -> bytes:
     return (
-        "<html><head><title>国家统计局：8月份CPI同比上涨0.8% PPI同比上涨3.8%</title>"
+        f"<html><head><title>{title}</title>"
         f'<meta property="article:published_time" content="{published}"></head>'
         f"<body>{content}</body></html>"
     ).encode()
@@ -109,7 +113,7 @@ def test_cpi_gap_is_filled_from_a_media_page_and_keeps_its_matched_quotes(
     with database_connection(paths.database) as connection:
         quotes = connection.execute(
             "SELECT q.route, q.quote, q.title, q.source_name, q.published_at, q.url, "
-            "length(q.body_hash), c.provider FROM claim_matched_quote q "
+            "length(q.body_hash), c.provider, q.subject FROM claim_matched_quote q "
             "JOIN source_claim c USING(claim_id) ORDER BY q.quote"
         ).fetchall()
     assert len(quotes) == 3
@@ -120,6 +124,52 @@ def test_cpi_gap_is_filled_from_a_media_page_and_keeps_its_matched_quotes(
     assert {row[6] for row in quotes} == {64}
     assert "8月份CPI同比上涨0.8%" in quotes[0][2]
     assert any("全国居民消费价格同比上涨0.8%" in row[1] for row in quotes)
+    # The subject clause each figure was read under (lookback 22), kept for every one.
+    assert all(isinstance(row[8], str) for row in quotes)
+    assert any("全国" in row[8] for row in quotes)
+
+
+@pytest.mark.parametrize(
+    ("title", "kept"),
+    [
+        ("广东：1—8月份全省规模以上工业增加值同比增长6.1%", False),
+        ("国家统计局：8月份规模以上工业增加值同比增长6.9%", True),
+    ],
+    ids=["place", "country"],
+)
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_page_titled_a_place_s_gives_no_national_figure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    title: str,
+    kept: bool,
+) -> None:
+    """Lookback 22: c8dcb77e's page. Its month figure names no subject in its paragraph, but
+    the page is titled Guangdong's: nothing is taken from it. Titled the country's, the same
+    figure is kept with its title and subject clause."""
+    _stored, paths, _version, _calls = media_run(
+        tmp_path,
+        monkeypatch,
+        capsys,
+        body=page(
+            "<p>8月份，规模以上工业增加值同比增长6.9%，比上月加快1.0个百分点。</p>", title=title
+        ),
+        metric_ids=("CN_INDUSTRIAL_VA",),
+    )
+
+    with database_connection(paths.database) as connection:
+        rows = connection.execute("SELECT title, subject FROM claim_matched_quote").fetchall()
+    if not kept:
+        assert rows == []
+    else:
+        # The head's title runs into the body's first line: its "国家统计局" is the subject.
+        [(stored_title, subject)] = rows
+        assert stored_title == title
+        assert subject.startswith("国家统计局")
+    # What was kept reads again as it was taken.
+    with database_connection(paths.database) as connection:
+        assert news_claims_no_longer_stated(connection, ("CN_INDUSTRIAL_VA",)) == frozenset()
 
 
 @pytest.mark.parametrize(

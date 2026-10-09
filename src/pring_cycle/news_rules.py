@@ -89,10 +89,16 @@ _PROVINCES = (
     "广东|海南|四川|贵州|云南|陕西|甘肃|青海|台湾|内蒙古|广西|西藏|宁夏|新疆|香港|澳门"
 )
 _PLACE = re.compile(_PROVINCES + r"|[\u4e00-\u9fff](?:自治区|[省市州县])")
-# Words ending as a place does that name none: markets (市场, 股市, 上市) and cities at large.
-# One that ends a longer word may still be a place (桐城市, 晋城市): only a word of its own
-# names none.
-_NOT_PLACE = re.compile(r"(?<![\u4e00-\u9fff])[上城超股楼债车汇沪深牛熊]市|市[场值价]")
+# Words ending as a place does that name none: markets and their days (市场, 股市, 今日汇市,
+# 两市, 上市, 后市, 金市) and cities at large. A city may end in "城市" or "金市" (桐城市,
+# 瑞金市): only those as words of their own name none. Nor does Beijing's clock or a
+# Beijing dateline ("新华社北京9月15日电"), where the country's figures are released
+# (lookback 22).
+_NOT_PLACE = re.compile(
+    r"[上超股楼债车汇沪深牛熊两退开休收闭观后逆托稳油铜期]市|(?<![\u4e00-\u9fff])[城金]市"
+    r"|市[场值价]"
+    r"|北京(?=时间|\d{1,2}月\d{1,2}日[电讯])"
+)
 _NATIONAL = re.compile(r"全国|国家统计局|我国")
 _CLAUSE_MARKS = "，,。；;！？!?\n"
 
@@ -544,6 +550,8 @@ class NewsValue:
     value: float
     quote: str
     stated: float = 0.0
+    # The nearest clause before the figure in its paragraph that names a subject, or "".
+    subject: str = ""
 
 
 @dataclass(frozen=True)
@@ -598,7 +606,12 @@ def text_hash(text: str) -> str:
 
 
 def extract(
-    metric_ids: tuple[str, ...], period: str, text: str, *, recheck: bool = False
+    metric_ids: tuple[str, ...],
+    period: str,
+    text: str,
+    *,
+    recheck: bool = False,
+    title: str = "",
 ) -> NewsExtraction:
     """The values the registered rules state for ``period`` in ``text``.
 
@@ -607,9 +620,11 @@ def extract(
     rule takes the value only when that wording is of its form (so "1—8月份" is never read
     as August) and names the gap's period. A member stated twice with different values is
     not taken: the text contradicts itself. ``recheck`` re-reads a kept quote, whose
-    heading context was checked when it was first taken.
+    heading context and subject clause were checked when it was first taken (the clause is
+    kept beside it). A ``title`` naming a place makes every figure of the text that place's.
     """
     year = int(period[:4])
+    local_title = _names_place(title)
     found: dict[tuple[str, tuple[tuple[str, str], ...]], list[NewsValue]] = {}
     other_period = False
     for rule in rules_for(metric_ids):
@@ -636,7 +651,10 @@ def extract(
                 continue
             if rule.section and not recheck and not _in_section(text, match.start(), rule.section):
                 continue
-            if _local(text, match) or _place_named(text, match):
+            if local_title or _local(text, match) or _place_named(text, match):
+                continue
+            subject = _subject(text, match)
+            if not recheck and _names_place(subject):
                 continue
             stated = 0.0 if match.groupdict().get("flat") else float(match["value"])
             value = stated
@@ -647,7 +665,7 @@ def extract(
                 value = round(value * 10_000, 6)
             quote = sentence if context is None or context in sentence else f"{context}，{sentence}"
             found.setdefault((rule.metric_id, rule.dimensions), []).append(
-                NewsValue(rule.metric_id, dict(rule.dimensions), value, quote, stated)
+                NewsValue(rule.metric_id, dict(rule.dimensions), value, quote, stated, subject)
             )
     values = tuple(items[0] for items in found.values() if len({i.value for i in items}) == 1)
     if values:
@@ -731,10 +749,7 @@ def _place_named(text: str, match: re.Match[str]) -> bool:
     The clause is the figure's, not the rule's: a wording read across a comma ("全国…为74%，
     广东比上年同期…") does not lend its "全国" to the figure.
     """
-    figure = next(
-        (match.start(group) for group in ("value", "flat") if match.groupdict().get(group)),
-        match.start(),
-    )
+    figure = _figure(match)
     start = max(text.rfind(mark, 0, figure) for mark in _CLAUSE_MARKS) + 1
     ends = [at for mark in _CLAUSE_MARKS if (at := text.find(mark, figure)) >= 0]
     end = min(ends) if ends else len(text)
@@ -745,6 +760,54 @@ def _place_named(text: str, match: re.Match[str]) -> bool:
         if not any(a < place.end() and place.start() < b for a, b in words)
     ]
     return bool(places) and _NATIONAL.search(text, start, end) is None
+
+
+def _figure(match: re.Match[str]) -> int:
+    return next(
+        (match.start(group) for group in ("value", "flat") if match.groupdict().get(group)),
+        match.start(),
+    )
+
+
+# A figure with no subject in its own clause takes the nearest clause of its paragraph that
+# names one, kept with the page title (lookback 22): "广东：1—8月份全省…" titles Guangdong's
+# page, whose "8月份，规模以上工业增加值同比增长6.9%" names no place itself. Either is read
+# as one clause, a title as a whole: it makes the figure a place's when it names one and
+# not the country.
+def _subject(text: str, match: re.Match[str]) -> str:
+    """The clause of the figure's paragraph nearest before it that names a subject, else "".
+
+    Each "全国", "全省" or place written as such is a subject (as for ``_local`` and
+    ``_place_named``); the clause holding the last one before the figure is kept whole.
+    """
+    figure = _figure(match)
+    start = text.rfind("\n", 0, figure) + 1
+    at = max(
+        (found.start() for found in _SUBJECT.finditer(text, start, figure)),
+        default=-1,
+    )
+    words = [word.span() for word in _NOT_PLACE.finditer(text, start, figure)]
+    for place in _PLACE.finditer(text, start, figure):
+        if not any(a < place.end() and place.start() < b for a, b in words):
+            at = max(at, place.start())
+    if at < 0:
+        return ""
+    clause = max(start, max(text.rfind(mark, 0, at) for mark in _CLAUSE_MARKS) + 1)
+    ends = [end for mark in _CLAUSE_MARKS if (end := text.find(mark, at)) >= 0]
+    return text[clause : min(ends) if ends else len(text)].strip()
+
+
+def _names_place(words: str) -> bool:
+    """Whether a title or subject clause names a place and not the country (lookback 22)."""
+    if _NATIONAL.search(words):
+        return False
+    if any(found["local"] for found in _SUBJECT.finditer(words)):
+        return True
+    excluded = [word.span() for word in _NOT_PLACE.finditer(words)]
+    return any(
+        not any(a < place.end() and place.start() < b for a, b in excluded)
+        for place in _PLACE.finditer(words)
+    )
 
 
 def _sentence(text: str, match: re.Match[str]) -> str:
@@ -803,6 +866,14 @@ CREATE TABLE IF NOT EXISTS claim_matched_quote (
 """
 
 
+def add_subject_column(connection: sqlite3.Connection) -> None:
+    """Keep with each matched quote the subject clause its figure was read under (lookback
+    22); safe to repeat. A quote kept before has none, NULL: it was never recorded."""
+    existing = {str(row[1]) for row in connection.execute("PRAGMA table_info(claim_matched_quote)")}
+    if existing and "subject" not in existing:
+        connection.execute("ALTER TABLE claim_matched_quote ADD COLUMN subject TEXT")
+
+
 @dataclass(frozen=True)
 class MatchedQuote:
     claim_id: str
@@ -813,11 +884,14 @@ class MatchedQuote:
     published_at: str | None
     body_hash: str
     url: str | None
+    subject: str | None = None
 
 
 def record_matched_quotes(connection: sqlite3.Connection, quotes: tuple[MatchedQuote, ...]) -> None:
     connection.executemany(
-        "INSERT OR IGNORE INTO claim_matched_quote VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT OR IGNORE INTO claim_matched_quote (claim_id, route, quote, title, source_name, "
+        "published_at, body_hash, url, rules_version, subject) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
             (
                 q.claim_id,
@@ -829,6 +903,7 @@ def record_matched_quotes(connection: sqlite3.Connection, quotes: tuple[MatchedQ
                 q.body_hash,
                 q.url,
                 NEWS_RULES_VERSION,
+                q.subject,
             )
             for q in quotes
         ],
@@ -982,6 +1057,7 @@ def store_news_values(
                     item.published_at,
                     item.body_hash,
                     item.url,
+                    item.value.subject,
                 )
                 for claim, item in zip(stored, taken, strict=True)
             ),
@@ -1022,6 +1098,8 @@ def news_claims_matching_quotes(
             point.period_end,
             point.selected_value,
             str(row["quote"]),
+            None if row["subject"] is None else str(row["subject"]),
+            str(row["title"]),
         ):
             valid.add(claim_id)
     return valid
@@ -1043,16 +1121,18 @@ def news_claims_no_longer_stated(
     # Quotes are kept only for news values, far fewer than a metric's claims: CROSS JOIN
     # keeps the quote table outermost, reading each quote's claim by its key.
     rows = connection.execute(
-        "SELECT q.claim_id, q.quote, c.metric_id, c.dimensions_json, c.period_start, "
-        "c.period_end, c.value FROM claim_matched_quote AS q "
+        "SELECT q.claim_id, q.quote, q.subject, q.title, c.metric_id, c.dimensions_json, "
+        "c.period_start, c.period_end, c.value FROM claim_matched_quote AS q "
         "CROSS JOIN source_claim AS c ON c.claim_id = q.claim_id "
         "WHERE c.metric_id IN (SELECT value FROM json_each(?))",
         (json.dumps(list(metric_ids)),),
     ).fetchall()
     return frozenset(
         str(claim_id)
-        for claim_id, quote, metric_id, dimensions, start, end, value in rows
-        if not _quote_states(metric_id, json.loads(dimensions), start, end, value, str(quote))
+        for claim_id, quote, subject, title, metric_id, dimensions, start, end, value in rows
+        if not _quote_states(
+            metric_id, json.loads(dimensions), start, end, value, str(quote), subject, str(title)
+        )
     )
 
 
@@ -1063,8 +1143,16 @@ def _quote_states(
     end: str,
     value: float | None,
     quote: str,
+    subject: str | None,
+    title: str,
 ) -> bool:
-    """Whether a kept quote still gives the claim's member its value for its period."""
+    """Whether a kept quote still gives the claim's member its value for its period.
+
+    Its subject clause and its page's title are read again too (lookback 22); a quote kept
+    before has no subject clause, and an AI WebSearch quote no title.
+    """
+    if _names_place(title) or _names_place(subject or ""):
+        return False
     period = gap_period(metric_id, dimensions, start, end)
     return any(
         item.dimensions == dimensions and item.value == value

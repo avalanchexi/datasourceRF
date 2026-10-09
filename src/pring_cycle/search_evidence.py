@@ -649,7 +649,7 @@ def _accept_media_candidate(
             raise CandidateRejected(NOT_WHITELISTED)
         content = decode(raw)
         text = plain_text(content)
-        extraction = extract(scope.metric_ids, scope.period, text)
+        extraction = extract(scope.metric_ids, scope.period, text, title=page_title(content))
         if extraction.reason is not None:
             raise CandidateRejected(extraction.reason)
         return content, text, extraction, page_published_at(content)

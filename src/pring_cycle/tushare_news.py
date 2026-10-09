@@ -283,7 +283,7 @@ def fill_from_news(
         return ()
     taken: dict[tuple[str, str], TakenValue] = {}
     for item, text in _readable(paths, run):
-        for value in extract(scope.metric_ids, scope.period, text).values:
+        for value in extract(scope.metric_ids, scope.period, text, title=item.title).values:
             taken.setdefault(_member(value), _taken(value, item, text))
     if not taken:
         return ()
@@ -307,7 +307,7 @@ def fill_events_from_news(
     by_day: dict[str, dict[tuple[str, str], TakenValue]] = {}
     for item, text in _readable(paths, run):
         for day in stated_event_days(metric_ids, text, published=item.published_at.date()):
-            for value in extract(metric_ids, day, text).values:
+            for value in extract(metric_ids, day, text, title=item.title).values:
                 by_day.setdefault(day, {}).setdefault(_member(value), _taken(value, item, text))
     stored: list[str] = []
     for day, taken in sorted(by_day.items()):

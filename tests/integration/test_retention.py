@@ -285,8 +285,10 @@ def test_matched_quotes_go_with_their_claims(
         with connection:
             for claim_id in (old_claim.claim_id, kept_claim):
                 connection.execute(
-                    "INSERT INTO claim_matched_quote VALUES (?, 'media_page', '原话', '标题', "
-                    "'财联社', NULL, ?, NULL, 'news-rules-v0001')",
+                    "INSERT INTO claim_matched_quote (claim_id, route, quote, title, "
+                    "source_name, published_at, body_hash, url, rules_version) "
+                    "VALUES (?, 'media_page', '原话', '标题', '财联社', NULL, ?, NULL, "
+                    "'news-rules-v0001')",
                     (claim_id, "0" * 64),
                 )
     finally:
@@ -338,8 +340,10 @@ def test_the_latest_event_before_the_window_stays_as_the_current_baseline(
     try:
         with connection:
             connection.execute(
-                "INSERT INTO claim_matched_quote VALUES (?, 'tushare_news', '原话', '标题', "
-                "'新华网', NULL, ?, NULL, 'news-rules-v0001')",
+                "INSERT INTO claim_matched_quote (claim_id, route, quote, title, "
+                "source_name, published_at, body_hash, url, rules_version) "
+                "VALUES (?, 'tushare_news', '原话', '标题', '新华网', NULL, ?, NULL, "
+                "'news-rules-v0001')",
                 (latest, "0" * 64),
             )
     finally:
