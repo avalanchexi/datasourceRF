@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import json
+import math
+import os
 import shlex
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -84,11 +88,61 @@ def _package_drift(tree: Path, installed: Path, *, packaged: set[str] | None = N
     return "; ".join(parts) or None
 
 
+def timing_summary(
+    timings: Path, *, top_tests: int = 30, top_files: int = 15, top_count: int = 50
+) -> str:
+    """Rank tests and files from every recorded phase (ticket 24).
+
+    A test's time is its setup, call and teardown together; a module fixture's setup lands on
+    the first test that asks for it, so the file total is the fairer place to look for a
+    shared run. Collection and session start are outside the test phases.
+    """
+    phases: dict[str, dict[str, float]] = {}
+    for line in timings.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        recorded = phases.setdefault(record["node"], {})
+        recorded[record["when"]] = recorded.get(record["when"], 0.0) + float(record["duration"])
+    tests = sorted(phases.items(), key=lambda item: sum(item[1].values()), reverse=True)
+    total = sum(sum(item.values()) for item in phases.values())
+    files: dict[str, list[float]] = {}
+    for node, item in phases.items():
+        files.setdefault(node.split("::", 1)[0], []).append(sum(item.values()))
+    ranked_files = sorted(files.items(), key=lambda item: sum(item[1]), reverse=True)
+
+    def share(count: int) -> str:
+        part = sum(sum(item.values()) for _, item in tests[:count])
+        return f"{100 * part / total:.1f}%" if total else "n/a"
+
+    tenth = math.ceil(len(tests) / 10)
+    lines = [
+        f"Timings: {len(tests)} tests, {total:.2f}s in test phases",
+        f"Slowest {top_tests} tests (setup / call / teardown):",
+    ]
+    for node, item in tests[:top_tests]:
+        lines.append(
+            f"{sum(item.values()):9.2f}s  {item.get('setup', 0.0):.2f} / "
+            f"{item.get('call', 0.0):.2f} / {item.get('teardown', 0.0):.2f}  {node}"
+        )
+    lines.append(f"Slowest {top_files} files:")
+    for path, durations in ranked_files[:top_files]:
+        lines.append(f"{sum(durations):9.2f}s  {len(durations)} tests  {path}")
+    lines.append(f"Top {top_count} tests: {share(top_count)} of test-phase time")
+    lines.append(f"Top 10% ({tenth} tests): {share(tenth)} of test-phase time")
+    return "\n".join(lines)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("quick", "full"))
     parser.add_argument("tests", nargs="*", help="Explicit test files or pytest node IDs")
     parser.add_argument("--collect-only", action="store_true")
+    parser.add_argument(
+        "--timings",
+        type=Path,
+        help="Where to keep every test phase's duration (default: a new file in the temp dir)",
+    )
     parser.add_argument(
         "--allow-stale-environment",
         action="store_true",
@@ -117,7 +171,20 @@ def main() -> int:
             flush=True,
         )
         return 2
-    command = [sys.executable, "-m", "pytest", *args.tests, "-q", "--durations=10"]
+    timings = args.timings or Path(tempfile.gettempdir()) / (
+        f"pring-check-{args.mode}-{time.strftime('%Y%m%d-%H%M%S')}-{os.getpid()}.jsonl"
+    )
+    # Every phase goes to the timings file; the console keeps only the slowest ten.
+    command = [
+        sys.executable,
+        "-m",
+        "pytest",
+        *args.tests,
+        "-q",
+        "--durations=10",
+        "-ptools.timings",
+        f"--timings-file={timings}",
+    ]
     if args.collect_only:
         command.append("--collect-only")
     operation = "collection only" if args.collect_only else "execution"
@@ -127,6 +194,11 @@ def main() -> int:
     result = subprocess.run(command, cwd=ROOT, check=False)
     elapsed = time.monotonic() - started
     print(f"Exit: {result.returncode}; elapsed: {elapsed:.2f}s", flush=True)
+    if timings.is_file() and timings.stat().st_size:
+        print(timing_summary(timings), flush=True)
+        print(f"Timings file: {timings}", flush=True)
+    else:
+        print("Timings: no test phases recorded", flush=True)
     if args.mode == "quick":
         print(
             "Affected feedback only. Close the slice with the two fast smoke tests (ADR-0025).",
