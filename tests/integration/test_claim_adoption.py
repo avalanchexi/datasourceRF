@@ -38,7 +38,11 @@ from pring_cycle.news_rules import (
     matched_quotes,
     member_period,
     member_unit,
+    news_claims_no_longer_stated,
     record_matched_quotes,
+    restore_suspect_subjects,
+    suspect_news_claims,
+    text_hash,
 )
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CoreInputValidator, TushareCoreAdapter
@@ -255,9 +259,12 @@ def news_claim(
     measure: str = "ytd_real_yoy",
     title: str = "标题",
     subject: str | None = None,
+    url: str | None = None,
+    body_hash: str | None = None,
 ) -> str:
     """A 2026-08 industrial value claim kept with its matched quote, as stored whatever rules
-    took it then; year to date unless ``measure`` says otherwise."""
+    took it then; year to date unless ``measure`` says otherwise. Its page is ``url``, else
+    its body's hash, by default its quote's own."""
     dimensions = {"measure": measure}
     kind, start, end = member_period("CN_INDUSTRIAL_VA", dimensions, "2026-08")
     [claim] = EvidenceRepository(paths.database).append_source_claims(
@@ -294,8 +301,8 @@ def news_claim(
                     title,
                     provider,
                     None,
-                    "0" * 64,
-                    None,
+                    body_hash or text_hash(quote),
+                    url,
                     subject,
                 ),
             ),
@@ -451,6 +458,209 @@ def test_a_kept_news_claim_whose_title_or_subject_names_a_place_is_no_candidate(
         {"CN_INDUSTRIAL_VA": (point,)}
     )["CN_INDUSTRIAL_VA"]
     assert adoption.adoptable == {legacy}
+
+
+# Kept before lookback 22, as AI WebSearch, a media page and TuShare news kept them: Guangdong's
+# month 6.9 (c8dcb77e) names no place in its quote.
+MONTH = "8月份，规模以上工业增加值同比增长6.9%，比上月加快1.0个百分点。"
+PROVINCE = "1—8月，全省规模以上工业增加值同比增长6.1%。"
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_kept_news_claim_whose_page_names_a_place_elsewhere_waits_for_its_subject(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Lookback 23: a claim kept before subject clauses were recorded is a suspect when
+    another claim of its page (its address, else its body's hash) is read as a place's:
+    its quote and title pass, but the clause its figure was read under is unknown. It is
+    neither listed nor selected, nor adoptable once selected. A page whose other claims fail
+    for another reason, or a claim kept with its clause, makes no suspect."""
+    version = registered_version(paths, capsys)
+    evidence = EvidenceRepository(paths.database)
+    first = datetime(2026, 9, 16, 2, tzinfo=UTC)
+    cls = "https://www.cls.cn/detail/2140000"
+    suspect = news_claim(
+        paths, version, "cls", 6.9, MONTH, first, measure="current_month_real_yoy", url=cls
+    )
+    as_of = first + timedelta(days=10)
+
+    def series(preloaded: bool = False) -> tuple[MetricSeriesPoint, ...]:
+        repository = EvidenceRepository(paths.database)
+        if preloaded:
+            repository.preload_metric_series({("CN_INDUSTRIAL_VA", version)})
+        return repository.metric_series(
+            "CN_INDUSTRIAL_VA", mode=AsOfMode.SYSTEM, as_of=as_of, definition_version=version
+        )
+
+    def adoptable(point: MetricSeriesPoint) -> frozenset[str]:
+        return (
+            ClaimAdoption(evidence, definition_version=version)
+            .check({"CN_INDUSTRIAL_VA": (point,)})["CN_INDUSTRIAL_VA"]
+            .adoptable
+        )
+
+    # Its page's other claims are no longer stated, but neither is a place's: one states
+    # July's, not August's; one states two values of its member, contradicting itself.
+    news_claim(
+        paths, version, "cls", 5.8, "1—7月份，规模以上工业增加值同比增长5.8%。", first, url=cls
+    )
+    news_claim(
+        paths,
+        version,
+        "cls",
+        5.2,
+        "1—8月份，规模以上工业增加值同比增长5.2%；1—8月份，规模以上工业增加值同比增长5.3%。",
+        first,
+        url=cls,
+    )
+    (point,) = series()
+    assert (point.selected_claim_id, point.selected_value) == (suspect, 6.9)
+    assert adoptable(point) == {suspect}
+    with database_connection(paths.database) as connection:
+        assert suspect_news_claims(connection) == ()
+
+    news_claim(paths, version, "cls", 6.1, PROVINCE, first, url=cls)
+    with database_connection(paths.database) as connection:
+        assert suspect_news_claims(connection) == (suspect,)
+    assert series() == series(preloaded=True) == ()
+    observation = str(
+        query_one(paths, "SELECT observation_id FROM source_claim WHERE claim_id=?", suspect)
+    )
+    assert evidence.query(observation, mode=AsOfMode.SYSTEM, as_of=as_of).claims == ()
+    assert adoptable(point) == frozenset()
+
+    # Taken since, its page's month figure keeps the clause it was read under: none.
+    kept = news_claim(
+        paths,
+        version,
+        "cls",
+        6.9,
+        MONTH,
+        first + timedelta(days=1),
+        measure="current_month_real_yoy",
+        url=cls,
+        subject="",
+    )
+    (point,) = series()
+    assert [claim.claim_id for claim in point.claims] == [kept]
+    assert adoptable(point) == {kept}
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_suspect_news_claim_is_read_again_with_the_subject_its_page_gives(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Lookback 23: each suspect's page is fetched again, one at a time. The clause the page
+    gives its figure is kept, with the page's title where the quote had none, and the claim
+    is read with them: a place's is no candidate, the country's is. A page that cannot be
+    had or no longer gives the figure, or a claim with no address, leaves the suspect as it
+    was, not taken; only a claim with no clause is written, so a second pass fetches only
+    the pages left."""
+    version = registered_version(paths, capsys)
+    first = datetime(2026, 9, 16, 2, tzinfo=UTC)
+    guangdong, country, gone, moved = (f"https://www.cls.cn/detail/214000{n}" for n in range(4))
+    fetch_pages: list[str | None] = []
+
+    def suspect_of(page: str | None, provider: str, title: str, body: str | None = None) -> str:
+        # Each page its own release: a claim is one per provider, value and release.
+        known = first + timedelta(hours=len(fetch_pages))
+        fetch_pages.append(page)
+        news_claim(paths, version, provider, 6.1, PROVINCE, known, url=page, body_hash=body)
+        return news_claim(
+            paths,
+            version,
+            provider,
+            6.9,
+            MONTH,
+            known,
+            measure="current_month_real_yoy",
+            title=title,
+            url=page,
+            body_hash=body,
+        )
+
+    local = suspect_of(guangdong, "ai_websearch", "")
+    national = suspect_of(country, "cls", "8月份国民经济运行")
+    unavailable = suspect_of(gone, "cls", "标题")
+    unstated = suspect_of(moved, "cls", "标题")
+    unaddressed = suspect_of(None, "tushare_news", "资讯", "1" * 64)
+    pages = {
+        # A mixed page: the country's 6.9 first, then Guangdong's, which the quote is.
+        guangdong: (
+            "<html><head><title>8月份各地经济数据</title></head><body>"
+            "<p>8月份，全国规模以上工业增加值同比增长6.9%。</p>"
+            f"<p>1—8月份，全省规模以上工业增加值同比增长6.1%；{MONTH}</p></body></html>"
+        ),
+        # The quote's own paragraph names the country before it.
+        country: (
+            "<html><head><title>8月份国民经济运行</title></head><body><p>统计局发布。</p>"
+            f"<p>全国规模以上工业生产加快，{MONTH}</p></body></html>"
+        ),
+        moved: "<html><head><title>页面已更新</title></head><body><p>已更新。</p></body></html>",
+    }
+    fetched: list[str] = []
+
+    def fetch(url: str) -> str | None:
+        fetched.append(url)
+        return pages.get(url)
+
+    restored = restore_suspect_subjects(paths.database, fetch)
+    assert sorted(fetched) == sorted((guangdong, country, gone, moved))
+    assert {r.claim_id: r.outcome for r in restored} == {
+        local: "local",
+        national: "national",
+        unavailable: "unavailable",
+        unstated: "unavailable",
+        unaddressed: "unavailable",
+    }
+    # The original of each page had, recorded whatever it gave.
+    assert {r.claim_id: r.content_sha256 for r in restored} == {
+        local: text_hash(pages[guangdong]),
+        national: text_hash(pages[country]),
+        unavailable: None,
+        unstated: text_hash(pages[moved]),
+        unaddressed: None,
+    }
+    with database_connection(paths.database) as connection:
+        kept = {
+            str(row["claim_id"]): (row["title"], row["subject"])
+            for row in matched_quotes(
+                connection, (local, national, unavailable, unstated, unaddressed)
+            )
+        }
+        assert news_claims_no_longer_stated(connection, ("CN_INDUSTRIAL_VA",)) >= {
+            local,
+            unavailable,
+            unstated,
+            unaddressed,
+        }
+        assert national not in news_claims_no_longer_stated(connection, ("CN_INDUSTRIAL_VA",))
+        assert suspect_news_claims(connection) == tuple(
+            sorted((unavailable, unstated, unaddressed))
+        )
+    assert kept == {
+        local: ("8月份各地经济数据", "全省规模以上工业增加值同比增长6.1%"),
+        national: ("8月份国民经济运行", "全国规模以上工业生产加快"),
+        unavailable: ("标题", None),
+        unstated: ("标题", None),
+        unaddressed: ("资讯", None),
+    }
+    (point,) = EvidenceRepository(paths.database).metric_series(
+        "CN_INDUSTRIAL_VA",
+        mode=AsOfMode.SYSTEM,
+        as_of=first + timedelta(days=10),
+        definition_version=version,
+    )
+    assert [claim.claim_id for claim in point.claims] == [national]
+
+    fetched.clear()
+    again = restore_suspect_subjects(paths.database, fetch)
+    assert sorted(fetched) == sorted((gone, moved))
+    assert {r.claim_id: r.outcome for r in again} == {
+        unavailable: "unavailable",
+        unstated: "unavailable",
+        unaddressed: "unavailable",
+    }
 
 
 def query_one(paths: RuntimePaths, sql: str, *parameters: object) -> object:

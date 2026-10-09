@@ -623,9 +623,31 @@ def extract(
     heading context and subject clause were checked when it was first taken (the clause is
     kept beside it). A ``title`` naming a place makes every figure of the text that place's.
     """
-    year = int(period[:4])
-    local_title = _names_place(title)
+    readings, other_period = _readings(metric_ids, period, text, recheck=recheck, title=title)
     found: dict[tuple[str, tuple[tuple[str, str], ...]], list[NewsValue]] = {}
+    for item in readings:
+        found.setdefault((item.metric_id, tuple(item.dimensions.items())), []).append(item)
+    values = tuple(items[0] for items in found.values() if len({i.value for i in items}) == 1)
+    if values:
+        return NewsExtraction(values, None)
+    return NewsExtraction((), PERIOD_MISMATCH if other_period else RULE_NOT_MATCHED)
+
+
+def _readings(
+    metric_ids: tuple[str, ...],
+    period: str,
+    text: str,
+    *,
+    recheck: bool,
+    title: str,
+    local_too: bool = False,
+) -> tuple[list[NewsValue], bool]:
+    """Each value the rules read for ``period`` in ``text`` as ``extract`` reads it, and
+    whether a wording of another period was met. ``local_too`` reads a place's figures too,
+    each with the subject clause it names: what a text states whoever its subject is."""
+    year = int(period[:4])
+    local_title = not local_too and _names_place(title)
+    readings: list[NewsValue] = []
     other_period = False
     for rule in rules_for(metric_ids):
         for match in rule.pattern.finditer(text):
@@ -651,10 +673,10 @@ def extract(
                 continue
             if rule.section and not recheck and not _in_section(text, match.start(), rule.section):
                 continue
-            if local_title or _local(text, match) or _place_named(text, match):
+            if not local_too and (local_title or _local(text, match) or _place_named(text, match)):
                 continue
             subject = _subject(text, match)
-            if not recheck and _names_place(subject):
+            if not recheck and not local_too and _names_place(subject):
                 continue
             stated = 0.0 if match.groupdict().get("flat") else float(match["value"])
             value = stated
@@ -664,13 +686,10 @@ def extract(
             if unit == "万亿元":
                 value = round(value * 10_000, 6)
             quote = sentence if context is None or context in sentence else f"{context}，{sentence}"
-            found.setdefault((rule.metric_id, rule.dimensions), []).append(
+            readings.append(
                 NewsValue(rule.metric_id, dict(rule.dimensions), value, quote, stated, subject)
             )
-    values = tuple(items[0] for items in found.values() if len({i.value for i in items}) == 1)
-    if values:
-        return NewsExtraction(values, None)
-    return NewsExtraction((), PERIOD_MISMATCH if other_period else RULE_NOT_MATCHED)
+    return readings, other_period
 
 
 def stated_event_days(
@@ -1070,7 +1089,8 @@ def news_claims_matching_quotes(
 ) -> set[str]:
     """Selected claims whose kept matched quote still gives their value under the rules.
 
-    The original text is kept only a few days; the quote is kept as long as the claim.
+    The original text is kept only a few days; the quote is kept as long as the claim. A
+    suspect (``suspect_news_claims``) gives none until its subject clause is restored.
     """
     from pring_cycle.storage import database_connection
 
@@ -1088,21 +1108,40 @@ def news_claims_matching_quotes(
         ).fetchone():
             return set()
         quotes = {str(row["claim_id"]): row for row in matched_quotes(connection, tuple(selected))}
-    valid = set()
-    for claim_id, row in quotes.items():
-        metric_id, point = selected[claim_id]
-        if _quote_states(
-            metric_id,
-            point.dimensions,
-            point.period_start,
-            point.period_end,
-            point.selected_value,
-            str(row["quote"]),
-            None if row["subject"] is None else str(row["subject"]),
-            str(row["title"]),
-        ):
-            valid.add(claim_id)
-    return valid
+        valid = set()
+        for claim_id, row in quotes.items():
+            metric_id, point = selected[claim_id]
+            if _quote_states(
+                metric_id,
+                point.dimensions,
+                point.period_start,
+                point.period_end,
+                point.selected_value,
+                str(row["quote"]),
+                None if row["subject"] is None else str(row["subject"]),
+                str(row["title"]),
+            ):
+                valid.add(claim_id)
+        return valid - _on_local_pages(
+            connection,
+            {
+                claim_id: str(
+                    quotes[claim_id]["body_hash"]
+                    if quotes[claim_id]["url"] is None
+                    else quotes[claim_id]["url"]
+                )
+                for claim_id in valid
+                if quotes[claim_id]["subject"] is None
+            },
+        )
+
+
+# A kept quote with the page it was read from: its address, else its body's hash.
+_KEPT_QUOTES = (
+    "SELECT q.claim_id, q.quote, q.subject, q.title, COALESCE(q.url, q.body_hash), "
+    "c.metric_id, c.dimensions_json, c.period_start, c.period_end, c.value "
+    "FROM claim_matched_quote AS q CROSS JOIN source_claim AS c ON c.claim_id = q.claim_id "
+)
 
 
 def news_claims_no_longer_stated(
@@ -1112,7 +1151,8 @@ def news_claims_no_longer_stated(
 
     A claim is read under the rules of the day, not those that took it (lookback 20): one
     they no longer state is neither listed among an observation's claims nor selected. The
-    claim itself stays as stored, so a later rule decides it again.
+    claim itself stays as stored, so a later rule decides it again. A suspect
+    (``suspect_news_claims``) is not stated until its subject clause is restored.
     """
     if not connection.execute(
         "SELECT 1 FROM sqlite_master WHERE name='claim_matched_quote'"
@@ -1121,19 +1161,143 @@ def news_claims_no_longer_stated(
     # Quotes are kept only for news values, far fewer than a metric's claims: CROSS JOIN
     # keeps the quote table outermost, reading each quote's claim by its key.
     rows = connection.execute(
-        "SELECT q.claim_id, q.quote, q.subject, q.title, c.metric_id, c.dimensions_json, "
-        "c.period_start, c.period_end, c.value FROM claim_matched_quote AS q "
-        "CROSS JOIN source_claim AS c ON c.claim_id = q.claim_id "
-        "WHERE c.metric_id IN (SELECT value FROM json_each(?))",
+        _KEPT_QUOTES + "WHERE c.metric_id IN (SELECT value FROM json_each(?))",
         (json.dumps(list(metric_ids)),),
     ).fetchall()
-    return frozenset(
-        str(claim_id)
-        for claim_id, quote, subject, title, metric_id, dimensions, start, end, value in rows
-        if not _quote_states(
+    stated = {
+        str(claim_id): (subject, page)
+        for claim_id, quote, subject, title, page, metric_id, dimensions, start, end, value in rows
+        if _quote_states(
             metric_id, json.loads(dimensions), start, end, value, str(quote), subject, str(title)
         )
+    }
+    unstated = frozenset(str(row[0]) for row in rows if str(row[0]) not in stated)
+    return unstated | _on_local_pages(
+        connection,
+        {claim_id: str(page) for claim_id, (subject, page) in stated.items() if subject is None},
     )
+
+
+# A claim kept before its subject clause was recorded (lookback 22) is read on its quote and
+# title alone. Its page may have named a place before the quote, as c8dcb77e's did; a page
+# with another claim read as a place's makes it a suspect, not taken until its page is read
+# again for the clause (lookback 23). Its own page's address, else its body's hash, is its page.
+def suspect_news_claims(connection: sqlite3.Connection) -> tuple[str, ...]:
+    """The kept news claims with no subject clause whose quote and title still state their
+    value, on a page with another claim read as a place's: neither listed nor selected."""
+    rows = connection.execute(_KEPT_QUOTES + "WHERE q.subject IS NULL").fetchall()
+    return tuple(
+        sorted(
+            _on_local_pages(
+                connection,
+                {
+                    str(claim_id): str(page)
+                    for claim_id, quote, _s, title, page, metric_id, dims, start, end, value in rows
+                    if _quote_states(
+                        metric_id, json.loads(dims), start, end, value, str(quote), None, str(title)
+                    )
+                },
+            )
+        )
+    )
+
+
+def _on_local_pages(connection: sqlite3.Connection, pages: Mapping[str, str]) -> frozenset[str]:
+    """The claims of ``pages`` (a claim's id to its page) on a page with a claim read as a
+    place's."""
+    if not pages:
+        return frozenset()
+    rows = connection.execute(
+        _KEPT_QUOTES + "WHERE COALESCE(q.url, q.body_hash) IN (SELECT value FROM json_each(?))",
+        (json.dumps(sorted(set(pages.values()))),),
+    ).fetchall()
+    local = {
+        str(page)
+        for _id, quote, subject, title, page, metric_id, dimensions, start, end, value in rows
+        if _quote_local(
+            metric_id, json.loads(dimensions), start, end, value, str(quote), subject, str(title)
+        )
+    }
+    return frozenset(claim_id for claim_id, page in pages.items() if page in local)
+
+
+RestoreOutcome = Literal["local", "national", "unavailable"]
+
+
+@dataclass(frozen=True)
+class RestoredSubject:
+    """What reading a suspect's page again made of it (lookback 23)."""
+
+    claim_id: str
+    url: str | None
+    # The page's content as read again, when it could be had.
+    content_sha256: str | None
+    outcome: RestoreOutcome
+
+
+def restore_suspect_subjects(
+    database: Path, fetch: Callable[[str], str | None]
+) -> tuple[RestoredSubject, ...]:
+    """Read each suspect's page again, one at a time, for the subject clause its figure was
+    read under, and read the claim again with it (lookback 23).
+
+    ``fetch`` gives a page's content, or None when it cannot be had. The clause the page
+    gives the claim's figure is kept, a place's or the country's, with the page's title
+    where the quote had none; only a quote with no clause is written. A claim with no
+    address, or whose page cannot be had or no longer gives its figure, stays a suspect.
+    """
+    from pring_cycle.storage import database_connection
+
+    with database_connection(database) as connection:
+        suspects = suspect_news_claims(connection)
+        rows = connection.execute(
+            "SELECT q.claim_id, q.url, q.title, c.metric_id, c.dimensions_json, c.period_start, "
+            "c.period_end, c.value, q.quote FROM claim_matched_quote AS q "
+            "JOIN source_claim AS c ON c.claim_id = q.claim_id "
+            "WHERE q.claim_id IN (SELECT value FROM json_each(?))",
+            (json.dumps(list(suspects)),),
+        ).fetchall()
+    restored = []
+    for claim_id, url, kept_title, metric_id, dimensions_json, start, end, value, quote in rows:
+        dimensions = json.loads(dimensions_json)
+        content = fetch(url) if url else None
+        if content is None:
+            restored.append(RestoredSubject(claim_id, url, None, "unavailable"))
+            continue
+        readings, _ = _readings(
+            (metric_id,),
+            gap_period(metric_id, dimensions, start, end),
+            plain_text(content),
+            recheck=False,
+            title="",
+            local_too=True,
+        )
+        # The kept quote's own reading: a mixed page may state the same figure as the
+        # country's and as a place's. Read two ways, it is not restored.
+        subjects = {
+            r.subject
+            for r in readings
+            if r.dimensions == dimensions
+            and r.value == value
+            and (quote in r.quote or r.quote in quote)
+        }
+        if len(subjects) != 1:
+            restored.append(RestoredSubject(claim_id, url, text_hash(content), "unavailable"))
+            continue
+        with database_connection(database) as connection:
+            connection.execute(
+                "UPDATE claim_matched_quote SET subject = ?, title = ? "
+                "WHERE claim_id = ? AND subject IS NULL",
+                (subjects.pop(), kept_title or page_title(content), claim_id),
+            )
+            subject, title = connection.execute(
+                "SELECT subject, title FROM claim_matched_quote WHERE claim_id = ?", (claim_id,)
+            ).fetchone()
+        states = _quote_states(metric_id, dimensions, start, end, value, quote, subject, title)
+        restored.append(
+            RestoredSubject(claim_id, url, text_hash(content), "national" if states else "local")
+        )
+    return tuple(restored)
 
 
 def _quote_states(
@@ -1158,3 +1322,29 @@ def _quote_states(
         item.dimensions == dimensions and item.value == value
         for item in extract((metric_id,), period, quote, recheck=True).values
     )
+
+
+def _quote_local(
+    metric_id: str,
+    dimensions: dict[str, str],
+    start: str,
+    end: str,
+    value: float | None,
+    quote: str,
+    subject: str | None,
+    title: str,
+) -> bool:
+    """Whether a kept quote is read as a place's: its title or subject clause names one, or
+    it gives the claim's value only when a place's figures count (lookback 23). A quote no
+    longer stated for another reason, its period or two values of one member, is not."""
+    if _names_place(title) or _names_place(subject or ""):
+        return True
+    period = gap_period(metric_id, dimensions, start, end)
+
+    def reads(local_too: bool) -> bool:
+        readings, _ = _readings(
+            (metric_id,), period, quote, recheck=True, title="", local_too=local_too
+        )
+        return any(item.dimensions == dimensions and item.value == value for item in readings)
+
+    return reads(local_too=True) and not reads(local_too=False)
