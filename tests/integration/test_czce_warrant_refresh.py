@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import UTC, date, datetime
+from collections.abc import Callable
+from datetime import UTC, date, datetime, timedelta
+from itertools import count
 from pathlib import Path
 
 import pytest
@@ -19,6 +21,7 @@ from pring_cycle.metric_contracts import CZCE_PROVIDER, czce_warrant_url
 from pring_cycle.models import EFFECTIVE_CATALOG_VERSION, ModelRepository, effective_model_manifest
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.warrant_inputs import select_warrant_inputs
+from tests.conftest import _clock_datetime
 from tests.fixtures.czce_report import czce_exchange, czce_report
 
 # The newest model, whatever it is numbered.
@@ -179,6 +182,111 @@ def test_an_unreachable_exchange_stops_the_run_s_requests(paths: RuntimePaths) -
     assert exchange.refresh(paths, MAY_19, SEP_02) == {"CF": 0, "TA": 0}
     assert exchange.requested == [czce_warrant_url(MAY_19)]
     assert exchange.slept == []
+
+
+@pytest.mark.parametrize(
+    ("reading", "failed_at"),
+    [(1, "received"), (2, "validated")],
+    ids=["received", "validated"],
+)
+def test_a_clock_stepping_back_fails_only_that_symbol_day(
+    paths: RuntimePaths, monkeypatch: pytest.MonkeyPatch, reading: int, failed_at: str
+) -> None:
+    """Run findings 2026-10-02, ticket 04 (a): the system clock stepped back while CF's
+    5/18 receipt was in flight; that one failure skipped TA's day and every later day."""
+    exchange = Exchange(FILES)
+    # A day behind, a millisecond a reading: every reading is past what the test reads at.
+    origin, ticks = datetime.now(UTC) - timedelta(days=1), count()
+    step_back = timedelta()
+    readings_after_answer: int | None = None
+
+    def now() -> datetime:
+        nonlocal step_back, readings_after_answer
+        if readings_after_answer is not None:
+            readings_after_answer += 1
+            if readings_after_answer == reading:
+                # The receipt's first reading after the answer is when it was received, the
+                # second when it was validated: the clock steps back there and stays back.
+                step_back = timedelta(seconds=7)
+                readings_after_answer = None
+        return origin + timedelta(milliseconds=next(ticks)) - step_back
+
+    def fetch(url: str) -> bytes:
+        nonlocal readings_after_answer
+        content = Exchange.fetch(exchange, url)
+        if url == czce_warrant_url(MAY_19):
+            readings_after_answer = 0
+        return content
+
+    exchange.fetch = fetch  # type: ignore[method-assign]
+    monkeypatch.setattr("pring_cycle.acquisition.datetime", _clock_datetime(now))
+
+    assert exchange.refresh(paths, MAY_19, SEP_02) == {"CF": 1, "TA": 2}
+
+    # TA was taken from the same one response, and the later day as ever.
+    assert exchange.requested == [czce_warrant_url(MAY_19), czce_warrant_url(SEP_02)]
+    assert ("CF", "2026-05-19") not in held(paths)
+    assert {("TA", "2026-05-19"), ("CF", "2026-09-02"), ("TA", "2026-09-02")} <= set(held(paths))
+    assert (
+        "local_failed",
+        "2026-05-19",
+        "CF",
+        "acquisition_time_invalid",
+    ) in attempts(paths)
+    with sqlite3.connect(paths.database) as connection:
+        receipt = connection.execute(
+            "SELECT state, received_at IS NOT NULL, rejection_reason FROM acquisition_request "
+            "WHERE provider=? AND json_extract(parameters_json, '$.symbol')='CF' "
+            "AND json_extract(parameters_json, '$.business_date')='2026-05-19'",
+            (CZCE_PROVIDER,),
+        ).fetchone()
+    assert receipt == ("failed", failed_at == "validated", "acquisition_time_invalid")
+
+
+def _store_failing(error: Exception) -> tuple[str, Callable[..., None]]:
+    def store_artifact(*_args: object, **_kwargs: object) -> None:
+        raise error
+
+    return "pring_cycle.acquisition.store_artifact", store_artifact
+
+
+def _ingest_failing(error: Exception) -> tuple[str, Callable[..., None]]:
+    def append_source_claims(*_args: object, **_kwargs: object) -> None:
+        raise error
+
+    return "pring_cycle.evidence.EvidenceRepository.append_source_claims", append_source_claims
+
+
+@pytest.mark.parametrize(
+    ("failing", "error", "recorded"),
+    [
+        (_store_failing, OSError("disk full"), [("local_failed", "2026-05-19", "CF")]),
+        (
+            _store_failing,
+            ValueError("artifact_store_failed"),
+            [("local_failed", "2026-05-19", "CF")],
+        ),
+        # The database failing is no outcome the refresh records: it stops it unrecorded.
+        (_store_failing, sqlite3.OperationalError("database is locked"), []),
+        (_ingest_failing, OSError("disk full"), [("local_failed", "2026-05-19", "CF")]),
+    ],
+    ids=["disk", "local_value_error", "database", "ingest_disk"],
+)
+def test_any_other_local_failure_still_stops_the_refresh(
+    paths: RuntimePaths,
+    monkeypatch: pytest.MonkeyPatch,
+    failing: Callable[[Exception], tuple[str, Callable[..., None]]],
+    error: Exception,
+    recorded: list[tuple[str, str, str]],
+) -> None:
+    exchange = Exchange(FILES)
+    monkeypatch.setattr(*failing(error))
+
+    with pytest.raises(type(error), match=str(error)):
+        exchange.refresh(paths, MAY_19, SEP_02)
+
+    assert exchange.requested == [czce_warrant_url(MAY_19)]
+    assert [(outcome, day, symbol) for outcome, day, symbol, _reason in attempts(paths)] == recorded
 
 
 def test_the_consumers_reparse_accepts_the_czce_members(paths: RuntimePaths) -> None:

@@ -444,7 +444,7 @@ def _take(
             acquisition_ids=tuple(identities),
             safe_metadata={**metadata, **recorded},
         )
-        if outcome == LOCAL_FAILED:
+        if outcome == LOCAL_FAILED and not _clock_stepped_back(error):
             raise  # this system's own failure stops the refresh, as it did
         return False
     receipt = acquired.receipt
@@ -511,6 +511,17 @@ def _take(
         },
     )
     return True
+
+
+def _clock_stepped_back(error: Exception) -> bool:
+    """Whether the receipt failed only for the system clock stepping back while it was in
+    flight (run findings 2026-10-02, ticket 04).
+
+    That fails this symbol-day alone, its receipt and attempt saying why (ADR-0032): the
+    other symbol still reads the day's one response, and later days are asked for as ever.
+    Any other failure of this system's own -- a disk, the database -- still stops the refresh.
+    """
+    return isinstance(error, ValueError) and str(error) == "acquisition_time_invalid"
 
 
 def _reconciliation(
