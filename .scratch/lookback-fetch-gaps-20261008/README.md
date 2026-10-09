@@ -29,7 +29,7 @@
 | 21 | [20](issues/20-pre-fix-local-news-claims-still-candidates.md) | 资讯从严主语规则＋候选列表与选值动态复核（只要全国口径） | done（第三轮线 A；5753 篇正文前后比对零增减；3 条旧地方声明退出候选，`c8dcb77e` 交票 23） |
 | 22 | [22](issues/22-news-claim-subject-context.md) | 资讯声明入库保存主语上下文与页面标题（迁移加字段，复核使用） | ready-for-agent（第三轮线 A，20 已完成） |
 | 23 | [23](issues/23-suspect-legacy-news-claim-refetch.md) | 嫌疑旧资讯声明（`c8dcb77e…` 广东 6.9）定点重取并判定 | ready-for-agent（第三轮线 A，阻塞于 20、22） |
-| 24 | [21](issues/21-capacity-search-fallback-chain-unverified.md) | 产能利用率检索补救经 `/zwfwck/sjfb/` 的离线端到端用例（只补测试） | ready-for-agent（第三轮线 B） |
+| 24 | [21](issues/21-capacity-search-fallback-chain-unverified.md) | 产能利用率检索补救经 `/zwfwck/sjfb/` 的离线端到端用例（只补测试） | done（`test_capacity_search_rescue.py` 两例：列表缺稿时 Tavily 候选补齐 2026-Q1 73.6／-0.5，同一原件给其他季度按期次拒收；未改生产代码） |
 | 25 | [24](issues/24-test-feedback-too-slow.md) | 测试反馈过慢（受影响测试 15–70 分钟） | needs-triage（不进第三轮） |
 | 26 | [25](issues/25-round3-acceptance.md) | 第三轮全套测试与真实运行验收 | ready-for-agent（阻塞于 20–23） |
 
