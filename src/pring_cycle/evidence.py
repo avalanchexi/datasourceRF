@@ -694,10 +694,13 @@ class EvidenceRepository:
             )
             clauses = " OR ".join("(metric_id=? AND definition_version=?)" for _ in stored_pairs)
             parameters = tuple(value for pair in stored_pairs for value in pair)
-            rows = connection.execute(
-                f"SELECT * FROM effective_source_claim WHERE {clauses}",
-                parameters,
-            ).fetchall()
+            rows = _without_unstated_news(
+                connection,
+                connection.execute(
+                    f"SELECT * FROM effective_source_claim WHERE {clauses}",
+                    parameters,
+                ).fetchall(),
+            )
         by_stored_pair: dict[tuple[str, str], list[sqlite3.Row]] = {}
         for row in rows:
             by_stored_pair.setdefault(
@@ -1076,6 +1079,7 @@ class EvidenceRepository:
                         _iso(as_of),
                     ),
                 ).fetchall()
+            rows = _without_unstated_news(connection, rows)
         return _select_claim_rows(
             observation_id,
             rows,
@@ -1208,6 +1212,7 @@ class EvidenceRepository:
                     """,
                     (metric_id, *versions, *cutoff_parameters),
                 ).fetchall()
+                rows = _without_unstated_news(connection, rows)
             rows_by_observation: dict[str, list[sqlite3.Row]] = {}
             for row in rows:
                 if (
@@ -1524,6 +1529,21 @@ def _retired_source(row: sqlite3.Row) -> bool:
         return False
     symbol = str(json.loads(row["dimensions_json"]).get("symbol", ""))
     return symbol in CZCE_WARRANT_SYMBOLS and row["provider"] != warrant_provider(symbol)
+
+
+def _without_unstated_news(
+    connection: sqlite3.Connection, rows: list[sqlite3.Row]
+) -> list[sqlite3.Row]:
+    """The rows less the news claims the rules of the day no longer state, never selected nor
+    listed (lookback 20): a city's figure kept before the rules knew it is not the country's."""
+    from pring_cycle.news_rules import news_claims_no_longer_stated
+
+    if not rows:
+        return rows
+    unstated = news_claims_no_longer_stated(
+        connection, tuple(sorted({str(row["metric_id"]) for row in rows}))
+    )
+    return [row for row in rows if str(row["claim_id"]) not in unstated] if unstated else rows
 
 
 def _observation_key(row: sqlite3.Row, *, merged: bool) -> str:

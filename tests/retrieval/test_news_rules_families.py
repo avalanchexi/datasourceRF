@@ -370,7 +370,75 @@ def test_a_national_figure_after_a_local_one_in_its_paragraph_is_taken() -> None
     assert [v.value for v in extract(("CN_CPI_HEADLINE",), "2026-08", text).values] == [0.8]
 
 
-@pytest.mark.parametrize("market", ["资本市场", "全市场", "债券市场"])
+@pytest.mark.parametrize(
+    "quote",
+    [
+        # 9850d479 (TuShare news, Sina) and 8dc3a4b8 (CLS), as the real run kept them.
+        "1—8月，全省规模以上工业增加值同比增长6.1%。",
+        "广东：1—8月份全省规模以上工业增加值同比增长6.1%很抱歉，当前没有启用javascript，网站无法正常访问。",
+    ],
+)
+def test_a_kept_provincial_quote_no_longer_states_the_national_figure(quote: str) -> None:
+    assert extract(("CN_INDUSTRIAL_VA",), "2026-08", quote, recheck=True).values == ()
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # Lookback 20: the place itself is the subject, with no "全市" after it.
+        "西安市1-7月规模以上工业增加值同比下降1.0%，其中，汽车制造业增加值下降7.1%。",
+        "广东1—7月份规模以上工业增加值同比下降1.0%。",
+        "1—7月份，内蒙古自治区规模以上工业增加值同比下降1.0%。",
+        "1—7月份，延边州规模以上工业增加值同比下降1.0%。",
+        "1—7月份，昆山县规模以上工业增加值同比下降1.0%。",
+        # A city whose name ends as a common word does ("城市").
+        "桐城市1—7月规模以上工业增加值同比下降1.0%。",
+    ],
+)
+def test_a_place_named_before_the_figure_in_its_clause_is_its_subject(text: str) -> None:
+    assert extract(("CN_INDUSTRIAL_VA",), "2026-07", text).values == ()
+
+
+def test_a_wording_across_a_comma_lends_its_country_to_no_place_after_it() -> None:
+    """ "全国" names the rate's clause, not Guangdong's change after the comma."""
+    text = "2026年二季度，全国规模以上工业产能利用率为74.0%，广东比上年同期下降0.5个百分点。"
+
+    assert {
+        value.dimensions["measure"]: value.value
+        for value in extract(("CN_CAPACITY_UTILIZATION",), "2026-Q2", text).values
+    } == {"quarter_rate": 74.0}
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "国家统计局陕西调查总队转发1—7月份全国规模以上工业增加值同比增长5.3%。",
+        "上海证券报讯 据国家统计局1—7月份规模以上工业增加值同比增长5.3%。",
+        "1—7月份，我国规模以上工业增加值同比增长5.3%，广东增长6.1%。",
+        "上海证券报报道1—7月规模以上工业增加值同比增长5.3%（国家统计局数据）。",
+    ],
+)
+def test_a_national_word_in_the_figure_s_clause_keeps_it_national(text: str) -> None:
+    """A place named before the figure leaves it national when "全国", "我国" or the NBS
+    is named in the same clause."""
+    assert [v.value for v in extract(("CN_INDUSTRIAL_VA",), "2026-07", text).values] == [5.3]
+
+
+@pytest.mark.parametrize(
+    "market",
+    [
+        "资本市场",
+        "全市场",
+        "债券市场",
+        "上市公司",
+        "股市",
+        "超市",
+        "城市",
+        "楼市",
+        "债市",
+        "牛市",
+    ],
+)
 def test_a_market_is_not_a_local_subject(market: str) -> None:
     text = f"2026年9月21日，{market}关注中国人民银行开展1650亿元7天逆回购操作。"
 

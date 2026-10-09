@@ -80,6 +80,21 @@ _CONTEXT_CHARS = 600
 _SUBJECT = re.compile(
     r"(?P<local>[全本我](?:市(?!场)|区(?![间域])|[省县州盟旗]))|全国|国家统计局|我国"
 )
+# A place named in the figure's own clause before it ("西安市1-7月规模以上…", "广东1—7月份…",
+# "…为74%，广东比上年同期下降0.5个百分点", lookback 20) makes it that place's, unless the
+# clause also names the country: only the national figure is wanted, so one written after a
+# place in its clause may be lost too.
+_PROVINCES = (
+    "北京|天津|上海|重庆|河北|山西|辽宁|吉林|黑龙江|江苏|浙江|安徽|福建|江西|山东|河南|湖北|湖南|"
+    "广东|海南|四川|贵州|云南|陕西|甘肃|青海|台湾|内蒙古|广西|西藏|宁夏|新疆|香港|澳门"
+)
+_PLACE = re.compile(_PROVINCES + r"|[\u4e00-\u9fff](?:自治区|[省市州县])")
+# Words ending as a place does that name none: markets (市场, 股市, 上市) and cities at large.
+# One that ends a longer word may still be a place (桐城市, 晋城市): only a word of its own
+# names none.
+_NOT_PLACE = re.compile(r"(?<![\u4e00-\u9fff])[上城超股楼债车汇沪深牛熊]市|市[场值价]")
+_NATIONAL = re.compile(r"全国|国家统计局|我国")
+_CLAUSE_MARKS = "，,。；;！？!?\n"
 
 
 def _mention_keys(match: re.Match[str]) -> dict[Form, tuple[int, ...]]:
@@ -621,7 +636,7 @@ def extract(
                 continue
             if rule.section and not recheck and not _in_section(text, match.start(), rule.section):
                 continue
-            if _local(text, match):
+            if _local(text, match) or _place_named(text, match):
                 continue
             stated = 0.0 if match.groupdict().get("flat") else float(match["value"])
             value = stated
@@ -707,6 +722,29 @@ def _local(text: str, match: re.Match[str]) -> bool:
     start = max(text.rfind("\n", 0, match.start()) + 1, match.start() - _CONTEXT_CHARS)
     subjects = list(_SUBJECT.finditer(text, start, match.end()))
     return bool(subjects) and subjects[-1]["local"] is not None
+
+
+def _place_named(text: str, match: re.Match[str]) -> bool:
+    """Whether a place is named before the figure in the figure's own clause, and that clause
+    names no country.
+
+    The clause is the figure's, not the rule's: a wording read across a comma ("全国…为74%，
+    广东比上年同期…") does not lend its "全国" to the figure.
+    """
+    figure = next(
+        (match.start(group) for group in ("value", "flat") if match.groupdict().get(group)),
+        match.start(),
+    )
+    start = max(text.rfind(mark, 0, figure) for mark in _CLAUSE_MARKS) + 1
+    ends = [at for mark in _CLAUSE_MARKS if (at := text.find(mark, figure)) >= 0]
+    end = min(ends) if ends else len(text)
+    words = [word.span() for word in _NOT_PLACE.finditer(text, start, end)]
+    places = [
+        place
+        for place in _PLACE.finditer(text, start, figure)
+        if not any(a < place.end() and place.start() < b for a, b in words)
+    ]
+    return bool(places) and _NATIONAL.search(text, start, end) is None
 
 
 def _sentence(text: str, match: re.Match[str]) -> str:
@@ -977,11 +1015,58 @@ def news_claims_matching_quotes(
     valid = set()
     for claim_id, row in quotes.items():
         metric_id, point = selected[claim_id]
-        period = gap_period(metric_id, point.dimensions, point.period_start, point.period_end)
-        values = extract((metric_id,), period, str(row["quote"]), recheck=True).values
-        if any(
-            item.dimensions == point.dimensions and item.value == point.selected_value
-            for item in values
+        if _quote_states(
+            metric_id,
+            point.dimensions,
+            point.period_start,
+            point.period_end,
+            point.selected_value,
+            str(row["quote"]),
         ):
             valid.add(claim_id)
     return valid
+
+
+def news_claims_no_longer_stated(
+    connection: sqlite3.Connection, metric_ids: tuple[str, ...]
+) -> frozenset[str]:
+    """The metrics' stored news claims whose matched quote the rules no longer state.
+
+    A claim is read under the rules of the day, not those that took it (lookback 20): one
+    they no longer state is neither listed among an observation's claims nor selected. The
+    claim itself stays as stored, so a later rule decides it again.
+    """
+    if not connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE name='claim_matched_quote'"
+    ).fetchone():
+        return frozenset()
+    # Quotes are kept only for news values, far fewer than a metric's claims: CROSS JOIN
+    # keeps the quote table outermost, reading each quote's claim by its key.
+    rows = connection.execute(
+        "SELECT q.claim_id, q.quote, c.metric_id, c.dimensions_json, c.period_start, "
+        "c.period_end, c.value FROM claim_matched_quote AS q "
+        "CROSS JOIN source_claim AS c ON c.claim_id = q.claim_id "
+        "WHERE c.metric_id IN (SELECT value FROM json_each(?))",
+        (json.dumps(list(metric_ids)),),
+    ).fetchall()
+    return frozenset(
+        str(claim_id)
+        for claim_id, quote, metric_id, dimensions, start, end, value in rows
+        if not _quote_states(metric_id, json.loads(dimensions), start, end, value, str(quote))
+    )
+
+
+def _quote_states(
+    metric_id: str,
+    dimensions: dict[str, str],
+    start: str,
+    end: str,
+    value: float | None,
+    quote: str,
+) -> bool:
+    """Whether a kept quote still gives the claim's member its value for its period."""
+    period = gap_period(metric_id, dimensions, start, end)
+    return any(
+        item.dimensions == dimensions and item.value == value
+        for item in extract((metric_id,), period, quote, recheck=True).values
+    )

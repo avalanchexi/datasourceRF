@@ -340,7 +340,7 @@ def test_lpr_is_filled_from_the_fixing_day_news(
     assert sorted(value for _status, value in lpr) == [3.0, 3.5]
     assert not {status for status, _value in lpr} & {"source_failed", "missing"}
     # The LPR stands on the news rule's matched quotes: one that no longer states the
-    # value leaves its claim unadoptable.
+    # value leaves its claim unadoptable, and no longer a candidate at all (lookback 20).
     points = EvidenceRepository(paths.database).metric_series(
         "CN_LPR_1Y_5Y",
         mode=AsOfMode.SYSTEM,
@@ -356,9 +356,15 @@ def test_lpr_is_filled_from_the_fixing_day_news(
             "WHERE claim_id IN (SELECT value FROM json_each(?))",
             ("贷款市场报价利率维持不变。", json.dumps(sorted(kept.adoptable))),
         )
-    damaged = adoption_of(paths, "CN_LPR_1Y_5Y", version, as_of=now + timedelta(days=1))
-    assert damaged.adoptable == frozenset() and damaged.not_adoptable == kept.adoptable
     assert news_claims_matching_quotes(paths.database, {"CN_LPR_1Y_5Y": points}) == set()
+    damaged = EvidenceRepository(paths.database).metric_series(
+        "CN_LPR_1Y_5Y",
+        mode=AsOfMode.SYSTEM,
+        as_of=now + timedelta(days=1),
+        definition_version=version,
+    )
+    assert not {claim.claim_id for point in damaged for claim in point.claims} & kept.adoptable
+    assert not adoption_of(paths, "CN_LPR_1Y_5Y", version, as_of=now + timedelta(days=1)).adoptable
 
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")

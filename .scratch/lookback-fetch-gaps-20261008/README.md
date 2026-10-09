@@ -26,8 +26,8 @@
 | 18 | [17](issues/17-round2-acceptance.md) | 第二轮全套测试与真实运行验收 | done（[验收记录](acceptance-20261009-round2.md)：全套 2158 通过；真实运行模型输入缺失 10→7，17 项完整 16→17） |
 | 19 | [18](issues/18-loan-stock-v0001-coverage-flag.md) | 贷款存量 v0001 覆盖标志恒为 false（既有，16 发现） | wontfix（2026-10-09 分流：只影响内置目录审计标志） |
 | 20 | [19](issues/19-runs-get-rereads-ledger.md) | 读运行时每次全读检索账本（11 发现） | wontfix（2026-10-09 分流：剩 0.33 秒／50 秒，改动会移动快照时点） |
-| 21 | [20](issues/20-pre-fix-local-news-claims-still-candidates.md) | 资讯从严主语规则＋候选列表与选值动态复核（只要全国口径） | ready-for-agent（第三轮线 A） |
-| 22 | [22](issues/22-news-claim-subject-context.md) | 资讯声明入库保存主语上下文与页面标题（迁移加字段，复核使用） | ready-for-agent（第三轮线 A，阻塞于 20） |
+| 21 | [20](issues/20-pre-fix-local-news-claims-still-candidates.md) | 资讯从严主语规则＋候选列表与选值动态复核（只要全国口径） | done（第三轮线 A；5753 篇正文前后比对零增减；3 条旧地方声明退出候选，`c8dcb77e` 交票 23） |
+| 22 | [22](issues/22-news-claim-subject-context.md) | 资讯声明入库保存主语上下文与页面标题（迁移加字段，复核使用） | ready-for-agent（第三轮线 A，20 已完成） |
 | 23 | [23](issues/23-suspect-legacy-news-claim-refetch.md) | 嫌疑旧资讯声明（`c8dcb77e…` 广东 6.9）定点重取并判定 | ready-for-agent（第三轮线 A，阻塞于 20、22） |
 | 24 | [21](issues/21-capacity-search-fallback-chain-unverified.md) | 产能利用率检索补救经 `/zwfwck/sjfb/` 的离线端到端用例（只补测试） | ready-for-agent（第三轮线 B） |
 | 25 | [24](issues/24-test-feedback-too-slow.md) | 测试反馈过慢（受影响测试 15–70 分钟） | needs-triage（不进第三轮） |

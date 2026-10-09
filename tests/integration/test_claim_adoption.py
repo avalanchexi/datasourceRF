@@ -9,7 +9,7 @@ inputs, ECB, LPR news, RRR backtrack, warrants, treasury).
 from __future__ import annotations
 
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -21,6 +21,7 @@ from pring_cycle.evidence import (
     AsOfMode,
     EvidenceRepository,
     EvidenceValueState,
+    MetricSeriesPoint,
     SourceClaimInput,
 )
 from pring_cycle.models import (
@@ -28,8 +29,17 @@ from pring_cycle.models import (
     ModelRepository,
     effective_model_manifest,
 )
+from pring_cycle.news_rules import (
+    MEDIA_PAGE,
+    TUSHARE_NEWS,
+    MatchedQuote,
+    member_period,
+    member_unit,
+    record_matched_quotes,
+)
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CoreInputValidator, TushareCoreAdapter
+from pring_cycle.storage import database_connection
 from pring_cycle.treasury_context import treasury_claims_matching_acquisitions
 from pring_cycle.tushare_context import TushareContextAdapter
 from tests.fixtures.model_registration import prepared_request, save, submit
@@ -228,3 +238,130 @@ def test_treasury_yields_from_us_tycr_are_adoptable_while_their_delivery_agrees(
         assert not treasury_claims_matching_acquisitions(
             evidence, {metric_id: points}, definition_version=EFFECTIVE_CATALOG_VERSION
         )
+
+
+def news_claim(
+    paths: RuntimePaths, version: str, provider: str, value: float, quote: str, known: datetime
+) -> str:
+    """A 2026-08 year-to-date industrial value claim kept with its matched quote, as stored
+    whatever rules took it then."""
+    dimensions = {"measure": "ytd_real_yoy"}
+    kind, start, end = member_period("CN_INDUSTRIAL_VA", dimensions, "2026-08")
+    [claim] = EvidenceRepository(paths.database).append_source_claims(
+        (
+            SourceClaimInput(
+                metric_id="CN_INDUSTRIAL_VA",
+                definition_version=version,
+                period_kind=kind,
+                period_start=start,
+                period_end=end,
+                dimensions=dimensions,
+                value=value,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit=member_unit("CN_INDUSTRIAL_VA", dimensions, "2026-08", "%"),
+                provider=provider,
+                source_reference=f"{provider}:{quote}",
+                release_event_id=f"fixture:news:{provider}:{value}:{known}",
+                release_at=known,
+                public_available_at=known,
+                fetched_at=known,
+                available_at=known,
+                quality_status="validated",
+            ),
+        )
+    )
+    with database_connection(paths.database) as connection:
+        record_matched_quotes(
+            connection,
+            (
+                MatchedQuote(
+                    claim.claim_id,
+                    TUSHARE_NEWS if provider == "tushare_news" else MEDIA_PAGE,
+                    quote,
+                    "标题",
+                    provider,
+                    None,
+                    "0" * 64,
+                    None,
+                ),
+            ),
+        )
+    return claim.claim_id
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_kept_news_claim_the_current_rules_no_longer_state_is_no_candidate(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Lookback 20: a news claim is read again under the rules of the day, not those that
+    took it. Guangdong's "全省" 6.1, stored before the rules knew a province, is neither
+    listed nor selected, even for a period with no national value; it does not hide an
+    older national claim of its provider or outrank another provider's either."""
+    version = registered_version(paths, capsys)
+    evidence = EvidenceRepository(paths.database)
+    first = datetime(2026, 9, 16, 2, tzinfo=UTC)
+    local = (
+        # 9850d479 (TuShare news) and 8dc3a4b8 (CLS) as the real run kept them.
+        news_claim(
+            paths,
+            version,
+            "tushare_news",
+            6.1,
+            "1—8月，全省规模以上工业增加值同比增长6.1%。",
+            first + timedelta(days=5),
+        ),
+        news_claim(
+            paths,
+            version,
+            "cls",
+            6.1,
+            "广东：1—8月份全省规模以上工业增加值同比增长6.1%很抱歉，当前没有启用javascript，网站无法正常访问。",
+            first + timedelta(days=5),
+        ),
+    )
+    as_of = first + timedelta(days=10)
+
+    def series(preloaded: bool = False) -> tuple[MetricSeriesPoint, ...]:
+        # A fresh repository each time: one preloads only what it held when asked.
+        repository = EvidenceRepository(paths.database)
+        if preloaded:
+            repository.preload_metric_series({("CN_INDUSTRIAL_VA", version)})
+        return repository.metric_series(
+            "CN_INDUSTRIAL_VA", mode=AsOfMode.SYSTEM, as_of=as_of, definition_version=version
+        )
+
+    assert series() == series(preloaded=True) == ()
+    observation = str(
+        query_one(paths, "SELECT observation_id FROM source_claim WHERE claim_id=?", local[0])
+    )
+    assert evidence.query(observation, mode=AsOfMode.SYSTEM, as_of=as_of).claims == ()
+
+    national = news_claim(
+        paths, version, "tushare_news", 5.3, "1—8月份，规模以上工业增加值同比增长5.3%。", first
+    )
+    (point,) = series()
+    assert [claim.claim_id for claim in point.claims] == [national]
+    assert (point.selected_claim_id, point.selected_value) == (national, 5.3)
+    assert [
+        c.claim_id for c in evidence.query(observation, mode=AsOfMode.SYSTEM, as_of=as_of).claims
+    ] == [national]
+    assert series(preloaded=True) == (point,)
+    adoption = ClaimAdoption(evidence, definition_version=version).check(
+        {"CN_INDUSTRIAL_VA": (point,)}
+    )["CN_INDUSTRIAL_VA"]
+    assert adoption.adoptable == {national}
+    # The claims themselves are kept as stored.
+    assert (
+        query_one(
+            paths,
+            "SELECT count(*) FROM source_claim WHERE quality_status='validated' AND claim_id IN "
+            "(SELECT value FROM json_each(?))",
+            json.dumps(local),
+        )
+        == 2
+    )
+
+
+def query_one(paths: RuntimePaths, sql: str, *parameters: object) -> object:
+    with database_connection(paths.database) as connection:
+        return connection.execute(sql, parameters).fetchone()[0]
