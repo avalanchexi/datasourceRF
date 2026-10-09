@@ -7,7 +7,7 @@
 | [run-findings-20260928/11](../run-findings-20260928/issues/11-tests-reach-network.md) | 测试仍会真实访问外网（实际已实施，待核验关闭） | done（分流核验关闭） |
 | [run-findings-20261002/03](../run-findings-20261002/issues/03-czce-warrant-ssl-failures.md) | 郑商所仓单 SSL 失败 | wontfix（10-03 后零复现） |
 | [run-findings-20261002/04](../run-findings-20261002/issues/04-czce-acquisition-time-invalid.md) | 郑商所 `acquisition_time_invalid`（时钟回跳；CF 失败连带 TA） | done（(a) dd2058c；(b) 用户决定 wontfix） |
-| [run-findings-20261002/05](../run-findings-20261002/issues/05-rejected-candidate-overrides-held-target.md) | 已取得的目标期被旧候选改判为"检索未通过" | ready-for-agent |
+| [run-findings-20261002/05](../run-findings-20261002/issues/05-rejected-candidate-overrides-held-target.md) | 已取得的目标期被旧候选改判为"检索未通过" | done（68b50d2） |
 | [run-findings-20261002/11](../run-findings-20261002/issues/11-first-retrieval-plan-before-run-calendar.md) | 首次补缺规划在装入运行日历之前 | done（732cbc7） |
 | [run-findings-20261002/12](../run-findings-20261002/issues/12-scheduler-skips-only-weekends.md) | 盘后调度只排除周末 | ready-for-agent |
 | [lookback/24](../lookback-fetch-gaps-20261008/issues/24-test-feedback-too-slow.md) | 测试反馈过慢（先诊断） | ready-for-agent |
