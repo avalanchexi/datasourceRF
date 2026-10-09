@@ -9,8 +9,8 @@ import pytest
 
 from pring_cycle.freshness import assess
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
-from pring_cycle.trading_calendar import TradingCalendar, judging_calendar
-from tests.integration.test_trading_calendar import record_sse_calendar
+from pring_cycle.trading_calendar import TradingCalendar, acquire_sse_calendar, judging_calendar
+from tests.integration.test_trading_calendar import record_sse_calendar, sse_adapter
 
 HOLIDAYS = {date(2026, 9, 25), *(date(2026, 10, day) for day in range(1, 8))}
 
@@ -101,3 +101,83 @@ def test_beyond_what_the_calendar_covers_weekdays_stand_in(paths: RuntimePaths) 
     calendar = judging_calendar(paths, window(date(2026, 9, 30)), later)
 
     assert calendar.is_trading(date(2026, 10, 19))
+
+
+@pytest.fixture
+def bare(tmp_path: Path) -> RuntimePaths:
+    paths = RuntimePaths.discover(tmp_path / "bare")
+    initialize_runtime(paths)
+    return paths
+
+
+def record_range(paths: RuntimePaths, first: date, last: date) -> None:
+    """One response stating every day from ``first`` to ``last``, its holidays closed."""
+    at = datetime.combine(first, datetime.min.time(), tzinfo=UTC)
+    acquire_sse_calendar(paths, sse_adapter(closed=HOLIDAYS, at=at), first, last)
+
+
+DOMESTIC_DAILY = ("CN_EQUITY_CORE_000985", "CN_EQ_ADV_DEC", "CN_SHIBOR_ON_1W_3M", "CN_DR007")
+
+
+def test_a_cutoff_a_day_past_the_stored_calendar_keeps_its_holidays(bare: RuntimePaths) -> None:
+    """The stored calendar ends on the last day of National Day; the cutoff is the day after.
+
+    The run of 2026-10-09 dropped the whole stretch for the one day uncovered and counted the
+    holiday as sessions owed (lookback 12).
+    """
+    record_range(bare, date(2026, 9, 1), date(2026, 10, 7))
+    judged = datetime(2026, 10, 8, 0, tzinfo=UTC)  # 08:00 in Shanghai
+    calendar = judging_calendar(bare, window(date(2026, 9, 30)), judged)
+
+    assert not any(calendar.is_trading(date(2026, 10, day)) for day in range(1, 8))
+    assert calendar.is_trading(date(2026, 10, 8))
+    for metric_id in DOMESTIC_DAILY:
+        held = date(2026, 9, 30)
+        assessed = assess(metric_id, held, judged, calendar)
+        assert assessed.status == "current", metric_id
+        assert assessed.periods_behind == 0, metric_id
+
+
+def test_the_run_of_2026_10_09_judges_as_if_the_calendar_reached_its_cutoff(
+    bare: RuntimePaths, paths: RuntimePaths
+) -> None:
+    """Stored to 10-08, cut off at 06:39 on 10-09: only 10-09 itself is left to weekdays."""
+    record_range(bare, date(2026, 9, 1), date(2026, 10, 8))
+    judged = datetime(2026, 10, 8, 22, 39, tzinfo=UTC)
+    short = judging_calendar(bare, window(date(2026, 9, 30)), judged)
+    full = judging_calendar(paths, window(date(2026, 9, 30)), judged)
+
+    for metric_id in DOMESTIC_DAILY:
+        held = date(2026, 9, 30)
+        assessed = assess(metric_id, held, judged, short)
+        assert assessed == assess(metric_id, held, judged, full), metric_id
+        # 10-08's value is still within its grace, not five sessions owed.
+        assert assessed.status == "awaiting_release", metric_id
+        assert assessed.periods_behind == 0, metric_id
+
+
+def test_a_cutoff_inside_the_stored_calendar_reads_it_as_before(paths: RuntimePaths) -> None:
+    """Stored to 10-09 and judged on it: every stored session through the cutoff, as before."""
+    judged = datetime(2026, 10, 9, 2, tzinfo=UTC)
+    calendar = judging_calendar(paths, window(date(2026, 9, 30)), judged)
+    before = TradingCalendar(
+        sse_sessions(date(2026, 9, 1), date(2026, 10, 9)), through=date(2026, 10, 9)
+    )
+
+    days = [date(2026, 8, 20) + timedelta(days=n) for n in range(70)]
+    assert [calendar.is_trading(day) for day in days] == [before.is_trading(day) for day in days]
+    assert [calendar.covers(day) for day in days] == [before.covers(day) for day in days]
+
+
+def test_known_days_past_a_gap_in_the_stored_calendar_still_answer(bare: RuntimePaths) -> None:
+    """Only the days no response states fall back to weekdays."""
+    record_range(bare, date(2026, 9, 1), date(2026, 9, 30))
+    record_range(bare, date(2026, 10, 5), date(2026, 10, 20))
+    judged = datetime(2026, 10, 9, 14, tzinfo=UTC)
+    calendar = judging_calendar(bare, window(date(2026, 9, 30)), judged)
+
+    assert calendar.is_trading(date(2026, 10, 1)) and calendar.is_trading(date(2026, 10, 2))
+    assert not any(calendar.is_trading(date(2026, 10, day)) for day in (5, 6, 7))
+    assert calendar.is_trading(date(2026, 10, 8))
+    # What the source does not state stays out of what the calendar says it covers.
+    assert not calendar.covers(date(2026, 10, 1))

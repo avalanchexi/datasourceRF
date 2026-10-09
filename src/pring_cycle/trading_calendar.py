@@ -60,20 +60,28 @@ class TradingCalendar(Sessions):
     """SSE sessions known from the calendar source, and weekdays beyond what it covers.
 
     The sessions alone cover only up to the last of them; ``through`` extends that when the
-    source listed later days as closed (a range ending on a holiday).
+    source listed later days as closed (a range ending on a holiday). ``closed`` are days past
+    an uncovered one that the source still states closed: no session, though not covered.
     """
 
-    def __init__(self, days: Iterable[date] = (), *, through: date | None = None) -> None:
+    def __init__(
+        self,
+        days: Iterable[date] = (),
+        *,
+        through: date | None = None,
+        closed: Iterable[date] = (),
+    ) -> None:
         self._days = frozenset(days)
         self._first = min(self._days, default=None)
         self._last = max(self._days, default=None)
         if through is not None and self._last is not None:
             self._last = max(self._last, through)
+        self._closed = frozenset(closed)
 
     def is_trading(self, day: date) -> bool:
         if self._first is not None and self._last is not None and self._first <= day <= self._last:
             return day in self._days
-        return day.weekday() < 5
+        return day.weekday() < 5 and day not in self._closed
 
     def sessions_to(self, day: date, count: int, *, since: date) -> tuple[date, ...]:
         """The last ``count`` sessions to ``day``, leaving out any before ``since``.
@@ -107,7 +115,11 @@ class TradingCalendar(Sessions):
         return self.sessions_to(day, count, since=date.min)
 
     def covers(self, day: date) -> bool:
-        """Whether the source says if ``day`` is a session, rather than weekdays standing in."""
+        """Whether ``day`` is in the unbroken stretch the source covers, where it alone answers.
+
+        A ``closed`` day past that stretch is known, but not covered: the strict methods never
+        count sessions across a day no response states.
+        """
         return (
             self._first is not None and self._last is not None and self._first <= day <= self._last
         )
@@ -352,6 +364,10 @@ class SseCalendar:
             sorted(d for d, is_open in self._open.items() if is_open and first <= d <= last)
         )
 
+    def stated_between(self, first: date, last: date) -> dict[date, bool]:
+        """Whether each day from ``first`` to ``last`` that some response covers is open."""
+        return {day: is_open for day, is_open in self._open.items() if first <= day <= last}
+
     def sources(self, first: date, last: date) -> tuple[str, ...]:
         """The responses whose statements the days from ``first`` to ``last`` rest on."""
         return tuple(
@@ -393,18 +409,27 @@ def judging_calendar(
     """A run's SSE sessions, reaching on to the day its freshness is judged.
 
     The window ends at the target day, but freshness is judged at the cutoff, often days later.
-    Between the two the stored calendar answers, so a holiday is closed rather than a weekday
-    owed (run-findings 01): a domestic metric carries its last session through it. Days the
-    stored calendar does not cover still fall back to weekdays; a foreign metric keeps its own
-    market's calendar (``market_calendar``).
+    Between the two the stored calendar answers each day it covers, so a holiday is closed
+    rather than a weekday owed (run-findings 01): a domestic metric carries its last session
+    through it. Only the days it does not cover fall back to weekdays, never the known ones
+    around them (lookback 12); a foreign metric keeps its own market's calendar
+    (``market_calendar``).
     """
     sessions = set(window_sessions)
     judged_on = judged_at.astimezone(_SHANGHAI).date()
-    if sessions and judged_on > max(sessions):
-        later = SseCalendar(paths, as_of=judged_at).sessions_between(max(sessions), judged_on)
-        if later is not None:
-            return TradingCalendar(sessions | set(later), through=judged_on)
-    return TradingCalendar(sessions)
+    if not sessions or judged_on <= max(sessions):
+        return TradingCalendar(sessions)
+    stated = SseCalendar(paths, as_of=judged_at).stated_between(max(sessions), judged_on)
+    # Covered from the window on as far as no day is missing; past that only what is stated
+    # closed is known, a session being a weekday anyway.
+    reach = max(sessions)
+    while reach + timedelta(days=1) in stated:
+        reach += timedelta(days=1)
+    return TradingCalendar(
+        sessions | {day for day, is_open in stated.items() if is_open and day <= reach},
+        through=reach,
+        closed=(day for day, is_open in stated.items() if not is_open and day > reach),
+    )
 
 
 def acquire_sse_calendar(
