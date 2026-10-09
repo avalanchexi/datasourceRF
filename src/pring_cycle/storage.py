@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import os
 import sqlite3
+import threading
+import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 
@@ -17,13 +20,157 @@ SCHEMA_HEAD = "0033_matched_quote_subject"
 
 @contextmanager
 def database_connection(database: Path | str, *, uri: bool = False) -> Iterator[sqlite3.Connection]:
-    """Commit or roll back the operation, then always close its connection."""
-    connection = sqlite3.connect(database, uri=uri)
+    """Commit or roll back the operation, then close its connection or return it reset.
+
+    Inside ``keep_database_open`` the thread's connections to that database are reused: a full
+    run opened about 71 thousand, and each one's first statement parsed the whole schema again
+    (ticket 24). A reused connection is handed out as a new one would be: no statement still
+    reading, no transaction, default settings, and a file that is still the one at the path.
+    """
+    pool = None if uri else _active_pool(database)
+    if pool is None:
+        connection = sqlite3.connect(database, uri=uri)
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
+        return
+    pooled = pool.checkout(database)
     try:
-        with connection:
-            yield connection
+        with pooled:
+            yield pooled
     finally:
-        connection.close()
+        pool.checkin(pooled)
+
+
+class _PooledConnection(sqlite3.Connection):
+    """A connection that remembers its cursors, so returning it can finish their reads.
+
+    A half-read SELECT keeps its read transaction open: reused as it is, the connection would
+    go on reading the snapshot it started, not what other connections committed since.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.pool_generation = 0
+        self._cursors: weakref.WeakSet[sqlite3.Cursor] = weakref.WeakSet()
+
+    def cursor(self, factory: Any = sqlite3.Cursor) -> Any:
+        cursor = super().cursor(factory)
+        self._cursors.add(cursor)
+        return cursor
+
+    def execute(self, sql: str, parameters: Any = (), /) -> sqlite3.Cursor:
+        cursor: sqlite3.Cursor = self.cursor()
+        return cursor.execute(sql, parameters)
+
+    def executemany(self, sql: str, parameters: Any, /) -> sqlite3.Cursor:
+        cursor: sqlite3.Cursor = self.cursor()
+        return cursor.executemany(sql, parameters)
+
+    def executescript(self, script: str, /) -> sqlite3.Cursor:
+        cursor: sqlite3.Cursor = self.cursor()
+        return cursor.executescript(script)
+
+    def reset(self) -> None:
+        """Finish every statement, end any transaction and restore the connection's defaults.
+
+        As when the connection was closed, a cursor kept past the operation is finished.
+        """
+        for cursor in list(self._cursors):
+            cursor.close()
+        if self.in_transaction:
+            self.rollback()
+        self.row_factory = None
+        self.text_factory = str
+        # The connect default; typeshed lists only the explicit modes.
+        self.isolation_level = ""  # type: ignore[assignment]
+        sqlite3.Connection.execute(self, "PRAGMA foreign_keys=OFF").close()
+
+
+class _Pool:
+    """One thread's idle connections to one kept database."""
+
+    def __init__(self) -> None:
+        self.depth = 0
+        self.closed = False
+        self.generation = 0
+        self.identity: tuple[int, int] | None = None
+        self.idle: list[_PooledConnection] = []
+
+    def checkout(self, database: Path | str) -> _PooledConnection:
+        identity = _file_identity(database)
+        if identity != self.identity:
+            # Deleted or replaced: let go of the old file, and read the one at the path.
+            self.close_idle()
+            self.identity = identity
+            self.generation += 1
+        if self.idle:
+            return self.idle.pop()
+        connection = sqlite3.connect(database, factory=_PooledConnection)
+        connection.pool_generation = self.generation
+        return connection
+
+    def checkin(self, connection: _PooledConnection) -> None:
+        if self.closed or connection.pool_generation != self.generation:
+            connection.close()
+            return
+        try:
+            connection.reset()
+        except sqlite3.Error:
+            # Closed by its caller, or broken: never handed out again.
+            connection.close()
+            return
+        self.idle.append(connection)
+
+    def close_idle(self) -> None:
+        while self.idle:
+            self.idle.pop().close()
+
+
+# Each thread's pools by database, only while the thread keeps that database open. A child
+# made by fork starts with none: the parent's connections stay the parent's (ticket 24).
+_POOLS = threading.local()
+_INHERITED: list[threading.local] = []
+_CONNECT = sqlite3.connect
+
+
+def _forget_parent_connections() -> None:
+    global _POOLS
+    # Kept, never closed or used here: closing them in the child would touch the parent's.
+    _INHERITED.append(_POOLS)
+    _POOLS = threading.local()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_forget_parent_connections)
+
+
+def _pool_key(database: Path | str) -> str | None:
+    name = str(database)
+    if not name or name == ":memory:" or name.startswith("file:"):
+        return None
+    return os.path.abspath(name)
+
+
+def _active_pool(database: Path | str) -> _Pool | None:
+    pools: dict[str, _Pool] | None = getattr(_POOLS, "pools", None)
+    if not pools:
+        return None
+    if sqlite3.connect is not _CONNECT:
+        # A replaced connect observes every connection opened (tests do): give it new ones.
+        return None
+    key = _pool_key(database)
+    return pools.get(key) if key is not None else None
+
+
+def _file_identity(database: Path | str) -> tuple[int, int] | None:
+    try:
+        stat = os.stat(database)
+    except FileNotFoundError:
+        return None
+    return (stat.st_dev, stat.st_ino)
 
 
 # Databases this process has put in WAL mode. The mode is stored in the file, so setting it on
@@ -46,10 +193,32 @@ def keep_database_open(database: Path) -> Iterator[None]:
     Opening a Python connection alone does not open SQLite's pager. Read the
     journal mode and exhaust the cursor without starting a transaction; callers
     keep using their own short-lived connections for all reads and writes.
+
+    Meanwhile this thread's checkouts of the database reuse pooled connections, all closed
+    before this one, which stays the last to close (ticket 24).
     """
+    key = _pool_key(database)
     with database_connection(database) as connection:
         connection.execute("PRAGMA journal_mode").fetchall()
-        yield
+        if key is None:
+            yield
+            return
+        pools: dict[str, _Pool] | None = getattr(_POOLS, "pools", None)
+        if pools is None:
+            pools = _POOLS.pools = {}
+        pool = pools.setdefault(key, _Pool())
+        pool.depth += 1
+        try:
+            yield
+        finally:
+            pool.depth -= 1
+            if pool.depth == 0:
+                pool.closed = True
+                pool.close_idle()
+                # A fork in between leaves this thread a fresh set of pools without it.
+                current: dict[str, _Pool] | None = getattr(_POOLS, "pools", None)
+                if current is not None and current.get(key) is pool:
+                    del current[key]
 
 
 def migrate_database(database_path: Path) -> None:
