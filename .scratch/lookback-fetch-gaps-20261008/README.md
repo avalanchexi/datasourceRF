@@ -23,11 +23,13 @@
 | 15 | [14](issues/14-sf-stock-yoy-2025-separate-report.md) | 2025 年社融单独报告未识别；AI 候选只留存量金额 | done（第二轮，58dddd7） |
 | 16 | [15](issues/15-news-rule-city-level-industrial-va.md) | 资讯规则把地方口径工业增加值当全国 | done（第二轮，0effd27） |
 | 17 | [16](issues/16-derived-coverage-flag-counts-whole-family.md) | 派生指标覆盖标志按整个家族判断（既有问题） | done（第二轮，f322e25；OMO 按用户决定补齐） |
-| 18 | [17](issues/17-round2-acceptance.md) | 第二轮全套测试与真实运行验收 | claimed |
+| 18 | [17](issues/17-round2-acceptance.md) | 第二轮全套测试与真实运行验收 | done（[验收记录](acceptance-20261009-round2.md)：全套 2158 通过；真实运行模型输入缺失 10→7，17 项完整 16→17） |
 | 19 | [18](issues/18-loan-stock-v0001-coverage-flag.md) | 贷款存量 v0001 覆盖标志恒为 false（既有，16 发现） | needs-triage |
 | 20 | [19](issues/19-runs-get-rereads-ledger.md) | 读运行时每次全读检索账本（11 发现） | needs-triage |
+| 21 | [20](issues/20-pre-fix-local-news-claims-still-candidates.md) | 票 15 前入库的地方口径资讯声明仍为候选；"某某市"作主语仍取值（17 发现） | needs-triage |
+| 22 | [21](issues/21-capacity-search-fallback-chain-unverified.md) | 产能利用率检索补救经 `/zwfwck/sjfb/` 的完整链路无真实或端到端证据（17 发现） | needs-triage |
 
-**下一步**：本批（序 1–12）已完成，验收见 [acceptance-20261009.md](acceptance-20261009.md)。票 11 及 09 新开的票 12–16（序 13–17）待用户分流；其中票 13（产能利用率 2026Q1，17 项中唯一仍缺的主要成员）与票 12（日历误判使日频指标显示陈旧）对读法影响最大。
+**下一步**：第一轮（序 1–12）与第二轮（序 13–18，票 11–17）均已完成，验收见 [acceptance-20261009.md](acceptance-20261009.md) 与 [acceptance-20261009-round2.md](acceptance-20261009-round2.md)：17 项计数指标按主要成员缺期计已全部完整，最终计划只剩 7 个上游、时效或凭据类缺口。遗留票 18、19 与 17 新开的票 20、21（序 19–22）均 needs-triage，待用户分流；其中只有票 20 可能影响选值（某期没有全国值时，旧地方口径声明仍可能被选中），其余三张只涉及审计标志、读取耗时或测试覆盖。
 
 相关：[run-findings 10](../run-findings-20261002/issues/10-omo-rate-dropped-when-notice-ingested-for-amount.md)（duplicate，并入 02）。DR007 09-30 单日 0 行属上游，不另开票（2026-10-09 验收运行时已回填，取到 1.3665）。
 
