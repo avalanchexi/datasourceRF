@@ -80,6 +80,11 @@ _PROVIDERS = {
     family: (descriptor.provider, descriptor.host)
     for family, descriptor in OFFICIAL_CONTEXT_FAMILIES.items()
 }
+# The path prefixes each family's releases and listings are registered under.
+_PATHS = {
+    family: tuple(prefix for _host, prefix in descriptor.hosts)
+    for family, descriptor in OFFICIAL_CONTEXT_FAMILIES.items()
+}
 
 _SOCIAL_FINANCING_COMPONENTS = {
     "社会融资规模": "total",
@@ -2872,8 +2877,7 @@ def _validate_source_identity(family: str, source_url: str) -> str:
         or parsed.password is not None
         or parsed.query
         or parsed.fragment
-        or (host == "www.stats.gov.cn" and not parsed.path.startswith("/sj/"))
-        or (host == "www.pbc.gov.cn" and not parsed.path.startswith("/"))
+        or not parsed.path.startswith(_PATHS[family])
     ):
         raise ValueError("official_context_source_url_not_official")
     return provider

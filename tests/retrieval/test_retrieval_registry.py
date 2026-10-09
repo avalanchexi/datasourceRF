@@ -57,3 +57,13 @@ def test_a_registered_host_is_matched_by_host_and_path_prefix() -> None:
         == "www.chinamoney.com.cn"
     )
     assert registered_host("CN_EQ_ADV_DEC", "https://www.stats.gov.cn/sj/x.html") is None
+
+
+def test_nbs_releases_under_zwfwck_sjfb_are_on_the_registered_host() -> None:
+    """Lookback 13: the NBS serves its releases under /zwfwck/sjfb/ as well as /sj/."""
+    release = "https://www.stats.gov.cn/zwfwck/sjfb/202604/t20260416_1963322.html"
+
+    assert registered_host("CN_CAPACITY_UTILIZATION", release) == "www.stats.gov.cn"
+    assert registered_host("CN_CPI_HEADLINE", release) == "www.stats.gov.cn"
+    assert registered_host("CN_CAPACITY_UTILIZATION", "https://www.stats.gov.cn/zwfwck/x") is None
+    assert registered_host("CN_SF_TOTAL", release) is None

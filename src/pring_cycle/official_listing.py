@@ -95,14 +95,16 @@ def _normal(title: str) -> str:
 
 
 def release_titles(family: str, period: str) -> tuple[str, ...]:
-    """The release title a listing entry must start with: the family's search template."""
-    from pring_cycle.retrieval_registry import RETRIEVAL_FAMILIES, search_query
+    """The release titles a listing entry may start with: the family's search template and
+    the other titles it is registered under."""
+    from pring_cycle.retrieval_registry import RETRIEVAL_FAMILIES, search_query, title_variants
 
     if family == "nbs_gdp" and not re.fullmatch(r"[0-9]{4}-Q[1-4]", period):
         raise ValueError("official_context_period_invalid")
     # Loans are in the monthly report: listed by its title, not by the search's narrowing.
     titled = "pbc_money" if family == "pbc_loan_structure" else family
-    titles = [search_query((RETRIEVAL_FAMILIES[titled].metric_ids[0],), period)]
+    metric_id = RETRIEVAL_FAMILIES[titled].metric_ids[0]
+    titles = [search_query((metric_id,), period), *title_variants(metric_id, period)]
     if family in _PBC_REPORT_FAMILIES:
         # PBC titles a quarter-end month's report by the quarter; December's by the year.
         aggregate = _AGGREGATE_MONTHS.get(int(period[5:7]))

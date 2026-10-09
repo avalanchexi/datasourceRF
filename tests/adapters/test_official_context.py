@@ -914,6 +914,81 @@ def test_nbs_capacity_contract_accepts_live_multilevel_table() -> None:
     }
 
 
+ZWFWCK_CAPACITY = "https://www.stats.gov.cn/zwfwck/sjfb/202604/t20260416_1963322.html"
+
+
+def zwfwck_capacity_fetch(url: str) -> FetchedOfficialContextDocument:
+    """The release as the NBS serves it under /zwfwck/sjfb/ (fetched 2026-10-09)."""
+    fixtures = Path(__file__).parents[1] / "fixtures" / "official_period_fallback"
+    return FetchedOfficialContextDocument(
+        content=(fixtures / "nbs_capacity_utilization_zwfwck_q1.html").read_bytes(),
+        media_type="text/html",
+        final_url=url,
+        http_status=200,
+    )
+
+
+def test_nbs_release_under_zwfwck_sjfb_is_fetched_and_held_to_its_period(
+    tmp_path: Path,
+) -> None:
+    """Lookback 13: Tavily and the AI search found 2026-Q1 here, and it went unread."""
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+
+    result = refresh_official_context_document(
+        paths,
+        family="nbs_capacity_utilization",
+        source_url=ZWFWCK_CAPACITY,
+        expected_period="2026-Q1",
+        fetched_at=datetime(2026, 10, 9, tzinfo=UTC),
+        fetcher=zwfwck_capacity_fetch,
+    )
+
+    assert result.period == "2026-Q1"
+    points = EvidenceRepository(paths.database).metric_series(
+        "CN_CAPACITY_UTILIZATION", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC)
+    )
+    assert {
+        (p.dimensions["measure"], p.selected_value) for p in points if p.period_end == "2026-03-31"
+    } >= {("quarter_rate", 73.6), ("yoy_change", -0.5)}
+
+
+def test_nbs_release_under_zwfwck_sjfb_for_another_period_is_rejected(tmp_path: Path) -> None:
+    from pring_cycle.search_evidence import PERIOD_MISMATCH, candidate_rejection_reason
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+
+    with pytest.raises(ValueError) as rejected:
+        refresh_official_context_document(
+            paths,
+            family="nbs_capacity_utilization",
+            source_url=ZWFWCK_CAPACITY,
+            expected_period="2025-Q4",
+            fetched_at=datetime(2026, 10, 9, tzinfo=UTC),
+            fetcher=zwfwck_capacity_fetch,
+        )
+    assert candidate_rejection_reason(rejected.value) == PERIOD_MISMATCH
+
+
+@pytest.mark.parametrize(
+    "source_url",
+    [
+        "https://www.stats.gov.cn/zwfwck/x.html",
+        "https://www.stats.gov.cn/xw/tjxw/tzgg/202512/t20251224_1962137.html",
+    ],
+)
+def test_other_nbs_paths_stay_outside_the_release_entry(source_url: str) -> None:
+    with pytest.raises(ValueError, match="official_context_source_url_not_official"):
+        parse_official_context_document(
+            zwfwck_capacity_fetch(source_url).content,
+            family="nbs_capacity_utilization",
+            source_url=source_url,
+            expected_period="2026-Q1",
+            fetched_at=datetime(2026, 10, 9, tzinfo=UTC),
+        )
+
+
 def test_official_refresh_follows_listing_for_requested_period(tmp_path: Path) -> None:
     from pring_cycle.acquisition import AcquisitionRepository
 

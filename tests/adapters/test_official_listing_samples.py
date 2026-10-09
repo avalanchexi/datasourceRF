@@ -262,6 +262,45 @@ def test_a_lookback_family_s_release_is_selected_on_its_real_listing(
     assert select(name, family, period, listing) == release
 
 
+@pytest.mark.parametrize(
+    ("name", "page_url", "period", "release"),
+    [
+        (
+            "nbs_zxfbhjd_index_11_20261009.html",
+            NBS_READINGS + "index_11.html",
+            "2026-Q1",
+            NBS_READINGS + "202604/t20260416_1963322.html",
+        ),
+        (
+            "nbs_zxfbhjd_index_28_20261009.html",
+            NBS_READINGS + "index_28.html",
+            "2025-Q2",
+            NBS_READINGS + "202507/t20250715_1960404.html",
+        ),
+    ],
+)
+def test_capacity_utilization_is_selected_under_its_above_designated_size_title(
+    name: str, page_url: str, period: str, release: str
+) -> None:
+    """Lookback 13: the NBS titles the release "全国规模以上工业产能利用率"; the lists the
+    2026-10-09 run read carried it, and the period went unselected."""
+    assert select(name, "nbs_capacity_utilization", period, page_url) == release
+
+
+def test_capacity_utilization_is_still_selected_under_its_earlier_title() -> None:
+    listing = (
+        '<a href="./202304/t20230418_1938713.html">2023年一季度全国工业产能利用率为74.3%</a>'
+    ).encode()
+
+    assert select_from(listing, "nbs_capacity_utilization", "2023-Q1") == (
+        NBS + "202304/t20230418_1938713.html"
+    )
+
+
+def select_from(listing: bytes, family: str, period: str) -> str | None:
+    return release_url(listing, family=family, listing_url=NBS, period=period)
+
+
 OMO = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html"
 
 

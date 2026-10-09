@@ -12,5 +12,8 @@ Exact response bytes fetched on 2026-09-17 for the bounded article follow-up. Te
 | nbs_gdp_q1.html | https://www.stats.gov.cn/sj/zxfb/202604/t20260417_1963336.html | `61f8de5fbdb2ca88130504d13a0af85ebb92004b04b85772ae3c619003767a18` |
 | nbs_gdp_q3.html | https://www.stats.gov.cn/sj/zxfb/202510/t20251021_1961646.html | `0f7c85e52242f3e1905d3313aa744028f51d48f60bcff899b712da400f135a5c` |
 | nbs_gdp_q4.html | https://www.stats.gov.cn/sj/zxfb/202601/t20260120_1962349.html | `9d9bc9ece5d52a9ba07d6d9ed01e0d865b4d72b385c1b2a9873501e2d5532765` |
+| nbs_capacity_utilization_zwfwck_q1.html | https://www.stats.gov.cn/zwfwck/sjfb/202604/t20260416_1963322.html | `d038b999e708a80099d1bce73adb7a773bd75bfc8ccb42dc732e8a75baee750b` |
 
 The GDP fixtures reuse the earlier `evidence-13` and `evidence-macro-normalized` originals; they were not downloaded in the article follow-up batch.
+
+`nbs_capacity_utilization_zwfwck_q1.html` was fetched once (curl, HTTP 200, no redirect) on 2026-10-09 00:03 UTC for lookback 13: the 2026 Q1 capacity utilization release as the NBS serves it under `/zwfwck/sjfb/`, the address Tavily and the AI search found in run-8a3779cff80f6bd586a0.

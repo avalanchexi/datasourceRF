@@ -31,18 +31,31 @@ class RetrievalFamily:
     query_template: str = ""
     # A per-metric title where one family publishes several differently named series.
     metric_queries: tuple[tuple[str, str], ...] = ()
+    # Other titles the publisher gives the same release, which a listing also selects it by
+    # (official_listing.release_titles); search keeps the query template.
+    title_variants: tuple[str, ...] = ()
 
     @property
     def host(self) -> str:
         return self.hosts[0][0]
 
 
-_NBS = ("www.stats.gov.cn", "/sj/")
+# The NBS serves each release under /sj/ and again under /zwfwck/sjfb/ (lookback 13).
+_NBS = (("www.stats.gov.cn", "/sj/"), ("www.stats.gov.cn", "/zwfwck/sjfb/"))
 _PBC = ("www.pbc.gov.cn", "/")
 
 
-def _nbs(query_template: str, *metric_ids: str) -> RetrievalFamily:
-    return RetrievalFamily("国家统计局", (_NBS,), metric_ids, "official_context", query_template)
+def _nbs(
+    query_template: str, *metric_ids: str, title_variants: tuple[str, ...] = ()
+) -> RetrievalFamily:
+    return RetrievalFamily(
+        "国家统计局",
+        _NBS,
+        metric_ids,
+        "official_context",
+        query_template,
+        title_variants=title_variants,
+    )
 
 
 def _pbc(query_template: str, *metric_ids: str) -> RetrievalFamily:
@@ -70,8 +83,11 @@ RETRIEVAL_FAMILIES: dict[str, RetrievalFamily] = {
         "CN_FINISHED_GOODS_INVENTORY",
         "CN_INVENTORY_TURNOVER",
     ),
+    # Titled "全国工业产能利用率" in 2023, "全国规模以上工业产能利用率" from 2025 (lookback 13).
     "nbs_capacity_utilization": _nbs(
-        "{year}年{quarter}全国工业产能利用率", "CN_CAPACITY_UTILIZATION"
+        "{year}年{quarter}全国工业产能利用率",
+        "CN_CAPACITY_UTILIZATION",
+        title_variants=("{year}年{quarter}全国规模以上工业产能利用率",),
     ),
     "pbc_omo_notice": _pbc(
         "公开市场业务交易公告 {date} 7天期逆回购", "CN_OMO_7D_RATE", "CN_OMO_7D_AMOUNT"
@@ -247,6 +263,15 @@ def search_query(metric_ids: tuple[str, ...], period: str) -> str:
         raise ValueError("search_query_template_missing")
     fields = _period_fields(period)
     return " ".join(template.format(**fields) for template in templates)
+
+
+def title_variants(metric_id: str, period: str) -> tuple[str, ...]:
+    """The other titles the metric's family gives its release for ``period``."""
+    family = retrieval_family(metric_id)
+    if family is None:
+        raise ValueError("search_family_not_registered")
+    fields = _period_fields(period)
+    return tuple(template.format(**fields) for template in family.title_variants)
 
 
 def _period_fields(period: str) -> dict[str, str]:
