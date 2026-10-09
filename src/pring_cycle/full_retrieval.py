@@ -4,7 +4,7 @@ import hashlib
 import json
 import sqlite3
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 from functools import partial
@@ -96,14 +96,8 @@ class FullRunRetrieval:
         if plan.get("event_backtrack") is None:
             self._backtrack_events(run)
         version = str(initial["definition_version"])
-        if dates := initial.get("daily_window", {}).get("dates"):
-            # Judge release times against the run's SSE calendar, not weekdays, on to its
-            # cutoff (a holiday after the target is closed).
-            use_run_calendar(
-                judging_calendar(
-                    self.paths, (date.fromisoformat(day) for day in dates), run.system_as_of
-                )
-            )
+        # A plan recorded before an interruption: its window judges the rest of the run.
+        self._use_judging_calendar(run, initial.get("daily_window", {}).get("dates", ()))
         runs = RunRepository(self.paths.database)
         self._read_listings(run, initial["scopes"], version)
         for document in initial["scopes"]:
@@ -528,6 +522,10 @@ class FullRunRetrieval:
 
         calendar = required_calendar(self.paths, run, selector)
         daily_window = tuple(calendar["dates"])
+        # A domestic period below is judged on the SSE calendar, the first plan's as the
+        # final's (run-findings 11): weekdays took a holiday for a session released. A
+        # foreign one keeps its own market's (``market_calendar``).
+        self._use_judging_calendar(run, daily_window)
         period_by_metric = {
             definition.metric_id: self._period(
                 run, definition, selector, due_first=rules.confirmation is not None
@@ -785,6 +783,12 @@ class FullRunRetrieval:
                 else (released or target.replace(day=1) - timedelta(days=1)).isoformat()[:7]
             )
         return None
+
+    def _use_judging_calendar(self, run: RunRecord, window: Iterable[str]) -> None:
+        """Judge release times against the run's SSE calendar, not weekdays, on to its
+        cutoff (a holiday after the target is closed)."""
+        if dates := [date.fromisoformat(day) for day in window]:
+            use_run_calendar(judging_calendar(self.paths, dates, run.system_as_of))
 
     def _due(
         self, run: RunRecord, definition: MetricDefinition, selector: ModelInputSelector

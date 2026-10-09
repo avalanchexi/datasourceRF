@@ -25,6 +25,7 @@ from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.storage import database_connection
 from pring_cycle.worker import process_pending_run
 from tests.fixtures.attempt_reads import AttemptRowCounter
+from tests.integration.test_holiday_freshness import sse_sessions
 from tests.integration.test_trading_calendar import record_sse_calendar
 
 # The newest model, whatever it is numbered.
@@ -1190,3 +1191,112 @@ def test_full_run_before_the_fixing_day_plans_the_lpr_in_force(tmp_path: Path) -
         r["period"] for r in plan["initial"]["requirements"] if r["metric_id"] == "CN_LPR_1Y_5Y"
     }
     assert max(periods) == "2026-08"
+
+
+@pytest.mark.parametrize("held", [False, True])
+def test_the_first_plan_counts_the_sessions_of_the_sse_calendar(tmp_path: Path, held: bool) -> None:
+    """Run-findings 11: judged 9/28, the first plan took the Mid-Autumn holiday 9/25 for a
+    weekday. It planned 9/25's 16:30 close, and kept the margin balance of 9/24, the newest
+    out, from being searched as an earlier session; the final plan then asked for 9/24."""
+    paths, runs = prepare(tmp_path)
+    models = ModelRepository(paths.database)
+    models.register(effective_model_manifest())
+    models.activate(CURRENT_MODEL, explicitly_approved=True)
+    record_sse_calendar(paths, sse_sessions(date(2026, 3, 2), date(2026, 10, 30)))
+    if held:
+        known = datetime(2026, 9, 24, 9, tzinfo=UTC)
+        rules = ContextProjectionRules.from_manifest(effective_model_manifest())
+        (definition,) = (
+            d for d in rules.metric_definitions if d.metric_id == "CN_USDCNY_CLOSE_1630"
+        )
+        EvidenceRepository(paths.database).append_source_claims(
+            (
+                SourceClaimInput(
+                    metric_id="CN_USDCNY_CLOSE_1630",
+                    definition_version=rules.metric_catalog_version,
+                    period_kind="business_day",
+                    period_start="2026-09-24",
+                    period_end="2026-09-24",
+                    dimensions={},
+                    value=7.1,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="scalar",
+                    provider="中国外汇交易中心",
+                    source_reference="fixture:chinamoney:usdcny_1630:2026-09-24",
+                    release_event_id="fixture:CN_USDCNY_CLOSE_1630:2026-09-24",
+                    release_at=known,
+                    public_available_at=known,
+                    fetched_at=known,
+                    available_at=known,
+                    certification_status=definition.certification_status,
+                    quality_status="validated",
+                ),
+            )
+        )
+    run = runs.submit_manual_full(
+        target_business_date="2026-09-28",
+        client_request_id=f"mid-autumn-first-plan-{held}",
+        model_version_id=CURRENT_MODEL,
+        # The end of 9/28 in Shanghai.
+        system_as_of=datetime(2026, 9, 28, 15, 59, 59, tzinfo=UTC),
+        cutoff_mode="explicit",
+    )
+    process_pending_run(paths, report_adapters=())
+
+    plan = runs.full_retrieval_plan(run.run_id)
+    close = [r for r in plan["initial"]["requirements"] if r["metric_id"] == "CN_USDCNY_CLOSE_1630"]
+    assert [(r["period"], r["status"]) for r in close] == [
+        ("2026-09-24", "local_complete" if held else "model_input_missing")
+    ]
+    # The holiday is closed at home; a U.S. metric still has its session (VIX).
+    holiday = {
+        r["metric_id"] for r in plan["initial"]["requirements"] if r.get("period") == "2026-09-25"
+    }
+    assert "CN_MARGIN_BALANCE_SSE_SZSE" not in holiday
+    assert "CBOE_VIX_INDEX" in holiday
+    scopes = {s["release_event_id"]: s["release_status"] for s in plan["initial"]["scopes"]}
+    assert scopes["full:cn_margin_balance_sse_szse:2026-09-24"] == "released"
+    assert scopes["full:cn_margin_balance_sse_szse:2026-09-23"] == "earlier_session_not_searched"
+    closes = {key: value for key, value in scopes.items() if "usdcny_close_1630" in key}
+    assert closes == ({} if held else {"full:cn_usdcny_close_1630:2026-09-24": "released"})
+    # The scope released is searched; the one held is not.
+    with database_connection(paths.database) as connection:
+        searched = {
+            row[0]
+            for row in connection.execute(
+                "SELECT release_event_id FROM run_retrieval_attempt "
+                "WHERE run_id=? AND channel <> 'release_gate'",
+                (run.run_id,),
+            )
+        }
+    assert "full:cn_margin_balance_sse_szse:2026-09-24" in searched
+    assert ("full:cn_usdcny_close_1630:2026-09-24" in searched) is not held
+    # The final plan asks for the same periods as the first.
+    final = [r for r in plan["final"]["requirements"] if r["metric_id"] == "CN_USDCNY_CLOSE_1630"]
+    assert [r["period"] for r in final] == ["2026-09-24"]
+
+
+def test_a_plan_made_afresh_judges_on_the_sse_calendar_too(tmp_path: Path) -> None:
+    """Recovering a legacy run or evaluating one resumed plans before anything filled the
+    run's calendar: the plan installs its own, as the first did (run-findings 11)."""
+    from pring_cycle.trading_calendar import current_calendar, run_calendar_scope
+
+    paths, runs = prepare(tmp_path)
+    models = ModelRepository(paths.database)
+    models.register(effective_model_manifest())
+    models.activate(CURRENT_MODEL, explicitly_approved=True)
+    record_sse_calendar(paths, sse_sessions(date(2026, 3, 2), date(2026, 10, 30)))
+    run = runs.submit_manual_full(
+        target_business_date="2026-09-28",
+        client_request_id="mid-autumn-afresh",
+        model_version_id=CURRENT_MODEL,
+        system_as_of=datetime(2026, 9, 28, 15, 59, 59, tzinfo=UTC),
+        cutoff_mode="explicit",
+    )
+    with run_calendar_scope():
+        plan = FullRunRetrieval(paths)._plan(run)
+        assert not current_calendar().is_trading(date(2026, 9, 25))
+
+    assert [
+        r["period"] for r in plan["requirements"] if r["metric_id"] == "CN_USDCNY_CLOSE_1630"
+    ] == ["2026-09-24"]
