@@ -13,7 +13,10 @@ Exact response bytes fetched on 2026-09-17 for the bounded article follow-up. Te
 | nbs_gdp_q3.html | https://www.stats.gov.cn/sj/zxfb/202510/t20251021_1961646.html | `0f7c85e52242f3e1905d3313aa744028f51d48f60bcff899b712da400f135a5c` |
 | nbs_gdp_q4.html | https://www.stats.gov.cn/sj/zxfb/202601/t20260120_1962349.html | `9d9bc9ece5d52a9ba07d6d9ed01e0d865b4d72b385c1b2a9873501e2d5532765` |
 | nbs_capacity_utilization_zwfwck_q1.html | https://www.stats.gov.cn/zwfwck/sjfb/202604/t20260416_1963322.html | `d038b999e708a80099d1bce73adb7a773bd75bfc8ccb42dc732e8a75baee750b` |
+| pbc_social_financing_stock_202507.html | https://www.pbc.gov.cn/diaochatongjisi/116219/116225/4405816f165642d8b7d9ece44ea6f88a/index.html | `b137eea74d9a9ebd2607953359693a83fc1f36b9bcb649cad56f49012e3fece6` |
 
 The GDP fixtures reuse the earlier `evidence-13` and `evidence-macro-normalized` originals; they were not downloaded in the article follow-up batch.
 
 `nbs_capacity_utilization_zwfwck_q1.html` was fetched once (curl, HTTP 200, no redirect) on 2026-10-09 00:03 UTC for lookback 13: the 2026 Q1 capacity utilization release as the NBS serves it under `/zwfwck/sjfb/`, the address Tavily and the AI search found in run-8a3779cff80f6bd586a0.
+
+`pbc_social_financing_stock_202507.html` was fetched once (curl, HTTP 200, no redirect) on 2026-10-09 01:13 UTC for lookback 14: the "2025年7月社会融资规模存量统计数据报告" listed on the column's second page (`official_listing/pbc_116225_11871-2_20261009.html`). Until August 2025 the PBC released the social financing stock in this report of its own; the run never requested it, so the local runtime held no copy.

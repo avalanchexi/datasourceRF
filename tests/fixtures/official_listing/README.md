@@ -18,3 +18,4 @@
 | pbc_125475_17081-2_20261009.html | https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/17081-2.html（公开市场业务交易公告第 2 页，回看 L05） | 2026-10-09 00:19 UTC+8 | `57911fa7…` |
 | nbs_zxfbhjd_index_11_20261009.html | https://www.stats.gov.cn/sj/zxfbhjd/index_11.html（发布和解读第 12 页，列有 2026 年一季度产能利用率发布稿，标题含"规模以上"，回看 13） | 真实运行 run-8a3779cff80f6bd586a0，2026-10-08 22:33 UTC（本机运行库制品，acquisition-999fcf6d…） | `6489b013…` |
 | nbs_zxfbhjd_index_28_20261009.html | https://www.stats.gov.cn/sj/zxfbhjd/index_28.html（第 29 页，列有 2025 年二季度产能利用率发布稿，回看 13） | 真实运行 run-8a3779cff80f6bd586a0，2026-10-08 22:33 UTC（本机运行库制品，acquisition-73cc6be0…） | `00fa6afe…` |
+| pbc_116225_11871-2_20261009.html | https://www.pbc.gov.cn/diaochatongjisi/116219/116225/11871-2.html（月度金融统计数据报告所在栏目第 2 页，列有 2025 年 3—7 月的金融统计数据报告与单独发布的"社会融资规模存量统计数据报告"，回看 14） | 真实运行 run-8a3779cff80f6bd586a0，2026-10-08 22:33 UTC（本机运行库制品，acquisition-5f9b7028…） | `35070319…` |

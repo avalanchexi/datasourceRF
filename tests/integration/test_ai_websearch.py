@@ -451,3 +451,190 @@ def test_ai_websearch_is_asked_only_for_members_its_rules_can_state(
     )
 
     assert ("ai_websearch" in adapters) is asked
+
+
+# The candidate Codex gave in run-8a3779cff80f6bd586a0 for July 2025 (lookback 14): its
+# value is the stock, its sentence states the growth too.
+SF_JULY_2025 = {
+    "url": "https://app.www.gov.cn/govdata/gov/202508/13/534662/article.html",
+    "quote": "初步统计，2025年7月末社会融资规模存量为431.26万亿元，同比增长9%。",
+    "value": 431.26,
+    "period": "2025-07",
+    "published_date": "2025-08-13",
+}
+
+
+SF_STOCK = 'CN_SF_TOTAL:{"measure": "stock_end"}'
+SF_STOCK_REPORT = (
+    Path(__file__).parents[1]
+    / "fixtures"
+    / "official_period_fallback"
+    / "pbc_social_financing_stock_202507.html"
+)
+SF_STOCK_ONLY = {**SF_JULY_2025, "quote": "初步统计，2025年7月末社会融资规模存量为431.26万亿元。"}
+
+
+def sf_lookback_answer(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    members: tuple[str, ...],
+    found: dict[str, Any] = SF_JULY_2025,
+    *,
+    stock_held: bool = False,
+) -> tuple[RunRecord, RuntimePaths, list[dict[str, Any]]]:
+    """The AI asked for July 2025's social financing on a full run whose lookback names
+    ``members``, answering with ``found`` (the real candidate). ``stock_held``: the stock
+    report already gave the stock (its growth left out, as if not read)."""
+    from dataclasses import replace
+
+    from pring_cycle.ai_websearch import ai_websearch_adapter
+    from pring_cycle.models import EFFECTIVE_CATALOG_VERSION, effective_model_manifest
+    from pring_cycle.official_context import (
+        FetchedOfficialContextDocument,
+        refresh_official_context_document,
+    )
+    from pring_cycle.retrieval_ledger import RetrievalLedger
+    from pring_cycle.runs import RetrievalScope
+
+    calls = install(tmp_path, monkeypatch, {})
+    monkeypatch.delenv("PRING_CYCLE_AI_WEBSEARCH")
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = effective_model_manifest()
+    models = ModelRepository(paths.database)
+    models.register(manifest)
+    models.activate(str(manifest["model_version_id"]), explicitly_approved=True)
+
+    if stock_held:
+        report = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/4405816f/index.html"
+        refresh_official_context_document(
+            paths,
+            family="pbc_social_financing",
+            source_url=report,
+            expected_period="2025-07",
+            fetched_at=datetime.now(UTC),
+            fetcher=lambda url: FetchedOfficialContextDocument(
+                content=SF_STOCK_REPORT.read_bytes(),
+                media_type="text/html",
+                final_url=url,
+                http_status=200,
+            ),
+            definition_version=EFFECTIVE_CATALOG_VERSION,
+            held_members=frozenset({SF_STOCK_GROWTH}),
+        )
+    calls.with_name("plan.json").write_text(
+        json.dumps(
+            {
+                "codex": {"mode": "ok", "candidates": [found]},
+                "claude": {"mode": "ok", "candidates": []},
+            }
+        )
+    )
+    run = RunRepository(paths.database).submit_manual_full(
+        target_business_date="2026-09-30",
+        client_request_id="ai-websearch-sf-lookback",
+        model_version_id=str(manifest["model_version_id"]),
+        system_as_of=datetime.now(UTC) + timedelta(minutes=1),
+    )
+    scope = RetrievalScope(
+        "full:CN_SF_TOTAL:2025-07", ("CN_SF_TOTAL",), "2025-07", "P1", None, members
+    )
+    scope_run = replace(run, retrieval_scope=scope)
+    RetrievalLedger(paths.database).bind_run(scope_run, EFFECTIVE_CATALOG_VERSION)
+
+    ai_websearch_adapter(
+        paths, run.run_id, scope_run, definition_version=EFFECTIVE_CATALOG_VERSION
+    )(scope.release_event_id)
+
+    made = [json.loads(line) for line in calls.read_text().splitlines()]
+    return RunRepository(paths.database).get(run.run_id), paths, made
+
+
+def sf_july_2025(paths: RuntimePaths) -> dict[str, float | None]:
+    return {
+        p.dimensions["measure"]: p.selected_value
+        for p in EvidenceRepository(paths.database).metric_series(
+            "CN_SF_TOTAL", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC) + timedelta(days=1)
+        )
+        if p.period_end == "2025-07-31"
+    }
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_the_member_a_lookback_misses_is_taken_from_a_sentence_stating_others_too(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Lookback 14: the sentence states the stock and its growth, the CLI gave the stock,
+    and only the stock was kept, while the gap was the growth."""
+    _stored, paths, calls = sf_lookback_answer(tmp_path, monkeypatch, (SF_STOCK_GROWTH,))
+
+    assert calls[0]["prompt"]["members"] == [
+        {"metric_id": "CN_SF_TOTAL", "dimensions": {"measure": "stock_yoy"}}
+    ]
+    assert sf_july_2025(paths) == {"stock_yoy": 9.0}
+    ledger = _stored.retrieval_ledger
+    assert ledger is not None
+    [request] = [r for r in ledger["requests"] if r["channel"] == "ai_websearch"]
+    assert (request["outcome"], request["classification"]) == ("verified", "complete_model_input")
+    [validation] = ledger["candidate_validations"]
+    assert (validation["outcome"], validation["missing_members"]) == ("model_usable", [])
+    assert validation["selected_claim_ids"] == validation["claim_ids"]
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_candidate_that_leaves_the_gap_incomplete_is_recorded_so(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Lookback 14: the candidate was recorded model_usable while the gap it was asked for
+    stayed unresolved. A gap naming no members misses the catalog's required ones, and the
+    sentence does not state the year's increment."""
+    stored, paths, _calls = sf_lookback_answer(tmp_path, monkeypatch, ())
+
+    assert sf_july_2025(paths) == {"stock_end": 4312600.0}
+    ledger = stored.retrieval_ledger
+    assert ledger is not None
+    [request] = [r for r in ledger["requests"] if r["channel"] == "ai_websearch"]
+    assert request["classification"] == "candidate_validation_unresolved"
+    [validation] = ledger["candidate_validations"]
+    assert (validation["outcome"], validation["reason"]) == (
+        "not_model_usable",
+        "incomplete_model_input",
+    )
+    assert 'CN_SF_TOTAL:{"measure": "ytd_increment"}' in validation["missing_members"]
+    assert validation["claim_ids"]
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_sentence_stating_only_members_the_gap_holds_fills_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    stored, paths, _calls = sf_lookback_answer(
+        tmp_path, monkeypatch, (SF_STOCK_GROWTH,), SF_STOCK_ONLY
+    )
+
+    assert sf_july_2025(paths) == {}
+    assert stored.retrieval_ledger is not None
+    assert [
+        (v["outcome"], v["reason"]) for v in stored.retrieval_ledger["candidate_validations"]
+    ] == [("not_model_usable", "incomplete_model_input")]
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_member_the_scope_reads_but_holds_is_neither_asked_for_nor_taken(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A scope reads every member of its period, the held ones too: the AI is asked for
+    the growth alone, and the stock its sentence restates is not stored again."""
+    stored, paths, calls = sf_lookback_answer(
+        tmp_path, monkeypatch, (SF_STOCK, SF_STOCK_GROWTH), stock_held=True
+    )
+
+    assert calls[-1]["prompt"]["members"] == [
+        {"metric_id": "CN_SF_TOTAL", "dimensions": {"measure": "stock_yoy"}}
+    ]
+    assert sf_july_2025(paths) == {"stock_end": 4312600.0, "stock_yoy": 9.0}
+    assert stored.retrieval_ledger is not None
+    [validation] = stored.retrieval_ledger["candidate_validations"]
+    assert validation["outcome"] == "model_usable"
+    # The growth alone: the stock is not restated.
+    assert len(validation["claim_ids"]) == 1

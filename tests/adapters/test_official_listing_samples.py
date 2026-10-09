@@ -301,6 +301,89 @@ def select_from(listing: bytes, family: str, period: str) -> str | None:
     return release_url(listing, family=family, listing_url=NBS, period=period)
 
 
+REPORTS = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/"
+
+
+@pytest.mark.parametrize(
+    ("family", "name", "page_url", "period", "release"),
+    [
+        # Until August 2025 the stock was released in its own report, beside a monthly
+        # financial statistics report without it.
+        (
+            "pbc_social_financing",
+            "pbc_116225_11871-2_20261009.html",
+            REPORTS + "11871-2.html",
+            "2025-07",
+            REPORTS + "4405816f165642d8b7d9ece44ea6f88a/index.html",
+        ),
+        (
+            "pbc_social_financing",
+            "pbc_116225_index_20261009.html",
+            PBC_REPORTS,
+            "2025-08",
+            REPORTS + "35ec0aa27604417888826e7ff128cc4a/index.html",
+        ),
+        # From September 2025 the financial statistics report carries it.
+        (
+            "pbc_social_financing",
+            "pbc_116225_index_20261009.html",
+            PBC_REPORTS,
+            "2025-09",
+            REPORTS + "dded7449c74144a19171f582bec9ed36/index.html",
+        ),
+        (
+            "pbc_social_financing",
+            "pbc_116225_index_20261009.html",
+            PBC_REPORTS,
+            "2025-10",
+            REPORTS + "f294561578884c22878d115780ba7c08/index.html",
+        ),
+        # Money and loans stay with the financial statistics report.
+        (
+            "pbc_money",
+            "pbc_116225_11871-2_20261009.html",
+            REPORTS + "11871-2.html",
+            "2025-07",
+            REPORTS + "2972dbe4d53540e5a9d0b5781c71480d/index.html",
+        ),
+        (
+            "pbc_loan_structure",
+            "pbc_116225_index_20261009.html",
+            PBC_REPORTS,
+            "2025-08",
+            REPORTS + "e3120f58ec724fe1811d9dadf67232d2/index.html",
+        ),
+    ],
+)
+def test_social_financing_before_september_2025_is_selected_by_its_stock_report(
+    family: str, name: str, page_url: str, period: str, release: str
+) -> None:
+    """Lookback 14: the run selected July's financial statistics report, which has no
+    social financing, while the stock report beside it went unread."""
+    assert select(name, family, period, page_url) == release
+
+
+@pytest.mark.parametrize(
+    ("title", "period"),
+    [
+        # Titles the stock report had in earlier years.
+        ("2018年6月末社会融资规模存量统计数据报告", "2018-06"),
+        ("2024年社会融资规模存量统计数据报告", "2024-12"),
+        ("2016年上半年社会融资规模存量统计数据报告", "2016-06"),
+    ],
+)
+def test_the_stock_report_is_selected_under_its_earlier_titles(title: str, period: str) -> None:
+    listing = (
+        f'<a href="/diaochatongjisi/116219/116225/1/index.html">{title}</a>'
+        '<a href="/diaochatongjisi/116219/116225/2/index.html">'
+        f"{title.replace('存量', '增量')}</a>"
+    ).encode()
+
+    assert release_url(
+        listing, family="pbc_social_financing", listing_url=PBC_REPORTS, period=period
+    ) == (REPORTS + "1/index.html")
+
+
 OMO = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html"
 
 

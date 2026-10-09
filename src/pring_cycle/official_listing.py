@@ -107,11 +107,15 @@ def release_titles(family: str, period: str) -> tuple[str, ...]:
     titles = [search_query((metric_id,), period), *title_variants(metric_id, period)]
     if family in _PBC_REPORT_FAMILIES:
         # PBC titles a quarter-end month's report by the quarter; December's by the year.
-        aggregate = _AGGREGATE_MONTHS.get(int(period[5:7]))
+        # The report is the period's: the financial statistics report, or before September
+        # 2025 social financing's own stock report (lookback 14).
+        year, month = period[:4], int(period[5:7])
+        report = titles[0].removeprefix(f"{year}年{month}月")
+        aggregate = _AGGREGATE_MONTHS.get(month)
         if aggregate is not None:
-            titles.append(f"{period[:4]}年{aggregate}金融统计数据报告")
-        if period[5:7] == "12":
-            titles.append(f"{period[:4]}年金融统计数据报告")
+            titles.append(f"{year}年{aggregate}{report}")
+        if month == 12:
+            titles.append(f"{year}年{report}")
     return tuple(_normal(title) for title in titles)
 
 

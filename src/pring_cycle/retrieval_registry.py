@@ -22,6 +22,15 @@ ParserKind = Literal["official_context", "lpr", "csindex", "lenient"]
 
 
 @dataclass(frozen=True)
+class EarlierRelease:
+    """The release a family's figures came out in for periods before ``until`` (YYYY-MM)."""
+
+    until: str
+    query_template: str
+    title_variants: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class RetrievalFamily:
     provider: str
     hosts: tuple[tuple[str, str], ...]
@@ -34,10 +43,21 @@ class RetrievalFamily:
     # Other titles the publisher gives the same release, which a listing also selects it by
     # (official_listing.release_titles); search keeps the query template.
     title_variants: tuple[str, ...] = ()
+    # The release the figures came out in before some period, where it was another.
+    earlier: EarlierRelease | None = None
 
     @property
     def host(self) -> str:
         return self.hosts[0][0]
+
+    def titling(self, period: str) -> tuple[str, tuple[str, ...]]:
+        """The query template and the other titles of the release ``period`` came out in."""
+        fields = _period_fields(period)
+        if self.earlier is not None and (
+            f"{fields['year']}-{int(fields['month']):02d}" < self.earlier.until
+        ):
+            return self.earlier.query_template, self.earlier.title_variants
+        return self.query_template, self.title_variants
 
 
 # The NBS serves each release under /sj/ and again under /zwfwck/sjfb/ (lookback 13).
@@ -58,8 +78,12 @@ def _nbs(
     )
 
 
-def _pbc(query_template: str, *metric_ids: str) -> RetrievalFamily:
-    return RetrievalFamily("中国人民银行", (_PBC,), metric_ids, "official_context", query_template)
+def _pbc(
+    query_template: str, *metric_ids: str, earlier: EarlierRelease | None = None
+) -> RetrievalFamily:
+    return RetrievalFamily(
+        "中国人民银行", (_PBC,), metric_ids, "official_context", query_template, earlier=earlier
+    )
 
 
 # Query templates follow each publisher's release titles; an official listing selects the
@@ -98,9 +122,18 @@ RETRIEVAL_FAMILIES: dict[str, RetrievalFamily] = {
     "pbc_tool_liquidity_monthly": _pbc(
         "{year}年{month}月中央银行各项工具流动性投放情况", "CN_TOOL_LIQUIDITY_MONTHLY"
     ),
-    # The social financing figures are published in the monthly financial statistics report.
+    # The social financing figures are published in the monthly financial statistics report
+    # from September 2025. Before, the stock had a monthly report of its own, the
+    # financial statistics report none of it (lookback 14); titled "...月末..." in 2017-19.
     "pbc_social_financing": _pbc(
-        "{year}年{month}月金融统计数据报告", "CN_SF_TOTAL", "CN_SF_COMPONENTS"
+        "{year}年{month}月金融统计数据报告",
+        "CN_SF_TOTAL",
+        "CN_SF_COMPONENTS",
+        earlier=EarlierRelease(
+            "2025-09",
+            "{year}年{month}月社会融资规模存量统计数据报告",
+            ("{year}年{month}月末社会融资规模存量统计数据报告",),
+        ),
     ),
     "pbc_loan_structure": _pbc("{year}年{month}月金融统计数据报告 人民币贷款", "CN_LOAN_STRUCTURE"),
     "pbc_money": _pbc("{year}年{month}月金融统计数据报告", "CN_M1_M2"),
@@ -258,7 +291,8 @@ def search_query(metric_ids: tuple[str, ...], period: str) -> str:
     [family] = families
     assert family is not None
     per_metric = dict(family.metric_queries)
-    templates = dict.fromkeys(per_metric.get(m, family.query_template) for m in metric_ids)
+    query_template = family.titling(period)[0]
+    templates = dict.fromkeys(per_metric.get(m, query_template) for m in metric_ids)
     if not all(templates):
         raise ValueError("search_query_template_missing")
     fields = _period_fields(period)
@@ -271,7 +305,7 @@ def title_variants(metric_id: str, period: str) -> tuple[str, ...]:
     if family is None:
         raise ValueError("search_family_not_registered")
     fields = _period_fields(period)
-    return tuple(template.format(**fields) for template in family.title_variants)
+    return tuple(template.format(**fields) for template in family.titling(period)[1])
 
 
 def _period_fields(period: str) -> dict[str, str]:

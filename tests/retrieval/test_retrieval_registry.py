@@ -67,3 +67,22 @@ def test_nbs_releases_under_zwfwck_sjfb_are_on_the_registered_host() -> None:
     assert registered_host("CN_CPI_HEADLINE", release) == "www.stats.gov.cn"
     assert registered_host("CN_CAPACITY_UTILIZATION", "https://www.stats.gov.cn/zwfwck/x") is None
     assert registered_host("CN_SF_TOTAL", release) is None
+
+
+@pytest.mark.parametrize(
+    ("metric_ids", "period", "query"),
+    [
+        # Until August 2025 the stock was released in its own report (lookback 14).
+        (("CN_SF_TOTAL",), "2025-07", "2025年7月社会融资规模存量统计数据报告"),
+        (("CN_SF_COMPONENTS",), "2025-08", "2025年8月社会融资规模存量统计数据报告"),
+        (("CN_SF_TOTAL",), "2025-09", "2025年9月金融统计数据报告"),
+        # Money stays with the financial statistics report.
+        (("CN_M1_M2",), "2025-07", "2025年7月金融统计数据报告"),
+    ],
+)
+def test_social_financing_is_searched_by_the_report_its_period_was_released_in(
+    metric_ids: tuple[str, ...], period: str, query: str
+) -> None:
+    from pring_cycle.retrieval_registry import search_query
+
+    assert search_query(metric_ids, period) == query

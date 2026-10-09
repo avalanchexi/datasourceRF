@@ -989,6 +989,53 @@ def test_other_nbs_paths_stay_outside_the_release_entry(source_url: str) -> None
         )
 
 
+def test_social_financing_stock_growth_before_september_2025_is_read_from_its_stock_report(
+    tmp_path: Path,
+) -> None:
+    """Lookback 14: July 2025's growth went missing; the listing selected the financial
+    statistics report, which had no social financing then, and not the stock report."""
+    fixtures = Path(__file__).parents[1] / "fixtures"
+    column = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/"
+    report = column + "4405816f165642d8b7d9ece44ea6f88a/index.html"
+    # The column's first two pages and the stock report, as the PBC served them.
+    documents = {
+        column + "index.html": fixtures / "official_listing" / "pbc_116225_index_20261009.html",
+        column + "11871-2.html": fixtures / "official_listing" / "pbc_116225_11871-2_20261009.html",
+        report: fixtures / "official_period_fallback" / "pbc_social_financing_stock_202507.html",
+    }
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        requested.append(url)
+        return FetchedOfficialContextDocument(
+            content=documents[url].read_bytes(),
+            media_type="text/html",
+            final_url=url,
+            http_status=200,
+        )
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+
+    result = refresh_official_context_document(
+        paths,
+        family="pbc_social_financing",
+        source_url=column + "index.html",
+        expected_period="2025-07",
+        fetched_at=datetime(2026, 10, 9, tzinfo=UTC),
+        fetcher=fetch,
+    )
+
+    assert result.period == "2025-07"
+    assert requested == [column + "index.html", column + "11871-2.html", report]
+    points = EvidenceRepository(paths.database).metric_series(
+        "CN_SF_TOTAL", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC)
+    )
+    assert {
+        (p.dimensions["measure"], p.selected_value) for p in points if p.period_end == "2025-07-31"
+    } == {("stock_end", 4312600.0), ("stock_yoy", 9.0)}
+
+
 def test_official_refresh_follows_listing_for_requested_period(tmp_path: Path) -> None:
     from pring_cycle.acquisition import AcquisitionRepository
 

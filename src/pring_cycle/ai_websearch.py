@@ -25,7 +25,7 @@ from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from datetime import time as clock_time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import AcquisitionReceipt
@@ -35,6 +35,9 @@ from pring_cycle.retrieval_ledger import RetrievalLedger
 from pring_cycle.runs import RetrievalScope, RunRecord
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.storage import database_connection
+
+if TYPE_CHECKING:
+    from pring_cycle.search_evidence import ModelInputSelection
 
 AI_ADAPTERS = ("codex_cli", "claude_code_cli")
 AI_CALL_SECONDS = 300
@@ -96,7 +99,12 @@ def ai_seconds_used(paths: RuntimePaths, run_id: str) -> float:
     )
 
 
-def _prompt(scope: RetrievalScope, query: str, domains: tuple[str, ...]) -> str:
+def _prompt(
+    scope: RetrievalScope,
+    query: str,
+    domains: tuple[str, ...],
+    asked: dict[str, tuple[dict[str, str], ...] | None] | None = None,
+) -> str:
     from pring_cycle.news_rules import rules_for
 
     return json.dumps(
@@ -107,12 +115,18 @@ def _prompt(scope: RetrievalScope, query: str, domains: tuple[str, ...]) -> str:
                 "quote 必须逐字摘录页面上陈述该数值的原句，且原句写明统计期；"
                 "统计期须能从原句本身确定到年份，写法如 period_wording；"
                 "日度数据只写“9月23日”而无年份的句子不可用，应另找写全日期的原句；"
-                "value 为原句中的数值（百分数只写数字，金额按原句单位）；"
+                "members 为所缺的成员（为空时不限）；"
+                "value 为原句中所缺成员的数值（百分数只写数字，金额按原句单位）；"
                 "period 按 period 字段的格式写统计期；"
                 "published_date 为页面发布日期（YYYY-MM-DD）。"
                 "找不到可靠原句就返回空数组，不得推算或编造。"
             ),
             "metric_ids": list(scope.metric_ids),
+            "members": [
+                {"metric_id": metric_id, "dimensions": member}
+                for metric_id, members in (asked or _asked_members(scope)).items()
+                for member in members or ()
+            ],
             "period": scope.period,
             "period_wording": _period_wording(scope.period),
             "search_query": query,
@@ -121,6 +135,29 @@ def _prompt(scope: RetrievalScope, query: str, domains: tuple[str, ...]) -> str:
         },
         ensure_ascii=False,
     )
+
+
+Asked = dict[str, tuple[dict[str, str], ...] | None]
+
+
+def _asked_members(scope: RetrievalScope, missing: tuple[str, ...] | None = None) -> Asked:
+    """Per metric, the members the AI is asked for: those the scope reads (its lookback's,
+    else the catalog's required ones, as rules_cover decides whether to ask), of them only
+    the ``missing`` when given; None when the notice decides its members."""
+    from pring_cycle.metric_contracts import required_dimension_members
+    from pring_cycle.runs import member_key
+
+    asked: Asked = {}
+    for metric_id in scope.metric_ids:
+        members = scope.named_members(metric_id) or required_dimension_members(
+            metric_id, definition_version="registered", period=scope.period
+        )
+        asked[metric_id] = (
+            members
+            if members is None or missing is None
+            else tuple(m for m in members if member_key(metric_id, m) in missing)
+        )
+    return asked
 
 
 _QUARTERS = ("一", "二", "三", "四")
@@ -148,6 +185,7 @@ def ai_websearch_adapter(
     """The cascade adapter for one gap; it calls at most one CLI answer into the run."""
     from pring_cycle.retrieval_ledger import RetrievalBudgetBlocked
     from pring_cycle.retrieval_registry import search_domains, search_query
+    from pring_cycle.search_evidence import select_retrieval_input
 
     def retrieve(release_event_id: str) -> RetrievalAdapterResponse:
         scope = scope_run.retrieval_scope
@@ -166,7 +204,12 @@ def ai_websearch_adapter(
             return RetrievalAdapterResponse(
                 "not_attempted", classification=str(error), cache_hit=error.cache_hit
             )
-        adapter, document = _ask(_prompt(scope, query, domains), request_id, remaining, adapters)
+        # A scope reads every member of its period; the AI is asked for, and adopts, only
+        # those the gap still misses: the stock held, the growth is what it wants (lookback 14).
+        asked = _asked_members(scope, select_retrieval_input(paths, scope_run).missing_members)
+        adapter, document = _ask(
+            _prompt(scope, query, domains, asked), request_id, remaining, adapters
+        )
         return _record_answer(
             paths,
             ledger,
@@ -174,6 +217,7 @@ def ai_websearch_adapter(
             scope_run,
             adapter,
             document,
+            asked,
             definition_version=definition_version,
         )
 
@@ -251,6 +295,7 @@ def _record_answer(
     run: RunRecord,
     adapter: str,
     document: dict[str, Any],
+    asked: Asked,
     *,
     definition_version: str,
 ) -> RetrievalAdapterResponse:
@@ -269,14 +314,26 @@ def _record_answer(
         return RetrievalAdapterResponse(
             "failed", classification="ai_websearch_unavailable", physical_request_id=request_id
         )
-    claim_ids: list[str] = []
-    for candidate in candidates:
-        reason, stored = _adopt(
-            paths, run, candidate, acquired.receipt, adapter, definition_version=definition_version
+    adopted = [
+        (
+            candidate,
+            *_adopt(
+                paths,
+                run,
+                candidate,
+                acquired.receipt,
+                adapter,
+                definition_version=definition_version,
+                asked=asked,
+            ),
         )
-        claim_ids.extend(stored)
-        _record_validation(paths, run, request_id, candidate, reason, stored)
+        for candidate in candidates
+    ]
+    claim_ids = [claim_id for _candidate, _reason, stored in adopted for claim_id in stored]
     selection = select_retrieval_input(paths, run)
+    # Each is recorded against what the gap then holds, as a searched page is (lookback 14).
+    for candidate, reason, stored in adopted:
+        _record_validation(paths, run, request_id, candidate, reason, stored, selection)
     if claim_ids and selection.complete:
         ledger.complete(request_id, outcome="verified", classification="complete_model_input")
         return RetrievalAdapterResponse(
@@ -439,10 +496,12 @@ def _adopt(
     adapter: str,
     *,
     definition_version: str,
+    asked: Asked | None = None,
     public_by_published_day: bool = False,
 ) -> tuple[str | None, tuple[str, ...]]:
     """Why a candidate is not adopted (None when it is), and the claims it stored.
 
+    ``asked``: the members it may fill (``_asked_members``), by default all the scope reads.
     ``public_by_published_day``: a past event found by a backtrack was public, at the
     latest, by the end of the day its page was published.
     """
@@ -458,6 +517,7 @@ def _adopt(
     from pring_cycle.retrieval_registry import media_outlet, registered_host
     from pring_cycle.search_evidence import (
         DATE_AFTER_CUTOFF,
+        INCOMPLETE_MODEL_INPUT,
         NO_PUBLICATION_DATE,
         NOT_WHITELISTED,
         PERIOD_MISMATCH,
@@ -481,9 +541,23 @@ def _adopt(
             return extraction.reason, ()
         # The CLI reports the number as the sentence writes it ("437.5万亿元", "下降0.4%");
         # the rule also gives it in the member's unit and sign. Either is the same figure.
-        values = tuple(item for item in extraction.values if value in {item.value, item.stated})
-        if not values:
+        if not any(value in {item.value, item.stated} for item in extraction.values):
             return SEARCH_VALUE_MISMATCH, ()
+        # The sentence is the one the CLI read; what it states of the members the gap misses
+        # is taken, whichever figure the CLI gave (lookback 14: it gave the stock, the gap
+        # was the growth written after it).
+        wanted = asked if asked is not None else _asked_members(scope)
+        values = tuple(
+            item
+            for item in extraction.values
+            if item.metric_id in wanted
+            and (
+                wanted[item.metric_id] is None or item.dimensions in (wanted[item.metric_id] or ())
+            )
+        )
+        if not values:
+            # Read as the CLI said, but it states nothing the gap misses.
+            return INCOMPLETE_MODEL_INPUT, ()
     else:
         try:
             if lenient_value(quote, date.fromisoformat(scope.period)) != value:
@@ -538,10 +612,18 @@ def _record_validation(
     candidate: dict[str, Any],
     reason: str | None,
     claim_ids: tuple[str, ...],
+    selection: ModelInputSelection | None = None,
 ) -> None:
-    """One row per candidate on the run's search record, as for Tavily and Exa."""
-    from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
+    """One row per candidate on the run's search record, as for Tavily and Exa.
 
+    With the gap's ``selection`` (a gap's answer, not a backtrack's), a candidate whose
+    claims leave the model input incomplete is not model usable, as a searched page is not.
+    """
+    from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
+    from pring_cycle.search_evidence import INCOMPLETE_MODEL_INPUT
+
+    if reason is None and selection is not None and not selection.complete:
+        reason = INCOMPLETE_MODEL_INPUT
     scope = run.retrieval_scope
     assert scope is not None
     snapshot = RetrievalLedger(paths.database, scope_run=run).for_run(run.run_id)
@@ -556,8 +638,8 @@ def _record_validation(
         connection.execute(
             "INSERT INTO retrieval_candidate_validation(validation_id, run_id, "
             "search_request_id, candidate_url, outcome, reason, checked_at, gap_ids_json, "
-            "selected_claim_ids_json, claim_ids_json, parser_version) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, '[]', ?, ?)",
+            "selected_claim_ids_json, missing_members_json, claim_ids_json, parser_version) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 "candidate-validation-" + uuid.uuid4().hex,
                 run.run_id,
@@ -567,6 +649,8 @@ def _record_validation(
                 reason,
                 utc_now().isoformat(),
                 json.dumps(gap_ids),
+                json.dumps(list(selection.selected_claim_ids) if selection else []),
+                json.dumps(list(selection.missing_members)) if selection else None,
                 json.dumps(list(claim_ids)),
                 AI_PARSER_VERSION,
             ),
