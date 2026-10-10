@@ -7,6 +7,7 @@ from dataclasses import replace
 from datetime import date
 from functools import partial
 
+from pring_cycle.acquisition import REFERENCED, AcquisitionRepository
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.czce_warrants import refresh_czce_warrants
 from pring_cycle.models import ModelRepository
@@ -15,6 +16,7 @@ from pring_cycle.retrieval_ledger import RetrievalLedger
 from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import select_retrieval_input
+from pring_cycle.storage import database_connection
 from pring_cycle.tushare_context import (
     TUSHARE_WARRANT_SYMBOLS,
     WARRANT_SYMBOLS,
@@ -24,6 +26,7 @@ from pring_cycle.tushare_context import (
     ContextScalar,
     TushareContextAdapter,
     reviewed_delivery,
+    warrant_answer_days,
 )
 
 
@@ -46,6 +49,45 @@ def _warrant_symbols_to_refetch(paths: RuntimePaths, run: RunRecord) -> tuple[st
     return tuple(sorted(named & TUSHARE_WARRANT_SYMBOLS))
 
 
+def _answered_empty(
+    paths: RuntimePaths, run_id: str, day: date, symbols: tuple[str, ...]
+) -> frozenset[str]:
+    """The symbols the run's own ``fut_wsr`` answers already say TuShare holds no row for on
+    ``day`` (audit 2026-10-10, ticket 11): asked again for the day alone, it says the same.
+
+    Only an answer of this run counts, validated, covering the day and complete; any such
+    answer holding a row that day keeps the symbol asked. Each run asks the window afresh,
+    so a day published late is still found, by the next run's window if not by this one.
+    """
+    wanted = f"{day:%Y%m%d}"
+    empty: set[str] = set()
+    held: set[str] = set()
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    with database_connection(paths.database) as connection:
+        answers = connection.execute(
+            "SELECT a.acquisition_id, a.parameters_json FROM full_run_acquisition f "
+            "JOIN acquisition_request a USING(acquisition_id) "
+            "WHERE f.run_id=? AND f.phase != ? AND a.provider='tushare' "
+            "AND a.api_name='fut_wsr' AND a.state='validated'",
+            (run_id, REFERENCED),
+        ).fetchall()
+    for acquisition_id, encoded in answers:
+        parameters = json.loads(encoded)
+        symbol = parameters.get("symbol")
+        if symbol not in symbols or not (
+            parameters.get("start_date", "") <= wanted <= parameters.get("end_date", "")
+        ):
+            continue
+        try:
+            days = warrant_answer_days(acquisitions.read_content(acquisition_id, "raw"))
+        except (LookupError, OSError, ValueError):
+            days = None
+        if days is None:
+            continue
+        (held if wanted in days else empty).add(symbol)
+    return frozenset(empty - held)
+
+
 def retrieve_tushare_context(
     paths: RuntimePaths, run_id: str, token: str, *, scope_run: RunRecord | None = None
 ) -> RetrievalAdapterResponse:
@@ -61,6 +103,8 @@ def retrieve_tushare_context(
     # Warrant symbols are acquired one by one: a refused symbol leaves the others held
     # (run findings 2026-09-26, ticket 01). Every other family is one acquisition.
     retrievals: tuple[Callable[[], tuple[ContextScalar, ...]], ...] = ()
+    # The warrant symbols the run's own answers already hold empty on the day (ticket 11).
+    answered_empty: frozenset[str] = frozenset()
     metrics = set(scope.metric_ids)
     if len(scope.period) == 7 and "-Q" not in scope.period:
         methods = (
@@ -95,9 +139,12 @@ def retrieve_tushare_context(
             # that source records its own outcome per symbol.
             if version not in BUILTIN_CATALOG_VERSIONS:
                 refresh_czce_warrants(paths, days=(day,), definition_version=version)
+            wanted = _warrant_symbols_to_refetch(paths, run)
+            answered_empty = _answered_empty(paths, run_id, day, wanted)
             retrievals = tuple(
                 partial(adapter.futures_warrants, start_date=day, end_date=day, symbol=symbol)
-                for symbol in _warrant_symbols_to_refetch(paths, run)
+                for symbol in wanted
+                if symbol not in answered_empty
             )
         daily_methods = (
             ({"CN_DR007", "CN_SHIBOR_ON_1W_3M"}, adapter.transmission),
@@ -219,6 +266,11 @@ def retrieve_tushare_context(
             "verified",
             evidence=f"selected-evidence:{digest}",
             classification="complete_model_input",
+        )
+    if answered_empty and not retrievals:
+        # Nothing asked: by the run's own answer TuShare has no row that day (ticket 11).
+        return RetrievalAdapterResponse(
+            "not_found", classification="warrant_day_empty_in_run_answer"
         )
     return RetrievalAdapterResponse(
         "candidate_source", evidence="tushare:context", classification="incomplete_model_input"

@@ -35,7 +35,11 @@ from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.targeted_context import _warrant_symbols_to_refetch, retrieve_tushare_context
 from pring_cycle.trading_calendar import TradingCalendar
-from pring_cycle.tushare_context import WARRANT_SYMBOLS
+from pring_cycle.tushare_context import (
+    WARRANT_SYMBOLS,
+    ContextObservationsMissingError,
+    warrant_answer_days,
+)
 from pring_cycle.worker import refresh_context_sources
 from tests.conftest import install_runtime_clock
 
@@ -440,3 +444,242 @@ def test_a_gap_day_refetch_asks_for_every_symbol_its_shortfall_names(
     )
 
     assert _warrant_symbols_to_refetch(Path("unused"), None) == asked  # type: ignore[arg-type]
+
+
+# Every ``fut_wsr`` request that went out, as ``(symbol, start_date, end_date)``.
+ASKED: list[tuple[str, str, str]] = []
+
+
+def unpublished(
+    symbol: str, day: date, *, base: type[WarrantsOnly] = EverySymbolAvailable
+) -> type[WarrantsOnly]:
+    """An opener whose answers hold no row of ``symbol`` on ``day``, as TuShare's did for the
+    days a symbol's warrants went unpublished (audit 2026-10-10, ticket 11)."""
+
+    class Unpublished(base):  # type: ignore[valid-type, misc]
+        def open(self, request: Any, *, timeout: int) -> BytesIO:
+            payload = json.loads(request.data)
+            answer: BytesIO = super().open(request, timeout=timeout)
+            if payload["api_name"] != "fut_wsr":
+                return answer
+            document = json.loads(answer.read())
+            document["data"]["items"] = [
+                item
+                for item in document["data"]["items"]
+                if not (item[1] == symbol and item[0] == day.strftime("%Y%m%d"))
+            ]
+            return BytesIO(json.dumps(document).encode())
+
+    return Unpublished
+
+
+class Counted(EverySymbolAvailable):
+    def open(self, request: Any, *, timeout: int) -> BytesIO:
+        payload = json.loads(request.data)
+        if payload["api_name"] == "fut_wsr":
+            params = payload["params"]
+            ASKED.append((params["symbol"], params["start_date"], params["end_date"]))
+        return super().open(request, timeout=timeout)
+
+
+def warrant_day_scope(run: RunRecord) -> RunRecord:
+    """The run scoped to the target day's warrants, at a gap's P1 priority."""
+    day = TARGET.isoformat()
+    return replace(
+        run,
+        retrieval_scope=RetrievalScope(
+            f"warrants:{day}", ("CN_FUTURES_WARRANTS",), day, "P1", None
+        ),
+    )
+
+
+def refetched_receipts(paths: RuntimePaths, run: RunRecord) -> list[tuple[str, str, str | None]]:
+    with sqlite3.connect(paths.database) as connection:
+        rows = connection.execute(
+            """SELECT r.parameters_json, r.state, r.rejection_reason FROM acquisition_request r
+               JOIN full_run_acquisition a USING (acquisition_id)
+               WHERE a.run_id=? AND a.phase='gap_retrieval' AND r.api_name='fut_wsr'""",
+            (run.run_id,),
+        ).fetchall()
+    return [(json.loads(p)["symbol"], state, reason) for p, state, reason in rows]
+
+
+def test_a_gap_day_the_runs_own_answer_held_empty_is_not_asked_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> None:
+    """Audit 2026-10-10, ticket 11: the run's own window answer already said TuShare holds no
+    paper-oil row that day, so the gap day is not asked for it once more."""
+    paths, run = prepared(monkeypatch, request, tmp_path, unpublished("SP", TARGET, base=Counted))
+    refresh(paths, run)
+    scope_run = warrant_day_scope(run)
+    RetrievalLedger(paths.database).bind_run(scope_run, EFFECTIVE_CATALOG_VERSION)
+    assert _warrant_symbols_to_refetch(paths, scope_run) == ("SP",)
+    ASKED.clear()
+
+    with own_acquisitions(paths.database, run.run_id, "gap_retrieval"):
+        response = retrieve_tushare_context(
+            paths, run.run_id, "fixture-secret", scope_run=scope_run
+        )
+
+    assert ASKED == []
+    assert refetched_receipts(paths, run) == []
+    with sqlite3.connect(paths.database) as connection:
+        physical = connection.execute(
+            "SELECT count(*) FROM retrieval_physical_request WHERE run_id=? AND channel='tushare'",
+            (run.run_id,),
+        ).fetchone()[0]
+    assert physical == 0
+    # Said as what it is: the source has nothing that day, by the run's own answer.
+    assert (response.status, response.classification) == (
+        "not_found",
+        "warrant_day_empty_in_run_answer",
+    )
+
+
+def test_a_gap_day_held_back_by_its_negative_cache_leaves_no_failed_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> None:
+    """Audit 2026-10-10, ticket 11: an empty answer holds the same request back for six hours.
+    Held back, nothing goes out and no receipt is written, so none fails; the deferral is
+    the ledger's, with the time the day may be asked again. Past it, the next run asks again
+    and takes what TuShare published late."""
+    paths, first = prepared(monkeypatch, request, tmp_path, CopperUnavailable)
+    runs = RunRepository(paths.database)
+
+    def run_at(clock: datetime, name: str) -> RunRecord:
+        install_runtime_clock(monkeypatch, request, clock)
+        return runs.submit_manual_full(
+            target_business_date=TARGET.isoformat(),
+            client_request_id=name,
+            model_version_id=CURRENT_MODEL,
+            system_as_of=clock,
+        )
+
+    def refetch(run: RunRecord, opener: type[WarrantsOnly]) -> RetrievalAdapterResponse:
+        # Copper's window request fails each run: the gap day is the only way to it.
+        monkeypatch.setattr(
+            "pring_cycle.tushare_context.build_opener", lambda *handlers: CopperUnavailable()
+        )
+        refresh(paths, run)
+        monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: opener())
+        scope_run = warrant_day_scope(run)
+        RetrievalLedger(paths.database).bind_run(scope_run, EFFECTIVE_CATALOG_VERSION)
+        ASKED.clear()
+        with own_acquisitions(paths.database, run.run_id, "gap_retrieval"):
+            return retrieve_tushare_context(
+                paths, run.run_id, "fixture-secret", scope_run=scope_run
+            )
+
+    # The first run asks copper's day and TuShare answers it empty.
+    with pytest.raises(ContextObservationsMissingError):
+        refetch(first, unpublished("CU", TARGET, base=Counted))
+    assert ASKED == [("CU", "20260803", "20260803")]
+    assert refetched_receipts(paths, first) == [("CU", "validated", None)]
+    runs.cancel(first.run_id)
+
+    # An hour on, the next run's request is held back before anything is written. The first
+    # run's empty answer is no answer of this run's, so the day is not skipped (ticket 11 ①).
+    held_at = CLOCK + timedelta(hours=1)
+    second = run_at(held_at, "warrant-negative-cache-second")
+    response = refetch(second, unpublished("CU", TARGET, base=Counted))
+    assert ASKED == []
+    assert refetched_receipts(paths, second) == []
+    assert (response.status, response.classification, response.cache_hit) == (
+        "not_attempted",
+        "negative_cache_active",
+        True,
+    )
+    with sqlite3.connect(paths.database) as connection:
+        deferred = connection.execute(
+            "SELECT classification, physical_request_id, next_eligible_at FROM retrieval_query "
+            "WHERE run_id=? AND channel='tushare'",
+            (second.run_id,),
+        ).fetchall()
+        failed = connection.execute(
+            "SELECT count(*) FROM acquisition_request WHERE rejection_reason=?",
+            ("negative_cache_active",),
+        ).fetchone()[0]
+        attempts = connection.execute(
+            "SELECT outcome, safe_metadata_json FROM retrieval_attempt "
+            "WHERE metric_id='CN_FUTURES_WARRANTS' ORDER BY rowid"
+        ).fetchall()
+    assert failed == 0
+    ((classification, physical, eligible),) = deferred
+    assert (classification, physical) == ("negative_cache_active", None)
+    assert held_at < datetime.fromisoformat(eligible) <= CLOCK + timedelta(hours=6, minutes=5)
+    # How the day ended for copper: not attempted, held back, no request sent.
+    copper_day = [
+        (outcome, metadata)
+        for outcome, encoded in attempts
+        if (metadata := json.loads(encoded)).get("symbol") == "CU"
+        and metadata.get("business_date") == TARGET.isoformat()
+    ]
+    outcome, metadata = copper_day[-1]
+    assert (outcome, metadata["condition"], metadata["request_sent"]) == (
+        "not_attempted",
+        "negative_cache_active",
+        "false",
+    )
+    runs.cancel(second.run_id)
+
+    # Seven hours on, the cache has lapsed: TuShare is asked again and has published since.
+    third_at = CLOCK + timedelta(hours=7)
+    third = run_at(third_at, "warrant-negative-cache-third")
+    # Asked and answered; CZCE's TA and CF stay missing, unreachable here.
+    assert refetch(third, Counted).classification == "incomplete_model_input"
+    assert ASKED == [("CU", "20260803", "20260803")]
+    assert refetched_receipts(paths, third) == [("CU", "validated", None)]
+    held = {
+        point.period_end
+        for point in EvidenceRepository(paths.database).metric_series(
+            "CN_FUTURES_WARRANTS",
+            mode=AsOfMode.SYSTEM,
+            as_of=third_at + timedelta(hours=1),
+            definition_version=EFFECTIVE_CATALOG_VERSION,
+        )
+        if point.dimensions["symbol"] == "CU"
+    }
+    assert TARGET.isoformat() in held
+
+
+WARRANT_FIELDS = ["trade_date", "symbol", "warehouse", "vol", "unit", "exchange"]
+
+
+@pytest.mark.parametrize(
+    ("document", "days"),
+    [
+        (
+            {"code": 0, "data": {"fields": WARRANT_FIELDS, "items": []}},
+            frozenset(),
+        ),
+        (
+            {
+                "code": 0,
+                "data": {
+                    "fields": WARRANT_FIELDS,
+                    "items": [["20260721", "CU", "w", 20, "吨", "SHFE"]],
+                },
+            },
+            frozenset({"20260721"}),
+        ),
+        # At the response limit the answer may have been cut short: it says nothing.
+        (
+            {
+                "code": 0,
+                "data": {
+                    "fields": WARRANT_FIELDS,
+                    "items": [["20260720", "CU", f"w{n}", 20, "吨", "SHFE"] for n in range(1000)],
+                },
+            },
+            None,
+        ),
+        ({"code": 40203, "msg": "rate limited"}, None),
+        ({"code": 0, "data": {"fields": ["symbol"], "items": []}}, None),
+    ],
+)
+def test_a_warrant_answer_says_which_days_it_holds_only_when_complete(
+    document: dict[str, Any], days: frozenset[str] | None
+) -> None:
+    """Audit 2026-10-10, ticket 11: only a complete answer may stand for an empty day."""
+    assert warrant_answer_days(json.dumps(document).encode()) == days
+    assert warrant_answer_days(b"not json") is None

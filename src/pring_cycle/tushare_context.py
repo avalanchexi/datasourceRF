@@ -1154,6 +1154,24 @@ class TushareContextAdapter:
             return bytes(response.read())
 
 
+def warrant_answer_days(raw: bytes) -> frozenset[str] | None:
+    """The days (``YYYYMMDD``) a ``fut_wsr`` answer holds any row for.
+
+    ``None`` when the answer cannot say what the source held: a refusal, a malformed body,
+    or one at the response limit, which may have been cut short (audit 2026-10-10, ticket 11).
+    """
+    try:
+        document = json.loads(raw)
+        if not isinstance(document, dict) or int(document.get("code", -1)) != 0:
+            return None
+        rows = _response_rows(document, required_fields=("trade_date",))
+    except (TypeError, ValueError):
+        return None
+    if len(rows) >= _FUTURES_WARRANT_RESPONSE_LIMIT:
+        return None
+    return frozenset(str(row["trade_date"]) for row in rows)
+
+
 def reviewed_delivery(paths: RuntimePaths, metric_id: str, definition_version: str) -> bool:
     """Whether the catalog registers TuShare's reviewed delivery of ``metric_id``.
 

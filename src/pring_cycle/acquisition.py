@@ -84,6 +84,26 @@ class AcquisitionOwner:
 _acquisition_owner: ContextVar[AcquisitionOwner | None] = ContextVar(
     "acquisition_owner", default=None
 )
+# What a call must pass before its receipt is written (``start_gate``).
+_start_gate: ContextVar[Callable[[], None] | None] = ContextVar(
+    "acquisition_start_gate", default=None
+)
+
+
+@contextmanager
+def start_gate(gate: Callable[[], None] | None) -> Iterator[None]:
+    """Have each call through the receipt store pass ``gate`` before its receipt is written.
+
+    A call the gate holds back, by raising, sends nothing and leaves no receipt, as one held
+    back for TuShare's quotas leaves none: a request held back is no failed call (audit
+    2026-10-10, ticket 11). Its error is read as one before the request went out (``start``).
+    ``None`` lifts an outer gate for the calls made inside.
+    """
+    token = _start_gate.set(gate)
+    try:
+        yield
+    finally:
+        _start_gate.reset(token)
 
 
 @contextmanager
@@ -292,6 +312,12 @@ class AcquisitionRepository:
             raise ValueError("acquisition_error_body_limit_must_be_positive")
         if defer_validation and (count_records is not None or count_scalars is not None):
             raise ValueError("acquisition_deferred_count_unsupported")
+        if (gate := _start_gate.get()) is not None:
+            try:
+                gate()
+            except Exception as error:
+                error.acquisition_step = "start"  # type: ignore[attr-defined]
+                raise
         if provider == "tushare":
             from pring_cycle.tushare_quota import admit
 

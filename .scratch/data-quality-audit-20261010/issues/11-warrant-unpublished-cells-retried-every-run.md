@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Category: bug
 Type: task
 
@@ -51,3 +51,44 @@ ORDER BY started_at;  -- 99 条
 **处置**：采用 Codex 推荐的 ①＋②，无需用户新决定（不做永久负缓存）。
 
 **Agent Brief**：①本轮已有范围应答覆盖该品种日、且结果为空时，跳过重复的单日补取（`full_retrieval`／`targeted_context`）；②把负缓存检查前移，展示为"暂缓"而不是失败回执（`retrieval_ledger`／`acquisition`）。0 次新增外调，不改选值与时效；保留 6 小时复查，以便发现迟发数据。验收：最新类场景不再产生 6 条 failed 回执；迟发数据仍能在下一轮取到（加测试）。
+
+## 验收
+
+- [x] 同一运行已有范围应答覆盖该品种日且该日为空时，不再发单日补取（0 次外调、0 条回执、0 个物理请求）。
+- [x] 被负缓存拦下的单日补取不再写回执，因而不再有 `failed`／`negative_cache_active` 回执；“暂缓”可在账本与取数尝试中查到。
+- [x] 保留 6 小时复查：缓存过期后的下一轮照常请求，并能取到迟发数据。
+- [x] 新增外部调用 0 次；选值、时效均未改动。
+- [ ] 最新类场景的真实运行不再出现这 6 条 failed 回执（并入收尾票 16 的真实运行与体检核对）。
+
+## Comments
+
+### 2026-10-10 实施
+
+**改了什么**（worktree 分支，线 B）：
+
+- ①`targeted_context._answered_empty`：只看本运行自己取得（排除 `referenced`）、状态为 `validated`、参数覆盖该日的 `fut_wsr` 应答。应答完整且该日无行时，跳过该品种的单日补取；只要有一份覆盖应答该日有行，就照常补取。“完整”由 `tushare_context.warrant_answer_days` 判定：code≠0、结构不合、达到 1000 行响应上限（可能被截断）时都不算数。全部品种都被跳过时，渠道结果为 `not_found`／`warrant_day_empty_in_run_answer`，不发请求。别的运行的应答不算数，所以每轮仍靠窗口全量刷新发现迟发数据。
+- ②`acquisition.start_gate`（ContextVar）：`capture` 在写回执之前先过这道检查，做法同 TuShare 限额的 `admit`；被拦下的错误标为 `start`，所以取数尝试仍记 `not_attempted`。`RetrievalLedger.hold_back` 复用 `reserve` 的同一决策（重构为 `_reserve(hold_only=)`），拦下时只写 `retrieval_query` 行，即“暂缓”标记：`classification=negative_cache_active`、`physical_request_id` 为空、`next_eligible_at` 写明何时可再查；放行时什么也不写。`trace_acquisition` 只对 `channel == "tushare"` 启用这道检查（TuShare 的查询就是请求本身，写回执前即可判定）；official／检索渠道不变。按审查意见在此注明：这适用于所有经 `trace_acquisition` 的 TuShare 请求，目前只有 `targeted_context` 一处。
+- 6 小时负缓存规则（`_cache_expiry`）与选值、时效均未改动。
+
+**测试**（`tests/integration/test_warrant_symbol_isolation.py` 新增 3 个用例，含参数化共 7 例）：
+- 运行自己的范围应答该日为空 → 不发单日补取；
+- 负缓存：第一轮空应答；1 小时后的下一轮被暂缓，无回执、有账本暂缓行与 `not_attempted` 尝试；7 小时后的第三轮重新请求并取到迟发数据；
+- `warrant_answer_days` 的完整性边界（空、有行、达上限、拒绝码、结构不合、非 JSON）。
+先红后绿：实现前两例分别因单日补取照发、`failed`／`negative_cache_active` 回执而失败。
+
+**验证**（专用 venv `dev-venv-fixb`）：
+- 本文件 24 passed（约 45 秒）；
+- 受影响测试第一批 9 个文件 137 passed（78 秒）：ledger、定向月度补取、TuShare 限额、仓单完整性、取数结果、尝试分类、回执、回执计数、cascade；
+- 第二批 8 个文件 87 passed（13 分 55 秒）：gap_source_repairs、官网负缓存、列表页、完整运行补取、严格路径、不可检索缺口、货币与社融回退；
+- 冒烟两例 2 passed；
+- 重型 `test_worker_registered_catalog.py`＋`test_core_carry_forward.py` 经 flock 4 passed（含排队约 7.5 分钟）；
+- ruff check／format 通过。mypy 对改动的 src 文件无错；测试文件只剩 main 上原有的 3 处（conftest:21、本文件 207/209），与本票无关。
+
+**审查**（Codex 两轴，一轮）：规格轴、标准轴均“阻断：无”。采纳：测试改为只接受空应答的 `ContextObservationsMissingError`，第三轮不再吞异常；补 `warrant_answer_days` 边界反例；注明 ② 的作用范围。不采纳与残余：
+- 前置检查与之后的 `reserve` 不在同一事务。两者之间若有并发写入负缓存，仍可能留下一条失败回执，但后置检查仍在，不会绕过预算。Worker 单批串行，暂不处理。
+- 未单测嵌套 trace 的 ContextVar 恢复：用 token 复位，审查确认无泄漏。
+- 模块级 `ASKED` 列表每次断言前都会清空，串行执行下没有问题。
+
+**遗留**：
+- 真实运行核对留给票 16。
+- 体检脚本（线 C）的“本运行回执”列：被暂缓的格不再有回执，建议改读账本 `retrieval_query` 的暂缓行，或渠道结果 `warrant_day_empty_in_run_answer`，展示为“暂缓／本轮应答为空”，以免读成“未请求”。

@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from urllib.error import HTTPError
@@ -15,7 +16,7 @@ from urllib.parse import urlsplit
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from pring_cycle.acquisition import SourceFailed, response_retention_deadline
+from pring_cycle.acquisition import SourceFailed, response_retention_deadline, start_gate
 from pring_cycle.batches import code_version
 from pring_cycle.catalog import MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import require_registered_manifest
@@ -109,11 +110,34 @@ class RetrievalLedger:
         *,
         domains: tuple[str, ...] = (),
     ) -> str:
+        return self._reserve(run_id, channel, release_event_id, query, domains=domains)
+
+    def hold_back(self, run_id: str, channel: str, release_event_id: str, query: str) -> None:
+        """Raise ``RetrievalBudgetBlocked`` when a request for ``query`` would be held back
+        now, recording the query held back as ``reserve`` does; reserve nothing otherwise.
+
+        Asked before a call's receipt is written, a request held back leaves none (audit
+        2026-10-10, ticket 11): it is deferred, not failed, and its query says until when.
+        """
+        self._reserve(run_id, channel, release_event_id, query, hold_only=True)
+
+    def _reserve(
+        self,
+        run_id: str,
+        channel: str,
+        release_event_id: str,
+        query: str,
+        *,
+        domains: tuple[str, ...] = (),
+        hold_only: bool = False,
+    ) -> str:
         request_id = "retrieval-request-" + uuid4().hex
         now = utc_now()
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             decision = self._decision(connection, run_id, channel, release_event_id, query, now)
+            if hold_only and not decision.blocked:
+                return request_id
             logical_id = hashlib.sha256(
                 json.dumps([channel, sorted(decision.event_keys), query]).encode()
             ).hexdigest()
@@ -433,8 +457,16 @@ class RetrievalLedger:
             request_id = self.reserve(run_id, channel, release_event_id, request_query)
             self.attach_acquisition(request_id, acquisition_id)
 
+        # A TuShare query is its one request: held back, it is known before the request's
+        # receipt is written, and none is (audit 2026-10-10, ticket 11).
+        gate = (
+            partial(self.hold_back, run_id, channel, release_event_id, query)
+            if channel == "tushare"
+            else None
+        )
         try:
-            value = operation(started)
+            with start_gate(gate):
+                value = operation(started)
             result = (
                 RetrievalAdapterResponse("verified", evidence=value)
                 if isinstance(value, str)
