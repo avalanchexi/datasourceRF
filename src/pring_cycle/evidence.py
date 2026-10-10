@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 from bisect import bisect_right
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
 from math import isfinite, log10
@@ -278,6 +279,51 @@ class _PreloadedSeriesState:
     tolerance: float | None = None
 
 
+_OTHER_MODE = {AsOfMode.PUBLIC: AsOfMode.SYSTEM, AsOfMode.SYSTEM: AsOfMode.PUBLIC}
+
+# Claims appended in this process, by database: a series snapshot read before them is stale,
+# whichever repository appended them (ticket 29).
+_CLAIM_WRITES: dict[str, int] = {}
+
+
+@dataclass(frozen=True, slots=True)
+class _SnapshotRow:
+    """A stored claim as a series read filters and orders it, its times parsed once.
+
+    The julian days are SQLite's own, rounded to the millisecond: the database's coarse
+    cutoff keeps a claim stored a fraction of a millisecond late, which the selection then
+    leaves out, and the snapshot must keep it the same way.
+    """
+
+    row: sqlite3.Row
+    claim_id: str
+    observation: str
+    period_end: str
+    observation_id: str
+    public: datetime | None
+    available: datetime
+    public_day: float | None
+    available_day: float | None
+
+
+@dataclass
+class _SeriesSnapshot:
+    """A scope's claims by metric and version, and the points already selected from them."""
+
+    writes: int
+    depth: int = 0
+    rows: dict[tuple[str, str | None, AsOfMode], tuple[_SnapshotRow, ...]] = field(
+        default_factory=dict
+    )
+    days: dict[str, float | None] = field(default_factory=dict)
+    points: dict[tuple[object, ...], MetricSeriesPoint] = field(default_factory=dict)
+
+    def clear(self, writes: int) -> None:
+        self.writes = writes
+        self.rows.clear()
+        self.points.clear()
+
+
 class EvidenceRepository:
     def _validate_core_originals(self, claims: tuple[SourceClaimInput, ...]) -> None:
         from pring_cycle.source_adapters import CORE_API_IDENTITIES, parse_core_acquisition
@@ -532,6 +578,9 @@ class EvidenceRepository:
 
     def __init__(self, database_path: Path) -> None:
         self._database_path = database_path
+        self._writes_key = os.path.abspath(database_path)
+        self._series_snapshot: _SeriesSnapshot | None = None
+        self._preloaded_writes = 0
         self._preloaded_series_rows: dict[
             tuple[str, str, AsOfMode],
             tuple[tuple[float, ...], tuple[sqlite3.Row, ...]],
@@ -669,9 +718,43 @@ class EvidenceRepository:
                         (item.claim_id, acquisition_id),
                     )
                 stored.append(item)
-        self._preloaded_series_rows.clear()
-        self._preloaded_series_states.clear()
+        _CLAIM_WRITES[self._writes_key] = _CLAIM_WRITES.get(self._writes_key, 0) + 1
+        self._forget_stale_preloads()
         return tuple(stored)
+
+    def _forget_stale_preloads(self) -> None:
+        """Drop preloaded series once any repository of this process appended claims."""
+        writes = _CLAIM_WRITES.get(self._writes_key, 0)
+        if writes != self._preloaded_writes:
+            self._preloaded_writes = writes
+            self._preloaded_series_rows.clear()
+            self._preloaded_series_states.clear()
+
+    @contextmanager
+    def series_snapshot(self) -> Iterator[None]:
+        """Read ``metric_series`` from claims loaded once, until the scope ends (ticket 29).
+
+        A backfill reads every metric's whole history again for each day it fills, at that
+        day's public cutoff. Inside this scope each metric's claims come from the database
+        once, and an observation whose visible claims are those it was last selected from is
+        not selected again. Every point is the one the database gives: both cutoffs, the
+        revision order, conflicts, unstated news and like-defined versions (ADR-0036).
+
+        Claims appended through any repository of this process are read next; a quote, model
+        or catalog written meanwhile is not. Open it only where nothing writes them, as a
+        backfill does not.
+        """
+        snapshot = self._series_snapshot
+        if snapshot is None:
+            snapshot = _SeriesSnapshot(_CLAIM_WRITES.get(self._writes_key, 0))
+            self._series_snapshot = snapshot
+        snapshot.depth += 1
+        try:
+            yield
+        finally:
+            snapshot.depth -= 1
+            if snapshot.depth == 0:
+                self._series_snapshot = None
 
     def preload_metric_series(
         self,
@@ -679,6 +762,7 @@ class EvidenceRepository:
     ) -> None:
         if not metric_versions:
             return
+        self._forget_stale_preloads()
         ordered = sorted(metric_versions)
         with self._connect() as connection:
             groups = {
@@ -1141,6 +1225,8 @@ class EvidenceRepository:
             if definition_version is not None and public_as_of is None
             else None
         )
+        if cache_key is not None:
+            self._forget_stale_preloads()
         preloaded = self._preloaded_series_rows.get(cache_key) if cache_key is not None else None
         if preloaded is not None:
             assert cache_key is not None
@@ -1160,32 +1246,23 @@ class EvidenceRepository:
                 state.rows_by_observation.setdefault(observation_id, []).append(row)
                 changed_observations.add(observation_id)
             for observation_id in changed_observations:
-                observation_rows = state.rows_by_observation[observation_id]
-                result = _select_merged_rows(
-                    observation_rows,
-                    mode=mode,
-                    as_of=as_of,
-                    tolerance=tolerance,
-                )
-                row = observation_rows[0]
-                state.points_by_observation[observation_id] = MetricSeriesPoint(
-                    observation_id=result.observation_id,
-                    period_start=str(row["period_start"]),
-                    period_end=str(row["period_end"]),
-                    dimensions={
-                        str(key): str(value)
-                        for key, value in json.loads(str(row["dimensions_json"])).items()
-                    },
-                    selected_value=result.selected_value,
-                    value_state=result.value_state,
-                    selection_status=result.selection_status,
-                    selected_claim_id=result.selected_claim_id,
-                    claims=result.claims,
-                    conflict_reason=result.conflict_reason,
+                state.points_by_observation[observation_id] = _series_point(
+                    state.rows_by_observation[observation_id], mode, as_of, tolerance
                 )
             state.visible_count = visible_count
             state.tolerance = tolerance
             points = list(state.points_by_observation.values())
+        elif self._series_snapshot is not None:
+            points = self._snapshot_points(
+                self._series_snapshot,
+                metric_id,
+                mode=mode,
+                as_of=as_of,
+                public_as_of=public_as_of,
+                allow_system_at_public_cutoff=allow_system_at_public_cutoff,
+                tolerance=tolerance,
+                definition_version=definition_version,
+            )
         else:
             with self._connect() as connection:
                 versions = (
@@ -1228,34 +1305,152 @@ class EvidenceRepository:
                 ):
                     continue
                 rows_by_observation.setdefault(_observation_key(row, merged=merged), []).append(row)
-            points = []
-            for observation_rows in rows_by_observation.values():
-                result = _select_merged_rows(
-                    observation_rows,
-                    mode=mode,
-                    as_of=as_of,
-                    tolerance=tolerance,
-                )
-                row = observation_rows[0]
-                points.append(
-                    MetricSeriesPoint(
-                        observation_id=result.observation_id,
-                        period_start=str(row["period_start"]),
-                        period_end=str(row["period_end"]),
-                        dimensions={
-                            str(key): str(value)
-                            for key, value in json.loads(str(row["dimensions_json"])).items()
-                        },
-                        selected_value=result.selected_value,
-                        value_state=result.value_state,
-                        selection_status=result.selection_status,
-                        selected_claim_id=result.selected_claim_id,
-                        claims=result.claims,
-                        conflict_reason=result.conflict_reason,
-                    )
-                )
+            points = [
+                _series_point(observation_rows, mode, as_of, tolerance)
+                for observation_rows in rows_by_observation.values()
+            ]
         points.sort(key=lambda point: (point.period_end, point.observation_id))
         return tuple(points)
+
+    def _snapshot_points(
+        self,
+        snapshot: _SeriesSnapshot,
+        metric_id: str,
+        *,
+        mode: AsOfMode,
+        as_of: datetime,
+        public_as_of: datetime | None,
+        allow_system_at_public_cutoff: bool,
+        tolerance: float | None,
+        definition_version: str | None,
+    ) -> list[MetricSeriesPoint]:
+        """``metric_series``'s points from the snapshot, filtered as its query filters."""
+        writes = _CLAIM_WRITES.get(self._writes_key, 0)
+        if snapshot.writes != writes:
+            snapshot.clear(writes)
+        rows = self._snapshot_rows(snapshot, metric_id, definition_version, mode)
+        as_of_day = self._snapshot_day(snapshot, as_of)
+        public_day = (
+            self._snapshot_day(snapshot, public_as_of) if public_as_of is not None else None
+        )
+        public_mode = mode is AsOfMode.PUBLIC
+        groups: dict[str, list[_SnapshotRow]] = {}
+        for item in rows:
+            # The query's julianday conditions, then the exact public cutoff after it.
+            time_day = item.public_day if public_mode else item.available_day
+            if time_day is None or as_of_day is None or time_day > as_of_day:
+                continue
+            if public_as_of is not None:
+                public_visible = (
+                    item.public_day is not None
+                    and public_day is not None
+                    and item.public_day <= public_day
+                )
+                if allow_system_at_public_cutoff:
+                    public_visible = public_visible or (
+                        item.available_day is not None
+                        and public_day is not None
+                        and item.available_day <= public_day
+                    )
+                if not public_visible:
+                    continue
+                if (item.public is None or item.public > public_as_of) and not (
+                    allow_system_at_public_cutoff and item.available <= public_as_of
+                ):
+                    continue
+            groups.setdefault(item.observation, []).append(item)
+        points = []
+        for group in groups.values():
+            # The claims, in the query's order, are all a selection depends on.
+            key = (mode, as_of, tolerance, *(item.claim_id for item in group))
+            point = snapshot.points.get(key)
+            if point is None:
+                point = _series_point([item.row for item in group], mode, as_of, tolerance)
+                snapshot.points[key] = point
+            points.append(replace(point, dimensions=dict(point.dimensions)))
+        return points
+
+    def _snapshot_rows(
+        self,
+        snapshot: _SeriesSnapshot,
+        metric_id: str,
+        definition_version: str | None,
+        mode: AsOfMode,
+    ) -> tuple[_SnapshotRow, ...]:
+        """The metric's claims, less unstated news, in the query's order for ``mode``."""
+        key = (metric_id, definition_version, mode)
+        if key in snapshot.rows:
+            return snapshot.rows[key]
+        other = (metric_id, definition_version, _OTHER_MODE[mode])
+        if other in snapshot.rows:
+            items = list(snapshot.rows[other])
+        else:
+            merged = definition_version is not None
+            with self._connect() as connection:
+                versions = (
+                    self.same_definition_versions(
+                        metric_id, definition_version, connection=connection
+                    )
+                    if definition_version is not None
+                    else ()
+                )
+                definition_clause = (
+                    f" AND definition_version IN ({','.join('?' for _ in versions)})"
+                    if versions
+                    else ""
+                )
+                rows = connection.execute(
+                    f"""
+                    SELECT *, julianday(public_available_at) AS snapshot_public_day,
+                           julianday(available_at) AS snapshot_available_day
+                    FROM effective_source_claim
+                    WHERE metric_id=?{definition_clause}
+                    """,
+                    (metric_id, *versions),
+                ).fetchall()
+                rows = _without_unstated_news(connection, rows)
+            items = [
+                _SnapshotRow(
+                    row=row,
+                    claim_id=str(row["claim_id"]),
+                    observation=_observation_key(row, merged=merged),
+                    period_end=str(row["period_end"]),
+                    observation_id=str(row["observation_id"]),
+                    public=_datetime(row["public_available_at"]),
+                    available=_required_datetime(row["available_at"]),
+                    public_day=row["snapshot_public_day"],
+                    available_day=row["snapshot_available_day"],
+                )
+                for row in rows
+            ]
+
+        def day(value: float | None) -> tuple[bool, float]:
+            # SQLite orders NULL first.
+            return (value is not None, value or 0.0)
+
+        public_mode = mode is AsOfMode.PUBLIC
+        items.sort(
+            key=lambda item: (
+                item.period_end,
+                item.observation_id,
+                day(item.public_day if public_mode else item.available_day),
+                day(item.available_day),
+                item.claim_id,
+            )
+        )
+        snapshot.rows[key] = tuple(items)
+        return snapshot.rows[key]
+
+    def _snapshot_day(self, snapshot: _SeriesSnapshot, value: datetime) -> float | None:
+        """SQLite's julian day for a cutoff, as the query compares claims against it."""
+        text = _iso(value)
+        assert text is not None
+        if text not in snapshot.days:
+            with self._connect() as connection:
+                (snapshot.days[text],) = connection.execute(
+                    "SELECT julianday(?)", (text,)
+                ).fetchone()
+        return snapshot.days[text]
 
     def trace(
         self,
@@ -1562,6 +1757,28 @@ def _observation_key(row: sqlite3.Row, *, merged: bool) -> str:
             str(row["period_end"]),
             str(row["dimensions_json"]),
         )
+    )
+
+
+def _series_point(
+    rows: list[sqlite3.Row], mode: AsOfMode, as_of: datetime, tolerance: float | None
+) -> MetricSeriesPoint:
+    """One observation's point in a series, from its claims in the query's order."""
+    result = _select_merged_rows(rows, mode=mode, as_of=as_of, tolerance=tolerance)
+    row = rows[0]
+    return MetricSeriesPoint(
+        observation_id=result.observation_id,
+        period_start=str(row["period_start"]),
+        period_end=str(row["period_end"]),
+        dimensions={
+            str(key): str(value) for key, value in json.loads(str(row["dimensions_json"])).items()
+        },
+        selected_value=result.selected_value,
+        value_state=result.value_state,
+        selection_status=result.selection_status,
+        selected_claim_id=result.selected_claim_id,
+        claims=result.claims,
+        conflict_reason=result.conflict_reason,
     )
 
 

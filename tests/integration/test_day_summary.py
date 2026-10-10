@@ -281,6 +281,30 @@ def events(projection: ProjectionSet) -> list[str]:
     return [event["business_date"] for event in projection.datasets["stage_history"]["events"]]
 
 
+def test_the_backfilled_days_read_their_series_from_one_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ticket 29: the days share one copy of the claims, opened for the backfill alone."""
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    days = [day.isoformat() for day in sessions()]
+    snapshots: list[object] = []
+    original = EvidenceRepository.metric_series
+
+    def noted(self: EvidenceRepository, *args: Any, **kwargs: Any) -> Any:
+        snapshots.append(self._series_snapshot)
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(EvidenceRepository, "metric_series", noted)
+    module = summaries(paths)
+
+    assert module.backfill(tuple(days[-4:-1]), target=days[-1], system_as_of=CUTOFF) == ()
+    assert len(snapshots) >= 3
+    assert snapshots[0] is not None
+    assert all(snapshot is snapshots[0] for snapshot in snapshots)
+    assert module._evidence._series_snapshot is None
+
+
 def test_a_backfilled_day_sees_only_what_was_public_by_its_end(tmp_path: Path) -> None:
     # Moved from test_backfill: July's CPI became public on 5 August.
     paths = runtime(tmp_path)

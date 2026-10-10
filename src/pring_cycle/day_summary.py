@@ -277,12 +277,15 @@ class DaySummaries:
     ) -> tuple[FailedDay, ...]:
         summarized = self._projections.summarized_dates()
         failed: list[FailedDay] = []
-        for day in (day for day in window if day < target and day not in summarized):
-            try:
-                self._summarize_day(day, system_as_of=system_as_of)
-            except (KeyError, LookupError, TypeError, ValueError) as error:
-                failed.append(FailedDay(day, type(error).__name__))
-                day_failed(failed[-1])
+        # Each day reads every metric's history again at its own public cutoff; the days
+        # share one copy of the claims, since summarizing a day stores none (ticket 29).
+        with self._evidence.series_snapshot():
+            for day in (day for day in window if day < target and day not in summarized):
+                try:
+                    self._summarize_day(day, system_as_of=system_as_of)
+                except (KeyError, LookupError, TypeError, ValueError) as error:
+                    failed.append(FailedDay(day, type(error).__name__))
+                    day_failed(failed[-1])
         return tuple(failed)
 
     def _summarize_day(self, day: str, *, system_as_of: datetime) -> None:
