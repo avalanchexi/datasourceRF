@@ -19,3 +19,7 @@
 ### Test execution
 
 实施任务、选择受影响测试、运行切片收尾冒烟或终点前全套时，读取 `docs/agents/testing.md`（依据 ADR-0025）。
+
+### Data quality audit
+
+对一次已完成运行做只读数据质量体检（取数、模型输入、模型输出），用 `tools/quality/audit.py`；用途、用法与口径参见 `docs/development/data-quality-audit.md`。
