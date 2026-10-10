@@ -21,3 +21,18 @@
 | [13](issues/13-audit-partial-upstream-composite-members.md) | 体检把合计成员的“上游部分未发布”误判为“未取到”（脚本缺陷） | needs-triage |
 
 **下一步**：01–05 与 lookback/30 已完成；体检报告见 [report.md](report.md)。新开 06–13 待分流，其中 06（错年份数值进入模型输入）优先。
+
+## 体检发现（2026-10-10 分流，[取证原文](triage-20261010-codex.md)）
+
+| 票 | 内容 | 状态 |
+|---|---|---|
+| [06](issues/06-loan-structure-wrong-year-media-page.md) | 贷款结构误收 2025 年报告的值（9 条错期声明，14 个投影） | ready-for-agent（错期校验＋媒体冲突经 WebSearch 复核，复核不定记缺失＋历史保留并标注） |
+| [07](issues/07-credit-impulse-gdp-quarter-vintage.md) | GDP 当季值的修订口径 | ready-for-agent（只修体检；生产端 wontfix） |
+| [08](issues/08-dr007-policy-spread-missing-0929.md) | 09-29 缺 DR007 政策利差 | wontfix（ADR-0036 已修；体检归因并入 07） |
+| [09](issues/09-daily-history-periods-never-requested.md) | 逆回购利率、中间价历史期次 | ready-for-agent（修体检口径＋重处理 12 天已存原件；中间价不补历史） |
+| [10](issues/10-low-frequency-backfill-holes.md) | 低频空期 | ready-for-agent（只修体检“已清理／不在需求内”） |
+| [11](issues/11-warrant-unpublished-cells-retried-every-run.md) | 仓单未发布格每轮重试 | ready-for-agent（跳过重复单日补取＋负缓存记为暂缓） |
+| [12](issues/12-layer3-rules-not-covered.md) | 第三层未覆盖规则 | ready-for-agent（只做按符号比较与分化封顶） |
+| [13](issues/13-audit-partial-upstream-composite-members.md) | 合计类成员部分未发布误判 | ready-for-agent |
+| [14](issues/14-scheduler-weekday-fallback-on-holidays.md) | 调度在节假日误提交 | ready-for-agent（缺覆盖先补当天日历，失败暂缓） |
+| [15](issues/15-trend-rules-a4-a6-interview.md) | A4–A6 规则口径访谈 | needs-info（另开访谈） |
