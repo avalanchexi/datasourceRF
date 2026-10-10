@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Category: enhancement
 Type: task
 
@@ -29,6 +29,75 @@ Type: task
 
 **用户决定**：`synchronous` 全部改为 `NORMAL`，生产和测试一致，见 [ADR-0038](../../../docs/adr/0038-wal-synchronous-normal.md)。预载派给代理。
 
+### 2026-10-10 实施
+
+**改动**
+- `storage.py`：新增 `connect()`，作为新建连接的唯一入口，建连后立即执行 `PRAGMA synchronous=NORMAL`（ADR-0038），PRAGMA 失败时先关闭连接再抛出。走这个入口的有：`database_connection` 的直连、连接池新建的连接（含 fork 后子进程新建的）、`uri=True` 只读连接，`freshness.batch_freshness` 也由直接 `sqlite3.connect` 改走这里。`migrate_database` 的 SQLAlchemy 连接事件里加了同一条 PRAGMA。只在调用方给出 factory 时才把它传给 `sqlite3.connect`，这样替换 `sqlite3.connect` 观察连接的测试夹具照常可用。健康检查没有加报告项，以免改变健康文档结构。
+- `evidence.py`：
+  - 新增 `EvidenceRepository.series_snapshot()` 作用域，支持嵌套，退出即释放。作用域内，`metric_series` 对每个（指标、版本）只查一次库，取回 `effective_source_claim` 的全部行；用的是与直查相同的版本组，并照样经 `_without_unstated_news` 过滤。每行顺带取回 SQLite 自己算的 `julianday`。
+  - 每次读取时在内存里依次重放直查的过滤：先是按 `julianday` 的粗截止，系统截止与公开截止都要过（包括 `allow_system_at_public_cutoff` 的放宽）；再是精确的公开截止。然后按直查的 `ORDER BY`（期末、观测编号、时间、可用时间、声明编号）分组。所以截止点倒退时，每次都按当次参数从头过滤。
+  - 每组按（mode、as_of、tolerance、按序声明编号）缓存选值结果。命中时不再调用 `_select_merged_rows`，返回点的 `dimensions` 复制一份，不让调用方共享缓存里的字典。
+  - 失效：进程内任一实例 `append_source_claims` 都会递增按库计数的 `_CLAIM_WRITES`。快照和旧预载（`preload_metric_series`）读到计数变化就丢弃缓存。旧预载原先只清本实例，审查发现"预载→快照→另一实例追加"会读到过期数据，所以一并改了。
+  - 抽出 `_series_point`，供直查、旧预载、快照三条路径共用，选值逻辑没有改。
+- `day_summary.py`：`DaySummaries._backfill` 在逐日循环外打开 `self._evidence.series_snapshot()`。补算日不写声明（Codex 只读调查确认：只写 `evidence_snapshot`、`projection_set`、`analytical_dataset`、`p0_assessment`）。目标日的读取不在作用域内。
+
+**先红后绿**
+- `tests/integration/test_wal_synchronous.py`（4 例）：改前 4 例全部失败，`synchronous` 为 2（FULL）。覆盖直连、URI 只读、池内外层与嵌套及复用后的连接、fork 子进程，以及迁移引擎、健康检查、`batch_freshness`。最后一例观察器同时替换 `sqlite3.connect` 和 `sqlite3.dbapi2.connect`，并逐个入口断言确实观察到了新连接。
+- `tests/integration/test_series_snapshot.py`（7 例）：改前全部因缺 `series_snapshot` 而失败（AttributeError）。
+  - 等价用例：3 个指标 × 4 种版本（含不传版本）× 6 个公开截止（含 None，顺序前后来回）× 4 个系统截止（含比某声明早 0.1 ms 的截止）× 2 种模式 × 放宽与否 × 2 种容差，与直查逐字段比较，快照内连跑两遍。数据包括：跨版本修订、跨版本冲突、改了定义的信用脉冲 v0013/v0014、公开时间晚于入库时间、毫秒内入库（列出但不选值）、源与节奏都没给公开时间的声明，以及按当日规则作废的省级资讯。
+  - 变异核对：去掉粗截止、去掉放宽、去掉资讯过滤、排序去掉观测编号、缓存键去掉 as_of，等价用例都会失败。
+  - 其余用例：重复读取既不再选值也不查库；同实例和另一实例追加声明后，下一次读取可见；旧预载与快照共存时另一实例追加后可见（改前失败）；作用域嵌套与异常退出后都会释放。
+- `tests/integration/test_day_summary.py::test_the_backfilled_days_read_their_series_from_one_snapshot`：补算多日的每次读取都落在同一快照内，结束后释放。
+
+**剖析**（同一节点 `test_gap_source_repairs.py::test_treasury_yields_are_held_from_tushare_us_tycr`，`flock` 串行；基线为同机重测的 HEAD `d1bb398`，用 `PYTHONPATH` 指向导出的 HEAD 源码）
+
+| 项 | 票面"现象" | 本次基线（HEAD） | 改后 |
+|---|---|---|---|
+| `metric_series` | 1.35 万次／约 30 秒 | 13,543 次／30.6 秒（`_select_merged_rows` 55.5 万次，16.9 秒） | 13,543 次／**7.6 秒**（真正选值 3.9 万次，1.5 秒；快照过滤 4.8 秒，其中复制 `dimensions` 2.3 秒） |
+| `Connection.commit` | 7.1 万次／约 9.5 秒 | 71,214 次／8.2 秒 | 61,152 次／**2.7 秒** |
+| fsync（strace） | 10,953 | 10,943 | **906** |
+| 补算 `_backfill`（剖析下） | 约 54% | 69.1 秒 | **44.3 秒** |
+| 剖析下整次 | 113 秒 | 114.4 秒 | **84.5 秒** |
+| 不剖析整次（交替 3 轮） | 约 70 秒 | 67.6／85.8／64.1，中位数 67.6 秒 | 48.3／47.0／45.0，中位数 **47.0 秒（−30%）** |
+
+剩余热点：`ClaimAdoption.check` 1.8 万次，累计 34 秒；其中 `select_warrant_inputs` 19.4 秒，`source_claim_acquisitions_many` 读原件。两者都不经 `metric_series`，按 Key interfaces 不属于"同一热点"，本票没有处理。
+
+**验证**
+- 受影响测试：`check.py quick` 覆盖本票新测试、连接复用、时点证据、同定义、claim_adoption、day_summary、确认发布、退认证主链、缺口清单、模型切换、库生命周期、编排、时效合同、`test_gap_source_repairs`、`test_full_run_retrieval` 以及两例冒烟，经 `flock` 运行。结果 **267 passed，531.5 秒**，超出 3 分钟目标，因为包含了整个 `test_full_run_retrieval` 与 `test_gap_source_repairs`。
+  - 中途一轮有 3 例失败：`connect()` 当时总是显式传 factory，与观察连接的夹具冲突（`got multiple values for keyword argument 'factory'`）。改为只在给出时才传之后，全部通过。
+- 重型两例（`flock`、`python -m pytest`）：`test_worker_registered_catalog.py`＋`test_core_carry_forward.py` **4 passed，277.4 秒**（票 24 为 348.1 秒）。分项：窗口前取数 222.8→182.6 秒，PPI 回退 90.2→74.8 秒，三核心两例约 16–17 秒降到 9–10 秒。
+- 改动的源文件 `storage.py`、`evidence.py`、`day_summary.py`、`freshness.py`：`ruff check`、`ruff format --check`、`mypy` 均通过。两个新测试文件的 mypy 也干净。`test_day_summary.py` 的 mypy 报错都在既有行上，本票新增的用例没有报错。
+
+**真实运行验收**（第 6 框未勾，原因见下）
+- `run-93d2977b96a52d887ffd`（v0015，目标日 2026-09-30）：该目标日第 **8** 次 `manual_full`（含 1 次 `report_generation` 共第 9 条运行），当日（10-10）第 **2** 次运行。截止时点冻结在北京时间 10-10 15:08:24。
+  - 耗时：Worker 15:00:22 启动，15:11:15 完成，约 **10.9 分钟**。其中 `refreshing_evidence` 9.3 分钟，`deriving_states` 32.6 秒，报告 63 秒。上次验收为 10.2 分钟。
+  - 取数：回执 153 条，失败 12 条（`fut_basic` 8、`fut_trade_cal` 4，与基线相同）；检索尝试 63 条。外部调用全部串行。
+  - C 盘最低 59G。保护脚本起初挂在发起命令的 shell 上，约 20 秒后改挂 Worker 的 Python 进程。
+- 与上次验收（`run-a1110cb8616e39b00f60`）比对：
+  - 缺失项 7→7，逐项相同。
+  - 资讯选值 20→20，逐项相同，没有差异行。
+  - **模型输入 2775→1709**。日频指标的历史输入整段消失，例如仓单 643、DR007 260、OMO 金额 74。
+  - 缺口清单 35→36 项：日频国内指标由"落后 1 期沿用"变为"落后 6 期缺失"。确认度有 3 行由 `current` 变为 `stale`（OMO 金额、DR007、SHIBOR 1w）。
+- 归因：运行库状态变化，与本票代码无关。
+  - 上次验收运行之前，库里有一条 `trade_cal` 回执 `acquisition-c01254e6adaa4ed5bfbda8006a91b945`：10-08 取得，覆盖 09-08～10-08，写明国庆休市。那次运行用它判出 09-30→10-08 只落后 1 期。
+  - 该运行结束后的留存把这条回执删掉了。`retention.prune_to_window` 会删除无声明、批次、检索请求引用，且两天前的 TuShare 调用。从那次运行之后的库副本里已经找不到它。
+  - 本次运行取得的 `trade_cal` 只到 09-30，`judging_calendar` 对 10-01～10-08 回退为工作日，于是落后 6 期，相关指标退出模型输入。
+- 对照运行：紧接着用 HEAD `d1bb398` 的源码（`PYTHONPATH` 指向导出副本）在同一库上又做了一次 `run-a8675946cf7fa1b060b4`。耗时 9.8 分钟，回执 153 条，失败 18 条，多出的 6 条是 `fut_wsr` 外部失败。它与本次运行相比：
+  - 模型输入 1709＝1709，按（指标、期次、成员、值）比较 0 差异；
+  - 缺失项、资讯选值、确认度读法输出逐行相同；
+  - 缺口清单 36 项逐项相同。
+  - 结论：本票改动对结果没有影响。基线变化来自上次运行后的留存，属于本票之外的既有缺陷，已报告主 agent，建议另开票。
+- 真实运行中补算 0 天：窗口内各日都已有摘要，三次运行都只发布了目标日一份投影。所以快照路径在真实运行中只是打开过、没有读取。它的等价性由上面的测试与 119 天补算的剖析节点证明。
+
+**审查**（Codex 两轴）
+- 标准轴：阻断无。采纳 PRAGMA 失败时关闭连接、WAL 测试观察盲区两条。`points` 缓存无上限没有处理：作用域结束即释放，120 日补算下实测可控。
+- 规格轴首轮有 2 条代码阻断：
+  - WAL 测试的观察器因显式传 factory、且 SQLAlchemy 走 `sqlite3.dbapi2.connect`，实际观察不到连接；
+  - 旧预载与快照共存时，另一实例写入后不会失效。
+  - 另有一条是"票面尚无验收证据"，属于记录项。
+- 修复后定向复审，"阻断：无"。
+- 已知边界写在 docstring 里：快照只感知本进程经 `append_source_claims` 追加的声明，期间写入的引文、模型、目录感知不到，所以只在补算这种不写它们的作用域里打开；跨进程写入也感知不到。
+
 ## Agent Brief
 
 **Category:** enhancement
@@ -54,11 +123,11 @@ Type: task
 - 存储层建立连接的入口（设置 `journal_mode=WAL` 的位置）：加上 `synchronous=NORMAL`；健康检查可以一并报告该值。
 
 **Acceptance criteria:**
-- [ ] 新增的等价测试：在同一份证据上，覆盖系统截止与公开截止的多种组合（含截止点倒退、`allow_system_at_public_cutoff`、修订冲突、未写明主语的资讯声明、同定义多版本），快照读取与直接查库的 `MetricSeriesPoint` 序列逐字段相等。先写测试，确认在改动前因缺快照路径而失败或无法覆盖，再实现。
-- [ ] 补算期间写入新声明后，下一次读取能看到它，快照不会读到过期数据。
-- [ ] 新测试断言每条新连接（含连接池新建的连接）的 `PRAGMA synchronous` 都是 1（NORMAL）。
-- [ ] 同一节点 `test_gap_source_repairs.py::test_treasury_yields_are_held_from_tushare_us_tycr` 重新剖析，在票内记录 `metric_series` 的调用次数与耗时、`commit` 的耗时、fsync 次数（strace），以及整次运行时长，并与本票"现象"一节的数字对比。
-- [ ] 按 `docs/agents/testing.md` 跑受影响测试与切片收尾冒烟，重型用例经 `flock` 串行；改动的源文件通过 `ruff check`、`ruff format --check`、`mypy`。
+- [x] 新增的等价测试：在同一份证据上，覆盖系统截止与公开截止的多种组合（含截止点倒退、`allow_system_at_public_cutoff`、修订冲突、未写明主语的资讯声明、同定义多版本），快照读取与直接查库的 `MetricSeriesPoint` 序列逐字段相等。先写测试，确认在改动前因缺快照路径而失败或无法覆盖，再实现。
+- [x] 补算期间写入新声明后，下一次读取能看到它，快照不会读到过期数据。
+- [x] 新测试断言每条新连接（含连接池新建的连接）的 `PRAGMA synchronous` 都是 1（NORMAL）。
+- [x] 同一节点 `test_gap_source_repairs.py::test_treasury_yields_are_held_from_tushare_us_tycr` 重新剖析，在票内记录 `metric_series` 的调用次数与耗时、`commit` 的耗时、fsync 次数（strace），以及整次运行时长，并与本票"现象"一节的数字对比。
+- [x] 按 `docs/agents/testing.md` 跑受影响测试与切片收尾冒烟，重型用例经 `flock` 串行；改动的源文件通过 `ruff check`、`ruff format --check`、`mypy`。
 - [ ] 真实运行验收：一次 v0015 运行的模型输入、缺失项、资讯选值与上次验收（`.scratch/backlog-triage-20261009/acceptance-20261010.md`）相比**完全不变**，并记录运行时长。
 
 **Out of scope:**
