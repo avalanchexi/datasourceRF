@@ -16,6 +16,7 @@ from typing import Any, Protocol
 from pring_cycle.batches import add_batch_columns, current_batch_id
 from pring_cycle.cli_process import run_structured_cli
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
+from pring_cycle.freshness import freshness_statement
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.storage import database_connection, ensure_wal
 
@@ -138,6 +139,12 @@ class ReportInput:
             "conclusions": dict(self.conclusions),
             "verified_results": dict(self.results),
             "gap_list": list(self.gap_list),
+            # The gap list's timeliness is the cutoff's, also for an earlier target day.
+            "freshness_basis": {
+                "target_business_date": self.target_business_date,
+                "assessed_at": self.report_cutoff.isoformat(),
+                "statement": freshness_statement(self.target_business_date, self.report_cutoff),
+            },
             "core_carry_forward": list(self.results.get("core_carry_forward", [])),
         }
 

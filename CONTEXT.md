@@ -251,7 +251,7 @@ _Avoid_: 固定发布日期、实际发布事件
 _Avoid_: 计划发布日期、每月统一发布事件
 
 **证据时效（Evidence Freshness）**：
-在运行冻结时点，已持有的最新一期相对应有期的 `current/awaiting_release/stale` 状态：持有应有期为 current，未过宽限为 awaiting_release，已过宽限为 stale；宽限以交易日计。它只是记录，不拒收数据；`source_failed` 是独立的获取状态。
+在运行冻结时点，已持有的最新一期相对应有期的 `current/awaiting_release/stale` 状态：持有应有期为 current，未过宽限为 awaiting_release，已过宽限为 stale；宽限以交易日计。它只是记录，不拒收数据；`source_failed` 是独立的获取状态。历史目标日重跑时，选值仍以目标日为限，时效则按本次运行冻结时点判定；报告、页面与缺口清单并列标注“目标日 YYYY-MM-DD；时效截至 YYYY-MM-DD HH:MM（北京）”，三处为同一时点。
 _Avoid_: 统一固定天数、数据值有效性、每日复制观测
 
 **应有期（Due Period）**：

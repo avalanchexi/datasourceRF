@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Iterator
-from datetime import date, datetime, timedelta
+from dataclasses import replace
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -15,7 +16,7 @@ import pytest
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.day_summary import DaySummaries, ModelRules, RunMaterials
 from pring_cycle.evidence import EvidenceRepository
-from pring_cycle.freshness import gap_list
+from pring_cycle.freshness import freshness_statement, gap_list
 from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import ReportRepository
@@ -28,6 +29,8 @@ from tests.integration.test_decertified_main_chain import claim, rows_for
 from tests.integration.test_worker_execution import runtime, seed_independent_calendar
 
 TARGET = date(2026, 8, 28)
+# Thursday, re-run at Friday evening's cutoff: chosen as of its day, judged as of the cutoff.
+EARLIER_TARGET = date(2026, 8, 27)
 # Friday 21:00, after the 17:00 index update: the 28th is released, the 27th is due.
 CUTOFF = datetime(2026, 8, 28, 21, tzinfo=ZoneInfo("Asia/Shanghai"))
 # Last held session for each daily P1/P2 and the disposition it should get.
@@ -96,9 +99,9 @@ def seed(paths: RuntimePaths) -> None:
     EvidenceRepository(paths.database).append_source_claims(tuple(claims))
 
 
-def run(paths: RuntimePaths) -> str:
+def run(paths: RuntimePaths, target: date = TARGET) -> str:
     submitted = RunRepository(paths.database).submit_manual_full(
-        target_business_date=TARGET.isoformat(),
+        target_business_date=target.isoformat(),
         client_request_id="gap-list",
         model_version_id="model-v0001",
         system_as_of=CUTOFF,
@@ -113,6 +116,16 @@ def published(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Runtim
     paths = runtime(tmp_path_factory.mktemp("gaps"))
     seed(paths)
     run_id = run(paths)
+    assert RunRepository(paths.database).get(run_id).status == "completed"
+    yield paths, ProjectionSetRepository(paths.database).current()
+
+
+@pytest.fixture(scope="module")
+def rerun(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[RuntimePaths, Any]]:
+    """An earlier target day run at the same cutoff (lookback 27)."""
+    paths = runtime(tmp_path_factory.mktemp("gaps-rerun"))
+    seed(paths)
+    run_id = run(paths, EARLIER_TARGET)
     assert RunRepository(paths.database).get(run_id).status == "completed"
     yield paths, ProjectionSetRepository(paths.database).current()
 
@@ -207,6 +220,73 @@ def test_page_and_report_show_the_same_gap_list(published: tuple[RuntimePaths, A
     assert report.body["gap_list"] == projection.datasets["cycle_overview"]["gap_list"]
     for label in ("缺口清单", "无网页补缺渠道", "时效缺口", "未配置时效", "CN_EQ_CSI500"):
         assert label in page
+
+
+@pytest.mark.parametrize(
+    ("scenario", "statement"),
+    [
+        ("published", "目标日 2026-08-28；时效截至 2026-08-28 21:00（北京）"),
+        ("rerun", "目标日 2026-08-27；时效截至 2026-08-28 21:00（北京）"),
+    ],
+)
+def test_gap_list_report_and_page_state_the_target_and_the_freshness_cutoff(
+    request: pytest.FixtureRequest, scenario: str, statement: str
+) -> None:
+    # Lookback 27: an earlier target keeps its freshness judged at the run's cutoff; the
+    # gap list, the report and the page say both, at the same instant.
+    from pring_cycle.dashboard import _home_page, _report_reader
+    from pring_cycle.storage import database_connection
+
+    paths, projection = request.getfixturevalue(scenario)
+    overview = projection.datasets["cycle_overview"]
+    report = ReportRepository(paths.database).history()[0]
+    with database_connection(paths.database) as connection:
+        assessed = {row[0] for row in connection.execute("SELECT assessed_at FROM batch_freshness")}
+
+    assert {datetime.fromisoformat(item) for item in assessed} == {CUTOFF}
+    assert datetime.fromisoformat(str(overview["gap_list_assessed_at"])) == CUTOFF
+    assert report.body["freshness_basis"] == {
+        "target_business_date": projection.envelope.target_business_date,
+        "assessed_at": overview["gap_list_assessed_at"],
+        "statement": statement,
+    }
+    assert statement in str(_home_page(projection))
+    assert statement in str(_report_reader(report))
+
+
+def test_the_statement_reads_the_cutoff_in_beijing_to_the_minute() -> None:
+    # The third lookback round's cutoff, stored in UTC: frozen at 22:30:30 Beijing.
+    assessed = datetime(2026, 10, 9, 14, 30, 30, 739894, tzinfo=UTC)
+
+    assert freshness_statement("2026-09-30", assessed) == (
+        "目标日 2026-09-30；时效截至 2026-10-09 22:30（北京）"
+    )
+
+
+def test_an_earlier_target_keeps_the_cutoffs_gap_categories(
+    published: tuple[RuntimePaths, Any], rerun: tuple[RuntimePaths, Any]
+) -> None:
+    # Selection stops at the target day; timeliness is the cutoff's, the same for both.
+    categories = {
+        name: {metric_id: gap["category"] for metric_id, gap in by_metric(projection).items()}
+        for name, (_paths, projection) in (("today", published), ("earlier", rerun))
+    }
+
+    assert categories["earlier"] == categories["today"]
+    assert rerun[1].envelope.target_business_date == EARLIER_TARGET.isoformat()
+
+
+def test_a_set_published_before_the_gap_list_carried_its_time_reads_the_cutoff(
+    published: tuple[RuntimePaths, Any],
+) -> None:
+    from pring_cycle.dashboard import _home_page
+
+    _paths, projection = published
+    overview = dict(projection.datasets["cycle_overview"])
+    del overview["gap_list_assessed_at"]
+    older = replace(projection, datasets={**projection.datasets, "cycle_overview": overview})
+
+    assert "目标日 2026-08-28；时效截至 2026-08-28 21:00（北京）" in str(_home_page(older))
 
 
 @pytest.fixture

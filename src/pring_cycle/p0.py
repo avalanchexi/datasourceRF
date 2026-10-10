@@ -191,6 +191,8 @@ class P0ProjectionService:
                 "transition_watch": [],
                 "macro_confirmation": _macro_confirmation(resolved_macro_document),
                 "gap_list": list(gap_list),
+                # Timeliness is judged at the cutoff, also for an earlier target (lookback 27).
+                "gap_list_assessed_at": system_as_of.isoformat(),
                 "core_carry_forward": carried,
             }
         )

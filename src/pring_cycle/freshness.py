@@ -903,6 +903,16 @@ def gap_list(
     return sort_gaps(gaps)
 
 
+def freshness_statement(target_business_date: str, assessed_at: datetime) -> str:
+    """The analysed day beside the instant its gap list was judged at, in Beijing time.
+
+    Values are chosen as of the target day, timeliness at the run's cutoff (ticket 04): an
+    earlier target re-run later is judged at the later cutoff, and says so (lookback 27).
+    """
+    judged = assessed_at.astimezone(SHANGHAI)
+    return f"目标日 {target_business_date}；时效截至 {judged:%Y-%m-%d %H:%M}（北京）"
+
+
 def sort_gaps(gaps: Iterable[dict[str, object]]) -> list[dict[str, object]]:
     return sorted(
         gaps,

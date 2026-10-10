@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 from dash import dcc, html
 
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
+from pring_cycle.freshness import freshness_statement
 from pring_cycle.navigation import DASHBOARD_NAVIGATION
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
@@ -250,6 +251,7 @@ def _home_page(projection: ProjectionSet | None) -> html.Div:
                         ],
                         className="section-heading",
                     ),
+                    *_freshness_basis(projection),
                     _gap_list(overview.get("gap_list")),
                 ],
                 className="content-section",
@@ -396,6 +398,21 @@ def _not_covered(value: object) -> str:
         + f"{LISTING_STOP_LABELS.get(stopped, stopped)}；已读 {pages} 页，最早读到 {oldest}）"
         for (listing, stopped, pages, oldest), periods in by_stop.items()
     )
+
+
+def _freshness_basis(projection: ProjectionSet | None) -> list[html.P]:
+    """The target day beside the instant its gap list was judged at (lookback 27)."""
+    if projection is None:
+        return []
+    assessed = _dataset(projection, "cycle_overview").get("gap_list_assessed_at")
+    # A set published before the list carried its time was judged at its cutoff all the same.
+    judged = (
+        datetime.fromisoformat(assessed)
+        if isinstance(assessed, str)
+        else projection.envelope.system_as_of
+    )
+    statement = freshness_statement(projection.envelope.target_business_date, judged)
+    return [html.P(statement, className="secondary-copy")]
 
 
 def _gap_list(value: object) -> html.Div:
@@ -2040,6 +2057,9 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
             _compact_fact("投影身份", report.projection_set_id),
             _compact_fact("正式阶段", _stage_label(report.current_stage)),
             _compact_fact("截止点", report.report_cutoff.isoformat()),
+            _compact_fact(
+                "时效判定", freshness_statement(report.target_business_date, report.report_cutoff)
+            ),
             _compact_fact("确定性输出", "已生成"),
             _compact_fact("AI解释", "不可用" if report.adapter == "deterministic" else "已生成"),
             _compact_fact(
