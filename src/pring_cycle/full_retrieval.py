@@ -13,7 +13,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from pring_cycle import credit_impulse, lookback
-from pring_cycle.acquisition import own_acquisitions
+from pring_cycle.acquisition import REFERENCED, own_acquisitions
 from pring_cycle.basket import BASE_DATE as BASKET_BASE_DATE
 from pring_cycle.basket import BASKET_METRICS
 from pring_cycle.catalog import MetricDefinition
@@ -1054,6 +1054,17 @@ class FullRunRetrieval:
             )
 
 
+def record_first_outcome(database: Path, run_id: str, phase: str, document: dict[str, Any]) -> None:
+    """How a step of the run ended, under ``phase`` of its plan: the first time only, so a
+    resumed run doing it again does not rewrite it."""
+    encoded = json.dumps(document, ensure_ascii=False, sort_keys=True)
+    with database_connection(database) as connection:
+        connection.execute(
+            "INSERT OR IGNORE INTO full_run_gap_plan VALUES (?, ?, ?, ?)",
+            (run_id, phase, encoded, hashlib.sha256(encoded.encode()).hexdigest()),
+        )
+
+
 def read_full_retrieval_plan(database: Path, run_id: str) -> dict[str, Any]:
     result: dict[str, Any] = {"initial": None, "final": None, "adoption": None, "acquisitions": []}
     with database_connection(database) as connection:
@@ -1078,8 +1089,8 @@ def read_full_retrieval_plan(database: Path, run_id: str) -> dict[str, Any]:
                 "a.error_type, a.source_record_count, a.normalized_scalar_count, "
                 "a.ingest_result, a.ingested_claim_count FROM full_run_acquisition owner "
                 "JOIN acquisition_request a USING(acquisition_id) "
-                "WHERE owner.run_id=? ORDER BY owner.rowid",
-                (run_id,),
+                "WHERE owner.run_id=? AND owner.phase != ? ORDER BY owner.rowid",
+                (run_id, REFERENCED),
             ):
                 request = dict(row)
                 request["metric_ids"] = json.loads(request.pop("metric_ids_json"))

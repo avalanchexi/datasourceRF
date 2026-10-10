@@ -16,7 +16,11 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from pring_cycle import tushare_quota
-from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
+from pring_cycle.acquisition import (
+    AcquisitionRepository,
+    own_acquisitions,
+    reference_acquisitions,
+)
 from pring_cycle.acquisition_outcome import (
     NOT_ATTEMPTED,
     AcquisitionOutcomes,
@@ -274,6 +278,29 @@ def test_a_probe_that_gets_no_answer_is_the_run_s_one(
             call(paths, "major_news", sent=sent)
 
     assert sent == []
+
+
+def test_a_call_a_run_only_references_is_not_its_probe(
+    paths: RuntimePaths, timeline: Timeline
+) -> None:
+    """Ticket 30: a run keeping another's receipt for what it read has not asked the source."""
+    first, _ = submit(paths, "first")
+    with in_run(paths, first), pytest.raises(TushareRefused):
+        call(paths, "major_news", refusal=DAILY_REFUSAL)
+    second, _ = submit(paths, "second")
+    unanswered: list[str] = []
+    with in_run(paths, second), pytest.raises(OSError, match="timed out"):
+        call(paths, "major_news", timeout=True, on_started=unanswered.append)
+    third, _ = submit(paths, "third")
+    reference_acquisitions(paths.database, third, unanswered)
+
+    with in_run(paths, third):
+        sent: list[str] = []
+        with pytest.raises(TushareRefused):
+            call(paths, "major_news", refusal=DAILY_REFUSAL, sent=sent)
+
+    assert sent == ["major_news"]
+    assert receipts(paths, "major_news") == 3
 
 
 def test_a_targeted_run_s_probe_is_known_by_its_retrieval_request(

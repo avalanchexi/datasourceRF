@@ -399,7 +399,9 @@ def _execute_run(
         if runs.status(run.run_id) != "running":
             return
         if not run.cutoffs_frozen:
-            run = runs.freeze_cutoffs(run.run_id, system_as_of=datetime.now(UTC))
+            with own_acquisitions(paths.database, run.run_id, "judging_calendar"):
+                frozen_at = _reach_judging_day(paths, run)
+            run = runs.freeze_cutoffs(run.run_id, system_as_of=frozen_at)
     else:
         run = runs.get(run.run_id)
         if "verified_evidence" in checkpoints:
@@ -411,6 +413,17 @@ def _execute_run(
         paths,
         (date.fromisoformat(day) for day in plan["final"]["daily_window"].get("dates", ())),
         run.system_as_of,
+    )
+    from pring_cycle.acquisition import reference_acquisitions
+
+    # The responses judged by stay while the run does, whoever fetched them (ticket 30).
+    reference_acquisitions(
+        paths.database,
+        run.run_id,
+        {
+            *plan["final"]["daily_window"].get("provenance", {}).get("acquisition_ids", ()),
+            *calendar.sources,
+        },
     )
     use_run_calendar(calendar)
     use_release_schedule(batch_schedule(paths.database, run.run_id))
@@ -1933,6 +1946,46 @@ def _scheduled_p0_deadline_elapsed(
         timezone,
     )
     return observed_at.astimezone(timezone) > deadline
+
+
+def _reach_judging_day(paths: RuntimePaths, run: RunRecord) -> datetime:
+    """Fetch the SSE calendar on to the day the run's cutoff falls on, when the stored one
+    leaves a day after the target unstated (ticket 30); the moment to freeze the cutoff at.
+
+    One call, before the cutoff so that the run judges by it. Failing, the days stay
+    weekdays as before, and the run's plan says why (``judging_calendar``). Should the day
+    turn while it is made, the new day is asked after too.
+    """
+    from pring_cycle.full_retrieval import record_first_outcome
+    from pring_cycle.trading_calendar import (
+        acquire_sse_calendar,
+        judging_day,
+        judging_days_unstated,
+    )
+
+    target = date.fromisoformat(run.target_business_date)
+    fetches: list[dict[str, str]] = []
+    while True:
+        judged_at = datetime.now(UTC)
+        if unstated := judging_days_unstated(paths, target, judged_at):
+            first, last = unstated
+            token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
+            outcome = "fetched"
+            try:
+                if token is None:
+                    raise LookupError("tushare_token_missing")
+                acquire_sse_calendar(paths, TushareCoreAdapter(token), first, last)
+            except (LookupError, TypeError, ValueError, OSError) as error:
+                outcome = f"unavailable:{type(error).__name__}:{error}"
+            fetches.append(
+                {"first": first.isoformat(), "last": last.isoformat(), "outcome": outcome}
+            )
+        frozen_at = datetime.now(UTC)
+        if judging_day(frozen_at) == judging_day(judged_at):
+            break
+    if fetches:
+        record_first_outcome(paths.database, run.run_id, "judging_calendar", {"fetches": fetches})
+    return frozen_at
 
 
 def _refresh_core_sources(

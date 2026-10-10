@@ -760,8 +760,9 @@ def test_failed_direct_request_is_bound_before_http_and_visible_in_run_audit(
         system_as_of=datetime.now(UTC),
     )
     process_pending_run(paths, report_adapters=())
-    # The core refresh asks for the calendar again on its one retry (ticket 22).
-    assert len(before) == 2
+    # The core refresh asks for the calendar again on its one retry (ticket 22), and the run
+    # once more for the days from the target on to its cutoff (ticket 30).
+    assert len(before) == 3
     # The release pre-announcements (ticket 25) are fetched before the core refresh.
     core = [
         item

@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Category: bug
 Type: task
 
@@ -60,6 +60,40 @@ Type: task
 
 **用户决定（2026-10-10）**：采用 A＋B。
 
+### 2026-10-10 实施
+
+**改动**（未加迁移，引用复用 `full_run_acquisition`）
+- A 补取：`worker._reach_judging_day` 在冻结截止前运行（只在截止未冻结时；显式截止不补）。`trading_calendar.judging_days_unstated` 检查"目标日次日到判定日"，全部已覆盖就不发请求；有缺口时，在 `own_acquisitions(..., "judging_calendar")` 下用核心日历适配器请求一次 `trade_cal`，区间是**目标日到判定日**。把目标日（交易日）也包进去，是因为判定日落在长假中间时，后面几天全是休市，核心解析器会把没有开市日的回执当作缺失拒收（审查第一轮阻断）。返回值是冻结时刻；如果检查与冻结之间跨过上海零点，就对新的一天再查一次。补取失败（含缺 token、配额准入拒绝）不影响运行，按工作日推定。每次补取的区间和结果都记在运行计划的 `judging_calendar` 阶段：`{"fetches": [{first, last, outcome}]}`，可经 `runs.full_retrieval_plan(run_id)` 和运行审计接口查看。
+- B 登记：判时效后，`acquisition.reference_acquisitions` 把窗口 provenance 的回执和 `judging_calendar` 判定段的来源回执（`TradingCalendar.sources`）写进 `full_run_acquisition`，`phase='referenced'`。本运行自己取得的回执保留原 phase，已不存在的回执跳过。留存条件不变，被引用的回执随运行保留。引用行不算调用：运行审计的 acquisitions 列表、`acquisition_analysis_context` 的归属推断、配额 `admit` 里"本运行已尝试"的查询都排除了 `referenced`；日配额和分钟配额本来就只数 `acquisition_request`。
+- 测试：`test_worker_calendar_gate.py` 新增 6 例：长假后重跑补取并沿用；已覆盖时 0 次调用且引用旧回执；补取失败照常完成并留标记；判定日在长假中；跨零点；跨零点两次补取都留记录。`test_retention.py` 新增 1 例，`test_tushare_call_quota.py` 新增 1 例。另调整两处既有测试：`test_retention.py` 失败运行的目标日改为周六 08-08，因为前序运行补取后 08-04 已有日历覆盖，不再失败；`test_full_run_retrieval.py` 的 HTTP 次数从 2 改为 3，多出的一次就是补取。
+
+**测试**（共享 dev-venv 已重装）
+- 先红：新增的 3 个 Worker 用例和留存用例在 HEAD 源码上失败；"判定日在长假中"用例在"从目标日次日起取"的变体上失败。
+- 受影响测试：首轮 8 个文件 110 例（2:46）；随后 16 个带 TuShare token 的 Worker 测试文件 262 例，1 例因 HTTP 次数失败，改为 3 后通过（16:00）；审查修复后再跑 10 个文件 170 passed（10:56）；最终 `test_worker_calendar_gate.py` 9 passed。
+- 冒烟两例通过（29 秒）。最终一轮把冒烟、`test_retention.py`、`test_tushare_call_quota.py` 合跑，`test_another_interface_keeps_its_own_minute` 偶发 `acquisition_time_invalid` 一次：回执的校验时间早于接收时间，是墙钟回跳所致，与本票无关。单独连跑 3 次、与新留存用例同跑 1 次都通过。
+- 重型两例（flock）：`test_worker_registered_catalog.py` 与 `test_core_carry_forward.py` 首轮 4 passed（306＋23 秒），最终代码上 4 passed（283 秒）。
+- ruff check／format 通过；mypy 改动文件没有新错（测试文件里的既有错误不变）。
+
+**审查**（Codex 两轴＋复审）
+- 第一轮标准轴、规格轴都判"阻断：有"，是同一问题：补取区间全是休市日时会被解析器拒收。规格轴另报一项：检查与冻结之间跨零点时，判定日没有覆盖。两项都已修复。
+- 第一轮非阻断建议，采纳的：成功和失败用例补断言缺口清单分类；补一例配额"本运行已尝试"分支的测试；留存新例改用固定时钟。不采纳的：`record_first_outcome` 与 `tushare_news._record_pull` 合并，因为后者有表存在性兼容分支，又属于资讯模块，本票不动；`test_full_run_retrieval` 中 HTTP 次数依赖"今天晚于 08-28"，时间只会往后走，不改。
+- 第二轮阻断：跨日两次补取只保留首次结果，第二次失败的标记会丢。修复为每次补取都追加到 `fetches` 列表，最后一次写入，并补了测试。定向复审"阻断：无"。
+
+**真实运行验收**（v0015，目标日 2026-09-30；串行，带 C 盘保护，跑完停 Worker）
+- 第一次 `run-766f5d612930bda6f251`（当日该目标日第 4 次 `manual_full`）。当时网络故障，共 186 条回执，失败 55 条，大多是 URLError，整次跑了 32 分钟。补取请求 `acquisition-4ac2bb36…`（09-30～10-10，phase `judging_calendar`）也因 URLError 失败。运行照常完成；计划里 `judging_calendar` 记为 `unavailable:URLError:…`；25 项按工作日推定，`behind=6`。这次运行就是验收第 3 框的真实实证。
+- 第二次 `run-a04dcc783e44323e049c`（当日第 5 次）。网络正常，Worker 运行 11.8 分钟；回执 152 条，失败 17 条（`fut_basic` 8、`fut_trade_cal` 4、`fut_wsr` 预算拦截 5），都是常规失败，C 盘最低 59G。补取 `trade_cal` 只有 1 次：`acquisition-b668ed0f…`，09-30～10-10，结果 `fetched`。另有窗口日历 1 次，与以往相同。
+- 与上午验收 `run-a1110cb8616e39b00f60` 比对：
+  - 宏观模型输入 2775＝2775，核心 480＝480，按（指标、期次、成员、值）比较 0 差异；
+  - `batch_freshness` 逐项相同，DR007 等 25 项回到 `held=09-30 / released=10-09 / due=10-08 / behind=1`；
+  - 缺口清单 35 项逐项相同，其中 25 项为"落后 1 期沿用"；
+  - 缺失项 7→7、资讯选值 20→20、确认度输出逐行相同。
+- 这次没有产生 `referenced` 行：判定段由本运行自己的补取回执说明，窗口日历也是本运行取得的。引用的路径由"已覆盖时 0 次调用"用例和留存用例覆盖。
+- 运行前的库备份在 scratchpad 的 `t30/run/backup/` 和 `t30/run2/`。比对输出在 `t30/run2/`。
+
+**遗留**
+- `.scratch/ui-replan-20261003/prototype-v2/extract2.py` 等按 `full_run_acquisition` 行数统计运行请求数的脚本，今后要排除 `phase='referenced'`。数据质量体检脚本同理。
+- 补取只对冻结前、截止未冻结的运行生效。显式 `--as-of` 截止的运行仍只读库里已有的日历，符合"冻结截止不补塞回执"。
+
 ## Agent Brief
 
 **Category:** bug
@@ -79,13 +113,13 @@ Type: task
 - `retention.prune_to_window`：无需改条件，被运行引用的回执本来就会保留。如果新增了引用表，删除条件要同步加上它。
 
 **Acceptance criteria:**
-- [ ] 回归测试（先红后绿）：库里只有窗口日历（到目标日）时，在跨长假的判定时点重跑，会补取日历；日频指标"落后 1 期沿用"，不再出现"落后 6 期缺失"。放在 `tests/integration/test_holiday_freshness.py` 或 `test_worker_calendar_gate.py`。
-- [ ] 日历已覆盖判定区间时，外部调用次数为 0，有测试断言。
-- [ ] 补取失败时，运行照常完成，按工作日推定，并留下标记，有测试断言。
-- [ ] 留存测试：运行判时效读过的日历回执，即使超过两天、并且没有声明引用，只要运行还在，就不会被 `prune_to_window` 删除。放在 `tests/integration/test_retention.py`。
-- [ ] 配额计数不变：复用登记不增加当日 TuShare 调用计数。
-- [ ] 按 `docs/agents/testing.md` 跑受影响测试和两例冒烟，再加跑 `test_worker_registered_catalog.py`、`test_core_carry_forward.py`。改动文件通过 ruff 与 mypy。
-- [ ] 真实运行：v0015、目标日 2026-09-30 跑一次。`batch_freshness` 中 DR007 等 25 项应回到 `behind=1`，宏观模型输入不低于 2775；如果不是，逐项说明是不是票 27 口径下真实的落后。补取的 `trade_cal` 只有 1 次，外部调用保持串行。
+- [x] 回归测试（先红后绿）：库里只有窗口日历（到目标日）时，在跨长假的判定时点重跑，会补取日历；日频指标"落后 1 期沿用"，不再出现"落后 6 期缺失"。放在 `tests/integration/test_holiday_freshness.py` 或 `test_worker_calendar_gate.py`。
+- [x] 日历已覆盖判定区间时，外部调用次数为 0，有测试断言。
+- [x] 补取失败时，运行照常完成，按工作日推定，并留下标记，有测试断言。
+- [x] 留存测试：运行判时效读过的日历回执，即使超过两天、并且没有声明引用，只要运行还在，就不会被 `prune_to_window` 删除。放在 `tests/integration/test_retention.py`。
+- [x] 配额计数不变：复用登记不增加当日 TuShare 调用计数。
+- [x] 按 `docs/agents/testing.md` 跑受影响测试和两例冒烟，再加跑 `test_worker_registered_catalog.py`、`test_core_carry_forward.py`。改动文件通过 ruff 与 mypy。
+- [x] 真实运行：v0015、目标日 2026-09-30 跑一次。`batch_freshness` 中 DR007 等 25 项应回到 `behind=1`，宏观模型输入不低于 2775；如果不是，逐项说明是不是票 27 口径下真实的落后。补取的 `trade_cal` 只有 1 次，外部调用保持串行。
 
 **Out of scope:**
 - 调度入口在当日日历缺失时按工作日推定（`worker.py:174`）。

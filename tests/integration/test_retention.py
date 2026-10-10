@@ -27,7 +27,9 @@ from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.worker import process_pending_run
+from tests.conftest import install_runtime_clock
 from tests.integration.test_core_history_refresh import historical_response
+from tests.integration.test_trading_calendar import sse_adapter
 
 OLD, TARGET = "2026-01-05", "2026-08-03"
 
@@ -237,7 +239,9 @@ def test_a_failed_run_deletes_nothing_and_the_command_does(
         )
     )
     pruned["runner"].calendar_unavailable = True
-    failed = pruned["runner"].run("2026-08-04", "failing-day")
+    # A Saturday: the calendar the earlier runs fetched on to their cutoffs has it closed,
+    # and none other can be fetched, so the run has no window to judge by.
+    failed = pruned["runner"].run("2026-08-08", "failing-day")
 
     assert RunRepository(paths.database).get(failed).status != "completed"
     assert query(paths, "SELECT count(*) FROM source_claim WHERE period_end=?", str(old)) == [(1,)]
@@ -677,6 +681,36 @@ def test_today_s_tushare_calls_stay_for_the_day_s_quota(
     assert query(
         paths, "SELECT 1 FROM acquisition_request WHERE acquisition_id=?", receipt.acquisition_id
     ) == [(1,)]
+
+
+def test_a_calendar_the_run_judged_by_stays_with_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> None:
+    """Ticket 30: fetched by no run and long past the day's quota, the response stating the
+    days from the target on to the cutoff stays while the run that judged by it does."""
+    install_runtime_clock(monkeypatch, request, datetime(2026, 8, 10, 10, tzinfo=UTC))
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
+    ModelRepository(paths.database).activate("model-v0001", explicitly_approved=True)
+    runner = Runner(paths, monkeypatch)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    launched = sse_adapter(at=datetime(2026, 8, 4, tzinfo=UTC))
+    judged = launched.acquire_calendar(acquisitions, date(2026, 8, 4), date(2026, 8, 11)).receipt
+    unread = launched.acquire_calendar(acquisitions, date(2025, 1, 1), date(2025, 1, 31)).receipt
+
+    run_id = runner.run(TARGET, "judged-by-a-stored-calendar")
+    prune_to_window(paths, now=datetime.now(UTC) + QUOTA_COUNTED + timedelta(days=1))
+
+    held = {row[0] for row in query(paths, "SELECT acquisition_id FROM acquisition_request")}
+    assert judged.acquisition_id in held
+    assert unread.acquisition_id not in held
+    assert query(
+        paths,
+        "SELECT phase FROM full_run_acquisition WHERE run_id=? AND acquisition_id=?",
+        run_id,
+        judged.acquisition_id,
+    ) == [("referenced",)]
 
 
 def test_retention_command_is_a_no_op_without_a_successful_run(

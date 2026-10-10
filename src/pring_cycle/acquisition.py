@@ -18,6 +18,8 @@ from pring_cycle.storage import database_connection
 
 # A TuShare call refused for the day: the mark its receipt keeps (ticket 31).
 DAILY_QUOTA_REFUSED = "tushare_daily_quota_refused"
+# The phase of a receipt a run read but did not acquire (``reference_acquisitions``).
+REFERENCED = "referenced"
 
 
 def utc_now() -> datetime:
@@ -100,6 +102,22 @@ def own_acquisitions(
         yield
     finally:
         _acquisition_owner.reset(token)
+
+
+def reference_acquisitions(database: Path, run_id: str, acquisition_ids: Iterable[str]) -> None:
+    """Tie stored receipts the run read, made by another or by none, to the run.
+
+    Retention then keeps them while it keeps the run (ticket 30). A reference is no call:
+    the run's own calls, whose they are, and its TuShare quota all leave it out. A receipt
+    the run acquired itself stays under the phase it was acquired in; one no longer held is
+    passed over.
+    """
+    with database_connection(database) as connection:
+        connection.execute(
+            "INSERT OR IGNORE INTO full_run_acquisition SELECT ?, acquisition_id, ?, '[]', NULL "
+            "FROM acquisition_request WHERE acquisition_id IN (SELECT value FROM json_each(?))",
+            (run_id, REFERENCED, json.dumps(sorted(acquisition_ids))),
+        )
 
 
 def owning_run(database: Path) -> str | None:
@@ -223,9 +241,9 @@ def acquisition_analysis_context(
             """
             SELECT a.acquisition_id, a.run_id, r.target_business_date
             FROM full_run_acquisition a JOIN parent_run r ON r.run_id=a.run_id
-            WHERE a.acquisition_id IN (SELECT value FROM json_each(?))
+            WHERE a.acquisition_id IN (SELECT value FROM json_each(?)) AND a.phase != ?
             """,
-            (json.dumps(acquisition_ids),),
+            (json.dumps(acquisition_ids), REFERENCED),
         ).fetchall()
     if {row[0] for row in rows} != set(acquisition_ids):
         return {}

@@ -27,6 +27,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import DAILY_QUOTA_REFUSED as DAILY_REFUSED
+from pring_cycle.acquisition import REFERENCED
 from pring_cycle.storage import database_connection
 
 _SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -200,10 +201,10 @@ def _require_day(connection: sqlite3.Connection, api_name: str, now: datetime) -
             "SELECT 1 FROM acquisition_request AS call WHERE call.provider='tushare' "
             "AND call.api_name=? AND julianday(call.started_at) >= julianday(?) "
             "AND (call.acquisition_id IN (SELECT acquisition_id FROM full_run_acquisition "
-            "WHERE run_id=?) OR call.acquisition_id IN (SELECT acquisition_id "
+            "WHERE run_id=? AND phase != ?) OR call.acquisition_id IN (SELECT acquisition_id "
             "FROM retrieval_physical_request WHERE run_id=? AND acquisition_id IS NOT NULL)) "
             "LIMIT 1",
-            (api_name, refused[0], run_id, run_id),
+            (api_name, refused[0], run_id, REFERENCED, run_id),
         ).fetchone()
     ):
         raise TushareCallNotAttempted(DAILY_REFUSED, api_name)

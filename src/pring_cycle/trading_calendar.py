@@ -62,6 +62,7 @@ class TradingCalendar(Sessions):
     The sessions alone cover only up to the last of them; ``through`` extends that when the
     source listed later days as closed (a range ending on a holiday). ``closed`` are days past
     an uncovered one that the source still states closed: no session, though not covered.
+    ``sources`` are the responses read for it, where it was read from stored ones.
     """
 
     def __init__(
@@ -70,7 +71,9 @@ class TradingCalendar(Sessions):
         *,
         through: date | None = None,
         closed: Iterable[date] = (),
+        sources: Iterable[str] = (),
     ) -> None:
+        self.sources = tuple(sources)
         self._days = frozenset(days)
         self._first = min(self._days, default=None)
         self._last = max(self._days, default=None)
@@ -416,10 +419,11 @@ def judging_calendar(
     (``market_calendar``).
     """
     sessions = set(window_sessions)
-    judged_on = judged_at.astimezone(_SHANGHAI).date()
+    judged_on = judging_day(judged_at)
     if not sessions or judged_on <= max(sessions):
         return TradingCalendar(sessions)
-    stated = SseCalendar(paths, as_of=judged_at).stated_between(max(sessions), judged_on)
+    stored = SseCalendar(paths, as_of=judged_at)
+    stated = stored.stated_between(max(sessions), judged_on)
     # Covered from the window on as far as no day is missing; past that only what is stated
     # closed is known, a session being a weekday anyway.
     reach = max(sessions)
@@ -429,7 +433,33 @@ def judging_calendar(
         sessions | {day for day, is_open in stated.items() if is_open and day <= reach},
         through=reach,
         closed=(day for day, is_open in stated.items() if not is_open and day > reach),
+        sources=stored.sources(max(sessions), judged_on),
     )
+
+
+def judging_days_unstated(
+    paths: RuntimePaths, target: date, judged_at: datetime
+) -> tuple[date, date] | None:
+    """The days from ``target`` to the one ``judged_at`` falls on, for a run to fetch before
+    freezing its cutoff, unless a response validated by then states every day after it.
+
+    The window's calendar ends at the target; what reached past it may since have been
+    pruned, leaving a holiday to be judged a weekday owed (ticket 30). The target itself is
+    asked for too: a session, it is what keeps a response for days that are all holidays
+    from being refused as having none.
+    """
+    judged_on = judging_day(judged_at)
+    if judged_on <= target:
+        return None
+    stored = SseCalendar(paths, as_of=judged_at)
+    if stored.sessions_between(target + timedelta(days=1), judged_on) is not None:
+        return None
+    return target, judged_on
+
+
+def judging_day(moment: datetime) -> date:
+    """The day in Shanghai freshness judged at ``moment`` is judged on."""
+    return moment.astimezone(_SHANGHAI).date()
 
 
 def acquire_sse_calendar(

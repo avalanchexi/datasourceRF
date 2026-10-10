@@ -52,7 +52,7 @@
 
 | 票 | 状态 | 提交 |
 |---|---|---|
-| lookback/30 | ready-for-agent | |
+| lookback/30 | done（真实运行 `run-a04dcc783e44323e049c`：宏观输入 2775，25 项回到 behind=1；注意 `full_run_acquisition` 新增 `phase='referenced'` 引用行，统计请求数时须排除） | 见提交 |
 | 01 取数完整（日频/低频） | done | 34abdbb、84d6b99 |
 | 02 派生数据存在与重算 | ready-for-agent | |
 | 03 模型输入完整＋输出一致性 | done（待合入） | 见票面 |
