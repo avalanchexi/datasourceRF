@@ -14,9 +14,8 @@ Every day is recomputed from the observations up to that day and compared with t
 day summaries (``stage_history``; for the target day also ``p0_assessment`` and
 ``cycle_overview``). A summary carried over from an earlier run is, where it differs, recomputed
 again from that run's own raw responses: agreement there shows the difference comes from the
-history the earlier run held, not from the rules. Where the documents allow two readings, both
-are computed and a system value matching either is reported as an unresolved ambiguity, never
-as agreement.
+history the earlier run held, not from the rules. Where the documents allowed two readings,
+the user's rulings of 2026-10-10 recorded in ticket 04 apply (A2, A3, A8).
 """
 
 from __future__ import annotations
@@ -47,12 +46,7 @@ RULE_VERSIONS = {
 NONCANONICAL = "noncanonical_combination"  # CONTEXT: 非典型组合 (Noncanonical Combination)
 TOLERANCE = 1e-9  # relative, for distance / noise band / slope
 
-# Documented ambiguities (ticket 04, A2/A3/A8): computed both ways, reported, not decided.
-A2 = "A2 趋势冲突时阶段是否置空"
-A3 = "A3 确认当天的候选字段"
-A8 = "A8 上一确认阶段取更新前还是更新后"
-
-SAME, AMBIGUOUS, DIFFERENT = "一致", "歧义未裁决", "有差异"
+SAME, DIFFERENT = "一致", "有差异"
 UNVERIFIED, NO_RECORD = "未核验（核心缺日或收益链中断）", "系统无记录"
 OLDER = "未核验（可见历史之前的阶段）"
 
@@ -287,8 +281,7 @@ def run_machine(steps: list[Measures | None], persistence: int) -> list[Day]:
     A direction condition differing from the stable direction is a candidate; it becomes the
     stable direction after ``persistence`` consecutive observations. A day without that
     condition clears the candidate and keeps the stable direction. Before the first
-    confirmation the state is empty. On the confirmation day the candidate is shown cleared;
-    the other reading (A3) is handled in ``compare``.
+    confirmation the state is empty. On the confirmation day the candidate is cleared (A3).
     """
     stable, candidate, count = None, None, 0
     days = []
@@ -311,9 +304,8 @@ class Recompute:
     days: list[str]  # every SSE open day from the first held observation to ``until``
     per_asset: dict[str, dict[str, Day]]  # only days the asset has an observation
     kinds: dict[str, str]  # canonical / noncanonical / undetermined / gap
-    pairs: dict[str, set[tuple]]  # (current_stage, last_confirmed_stage), one per reading
+    stages: dict[str, tuple]  # (current_stage, last_confirmed_stage)
     seen_stage: dict[str, bool]  # a valid stage appeared in the visible history by that day
-    persistence: int
     broken: tuple[str, str] | None  # (first day not recomputed, why)
 
 
@@ -331,31 +323,20 @@ def recompute(run: Run, series: dict[str, Series], until: str) -> Recompute:
         (b for s in series.values() if (b := s.broken_from(days)) is not None), default=None
     )
     mapping = run.manifest["stage_mapping"]
-    kinds, stage, conflict = {}, {}, {}
+    # A trend conflict keeps the stable direction and maps as usual (A2); a valid stage is its
+    # own last confirmed stage on that very day (A8).
+    kinds, stages, seen, last = {}, {}, {}, None
     for day in days:
         held = [per_asset[a].get(day) for a in ASSETS]
         if any(d is None for d in held) or (broken and day >= broken[0]):
-            kinds[day], stage[day], conflict[day] = "gap", None, False
+            kinds[day], stages[day], seen[day] = "gap", (None, last), last is not None
             continue
         states = [d.state for d in held]
-        mapped = None if None in states else mapping.get(",".join(states))
-        kinds[day] = "undetermined" if None in states else "canonical" if mapped else "noncanonical"
-        stage[day] = mapped
-        conflict[day] = any(d.measures and d.measures.conflict() for d in held)
-    # A2 x A8: four complete paths, so a (current, last) pair is only accepted as a whole.
-    pairs: dict[str, set[tuple]] = defaultdict(set)
-    seen: dict[str, bool] = {}
-    for empty_on_conflict in (False, True):
-        for before_update in (False, True):
-            last = None
-            for day in days:
-                current = None if empty_on_conflict and conflict[day] else stage[day]
-                shown = last if before_update else (current or last)
-                pairs[day].add((current, shown))
-                if current:
-                    last = current
-                seen[day] = seen.get(day, False) or bool(stage[day])
-    return Recompute(days, per_asset, kinds, dict(pairs), seen, persistence, broken)
+        stage = None if None in states else mapping.get(",".join(states))
+        kinds[day] = "undetermined" if None in states else "canonical" if stage else "noncanonical"
+        last = stage or last
+        stages[day], seen[day] = (stage, last), last is not None
+    return Recompute(days, per_asset, kinds, stages, seen, broken)
 
 
 # --- system output and comparison ---------------------------------------------------------
@@ -414,9 +395,8 @@ def _sys_measures(item: dict) -> Measures | None:
 
 
 def compare(day: str, rc: Recompute, event: Event) -> list[tuple]:
-    """(field, recomputed, system, kind) for every field that does not plainly agree; kind is
-    DIFFERENT, AMBIGUOUS (the system matches one reading of a documented ambiguity) or
-    OLDER (a last confirmed stage older than the visible history)."""
+    """(field, recomputed, system, kind) for every field that does not agree; kind is
+    DIFFERENT, or OLDER (a last confirmed stage older than the visible history)."""
     out = []
     for asset in ASSETS:
         got, item = rc.per_asset[asset][day], event.asset(asset)
@@ -427,11 +407,7 @@ def compare(day: str, rc: Recompute, event: Event) -> list[tuple]:
             out.append((f"{NAMES[asset]}：state", got.state, item.get("state"), DIFFERENT))
         mine = (got.candidate, got.candidate_days)
         theirs = (item.get("candidate_state"), item.get("candidate_days"))
-        if got.confirmed:  # A3: shown cleared, or still the candidate at the threshold
-            other = (got.state, rc.persistence)
-            kind = AMBIGUOUS if theirs in (mine, other) else DIFFERENT
-            out.append((f"{NAMES[asset]}：候选（{A3}）", f"{mine} 或 {other}", theirs, kind))
-        elif theirs != mine:
+        if theirs != mine:
             out.append((f"{NAMES[asset]}：候选", mine, theirs, DIFFERENT))
         published = _sys_measures(item)
         if (got.measures is None) != (published is None):
@@ -443,22 +419,15 @@ def compare(day: str, rc: Recompute, event: Event) -> list[tuple]:
                 if not math.isclose(a, b, rel_tol=TOLERANCE, abs_tol=1e-12):
                     out.append((f"{NAMES[asset]}：{key}", f"{a:.6%}", f"{b:.6%}", DIFFERENT))
     doc = event.document
-    theirs = (doc.get("current_stage"), doc.get("last_confirmed_stage"))
-    options = rc.pairs[day]
-    if theirs not in options:
-        older = not rc.seen_stage[day] and theirs[1] is not None and (theirs[0], None) in options
+    theirs, mine = (doc.get("current_stage"), doc.get("last_confirmed_stage")), rc.stages[day]
+    if theirs != mine:
+        older = not rc.seen_stage[day] and theirs[1] is not None and theirs[0] == mine[0]
         kind = OLDER if older else DIFFERENT
-        out.append(("current_stage／last_confirmed_stage", _options(options), theirs, kind))
-    elif len(options) > 1:
-        out.append(("current_stage／last_confirmed_stage", _options(options), theirs, AMBIGUOUS))
+        out.append(("current_stage／last_confirmed_stage", mine, theirs, kind))
     noncanonical = rc.kinds[day] == "noncanonical"
     if noncanonical != (doc.get("stage_reason") == NONCANONICAL):
         out.append(("非典型组合", noncanonical, doc.get("stage_reason"), DIFFERENT))
     return out
-
-
-def _options(options: set[tuple]) -> str:
-    return " 或 ".join(str(o) for o in sorted(options, key=str))
 
 
 @dataclass
@@ -524,14 +493,14 @@ def judge(run: Run, rc: Recompute, by_day: dict[str, list[Event]], series) -> di
                     elif found[0].kinds.get(day, "gap") != "gap":
                         again = {i[3] for i in compare(day, found[0], event)}
                         if DIFFERENT not in again:
-                            note = "，A3 等歧义处未计入" if again - {SAME} else ""
+                            note = "，可见历史之前的阶段未核验" if again else ""
                             cause = f"{found[1]}{note}）"
                 findings.append(Finding(day, event, items, cause))
                 worst = DIFFERENT
             elif items:
                 findings.append(Finding(day, event, items))
                 if worst == SAME:
-                    worst = AMBIGUOUS if AMBIGUOUS in kinds else OLDER
+                    worst = OLDER
         status[day] = worst
     return {"status": status, "findings": findings}
 
@@ -585,12 +554,6 @@ def _conclusion(run, rc, series, events, status, findings, total_ids, unresolved
     for f in findings:
         if f.cause:
             causes[f.cause.split("（")[0]].add(f.day)
-    ambiguous = defaultdict(set)
-    for f in findings:
-        for name, _, _, kind in f.items:
-            if kind == AMBIGUOUS:
-                label = A3 if A3 in name else f"{A2}／{A8}"
-                ambiguous[label].add(f.day)
 
     out = [
         f"- **目标日 {target}**：重算 {_label(rc, target)}。系统 {_sources(sources) or '无记录'}："
@@ -599,10 +562,7 @@ def _conclusion(run, rc, series, events, status, findings, total_ids, unresolved
         + "。",
         f"- **逐日比对**（窗口 {len(run.window)} 日，系统记录 "
         f"{sum(1 for e in events if e.business_date in set(run.window))} 条）："
-        + "，".join(
-            f"{k} {counts[k]} 日"
-            for k in (SAME, AMBIGUOUS, DIFFERENT, OLDER, UNVERIFIED, NO_RECORD)
-        )
+        + "，".join(f"{k} {counts[k]} 日" for k in (SAME, DIFFERENT, OLDER, UNVERIFIED, NO_RECORD))
         + "。",
     ]
     if counts[DIFFERENT]:
@@ -615,11 +575,6 @@ def _conclusion(run, rc, series, events, status, findings, total_ids, unresolved
             + "。“起算点不同”：这些日汇总由更早的运行算出（已汇总的日子不再重算），"
             "那次运行的原件起点早于冻结输入、重叠日价格相同，用它按同一规则复算即与记录一致。"
             "“早先输入不同”：复算也一致，但起点不早于冻结输入或重叠日价格不同，原因待查。"
-        )
-    for label, days in sorted(ambiguous.items()):
-        out.append(
-            f"- **{label}**：{compress_days(sorted(days), run.window)}，系统取值落在两种解释之一，"
-            "文档未裁决，不计一致也不计差异（见票 04）。"
         )
     if rc.broken:
         out.append(
@@ -709,8 +664,7 @@ def _label(rc: Recompute, day: str) -> str:
         elif d.confirmed:
             text += "（当日确认）"
         parts.append(text)
-    stages = sorted({str(c or "空") for c, _ in rc.pairs[day]})
-    return "、".join(parts) + f"；{' 或 '.join(stages)}（{KIND_NAMES[rc.kinds[day]]}）"
+    return "、".join(parts) + f"；{rc.stages[day][0] or '空'}（{KIND_NAMES[rc.kinds[day]]}）"
 
 
 def _system_label(event: Event) -> str:
@@ -771,7 +725,7 @@ def _target_tables(run: Run, rc: Recompute, events: list[Event]) -> list[str]:
         rows += [["", _sources(sources), *values] for values, sources in same.items()]
     headers = ["资产", "来源", "状态", "候选", "候选天数", "距 MA120", "噪声带", "20 日斜率"]
     out += [table(headers, rows), ""]
-    stage_rows = [["重算", _options(rc.pairs[target]), KIND_NAMES[rc.kinds[target]]]]
+    stage_rows = [["重算", str(rc.stages[target]), KIND_NAMES[rc.kinds[target]]]]
     grouped: dict[tuple, list[str]] = defaultdict(list)
     for e in target_events:
         doc = e.document
@@ -805,7 +759,7 @@ def _daily_table(run, rc, by_day, status) -> list[str]:
 
 def _finding_table(run: Run, findings: list[Finding]) -> list[str]:
     out = [
-        "### 差异与歧义明细",
+        "### 差异明细",
         "",
         "同一字段、同一系统记录来源和结论的日子合并；逐日取值见上表。",
         "",
