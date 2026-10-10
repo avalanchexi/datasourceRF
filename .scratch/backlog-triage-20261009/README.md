@@ -15,6 +15,6 @@
 | [lookback/27](../lookback-fetch-gaps-20261008/issues/27-historical-rerun-freshness-cutoff.md)（时效口径） | 历史目标日重跑时时效按运行截止点判定 | done（保持口径、并列标注） |
 | [01](issues/01-acceptance.md) | 收尾验收：全套＋v0015 真实运行 | done（[acceptance-20261010.md](acceptance-20261010.md)：全套 2259 passed 1:06:05；`run-a1110cb8616e39b00f60` 10.2 分钟 153 回执；缺失 7、17 项完整、资讯选值 20 均不变；缺口 34→35 为 ECB 参考价截止时点口径） |
 
-残余开票（下一批分流）：[lookback/28](../lookback-fetch-gaps-20261008/issues/28-dateline-xiaoxi-read-as-place.md) 电头"北京…消息"误判地方；[lookback/29](../lookback-fetch-gaps-20261008/issues/29-backfill-evidence-preload-and-wal-sync.md) 补算证据预载与 WAL `synchronous` 取舍。
+残余开票（下一批分流）：[lookback/28](../lookback-fetch-gaps-20261008/issues/28-dateline-xiaoxi-read-as-place.md) 电头"北京…消息"误判地方；[lookback/29](../lookback-fetch-gaps-20261008/issues/29-backfill-evidence-preload-and-wal-sync.md) 补算证据预载与 WAL `synchronous` 取舍。2026-10-10 分流：28 wontfix；29 ready-for-agent（`synchronous=NORMAL`，见 ADR-0038）。
 
-**下一步**：本批已完成（2026-10-10，[验收记录](acceptance-20261010.md)：全套 2259 passed 1:06:05；v0015 真实运行 10.2 分钟，模型输入缺失 7→7、17 项完整、资讯选值 20 项不变）。残余票 28、29 待下一批分流；1002/05、1002/11 在真实运行中尚无可区分修复前后的实例，1002/12 要等 Worker 重装重启后生效（运行库调度已开启）。回到界面重规划主线（[decisions.md](../ui-replan-20261003/decisions.md)：报告式首页原型 → `/to-spec`）。
+**下一步**：本批已完成（2026-10-10，[验收记录](acceptance-20261010.md)：全套 2259 passed 1:06:05；v0015 真实运行 10.2 分钟，模型输入缺失 7→7、17 项完整、资讯选值 20 项不变）。残余票 28、29 已于 2026-10-10 分流（28 wontfix，29 ready-for-agent）；1002/05、1002/11 在真实运行中尚无可区分修复前后的实例，1002/12 要等 Worker 重装重启后生效（运行库调度已开启）。回到界面重规划主线（[decisions.md](../ui-replan-20261003/decisions.md)：报告式首页原型 → `/to-spec`）。
