@@ -285,8 +285,17 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 - 关键指标集合与冻结规则一致；关系只取 support、counterevidence、observation_only、unconfirmed、not_applicable 五种。
 - `applicable` 等于“当前阶段非空”；不适用时每个关键指标都是 not_applicable。
 - 每个已连接维度的 `counts` 等于其关键指标关系的逐项统计；未连接维度的 `counts` 为空。
-- 成员读法：冻结规则列出的主要与辅助成员（库存象限按三条线）都必须展开，主要成员标为 `main`；按动量比较（`agrees_by = momentum`）、状态为 current 且未标 `not_compared` 的成员，动量与主要成员（按冻结规则认定）相反（up 对 down）当且仅当标为 `opposes`；冻结主要成员以外不得有标为 `main` 的成员。库存象限有多个主要成员，不做这两项；按符号比较（`sign`）的成员缺少可比字段，本脚本不复核。有成员与主要成员相反（`opposes`）的关键指标不能标为 `consistent`；分化的关键指标关系不能是 support（`CONTEXT.md`：分化时确认关系不高于仅观察）；计入的关键指标（support／counterevidence）不能有指标级缺失。
-- **规则歧义**：“不高于仅观察”是否也排除反证（counterevidence），文档没有写明。脚本不判定，遇到时只在结论中提示。
+- 成员读法：冻结规则列出的主要与辅助成员（库存象限按三条线）都必须展开，主要成员标为 `main`；按动量比较（`agrees_by = momentum`）、状态为 current 且未标 `not_compared` 的成员，动量与主要成员（按冻结规则认定）相反（up 对 down）当且仅当标为 `opposes`；冻结主要成员以外不得有标为 `main` 的成员。库存象限有多个主要成员，不做这两项。有成员与主要成员相反（`opposes`）的关键指标不能标为 `consistent`；计入的关键指标（support／counterevidence）不能有指标级缺失。
+- **按符号比较**（票 12，口径依据数据质量体检票 12 用户裁决（2026-10-10），已写入 `CONTEXT.md` 的“关键指标”）：
+  - 范围：冻结规则中公式为当月增量同比差（`loan-monthly-increment-yoy-change-v0001`、`sf-monthly-increment-yoy-change-v0001`）的成员，即贷款九个成员（含主要成员企业中长期）和社融当月增量。投影中 `agrees_by = sign` 的成员应恰好是这些。社融政府债及七个非政府分项按动量比较，不在此列。
+  - 读法：成员的 `value`（目标期的同比差）为正记 up、为负记 down、为零记 flat，应等于成员的 `direction`；`value` 不是有限数值时，`direction` 不得是 up／down／flat。冻结规则有水平线（贷款为 0）时，`level` 应与同比差在线上下一致（等于水平线时不判）。
+  - 比较（只核辅助成员的标注：主要成员保留 `main`，冻结规则标 `compared: false` 的不核）：成员不是 current 或同比差未知的，应标 `not_compared`；否则与主要成员方向比较（主要成员按动量的取 `momentum`，按符号的取同比差正负；主要成员不是 current 或不在成员中时方向未知），相反（up 对 down）当且仅当标 `opposes`，且不得标 `not_compared`；主要成员方向未知时只要求不标 `opposes`。持平（flat）与任何方向都不算相反。
+  - 这一层只核读法。同比差的取值由第二层“规则级公式”从声明逐期重算核对；声明本身取错（如票 06 的错年份值）时，重算与读法都会一致，本节查不出。
+- **分化封顶**（同一裁决）：分化的关键指标既不算支持，也不算反证，只作观察。
+  - 分化识别：库存象限以外，按冻结规则找到主要成员，逐个比较其余成员的方向（按动量的取 `momentum`，按符号的取同比差正负；冻结规则标 `compared: false` 的不参与；成员不是 current 时方向未知），有一个与主要成员相反即为分化。独立判为分化的关键指标应恰好是 `consistency = divergent` 的那些；主要成员不在成员中的关键指标不判。
+  - 封顶：独立判为分化、或有成员标 `opposes`（含库存象限）的关键指标，关系不得是 support 或 counterevidence。
+  - 确认度不适用（非典型组合、核心待定）且分化的关键指标关系都是 not_applicable 时，封顶本身无从触发，只核到分化识别；结论会写明这一点，并分开列出独立判为分化的和按成员标注计入的（库存象限）。
+- 实测（票 12）：`run-674411db…` 与 `run-a1110cb8…` 都是非典型组合，确认度不适用。按符号比较的 10 个成员，范围、读法、水平线与比较标注全部一致；独立判为分化的 5 个关键指标（industrial_profit、loans、money、pmi、social_financing）与系统的 `divergent` 相同，库存象限另按成员标注计入；封顶未被触发。本节检查由 47 项增至 52 项。
 
 **报告与投影**
 
@@ -343,7 +352,7 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 - A8：上一确认阶段取更新后的值：当天有有效阶段时，它本身就是上一确认阶段。
 - A3：确认当天，候选字段清空为（空, 0）。
 
-以下几处不比对，留待票 05 分流：
+以下几处不比对，仍为“未核验”：票 05 分流后拆到[票 15](../../.scratch/data-quality-audit-20261010/issues/15-trend-rules-a4-a6-interview.md)另行访谈，口径定下之前不实现。
 
 - `transition_pending`（A4）：只列出位置与斜率反向的日子，以及系统 `reason` 的取值；斜率为 0 不算反向。
 - `candidate_30d`（A6）：文档没有写明公式，不重算。

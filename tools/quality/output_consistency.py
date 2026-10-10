@@ -5,12 +5,14 @@ SQL checks over the published projection and its report, not a recomputation of 
 confirmation counts against the key indicators and their members, and the report's structured
 conclusions against the projection. Each check states what it expects, independently derived
 from the frozen manifest and the rules in ADR-0001, ADR-0037 and ``CONTEXT.md``, and what the
-run stored.
+run stored. How by-sign members compare and how divergence caps a key indicator follow the
+user's ruling on data quality audit ticket 12 (2026-10-10), recorded in ``CONTEXT.md``.
 """
 
 from __future__ import annotations
 
 import json
+import math
 from collections import Counter
 from dataclasses import dataclass
 
@@ -307,11 +309,20 @@ def _confirmation_checks(run: Run, overview: dict, macro: dict) -> tuple[list[Ch
         Check(group, "冻结主要成员以外没有标为 main 的成员（库存象限除外）", [], extra_mains),
         Check(group, "按动量比较的成员：方向与主要成员相反当且仅当标为 opposes", [], mislabelled),
     ]
+    readings = [_read_members(ki, rules.get(ki.get("key"), {})) for ki in indicators]
+    checks += _sign_checks(group, indicators, readings)
     opposed = [
         ki
         for ki in indicators
         if any(m.get("consistency") == "opposes" for m in ki.get("members") or [])
     ]
+    judged = [
+        (ki, r)
+        for ki, r in zip(indicators, readings, strict=True)
+        if r is not None and r.divergent is not None
+    ]
+    found = sorted(ki.get("key") for ki, r in judged if r.divergent)
+    divergent = set(found) | {ki.get("key") for ki in opposed}
     checks += [
         Check(
             group,
@@ -321,9 +332,20 @@ def _confirmation_checks(run: Run, overview: dict, macro: dict) -> tuple[list[Ch
         ),
         Check(
             group,
-            "分化的关键指标关系不是 support",
+            "分化（consistency = divergent）当且仅当按成员方向独立判为分化（库存象限除外）",
+            found,
+            sorted(ki.get("key") for ki, _ in judged if ki.get("consistency") == "divergent"),
+        ),
+        Check(
+            group,
+            "分化封顶：分化的关键指标既不算 support 也不算 counterevidence",
             [],
-            [ki.get("key") for ki in opposed if ki.get("relation") == "support"],
+            [
+                f"{ki.get('key')}:{ki.get('relation')}"
+                for ki in indicators
+                if ki.get("key") in divergent
+                and ki.get("relation") in ("support", "counterevidence")
+            ],
         ),
         Check(
             group,
@@ -336,13 +358,143 @@ def _confirmation_checks(run: Run, overview: dict, macro: dict) -> tuple[list[Ch
             ],
         ),
     ]
-    notes = []
-    if any(ki.get("relation") == "counterevidence" for ki in opposed):
+    signed = [m for r in readings if r for m in r.signed]
+    notes = [
+        f"按符号比较：{len(signed)} 个成员（贷款与社融的当月增量同比差），核对读法（同比差正负"
+        "→方向、水平线上下）与成员比较标注；同比差的取值由第二层“规则级公式”重算核对，"
+        "取值所依据的声明本身对不对（如票 06）不在核对之内。",
+    ]
+    relations = {ki.get("relation") for ki in indicators if ki.get("key") in divergent}
+    if not conf.get("applicable") and relations <= {"not_applicable"}:
+        by_label = sorted(divergent - set(found))
         notes.append(
-            "有分化的关键指标记为 counterevidence。“不高于仅观察”是否也排除反证，规则文档"
-            "没有写明，本脚本不判定。"
+            f"分化封顶：确认度不适用（{conf.get('stage_reason')}），分化的关键指标关系都是"
+            " not_applicable，封顶本身没有被触发，只核到分化识别这一层：独立判为分化的"
+            f" {len(found)} 项（{'、'.join(found) or '无'}）"
+            + (f"，另按成员标注计入 {'、'.join(by_label)}" if by_label else "")
+            + "。"
         )
     return checks, notes
+
+
+# Members read by the sign of a derived change of the month's increment against the same
+# month a year earlier: the nine loan members and the social financing increment. Positive is
+# up, negative down, zero flat (data quality audit ticket 12, user ruling 2026-10-10).
+SIGN_FORMULAS = frozenset(
+    {"loan-monthly-increment-yoy-change-v0001", "sf-monthly-increment-yoy-change-v0001"}
+)
+DIRECTIONS = ("up", "down", "flat")
+
+
+def _sign(value) -> str | None:
+    if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value):
+        return None
+    return "up" if value > 0 else "down" if value < 0 else "flat"
+
+
+@dataclass
+class Reading:
+    """One key indicator's members read independently against its frozen rule."""
+
+    main_direction: str | None  # None also when the frozen main member is not among them
+    divergent: bool | None  # None when the frozen main member is not among the members
+    signed: list[tuple[dict, dict, bool]]  # (member, frozen entry, is_main), compared by sign
+    level_line: float | None
+
+
+def _read_members(ki: dict, rule: dict) -> Reading | None:
+    """Each member's direction (momentum, or the sign of the derived change for a by-sign
+    member; unknown unless current) against the frozen main member's. Members the rule marks
+    ``compared: false`` take no part. None for the inventory quadrant (one main per line)."""
+    if rule.get("quadrant") or not rule.get("main"):
+        return None
+    entries = {}
+    for entry, is_main in [(rule["main"], True)] + [(a, False) for a in rule.get("auxiliary", [])]:
+        key = _member_id(entry.get("metric_id") or rule.get("metric_id"), entry.get("dimensions"))
+        entries[key] = (entry, is_main)
+    members = [
+        (m, *entries[key])
+        for m in ki.get("members") or []
+        if (key := _member_id(m.get("metric_id"), m.get("member"))) in entries
+    ]
+    main = next(((m, e) for m, e, is_main in members if is_main), None)
+
+    def direction(member: dict, entry: dict) -> str | None:
+        if member.get("evidence_status") != "current":
+            return None
+        by_sign = entry.get("formula") in SIGN_FORMULAS
+        found = _sign(member.get("value")) if by_sign else member.get("momentum")
+        return found if found in DIRECTIONS else None
+
+    main_direction = direction(*main) if main else None
+    divergent = None
+    if main:
+        divergent = main_direction is not None and any(
+            {main_direction, direction(m, e)} == {"up", "down"}
+            for m, e, is_main in members
+            if not is_main and e.get("compared") is not False
+        )
+    signed = [(m, e, is_main) for m, e, is_main in members if e.get("formula") in SIGN_FORMULAS]
+    return Reading(main_direction, divergent, signed, rule.get("level_line"))
+
+
+def _sign_checks(group: str, indicators: list[dict], readings: list) -> list[Check]:
+    """By-sign members: which members they are, how the derived change reads, and how each
+    compares with the main member (unknown or stale: ``not_compared``)."""
+    expected_scope, scope, misread, level, mislabelled = [], [], [], [], []
+    for ki, reading in zip(indicators, readings, strict=True):
+        scope += [
+            f"{ki.get('key')}:{m.get('name')}"
+            for m in ki.get("members") or []
+            if m.get("agrees_by") == "sign"
+        ]
+        if reading is None:
+            continue
+        for m, entry, is_main in reading.signed:
+            name = f"{ki.get('key')}:{m.get('name')}"
+            expected_scope.append(name)
+            value, sign = m.get("value"), _sign(m.get("value"))
+            stored = m.get("direction")
+            if (sign and stored != sign) or (sign is None and stored in DIRECTIONS):
+                misread.append(f"{name} 值 {value}／方向 {stored}")
+            line = reading.level_line
+            beside = sign and line is not None and value != line
+            if beside and m.get("level") != ("above" if value > line else "below"):
+                level.append(f"{name} 值 {value}／水平线 {line}／标 {m.get('level')}")
+            if is_main or entry.get("compared") is False:
+                continue  # the main member is labelled main; an uncompared member is shown only
+            mine = sign if m.get("evidence_status") == "current" else None
+            label = m.get("consistency")
+            if mine is None:
+                wrong = label != "not_compared"
+            elif reading.main_direction is None:
+                wrong = label == "opposes"
+            else:
+                opposite = {reading.main_direction, mine} == {"up", "down"}
+                wrong = opposite != (label == "opposes") or label == "not_compared"
+            if wrong:
+                mislabelled.append(
+                    f"{name} 主 {reading.main_direction}／成员 {mine}"
+                    f"（{m.get('evidence_status')}）／标 {label}"
+                )
+    return [
+        Check(
+            group,
+            "按符号比较的成员恰为冻结规则中当月增量同比差的成员（贷款、社融增量）",
+            sorted(expected_scope),
+            sorted(scope),
+        ),
+        Check(
+            group, "按符号比较的成员：方向等于同比差的正负（正 up、负 down、零 flat）", [], misread
+        ),
+        Check(group, "按符号比较的成员：有水平线时 level 与同比差在线上下一致", [], level),
+        Check(
+            group,
+            "按符号比较的成员：未知或过期标 not_compared；可比时与主要成员相反当且仅当标 opposes",
+            [],
+            mislabelled,
+        ),
+    ]
 
 
 def _member_id(metric, dims) -> tuple:
