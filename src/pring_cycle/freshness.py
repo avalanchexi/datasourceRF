@@ -476,7 +476,9 @@ def record_batch_freshness(
 
 def batch_freshness(database: Path, batch_id: str) -> dict[str, dict[str, object]]:
     """The freshness a batch recorded, by metric."""
-    connection = sqlite3.connect(database)
+    from pring_cycle.storage import connect
+
+    connection = connect(database)
     connection.row_factory = sqlite3.Row
     try:
         exists = connection.execute(

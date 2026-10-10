@@ -8,7 +8,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 
@@ -30,7 +30,7 @@ def database_connection(database: Path | str, *, uri: bool = False) -> Iterator[
     owner = os.getpid()
     pool = None if uri else _active_pool(database)
     pooled = pool.checkout(database) if pool is not None else None
-    connection = pooled if pooled is not None else sqlite3.connect(database, uri=uri)
+    connection = pooled if pooled is not None else connect(database, uri=uri)
     try:
         try:
             yield connection
@@ -131,7 +131,7 @@ class _Pool:
             self.generation += 1
         if self.idle:
             return self.idle.pop()
-        connection = sqlite3.connect(database, factory=_PooledConnection)
+        connection = cast(_PooledConnection, connect(database, factory=_PooledConnection))
         connection.pool_generation = self.generation
         return connection
 
@@ -196,6 +196,32 @@ def _file_identity(database: Path | str) -> tuple[int, int] | None:
     return (stat.st_dev, stat.st_ino)
 
 
+def connect(
+    database: Path | str,
+    *,
+    uri: bool = False,
+    factory: type[sqlite3.Connection] | None = None,
+) -> sqlite3.Connection:
+    """A new SQLite connection, syncing its WAL at checkpoints only, not on every commit.
+
+    ``synchronous`` belongs to the connection, so every new one sets it (ADR-0038): under WAL
+    the default, FULL, syncs on each commit, about 11 thousand times a full run (ticket 29).
+    A power loss may undo the last commits, never corrupt the file.
+    """
+    # A factory only when asked for: tests that observe connections pass their own.
+    connection = (
+        sqlite3.connect(database, uri=uri)
+        if factory is None
+        else sqlite3.connect(database, uri=uri, factory=factory)
+    )
+    try:
+        sqlite3.Connection.execute(connection, "PRAGMA synchronous=NORMAL").close()
+    except BaseException:
+        connection.close()
+        raise
+    return connection
+
+
 # Databases this process has put in WAL mode. The mode is stored in the file, so setting it on
 # every connection only repeats a statement; a full run opens tens of thousands of connections
 # (run findings 2026-09-28, ticket 11).
@@ -256,6 +282,7 @@ def migrate_database(database_path: Path) -> None:
     def set_sqlite_pragmas(dbapi_connection: object, _connection_record: object) -> None:
         cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
         cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.execute("PRAGMA busy_timeout=5000")
         cursor.close()
