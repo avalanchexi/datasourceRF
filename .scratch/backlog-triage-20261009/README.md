@@ -17,4 +17,4 @@
 
 残余开票（下一批分流）：[lookback/28](../lookback-fetch-gaps-20261008/issues/28-dateline-xiaoxi-read-as-place.md) 电头"北京…消息"误判地方；[lookback/29](../lookback-fetch-gaps-20261008/issues/29-backfill-evidence-preload-and-wal-sync.md) 补算证据预载与 WAL `synchronous` 取舍。
 
-**下一步**：以 `/goal` 启动 goal.md（2026-10-09 已启动）。本批完成后回到界面重规划主线（[decisions.md](../ui-replan-20261003/decisions.md)）。
+**下一步**：本批已完成（2026-10-10，[验收记录](acceptance-20261010.md)：全套 2259 passed 1:06:05；v0015 真实运行 10.2 分钟，模型输入缺失 7→7、17 项完整、资讯选值 20 项不变）。残余票 28、29 待下一批分流；1002/05、1002/11 在真实运行中尚无可区分修复前后的实例，1002/12 要等 Worker 重装重启后生效（运行库调度已开启）。回到界面重规划主线（[decisions.md](../ui-replan-20261003/decisions.md)：报告式首页原型 → `/to-spec`）。
