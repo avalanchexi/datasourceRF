@@ -10,10 +10,10 @@
 | [run-findings-20261002/05](../run-findings-20261002/issues/05-rejected-candidate-overrides-held-target.md) | 已取得的目标期被旧候选改判为"检索未通过" | done（68b50d2） |
 | [run-findings-20261002/11](../run-findings-20261002/issues/11-first-retrieval-plan-before-run-calendar.md) | 首次补缺规划在装入运行日历之前 | done（732cbc7） |
 | [run-findings-20261002/12](../run-findings-20261002/issues/12-scheduler-skips-only-weekends.md) | 盘后调度只排除周末 | done（cbac9b7） |
-| [lookback/24](../lookback-fetch-gaps-20261008/issues/24-test-feedback-too-slow.md) | 测试反馈过慢（先诊断） | done（诊断：慢在每次运行约 7.1 万次开连接；`check.py` 逐阶段计时 a692827；`storage.py` 连接复用 0e0d7de／65b9e05，同口径 −28%／−50%；框 1、5 随收尾全套） |
+| [lookback/24](../lookback-fetch-gaps-20261008/issues/24-test-feedback-too-slow.md) | 测试反馈过慢（先诊断） | done（诊断：慢在每次运行约 7.1 万次开连接；`check.py` 逐阶段计时 a692827；`storage.py` 连接复用 0e0d7de／65b9e05，同口径 −28%／−50%；框 1、5 由收尾全套勾选） |
 | [lookback/26](../lookback-fetch-gaps-20261008/issues/26-ai-websearch-claims-lack-subject-context.md) | AI WebSearch 原话缺标题与主语分句 | done（按网址重取页面；存量 35 条采用 30、排除 1、取不到 4，选值不变） |
 | [lookback/27](../lookback-fetch-gaps-20261008/issues/27-historical-rerun-freshness-cutoff.md)（时效口径） | 历史目标日重跑时时效按运行截止点判定 | done（保持口径、并列标注） |
-| [01](issues/01-acceptance.md) | 收尾验收：全套＋v0015 真实运行 | ready-for-agent |
+| [01](issues/01-acceptance.md) | 收尾验收：全套＋v0015 真实运行 | done（[acceptance-20261010.md](acceptance-20261010.md)：全套 2259 passed 1:06:05；`run-a1110cb8616e39b00f60` 10.2 分钟 153 回执；缺失 7、17 项完整、资讯选值 20 均不变；缺口 34→35 为 ECB 参考价截止时点口径） |
 
 残余开票（下一批分流）：[lookback/28](../lookback-fetch-gaps-20261008/issues/28-dateline-xiaoxi-read-as-place.md) 电头"北京…消息"误判地方；[lookback/29](../lookback-fetch-gaps-20261008/issues/29-backfill-evidence-preload-and-wal-sync.md) 补算证据预载与 WAL `synchronous` 取舍。
 
