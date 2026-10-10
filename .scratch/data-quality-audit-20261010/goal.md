@@ -53,7 +53,7 @@
 | 票 | 状态 | 提交 |
 |---|---|---|
 | lookback/30 | ready-for-agent | |
-| 01 取数完整（日频/低频） | done | 见分支（待 ff 合入） |
+| 01 取数完整（日频/低频） | done | 34abdbb、84d6b99 |
 | 02 派生数据存在与重算 | ready-for-agent | |
 | 03 模型输入完整＋输出一致性 | ready-for-agent | |
 | 04 三核心独立重算 | ready-for-agent | |
