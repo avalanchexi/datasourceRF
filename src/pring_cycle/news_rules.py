@@ -1122,13 +1122,16 @@ def news_claims_matching_quotes(
                 str(row["title"]),
             ):
                 valid.add(claim_id)
-        return valid - _on_local_pages(
+        return valid - _awaiting_subjects(
             connection,
             {
-                claim_id: str(
-                    quotes[claim_id]["body_hash"]
-                    if quotes[claim_id]["url"] is None
-                    else quotes[claim_id]["url"]
+                claim_id: (
+                    str(
+                        quotes[claim_id]["body_hash"]
+                        if quotes[claim_id]["url"] is None
+                        else quotes[claim_id]["url"]
+                    ),
+                    str(quotes[claim_id]["route"]),
                 )
                 for claim_id in valid
                 if quotes[claim_id]["subject"] is None
@@ -1139,7 +1142,7 @@ def news_claims_matching_quotes(
 # A kept quote with the page it was read from: its address, else its body's hash.
 _KEPT_QUOTES = (
     "SELECT q.claim_id, q.quote, q.subject, q.title, COALESCE(q.url, q.body_hash), "
-    "c.metric_id, c.dimensions_json, c.period_start, c.period_end, c.value "
+    "c.metric_id, c.dimensions_json, c.period_start, c.period_end, c.value, q.route "
     "FROM claim_matched_quote AS q CROSS JOIN source_claim AS c ON c.claim_id = q.claim_id "
 )
 
@@ -1165,16 +1168,20 @@ def news_claims_no_longer_stated(
         (json.dumps(list(metric_ids)),),
     ).fetchall()
     stated = {
-        str(claim_id): (subject, page)
-        for claim_id, quote, subject, title, page, metric_id, dimensions, start, end, value in rows
+        str(claim_id): (subject, str(page), str(route))
+        for claim_id, quote, subject, title, page, metric_id, dims, start, end, value, route in rows
         if _quote_states(
-            metric_id, json.loads(dimensions), start, end, value, str(quote), subject, str(title)
+            metric_id, json.loads(dims), start, end, value, str(quote), subject, str(title)
         )
     }
     unstated = frozenset(str(row[0]) for row in rows if str(row[0]) not in stated)
-    return unstated | _on_local_pages(
+    return unstated | _awaiting_subjects(
         connection,
-        {claim_id: str(page) for claim_id, (subject, page) in stated.items() if subject is None},
+        {
+            claim_id: (page, route)
+            for claim_id, (subject, page, route) in stated.items()
+            if subject is None
+        },
     )
 
 
@@ -1182,24 +1189,37 @@ def news_claims_no_longer_stated(
 # title alone. Its page may have named a place before the quote, as c8dcb77e's did; a page
 # with another claim read as a place's makes it a suspect, not taken until its page is read
 # again for the clause (lookback 23). Its own page's address, else its body's hash, is its page.
+# An AI WebSearch quote kept so was never read on its page at all: the CLI gave the sentence
+# alone, with no title and no paragraph, so it is a suspect whatever its page (lookback 26).
 def suspect_news_claims(connection: sqlite3.Connection) -> tuple[str, ...]:
     """The kept news claims with no subject clause whose quote and title still state their
-    value, on a page with another claim read as a place's: neither listed nor selected."""
+    value, from AI WebSearch or on a page with another claim read as a place's: neither
+    listed nor selected."""
     rows = connection.execute(_KEPT_QUOTES + "WHERE q.subject IS NULL").fetchall()
     return tuple(
         sorted(
-            _on_local_pages(
+            _awaiting_subjects(
                 connection,
                 {
-                    str(claim_id): str(page)
-                    for claim_id, quote, _s, title, page, metric_id, dims, start, end, value in rows
+                    str(claim): (str(page), str(route))
+                    for claim, quote, _, title, page, metric, dims, start, end, value, route in rows
                     if _quote_states(
-                        metric_id, json.loads(dims), start, end, value, str(quote), None, str(title)
+                        metric, json.loads(dims), start, end, value, str(quote), None, str(title)
                     )
                 },
             )
         )
     )
+
+
+def _awaiting_subjects(
+    connection: sqlite3.Connection, kept: Mapping[str, tuple[str, str]]
+) -> frozenset[str]:
+    """Of ``kept`` (a claim with no subject clause whose quote still states its value, to its
+    page and route), the suspects: AI WebSearch's, and those on a page read as a place's."""
+    return frozenset(
+        claim_id for claim_id, (_page, route) in kept.items() if route == AI_WEBSEARCH
+    ) | _on_local_pages(connection, {claim_id: page for claim_id, (page, _r) in kept.items()})
 
 
 def _on_local_pages(connection: sqlite3.Connection, pages: Mapping[str, str]) -> frozenset[str]:
@@ -1213,7 +1233,7 @@ def _on_local_pages(connection: sqlite3.Connection, pages: Mapping[str, str]) ->
     ).fetchall()
     local = {
         str(page)
-        for _id, quote, subject, title, page, metric_id, dimensions, start, end, value in rows
+        for _id, quote, subject, title, page, metric_id, dimensions, start, end, value, _r in rows
         if _quote_local(
             metric_id, json.loads(dimensions), start, end, value, str(quote), subject, str(title)
         )
@@ -1245,6 +1265,7 @@ def restore_suspect_subjects(
     gives the claim's figure is kept, a place's or the country's, with the page's title
     where the quote had none; only a quote with no clause is written. A claim with no
     address, or whose page cannot be had or no longer gives its figure, stays a suspect.
+    Each page is fetched once, whatever number of suspects it holds.
     """
     from pring_cycle.storage import database_connection
 
@@ -1258,9 +1279,13 @@ def restore_suspect_subjects(
             (json.dumps(list(suspects)),),
         ).fetchall()
     restored = []
+    # A page with several suspects, as an AI answer's often is, is fetched once.
+    pages: dict[str, str | None] = {}
     for claim_id, url, kept_title, metric_id, dimensions_json, start, end, value, quote in rows:
         dimensions = json.loads(dimensions_json)
-        content = fetch(url) if url else None
+        if url and url not in pages:
+            pages[url] = fetch(url)
+        content = pages[url] if url else None
         if content is None:
             restored.append(RestoredSubject(claim_id, url, None, "unavailable"))
             continue
@@ -1273,13 +1298,15 @@ def restore_suspect_subjects(
             local_too=True,
         )
         # The kept quote's own reading: a mixed page may state the same figure as the
-        # country's and as a place's. Read two ways, it is not restored.
+        # country's and as a place's. Read two ways, it is not restored. Spacing aside: an
+        # AI WebSearch quote is the CLI's copy of the page's sentence.
+        kept = _unspaced(quote)
         subjects = {
             r.subject
             for r in readings
             if r.dimensions == dimensions
             and r.value == value
-            and (quote in r.quote or r.quote in quote)
+            and (kept in _unspaced(r.quote) or _unspaced(r.quote) in kept)
         }
         if len(subjects) != 1:
             restored.append(RestoredSubject(claim_id, url, text_hash(content), "unavailable"))
@@ -1300,6 +1327,10 @@ def restore_suspect_subjects(
     return tuple(restored)
 
 
+def _unspaced(text: str) -> str:
+    return re.sub(r"\s+", "", text)
+
+
 def _quote_states(
     metric_id: str,
     dimensions: dict[str, str],
@@ -1313,7 +1344,7 @@ def _quote_states(
     """Whether a kept quote still gives the claim's member its value for its period.
 
     Its subject clause and its page's title are read again too (lookback 22); a quote kept
-    before has no subject clause, and an AI WebSearch quote no title.
+    before has no subject clause, and an AI WebSearch quote kept before lookback 26 no title.
     """
     if _names_place(title) or _names_place(subject or ""):
         return False

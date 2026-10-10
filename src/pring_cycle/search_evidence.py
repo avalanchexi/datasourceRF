@@ -9,6 +9,7 @@ from datetime import UTC, date
 from urllib.parse import urlsplit
 from uuid import uuid4
 
+from pring_cycle.acquisition import Acquired, AcquisitionReceipt
 from pring_cycle.catalog import metric_definition
 from pring_cycle.catalog_registry import (
     SYSTEM_TARGET_CUTOFF_VERSION,
@@ -25,7 +26,7 @@ from pring_cycle.metric_contracts import (
     required_dimension_members,
 )
 from pring_cycle.models import ModelRepository
-from pring_cycle.news_rules import rules_for
+from pring_cycle.news_rules import NewsExtraction, RestoredSubject, rules_for
 from pring_cycle.official_context import (
     ParsedOfficialContextRelease,
     official_family_for_metrics,
@@ -578,46 +579,139 @@ def _accept_lenient_candidate(
     return (stored.claim_id,)
 
 
-def _accept_media_candidate(
+@dataclass(frozen=True)
+class NewsPage:
+    """A page read again by the family's news rules, its original kept (ADR-0026)."""
+
+    receipt: AcquisitionReceipt
+    title: str
+    text: str
+    # The page's own publication time as written, if it shows one.
+    published_text: str | None
+    extraction: NewsExtraction
+
+
+def read_news_page(
     paths: RuntimePaths,
-    run: RunRecord,
+    url: str,
+    metric_ids: tuple[str, ...],
+    period: str,
+    *,
+    source: str,
+    source_of: Callable[[str], str | None],
+    on_acquisition_started: Callable[[str], None] | None = None,
+) -> NewsPage:
+    """Fetch ``url`` once and read it by the rules, its title and subject clauses included.
+
+    The page must answer itself (no redirect, status 200) from the same ``source`` as
+    ``source_of`` names it, and the rules must read a value for ``period`` from it; else
+    the candidate is rejected with the reason, and the failed acquisition keeps what came.
+    """
+    from pring_cycle.news_rules import (
+        extract,
+        page_published_at,
+        page_title,
+        plain_text,
+        text_hash,
+    )
+
+    def read(content: str) -> tuple[str, str, NewsExtraction, str | None]:
+        text = plain_text(content)
+        extraction = extract(metric_ids, period, text, title=page_title(content))
+        if extraction.reason is not None:
+            raise CandidateRejected(extraction.reason)
+        return content, text, extraction, page_published_at(content)
+
+    acquired = _capture_page(
+        paths,
+        url,
+        source=source,
+        source_of=source_of,
+        parameters={"source_url": url, "period": period, "metric_ids": ",".join(metric_ids)},
+        read=read,
+        normalize=lambda parsed: {
+            "title": page_title(parsed[0]),
+            "published_at": parsed[3],
+            "text_sha256": text_hash(parsed[1]),
+            "values": [
+                {"metric_id": v.metric_id, "dimensions": v.dimensions, "value": v.value}
+                for v in parsed[2].values
+            ],
+        },
+        count_scalars=lambda parsed: len(parsed[2].values),
+        on_started=on_acquisition_started,
+    )
+    content, text, extraction, published_text = acquired.value
+    return NewsPage(acquired.receipt, page_title(content), text, published_text, extraction)
+
+
+def fetch_news_page(
+    paths: RuntimePaths,
     url: str,
     *,
-    definition_version: str,
-    on_acquisition_started: Callable[[str], None],
-) -> tuple[str, ...]:
-    """A P1/P2 value from a whitelisted media page, by the family's news rules (ADR-0026).
+    source: str,
+    source_of: Callable[[str], str | None],
+    on_acquisition_started: Callable[[str], None] | None = None,
+) -> tuple[AcquisitionReceipt, str]:
+    """Fetch ``url`` once and keep it as a media page's original, to be read for any period
+    (``read_page_content``): its receipt and decoded content."""
+    from pring_cycle.news_rules import page_published_at, page_title, plain_text, text_hash
 
-    The page is refetched and kept; only sentences the rules recognize give values, each
-    for the gap's due period, and each value keeps its matched quote. P0 never takes one.
+    acquired = _capture_page(
+        paths,
+        url,
+        source=source,
+        source_of=source_of,
+        parameters={"source_url": url},
+        read=lambda content: content,
+        normalize=lambda content: {
+            "title": page_title(content),
+            "published_at": page_published_at(content),
+            "text_sha256": text_hash(plain_text(content)),
+        },
+        on_started=on_acquisition_started,
+    )
+    return acquired.receipt, acquired.value
+
+
+def read_page_content(
+    receipt: AcquisitionReceipt, content: str, metric_ids: tuple[str, ...], period: str
+) -> NewsPage:
+    """A fetched page read by the rules for ``period``, its title and subject clauses
+    included; rejected with the reason when they read no value for it."""
+    from pring_cycle.news_rules import extract, page_published_at, page_title, plain_text
+
+    text = plain_text(content)
+    title = page_title(content)
+    extraction = extract(metric_ids, period, text, title=title)
+    if extraction.reason is not None:
+        raise CandidateRejected(extraction.reason)
+    return NewsPage(receipt, title, text, page_published_at(content), extraction)
+
+
+def _capture_page[T](
+    paths: RuntimePaths,
+    url: str,
+    *,
+    source: str,
+    source_of: Callable[[str], str | None],
+    parameters: dict[str, str],
+    read: Callable[[str], T],
+    normalize: Callable[[T], object],
+    count_scalars: Callable[[T], int | None] | None = None,
+    on_started: Callable[[str], None] | None = None,
+) -> Acquired[T]:
+    """A page fetched once and kept as a media page's original, then ``read`` from its text.
+
+    It must answer itself (no redirect, status 200) from ``source``, as ``source_of``
+    names the address it answered from.
     """
     from urllib.request import Request
 
     from pring_cycle.acquisition import AcquisitionRepository
-    from pring_cycle.freshness import public_available_at
     from pring_cycle.http_transport import open_no_redirects
-    from pring_cycle.news_rules import (
-        MEDIA_PAGE,
-        MEDIA_PAGE_API,
-        NEWS_RULES_VERSION,
-        NewsExtraction,
-        TakenValue,
-        extract,
-        member_period,
-        page_published_at,
-        page_title,
-        parse_published_at,
-        plain_text,
-        store_news_values,
-        text_hash,
-    )
-    from pring_cycle.trading_calendar import current_calendar
+    from pring_cycle.news_rules import MEDIA_PAGE_API, NEWS_RULES_VERSION
 
-    scope = run.retrieval_scope
-    assert scope is not None
-    outlet = media_outlet(url)
-    if outlet is None or scope.priority == "P0":
-        raise CandidateRejected(NOT_WHITELISTED)
     responses: list[tuple[int, str, str]] = []
 
     def fetch() -> bytes:
@@ -641,51 +735,129 @@ def _accept_media_candidate(
                 continue
         raise CandidateRejected(PARSE_FAILED)
 
-    def parse(raw: bytes) -> tuple[str, str, NewsExtraction, str | None]:
+    def parse(raw: bytes) -> T:
         status, final_url, _media_type = responses[0]
         if status != 200:
             raise CandidateRejected(FETCH_FAILED)
-        if media_outlet(final_url) != outlet:
+        if source_of(final_url) != source:
             raise CandidateRejected(NOT_WHITELISTED)
-        content = decode(raw)
-        text = plain_text(content)
-        extraction = extract(scope.metric_ids, scope.period, text, title=page_title(content))
-        if extraction.reason is not None:
-            raise CandidateRejected(extraction.reason)
-        return content, text, extraction, page_published_at(content)
+        return read(decode(raw))
 
-    acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
-        provider=outlet,
+    return AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider=source,
         api_name=MEDIA_PAGE_API,
-        parameters={
-            "source_url": url,
-            "period": scope.period,
-            "metric_ids": ",".join(scope.metric_ids),
-        },
+        parameters=parameters,
         fields="text",
         parser_version=NEWS_RULES_VERSION,
         fetch=fetch,
         parse=parse,
-        normalize=lambda parsed: {
-            "title": page_title(parsed[0]),
-            "published_at": parsed[3],
-            "text_sha256": text_hash(parsed[1]),
-            "values": [
-                {"metric_id": v.metric_id, "dimensions": v.dimensions, "value": v.value}
-                for v in parsed[2].values
-            ],
-        },
-        on_started=on_acquisition_started,
-        count_scalars=lambda parsed: len(parsed[2].values),
+        normalize=normalize,
+        on_started=on_started,
+        count_scalars=count_scalars,
     )
-    receipt = acquired.receipt
-    content, text, extraction, published_text = acquired.value
+
+
+@dataclass(frozen=True)
+class RestoredPage:
+    """A suspect read again on its page (lookback 26), with the original its page kept."""
+
+    restored: RestoredSubject
+    # The acquisition that kept its page, and that original's hash, when it was had.
+    acquisition_id: str | None
+    raw_hash: str | None
+
+
+def restore_suspect_pages(paths: RuntimePaths) -> tuple[RestoredPage, ...]:
+    """Read each suspect news claim's page again, one at a time, for its subject clause and
+    title (``news_rules.restore_suspect_subjects``), as a media page is read: an official
+    or whitelisted host, answering itself, kept as an original with its hash. A page that
+    cannot be had leaves its claims suspects, neither listed nor selected.
+
+    AI WebSearch's quotes kept before lookback 26 are all suspects: this is what reads them
+    once on their pages. It makes one request per page, so it is run by hand, not by a run.
+    """
+    from pring_cycle.news_rules import restore_suspect_subjects
+    from pring_cycle.retrieval_registry import RETRIEVAL_FAMILY_BY_METRIC
+
+    kept: dict[str, AcquisitionReceipt] = {}
+
+    def source_of(url: str) -> str | None:
+        return media_outlet(url) or next(
+            (
+                host
+                for metric in RETRIEVAL_FAMILY_BY_METRIC
+                if (host := registered_host(metric, url))
+            ),
+            None,
+        )
+
+    def fetch(url: str) -> str | None:
+        source = source_of(url)
+        if source is None:
+            return None
+        try:
+            receipt, content = fetch_news_page(paths, url, source=source, source_of=source_of)
+        except (OSError, ValueError):
+            return None
+        kept[url] = receipt
+        return content
+
+    return tuple(
+        RestoredPage(
+            item,
+            kept[item.url].acquisition_id if item.url in kept else None,
+            kept[item.url].raw_hash if item.url in kept else None,
+        )
+        for item in restore_suspect_subjects(paths.database, fetch)
+    )
+
+
+def _accept_media_candidate(
+    paths: RuntimePaths,
+    run: RunRecord,
+    url: str,
+    *,
+    definition_version: str,
+    on_acquisition_started: Callable[[str], None],
+) -> tuple[str, ...]:
+    """A P1/P2 value from a whitelisted media page, by the family's news rules (ADR-0026).
+
+    The page is refetched and kept; only sentences the rules recognize give values, each
+    for the gap's due period, and each value keeps its matched quote. P0 never takes one.
+    """
+    from pring_cycle.acquisition import AcquisitionRepository
+    from pring_cycle.freshness import public_available_at
+    from pring_cycle.news_rules import (
+        MEDIA_PAGE,
+        TakenValue,
+        member_period,
+        parse_published_at,
+        store_news_values,
+        text_hash,
+    )
+    from pring_cycle.trading_calendar import current_calendar
+
+    scope = run.retrieval_scope
+    assert scope is not None
+    outlet = media_outlet(url)
+    if outlet is None or scope.priority == "P0":
+        raise CandidateRejected(NOT_WHITELISTED)
+    page = read_news_page(
+        paths,
+        url,
+        scope.metric_ids,
+        scope.period,
+        source=outlet,
+        source_of=media_outlet,
+        on_acquisition_started=on_acquisition_started,
+    )
+    receipt = page.receipt
     assert receipt.received_at is not None and receipt.validated_at is not None
     with AcquisitionRepository(paths.database, paths.artifacts).ingesting(
         (receipt.acquisition_id,)
     ):
-        published = parse_published_at(published_text)
-        for value in extraction.values:
+        published = parse_published_at(page.published_text)
+        for value in page.extraction.values:
             # The page's own time when it shows one, else the registered release time.
             _kind, _start, end = member_period(value.metric_id, value.dimensions, scope.period)
             known = published or public_available_at(
@@ -693,22 +865,21 @@ def _accept_media_candidate(
             )
             if known is not None and known > run.system_as_of:
                 raise CandidateRejected(DATE_AFTER_CUTOFF)
-        title = page_title(content)
         stored = store_news_values(
             paths.database,
             tuple(
                 TakenValue(
                     value=value,
-                    title=title,
+                    title=page.title,
                     source_name=outlet,
-                    published_at=published.isoformat() if published else published_text,
-                    body_hash=text_hash(text),
+                    published_at=published.isoformat() if published else page.published_text,
+                    body_hash=text_hash(page.text),
                     url=url,
                     acquisition_id=receipt.acquisition_id,
                     fetched_at=receipt.received_at,
                     release_at=published,
                 )
-                for value in extraction.values
+                for value in page.extraction.values
             ),
             route=MEDIA_PAGE,
             provider=outlet,

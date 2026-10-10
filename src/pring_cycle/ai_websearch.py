@@ -3,9 +3,11 @@
 Codex CLI is asked first and Claude Code if Codex fails or times out, as for reports. Each
 returns a fixed structure: candidates with URL, quote, value, period and publication
 date. A candidate fills the gap only when its host is an official or whitelisted media
-host, the family's news rule reads the same value from its quote (a P2 lenient metric: the
-quote states the value for the day), its period is the gap's, and it was published by the
-run's cutoff. An adopted value keeps its quote like any news value (ADR-0026).
+host, the family's news rule reads the same value from its quote, its period is the gap's,
+and it was published by the run's cutoff; then its page is fetched once and read by the
+rules as a media page is, title and subject clauses included, and must state the same
+value as the country's (lookback 26). An adopted value keeps the page's sentence, subject
+clause, title and original like any news value (ADR-0026).
 
 Bounds (loose, system-level): once per gap per run (the retrieval ledger), 300 seconds a
 call, and 60 minutes for all calls of a run; past that, a gap is left with the reason
@@ -21,14 +23,14 @@ import os
 import time
 import tomllib
 import uuid
-from collections.abc import Callable
-from dataclasses import replace
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from datetime import time as clock_time
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
-from pring_cycle.acquisition import AcquisitionReceipt
 from pring_cycle.cli_process import run_structured_cli
 from pring_cycle.retrieval import RetrievalAdapterResponse
 from pring_cycle.retrieval_ledger import RetrievalLedger
@@ -37,7 +39,8 @@ from pring_cycle.runtime import RuntimePaths
 from pring_cycle.storage import database_connection
 
 if TYPE_CHECKING:
-    from pring_cycle.search_evidence import ModelInputSelection
+    from pring_cycle.acquisition import AcquisitionReceipt
+    from pring_cycle.search_evidence import ModelInputSelection, NewsPage
 
 AI_ADAPTERS = ("codex_cli", "claude_code_cli")
 AI_CALL_SECONDS = 300
@@ -314,26 +317,37 @@ def _record_answer(
         return RetrievalAdapterResponse(
             "failed", classification="ai_websearch_unavailable", physical_request_id=request_id
         )
-    adopted = [
-        (
-            candidate,
-            *_adopt(
-                paths,
-                run,
+    pages = _Pages(paths, run)
+    with pages.settling():
+        adopted = [
+            (
                 candidate,
-                acquired.receipt,
-                adapter,
-                definition_version=definition_version,
-                asked=asked,
-            ),
-        )
-        for candidate in candidates
-    ]
+                *_adopt(
+                    paths,
+                    run,
+                    candidate,
+                    pages,
+                    adapter,
+                    definition_version=definition_version,
+                    asked=asked,
+                ),
+            )
+            for candidate in candidates
+        ]
     claim_ids = [claim_id for _candidate, _reason, stored in adopted for claim_id in stored]
     selection = select_retrieval_input(paths, run)
     # Each is recorded against what the gap then holds, as a searched page is (lookback 14).
     for candidate, reason, stored in adopted:
-        _record_validation(paths, run, request_id, candidate, reason, stored, selection)
+        _record_validation(
+            paths,
+            run,
+            request_id,
+            candidate,
+            reason,
+            stored,
+            pages.read_of(candidate),
+            selection,
+        )
     if claim_ids and selection.complete:
         ledger.complete(request_id, outcome="verified", classification="complete_model_input")
         return RetrievalAdapterResponse(
@@ -454,32 +468,42 @@ def discover_event(
         return "unavailable", ()
     candidates = acquired.value or []
     claim_ids: list[str] = []
-    for candidate in candidates:
-        reason: str | None
-        stored: tuple[str, ...]
-        day = candidate["period"]
-        try:
-            effective = date.fromisoformat(day) if len(day) == 10 else None
-        except ValueError:
-            effective = None
-        if effective is None or effective > until or (since is not None and effective <= since):
-            reason, stored = PERIOD_MISMATCH, ()
-        elif candidate["published_date"] > until.isoformat():
-            # Out after the target day, it is not what the target day knew.
-            reason, stored = DATE_AFTER_CUTOFF, ()
-        else:
-            on_day = replace(scope_run, retrieval_scope=replace(scope, period=day))
-            reason, stored = _adopt(
+    pages = _Pages(paths, scope_run)
+    with pages.settling():
+        for candidate in candidates:
+            reason: str | None
+            stored: tuple[str, ...]
+            day = candidate["period"]
+            try:
+                effective = date.fromisoformat(day) if len(day) == 10 else None
+            except ValueError:
+                effective = None
+            if effective is None or effective > until or (since is not None and effective <= since):
+                reason, stored = PERIOD_MISMATCH, ()
+            elif candidate["published_date"] > until.isoformat():
+                # Out after the target day, it is not what the target day knew.
+                reason, stored = DATE_AFTER_CUTOFF, ()
+            else:
+                on_day = replace(scope_run, retrieval_scope=replace(scope, period=day))
+                reason, stored = _adopt(
+                    paths,
+                    on_day,
+                    candidate,
+                    pages,
+                    adapter,
+                    definition_version=definition_version,
+                    public_by_published_day=True,
+                )
+            claim_ids.extend(stored)
+            _record_validation(
                 paths,
-                on_day,
+                scope_run,
+                request_id,
                 candidate,
-                acquired.receipt,
-                adapter,
-                definition_version=definition_version,
-                public_by_published_day=True,
+                reason,
+                stored,
+                pages.read_of(candidate),
             )
-        claim_ids.extend(stored)
-        _record_validation(paths, scope_run, request_id, candidate, reason, stored)
     if claim_ids:
         ledger.complete(request_id, outcome="verified", classification="event_discovered")
         return "new_event", tuple(claim_ids)
@@ -488,11 +512,132 @@ def discover_event(
     return ("rejected" if candidates else "none_stated"), ()
 
 
+@dataclass(frozen=True)
+class _PageRead:
+    """A candidate's page as read again: the page, or why it was not had."""
+
+    page: NewsPage | None
+    reason: str | None
+    # The run's request that fetched it, when one was made.
+    request_id: str | None
+
+
+class _Pages:
+    """The pages an answer's candidates name, each fetched once, one at a time, and traced
+    on the run's ledger as a searched page is (lookback 26). A page is then read for the
+    period each candidate asks: a backtrack's candidates may each name another day, and a
+    day the page does not state leaves the others' reading as it is."""
+
+    def __init__(self, paths: RuntimePaths, run: RunRecord) -> None:
+        # ``run`` is the one the gap or backtrack was bound with: the fetch is on its ledger.
+        self.paths, self.run = paths, run
+        # Each address fetched: its receipt and content, or why not, and the request.
+        self.fetched: dict[
+            str, tuple[tuple[AcquisitionReceipt, str] | None, str | None, str | None]
+        ]
+        self.fetched = {}
+        self.read: dict[tuple[str, str], _PageRead] = {}
+        # Per page kept, why each candidate on it was not stored (None: it was).
+        self.outcomes: dict[str, list[str | None]] = {}
+
+    def read_of(self, candidate: dict[str, Any]) -> _PageRead | None:
+        """The candidate's page as read for its period, if it was read."""
+        return self.read.get((candidate["url"], candidate["period"]))
+
+    def decided(self, read: _PageRead, reason: str | None) -> None:
+        """What a candidate read on ``read`` came to: stored (None), or why not."""
+        assert read.page is not None
+        self.outcomes.setdefault(read.page.receipt.acquisition_id, []).append(reason)
+
+    @contextmanager
+    def settling(self) -> Iterator[None]:
+        """Once the answer's candidates are decided, each page kept says once whether its
+        values entered the evidence store, counting all its candidates' claims."""
+        from pring_cycle.acquisition import AcquisitionRepository
+        from pring_cycle.search_evidence import CandidateRejected
+
+        try:
+            yield
+        finally:
+            receipts = AcquisitionRepository(self.paths.database, self.paths.artifacts)
+            for acquisition_id, reasons in self.outcomes.items():
+                refused = None if None in reasons else next(r for r in reasons if r)
+                receipts.record_ingest_result(
+                    acquisition_id, None if refused is None else CandidateRejected(refused)
+                )
+
+    def page(self, url: str, source: str, metric_ids: tuple[str, ...], period: str) -> _PageRead:
+        from pring_cycle.search_evidence import CandidateRejected, read_page_content
+
+        if (url, period) not in self.read:
+            kept, reason, request_id = self._fetch(url, source, metric_ids)
+            page = None
+            if kept is not None:
+                try:
+                    page = read_page_content(*kept, metric_ids, period)
+                except CandidateRejected as error:
+                    # Kept, but not stating the period: its receipt says so once settled.
+                    reason = str(error)
+                    self.outcomes.setdefault(kept[0].acquisition_id, []).append(reason)
+            self.read[url, period] = _PageRead(page, reason, request_id)
+        return self.read[url, period]
+
+    def _fetch(
+        self, url: str, source: str, metric_ids: tuple[str, ...]
+    ) -> tuple[tuple[AcquisitionReceipt, str] | None, str | None, str | None]:
+        from pring_cycle.search_evidence import (
+            RETRIEVAL_BLOCKED,
+            candidate_rejection_reason,
+            fetch_news_page,
+        )
+
+        if url in self.fetched:
+            return self.fetched[url]
+        scope = self.run.retrieval_scope
+        assert scope is not None
+        found: list[tuple[AcquisitionReceipt, str]] = []
+        errors: list[str] = []
+
+        def acquire(on_started: Callable[[str], None]) -> RetrievalAdapterResponse:
+            try:
+                found.append(
+                    fetch_news_page(
+                        self.paths,
+                        url,
+                        source=source,
+                        source_of=lambda final: _page_source(metric_ids, final),
+                        on_acquisition_started=on_started,
+                    )
+                )
+            except (OSError, TypeError, ValueError) as error:
+                errors.append(candidate_rejection_reason(error))
+                raise
+            return RetrievalAdapterResponse(
+                "candidate_source", evidence=url, classification="document_validated"
+            )
+
+        response = RetrievalLedger(self.paths.database, scope_run=self.run).trace_acquisition(
+            self.run.run_id, "official", scope.release_event_id, url, acquire
+        )
+        reason = None if found else errors[0] if errors else RETRIEVAL_BLOCKED
+        self.fetched[url] = (found[0] if found else None, reason, response.physical_request_id)
+        return self.fetched[url]
+
+
+def _page_source(metric_ids: tuple[str, ...], url: str) -> str | None:
+    """The whitelisted outlet or the metrics' registered host ``url`` is on, or None."""
+    from pring_cycle.retrieval_registry import media_outlet, registered_host
+
+    return media_outlet(url) or next(
+        (host for metric in metric_ids if (host := registered_host(metric, url))), None
+    )
+
+
 def _adopt(
     paths: RuntimePaths,
     run: RunRecord,
     candidate: dict[str, Any],
-    receipt: AcquisitionReceipt,
+    pages: _Pages,
     adapter: str,
     *,
     definition_version: str,
@@ -500,6 +645,14 @@ def _adopt(
     public_by_published_day: bool = False,
 ) -> tuple[str | None, tuple[str, ...]]:
     """Why a candidate is not adopted (None when it is), and the claims it stored.
+
+    The CLI's sentence is checked first, as it gave it: its host, the family's rules, its
+    figure, period and publication date. Its page is then read again by the rules, as a
+    media page is (lookback 26): the CLI gives a sentence alone, while a place may be named
+    in the page's title or before the sentence in its paragraph. What the page states of
+    the same members, with the same figures, is taken and kept with the page's sentence,
+    subject clause, title and original; a page not had, or not stating them as the
+    country's, gives nothing.
 
     ``asked``: the members it may fill (``_asked_members``), by default all the scope reads.
     ``public_by_published_day``: a past event found by a backtrack was public, at the
@@ -510,11 +663,11 @@ def _adopt(
         NewsValue,
         TakenValue,
         extract,
+        parse_published_at,
         rules_for,
         store_news_values,
         text_hash,
     )
-    from pring_cycle.retrieval_registry import media_outlet, registered_host
     from pring_cycle.search_evidence import (
         DATE_AFTER_CUTOFF,
         INCOMPLETE_MODEL_INPUT,
@@ -523,48 +676,38 @@ def _adopt(
         PERIOD_MISMATCH,
         RULE_NOT_MATCHED,
         SEARCH_VALUE_MISMATCH,
-        CandidateRejected,
-        lenient_value,
     )
 
     scope = run.retrieval_scope
     assert scope is not None
     url, quote, value = candidate["url"], candidate["quote"], float(candidate["value"])
-    source = media_outlet(url) or next(
-        (host for metric in scope.metric_ids if (host := registered_host(metric, url))), None
-    )
+    source = _page_source(scope.metric_ids, url)
     if source is None:
         return NOT_WHITELISTED, ()
-    if rules_for(scope.metric_ids):
-        extraction = extract(scope.metric_ids, scope.period, quote)
-        if extraction.reason is not None:
-            return extraction.reason, ()
-        # The CLI reports the number as the sentence writes it ("437.5万亿元", "下降0.4%");
-        # the rule also gives it in the member's unit and sign. Either is the same figure.
-        if not any(value in {item.value, item.stated} for item in extraction.values):
-            return SEARCH_VALUE_MISMATCH, ()
-        # The sentence is the one the CLI read; what it states of the members the gap misses
-        # is taken, whichever figure the CLI gave (lookback 14: it gave the stock, the gap
-        # was the growth written after it).
-        wanted = asked if asked is not None else _asked_members(scope)
-        values = tuple(
-            item
-            for item in extraction.values
-            if item.metric_id in wanted
-            and (
-                wanted[item.metric_id] is None or item.dimensions in (wanted[item.metric_id] or ())
-            )
-        )
-        if not values:
-            # Read as the CLI said, but it states nothing the gap misses.
-            return INCOMPLETE_MODEL_INPUT, ()
-    else:
-        try:
-            if lenient_value(quote, date.fromisoformat(scope.period)) != value:
-                return SEARCH_VALUE_MISMATCH, ()
-        except (CandidateRejected, ValueError) as error:
-            return (str(error) if isinstance(error, CandidateRejected) else RULE_NOT_MATCHED), ()
-        values = (NewsValue(scope.metric_ids[0], {}, value, quote),)
+    if not rules_for(scope.metric_ids):
+        # No rule to read its page by, nor the subject of its figure.
+        return RULE_NOT_MATCHED, ()
+    extraction = extract(scope.metric_ids, scope.period, quote)
+    if extraction.reason is not None:
+        return extraction.reason, ()
+    # The CLI reports the number as the sentence writes it ("437.5万亿元", "下降0.4%");
+    # the rule also gives it in the member's unit and sign. Either is the same figure.
+    reported = tuple(item for item in extraction.values if value in {item.value, item.stated})
+    if not reported:
+        return SEARCH_VALUE_MISMATCH, ()
+    # The sentence is the one the CLI read; what it states of the members the gap misses
+    # is taken, whichever figure the CLI gave (lookback 14: it gave the stock, the gap
+    # was the growth written after it).
+    wanted = asked if asked is not None else _asked_members(scope)
+    values = tuple(
+        item
+        for item in extraction.values
+        if item.metric_id in wanted
+        and (wanted[item.metric_id] is None or item.dimensions in (wanted[item.metric_id] or ()))
+    )
+    if not values:
+        # Read as the CLI said, but it states nothing the gap misses.
+        return INCOMPLETE_MODEL_INPUT, ()
     if candidate["period"] != scope.period:
         return PERIOD_MISMATCH, ()
     try:
@@ -573,35 +716,72 @@ def _adopt(
         return NO_PUBLICATION_DATE, ()
     if published > run.system_as_of.astimezone(_SHANGHAI).date():
         return DATE_AFTER_CUTOFF, ()
-    stored = store_news_values(
-        paths.database,
-        tuple(
-            TakenValue(
-                value=item,
-                title="",
-                source_name=source,
-                published_at=published.isoformat(),
-                body_hash=text_hash(quote),
-                url=url,
-                acquisition_id=receipt.acquisition_id,
-                fetched_at=receipt.received_at or receipt.started_at,
-                # A date alone does not say when that day: the time stays unknown.
-                release_at=None,
-                public_at=(
-                    datetime.combine(published, clock_time.max, tzinfo=_SHANGHAI)
-                    if public_by_published_day
-                    else None
-                ),
-            )
-            for item in values
-        ),
-        route=AI_WEBSEARCH,
-        provider=f"{AI_WEBSEARCH}:{adapter}",
-        source_reference=lambda _taken: f"{AI_WEBSEARCH}:{url}#{receipt.raw_hash}",
-        period=scope.period,
-        definition_version=definition_version,
-        available_at=receipt.validated_at or receipt.started_at,
-    )
+    read = pages.page(url, source, scope.metric_ids, scope.period)
+    if read.page is None:
+        assert read.reason is not None
+        return read.reason, ()
+    page = read.page
+    on_page = {
+        (item.metric_id, tuple(item.dimensions.items())): item for item in page.extraction.values
+    }
+
+    def why_not(item: NewsValue) -> str | None:
+        """Why the page does not state ``item`` as the country's, or None when it does."""
+        stated = on_page.get((item.metric_id, tuple(item.dimensions.items())))
+        if stated is None:
+            # Not stated there, or stated as a place's: its title or subject clause names one.
+            return RULE_NOT_MATCHED
+        return SEARCH_VALUE_MISMATCH if stated.value != item.value else None
+
+    # The figure the CLI reported, and each one taken, must be the page's own.
+    reason = next((r for item in values if (r := why_not(item))), None)
+    if reason is None and all(why_not(item) for item in reported):
+        reason = why_not(reported[0])
+    page_published = parse_published_at(page.published_text)
+    if reason is None and page_published is not None and page_published > run.system_as_of:
+        reason = DATE_AFTER_CUTOFF
+    if reason is not None:
+        pages.decided(read, reason)
+        return reason, ()
+    taken = [on_page[item.metric_id, tuple(item.dimensions.items())] for item in values]
+    receipt = page.receipt
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    try:
+        stored = store_news_values(
+            paths.database,
+            tuple(
+                TakenValue(
+                    value=item,
+                    title=page.title,
+                    source_name=source,
+                    published_at=(page_published or published).isoformat(),
+                    body_hash=text_hash(page.text),
+                    url=url,
+                    acquisition_id=receipt.acquisition_id,
+                    fetched_at=receipt.received_at,
+                    # The page's own time when it shows one; a date alone does not say when
+                    # that day, so the time stays unknown.
+                    release_at=page_published,
+                    public_at=(
+                        datetime.combine(published, clock_time.max, tzinfo=_SHANGHAI)
+                        if public_by_published_day
+                        else None
+                    ),
+                )
+                for item in taken
+            ),
+            route=AI_WEBSEARCH,
+            provider=f"{AI_WEBSEARCH}:{adapter}",
+            source_reference=lambda _taken: f"{AI_WEBSEARCH}:{url}#sha256={receipt.raw_hash}",
+            period=scope.period,
+            definition_version=definition_version,
+            available_at=receipt.validated_at,
+        )
+    except ValueError as error:
+        # Refused by the registered contract: the page's receipt says so once settled.
+        pages.decided(read, str(error)[:300])
+        raise
+    pages.decided(read, None)
     return None, stored
 
 
@@ -612,9 +792,11 @@ def _record_validation(
     candidate: dict[str, Any],
     reason: str | None,
     claim_ids: tuple[str, ...],
+    read: _PageRead | None,
     selection: ModelInputSelection | None = None,
 ) -> None:
-    """One row per candidate on the run's search record, as for Tavily and Exa.
+    """One row per candidate on the run's search record, as for Tavily and Exa, with the
+    request that read its page again and the original kept, when its page was read.
 
     With the gap's ``selection`` (a gap's answer, not a backtrack's), a candidate whose
     claims leave the model input incomplete is not model usable, as a searched page is not.
@@ -638,8 +820,9 @@ def _record_validation(
         connection.execute(
             "INSERT INTO retrieval_candidate_validation(validation_id, run_id, "
             "search_request_id, candidate_url, outcome, reason, checked_at, gap_ids_json, "
-            "selected_claim_ids_json, missing_members_json, claim_ids_json, parser_version) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "selected_claim_ids_json, missing_members_json, claim_ids_json, parser_version, "
+            "download_request_id, fetched_url, raw_hash) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 "candidate-validation-" + uuid.uuid4().hex,
                 run.run_id,
@@ -653,5 +836,8 @@ def _record_validation(
                 json.dumps(list(selection.missing_members)) if selection else None,
                 json.dumps(list(claim_ids)),
                 AI_PARSER_VERSION,
+                read.request_id if read else None,
+                candidate["url"] if read and read.page else None,
+                read.page.receipt.raw_hash if read and read.page else None,
             ),
         )

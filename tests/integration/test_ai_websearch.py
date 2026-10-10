@@ -53,6 +53,34 @@ else:
 """
 
 
+def page_of(title: str, *paragraphs: str) -> bytes:
+    """A candidate's page as its site serves it: a title, then its paragraphs."""
+    body = "".join(f"<p>{paragraph}</p>" for paragraph in paragraphs)
+    return f"<html><head><title>{title}</title></head>\n<body>{body}</body></html>".encode()
+
+
+CPI_PAGE = page_of("国家统计局：8月份CPI同比上涨0.8%", *(quote for quote, _v in SENTENCES.values()))
+
+
+def serve(monkeypatch: pytest.MonkeyPatch, pages: dict[str, bytes]) -> list[str]:
+    """Each candidate's page is fetched again (lookback 26): ``pages`` answer, any other
+    address fails as offline. The addresses asked are returned, in order."""
+    from urllib.error import URLError
+
+    from tests.integration.test_retrieval_strict_path import Page
+
+    fetched: list[str] = []
+
+    def fetch(request: Any, **kwargs: Any) -> Page:
+        fetched.append(request.full_url)
+        if request.full_url not in pages:
+            raise URLError("offline")
+        return Page(pages[request.full_url], request.full_url)
+
+    monkeypatch.setattr("pring_cycle.http_transport.open_no_redirects", fetch)
+    return fetched
+
+
 def candidate(measure: str, **changes: Any) -> dict[str, Any]:
     quote, value = SENTENCES[measure]
     return {
@@ -88,8 +116,13 @@ def ai_run(
     metric_ids: tuple[str, ...] = ("CN_CPI_HEADLINE",),
     release_event_id: str = "ai:cpi:2026-08",
     period: str = "2026-08",
+    pages: dict[str, bytes] | None = None,
+    fetched: list[str] | None = None,
 ) -> tuple[RunRecord, RuntimePaths, str, list[dict[str, Any]]]:
+    """``pages`` serve the candidates' pages, by default CPI's on CLS; ``fetched`` is given
+    the addresses fetched."""
     calls = install(tmp_path, monkeypatch, plan)
+    asked = serve(monkeypatch, {CLS: CPI_PAGE} if pages is None else pages)
     monkeypatch.delenv("PRING_CYCLE_AI_WEBSEARCH")
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -113,6 +146,8 @@ def ai_run(
     )
     process_pending_run(paths, report_adapters=())
     made = [json.loads(line) for line in calls.read_text().splitlines()] if calls.exists() else []
+    if fetched is not None:
+        fetched.extend(asked)
     return runs.get(submitted.run_id), paths, request["manifest"]["metric_catalog_version"], made
 
 
@@ -135,6 +170,7 @@ ALL_THREE = [candidate(measure) for measure in SENTENCES]
 def test_codex_candidates_fill_the_p1_gap_with_their_quotes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    fetched: list[str] = []
     stored, paths, version, calls = ai_run(
         tmp_path,
         monkeypatch,
@@ -143,6 +179,7 @@ def test_codex_candidates_fill_the_p1_gap_with_their_quotes(
             "codex": {"mode": "ok", "candidates": ALL_THREE},
             "claude": {"mode": "ok", "candidates": []},
         },
+        fetched=fetched,
     )
 
     assert stored.status == "completed", stored.error_classification
@@ -160,6 +197,37 @@ def test_codex_candidates_fill_the_p1_gap_with_their_quotes(
     with database_connection(paths.database) as connection:
         routes = connection.execute("SELECT DISTINCT route, source_name FROM claim_matched_quote")
         assert routes.fetchall() == [("ai_websearch", "财联社")]
+    # Lookback 26: the three candidates' page was read again once, by the rules, and each
+    # value keeps the page's title and subject clause, its text's hash and its original.
+    assert fetched == [CLS]
+    [download] = [r for r in ledger["requests"] if r["channel"] == "official"]
+    assert download["outcome"] == "candidate_source"
+    from pring_cycle.acquisition import AcquisitionRepository
+    from pring_cycle.news_rules import MEDIA_PAGE_API, plain_text, text_hash
+
+    receipts = AcquisitionRepository(paths.database, paths.artifacts)
+    [kept] = [r for r in receipts.history() if r.api_name == MEDIA_PAGE_API]
+    assert {
+        (v["download_request_id"], v["fetched_url"], v["raw_hash"])
+        for v in ledger["candidate_validations"]
+    } == {(download["request_id"], CLS, kept.raw_hash)}
+    with database_connection(paths.database) as connection:
+        rows = connection.execute(
+            "SELECT q.title, q.subject, q.body_hash, a.acquisition_id FROM claim_matched_quote q "
+            "JOIN source_claim_acquisition a USING(claim_id)"
+        ).fetchall()
+    assert len(rows) == 3
+    assert {(title, body, acquisition) for title, _s, body, acquisition in rows} == {
+        (
+            "国家统计局：8月份CPI同比上涨0.8%",
+            text_hash(plain_text(CPI_PAGE.decode())),
+            kept.acquisition_id,
+        )
+    }
+    assert all(isinstance(subject, str) for _t, subject, _b, _a in rows)
+    # The page's receipt says once what entered the store: all three candidates' claims.
+    assert receipts.ingest_result(kept.acquisition_id) == ("accepted", None)
+    assert receipts.counts(kept.acquisition_id).ingested_claims == 3
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -259,6 +327,13 @@ def test_a_figure_given_as_the_sentence_writes_it_is_the_same_figure(
             "codex": {"mode": "ok", "candidates": [falling, *ALL_THREE[1:]]},
             "claude": {"mode": "ok", "candidates": []},
         },
+        pages={
+            CLS: page_of(
+                "国家统计局：8月份CPI同比下降0.4%",
+                falling["quote"],
+                *(quote for quote, _v in list(SENTENCES.values())[1:]),
+            )
+        },
     )
 
     assert stored.status == "completed", stored.error_classification
@@ -305,6 +380,7 @@ def parity_run(
         metric_ids=("CN_USDCNY_CENTRAL_PARITY",),
         release_event_id="ai:usdcny:2026-09-09",
         period="2026-09-09",
+        pages={CLS: page_of("人民币中间价", "中国人民银行授权中国外汇交易中心公布，" + quote)},
     )
     series = EvidenceRepository(paths.database).metric_series(
         "CN_USDCNY_CENTRAL_PARITY",
@@ -481,10 +557,12 @@ def sf_lookback_answer(
     found: dict[str, Any] = SF_JULY_2025,
     *,
     stock_held: bool = False,
+    page: str | None = None,
 ) -> tuple[RunRecord, RuntimePaths, list[dict[str, Any]]]:
     """The AI asked for July 2025's social financing on a full run whose lookback names
     ``members``, answering with ``found`` (the real candidate). ``stock_held``: the stock
-    report already gave the stock (its growth left out, as if not read)."""
+    report already gave the stock (its growth left out, as if not read). ``page`` is what
+    its page says, by default its quote."""
     from dataclasses import replace
 
     from pring_cycle.ai_websearch import ai_websearch_adapter
@@ -497,6 +575,7 @@ def sf_lookback_answer(
     from pring_cycle.runs import RetrievalScope
 
     calls = install(tmp_path, monkeypatch, {})
+    serve(monkeypatch, {found["url"]: page_of("7月金融统计数据报告", page or found["quote"])})
     monkeypatch.delenv("PRING_CYCLE_AI_WEBSEARCH")
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -638,3 +717,176 @@ def test_a_member_the_scope_reads_but_holds_is_neither_asked_for_nor_taken(
     assert validation["outcome"] == "model_usable"
     # The growth alone: the stock is not restated.
     assert len(validation["claim_ids"]) == 1
+
+
+# c8dcb77e's month figure, as an AI candidate would give it: its sentence names no subject.
+VA_MONTH = "8月份，规模以上工业增加值同比增长6.9%，比上月加快1.0个百分点。"
+VA_CANDIDATE = {
+    "url": CLS,
+    "quote": VA_MONTH,
+    "value": 6.9,
+    "period": "2026-08",
+    "published_date": "2026-09-15",
+}
+
+
+@pytest.mark.parametrize(
+    ("page", "kept"),
+    [
+        pytest.param(
+            page_of("广东：1—8月份全省规模以上工业增加值同比增长6.1%", VA_MONTH),
+            False,
+            id="place-title",
+        ),
+        pytest.param(
+            page_of(
+                "8月份各地经济数据", f"1—8月份，全省规模以上工业增加值同比增长6.1%；{VA_MONTH}"
+            ),
+            False,
+            id="place-subject-before",
+        ),
+        pytest.param(
+            page_of("8月份国民经济运行", f"全国规模以上工业生产加快，{VA_MONTH}"),
+            True,
+            id="country",
+        ),
+    ],
+)
+@pytest.mark.usefixtures("runtime_clock")
+def test_an_ai_candidate_is_taken_only_as_its_page_states_it(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    page: bytes,
+    kept: bool,
+) -> None:
+    """Lookback 26: the CLI gives a sentence alone. Guangdong's page names its place in its
+    title, or in its paragraph before the sentence; read again, it gives nothing. The
+    country's page gives the figure, kept with the page's sentence, title and subject."""
+    stored, paths, _version, _calls = ai_run(
+        tmp_path,
+        monkeypatch,
+        capsys,
+        {
+            "codex": {"mode": "ok", "candidates": [VA_CANDIDATE]},
+            "claude": {"mode": "ok", "candidates": []},
+        },
+        metric_ids=("CN_INDUSTRIAL_VA",),
+        release_event_id="ai:va:2026-08",
+        pages={CLS: page},
+    )
+
+    [validation] = stored.retrieval_ledger["candidate_validations"]
+    with database_connection(paths.database) as connection:
+        rows = connection.execute(
+            "SELECT q.quote, q.title, q.subject, c.value FROM claim_matched_quote q "
+            "JOIN source_claim c USING(claim_id)"
+        ).fetchall()
+    if not kept:
+        assert (validation["reason"], validation["claim_ids"]) == ("rule_not_matched", [])
+        assert rows == []
+        return
+    # The other members are still missing: the claim is kept, the gap is not complete.
+    assert validation["reason"] == "incomplete_model_input"
+    assert validation["claim_ids"]
+    assert rows == [
+        (
+            f"全国规模以上工业生产加快，{VA_MONTH}",
+            "8月份国民经济运行",
+            "全国规模以上工业生产加快",
+            6.9,
+        )
+    ]
+    from pring_cycle.news_rules import news_claims_no_longer_stated
+
+    with database_connection(paths.database) as connection:
+        assert news_claims_no_longer_stated(connection, ("CN_INDUSTRIAL_VA",)) == frozenset()
+
+
+@pytest.mark.parametrize(
+    ("pages", "reason"),
+    [
+        # Not had: offline, or a page needing JavaScript, which serves no text.
+        pytest.param({}, "fetch_failed", id="unavailable"),
+        pytest.param(
+            {CLS: page_of("财联社", "很抱歉，当前没有启用javascript，网站无法正常访问。")},
+            "rule_not_matched",
+            id="javascript",
+        ),
+        # The page states another figure than the CLI's.
+        pytest.param(
+            {
+                CLS: page_of(
+                    "8月份国民经济运行",
+                    f"全国规模以上工业生产加快，{VA_MONTH.replace('6.9', '5.2')}",
+                )
+            },
+            "search_value_mismatch",
+            id="other-figure",
+        ),
+    ],
+)
+@pytest.mark.usefixtures("runtime_clock")
+def test_an_ai_candidate_whose_page_does_not_give_its_figure_is_rejected(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    pages: dict[str, bytes],
+    reason: str,
+) -> None:
+    """Lookback 26: a candidate is never taken on the CLI's word alone. Its page not had,
+    or not stating the CLI's figure, it is rejected with why, on the run's ledger."""
+    fetched: list[str] = []
+    stored, paths, _version, _calls = ai_run(
+        tmp_path,
+        monkeypatch,
+        capsys,
+        {
+            "codex": {"mode": "ok", "candidates": [VA_CANDIDATE, VA_CANDIDATE]},
+            "claude": {"mode": "ok", "candidates": []},
+        },
+        metric_ids=("CN_INDUSTRIAL_VA",),
+        release_event_id="ai:va:2026-08",
+        pages=pages,
+        fetched=fetched,
+    )
+
+    # Two candidates on one page: it is fetched once.
+    assert fetched == [CLS]
+    validations = stored.retrieval_ledger["candidate_validations"]
+    assert [(v["outcome"], v["reason"], v["claim_ids"]) for v in validations] == [
+        ("not_model_usable", reason, [])
+    ] * 2
+    [download] = [r for r in stored.retrieval_ledger["requests"] if r["channel"] == "official"]
+    assert {v["download_request_id"] for v in validations} == {download["request_id"]}
+    with database_connection(paths.database) as connection:
+        assert connection.execute("SELECT count(*) FROM claim_matched_quote").fetchone() == (0,)
+    if reason == "search_value_mismatch":
+        # The page was read and kept; its receipt says why nothing entered the store.
+        from pring_cycle.acquisition import AcquisitionRepository
+
+        receipts = AcquisitionRepository(paths.database, paths.artifacts)
+        [kept] = [r for r in receipts.history() if r.api_name == "media_page_get"]
+        assert receipts.ingest_result(kept.acquisition_id) == ("rejected", reason)
+        assert receipts.counts(kept.acquisition_id).ingested_claims == 0
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_the_figure_the_cli_reported_must_be_its_page_s_too(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Lookback 26: the CLI reported the stock, the gap wants the growth stated beside it.
+    A page stating the growth but another stock is not the page the CLI read: nothing is
+    taken, though the growth agrees."""
+    stored, paths, _calls = sf_lookback_answer(
+        tmp_path,
+        monkeypatch,
+        (SF_STOCK_GROWTH,),
+        page="初步统计，2025年7月末社会融资规模存量为999.99万亿元，同比增长9%。",
+    )
+
+    assert sf_july_2025(paths) == {}
+    assert stored.retrieval_ledger is not None
+    assert [
+        (v["outcome"], v["reason"]) for v in stored.retrieval_ledger["candidate_validations"]
+    ] == [("not_model_usable", "search_value_mismatch")]

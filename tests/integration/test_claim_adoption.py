@@ -31,6 +31,7 @@ from pring_cycle.models import (
     effective_model_manifest,
 )
 from pring_cycle.news_rules import (
+    AI_WEBSEARCH,
     MEDIA_PAGE,
     TUSHARE_NEWS,
     MatchedQuote,
@@ -296,7 +297,9 @@ def news_claim(
             (
                 MatchedQuote(
                     claim.claim_id,
-                    TUSHARE_NEWS if provider == "tushare_news" else MEDIA_PAGE,
+                    {"tushare_news": TUSHARE_NEWS, "ai_websearch": AI_WEBSEARCH}.get(
+                        provider, MEDIA_PAGE
+                    ),
                     quote,
                     title,
                     provider,
@@ -390,7 +393,8 @@ def test_a_kept_news_claim_whose_title_or_subject_names_a_place_is_no_candidate(
     """Lookback 22: Guangdong's month 6.9 (c8dcb77e) names no subject in its quote; its page
     is titled Guangdong's and its paragraph's subject clause is "全省". Kept with either, it
     is neither listed nor selected, even for a period with no national value. A quote kept
-    before either was recorded is read as lookback 20 reads it."""
+    before either was recorded is read as lookback 20 reads it, unless AI WebSearch kept it:
+    that was never read on its page (lookback 26)."""
     version = registered_version(paths, capsys)
     evidence = EvidenceRepository(paths.database)
     first = datetime(2026, 9, 16, 2, tzinfo=UTC)
@@ -440,8 +444,9 @@ def test_a_kept_news_claim_whose_title_or_subject_names_a_place_is_no_candidate(
 
     assert series() == series(preloaded=True) == ()
 
-    # Kept before lookback 22: no subject clause, and an AI WebSearch quote has no title.
-    legacy = news_claim(
+    # Kept before lookback 22 by AI WebSearch: no subject clause and no title. Its sentence
+    # was never read on its page, so it waits for it (lookback 26).
+    unread = news_claim(
         paths,
         version,
         "ai_websearch",
@@ -450,6 +455,21 @@ def test_a_kept_news_claim_whose_title_or_subject_names_a_place_is_no_candidate(
         first,
         measure="current_month_real_yoy",
         title="",
+    )
+    assert series() == series(preloaded=True) == ()
+    with database_connection(paths.database) as connection:
+        assert suspect_news_claims(connection) == (unread,)
+
+    # Kept before lookback 22 from TuShare news: no subject clause, read on its quote and title.
+    legacy = news_claim(
+        paths,
+        version,
+        "tushare_news",
+        5.2,
+        "8月份，规模以上工业增加值同比增长5.2%。",
+        first,
+        measure="current_month_real_yoy",
+        title="8月份国民经济运行",
     )
     (point,) = (p for p in series() if p.dimensions == {"measure": "current_month_real_yoy"})
     assert [claim.claim_id for claim in point.claims] == [legacy]
@@ -661,6 +681,113 @@ def test_a_suspect_news_claim_is_read_again_with_the_subject_its_page_gives(
         unstated: "unavailable",
         unaddressed: "unavailable",
     }
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_ai_websearch_quotes_kept_before_their_pages_were_read_wait_for_them(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Lookback 26: the 35 AI WebSearch quotes kept before were the CLI's sentences alone.
+    Each is a suspect, neither listed nor selected, until its page is read once more as a
+    media page is, its original kept: the country's page restores it, a place's page or one
+    not had leaves it out. A page with two of them is fetched once."""
+    from pring_cycle.search_evidence import restore_suspect_pages
+    from tests.integration.test_ai_websearch import page_of, serve
+
+    version = registered_version(paths, capsys)
+    first = datetime(2026, 9, 16, 2, tzinfo=UTC)
+    country, guangdong, gone = (f"https://finance.sina.com.cn/doc-{n}.shtml" for n in range(3))
+    elsewhere = "https://finance.example.com/va"
+
+    def kept(url: str, value: float, hours: int) -> str:
+        """The month's figure as the CLI gave it, alone: no title, no subject clause."""
+        return news_claim(
+            paths,
+            version,
+            "ai_websearch",
+            value,
+            MONTH.replace("6.9", str(value)),
+            first + timedelta(hours=hours),
+            measure="current_month_real_yoy",
+            title="",
+            url=url,
+        )
+
+    month = kept(country, 6.9, 0)
+    # The same page's year to date, by its own sentence: the country's 5.3.
+    year = news_claim(
+        paths,
+        version,
+        "ai_websearch",
+        5.3,
+        "1—8月份，规模以上工业增加值同比增长5.3%。",
+        first,
+        title="",
+        url=country,
+    )
+    local = kept(guangdong, 6.8, 1)
+    missing = kept(gone, 6.7, 2)
+    foreign = kept(elsewhere, 6.6, 3)
+    as_of = first + timedelta(days=10)
+
+    def series() -> dict[str, list[str]]:
+        return {
+            point.dimensions["measure"]: [claim.claim_id for claim in point.claims]
+            for point in EvidenceRepository(paths.database).metric_series(
+                "CN_INDUSTRIAL_VA", mode=AsOfMode.SYSTEM, as_of=as_of, definition_version=version
+            )
+        }
+
+    assert series() == {}
+    with database_connection(paths.database) as connection:
+        assert set(suspect_news_claims(connection)) == {month, year, local, missing, foreign}
+
+    pages = {
+        country: page_of(
+            "国家统计局：8月份规模以上工业增加值增长6.9%",
+            f"全国规模以上工业生产加快，{MONTH}",
+            "1—8月份，规模以上工业增加值同比增长5.3%。",
+        ),
+        guangdong: page_of(
+            "广东：1—8月份全省规模以上工业增加值同比增长6.1%", MONTH.replace("6.9", "6.8")
+        ),
+    }
+    fetched = serve(monkeypatch, pages)
+    restored = {item.restored.claim_id: item for item in restore_suspect_pages(paths)}
+
+    # One request per page, none for a host neither official nor whitelisted.
+    assert sorted(fetched) == sorted((country, guangdong, gone))
+    assert {claim: item.restored.outcome for claim, item in restored.items()} == {
+        month: "national",
+        year: "national",
+        local: "local",
+        missing: "unavailable",
+        foreign: "unavailable",
+    }
+    receipts = {
+        r.acquisition_id: r
+        for r in AcquisitionRepository(paths.database, paths.artifacts).history()
+    }
+    for claim in (month, year, local):
+        item = restored[claim]
+        assert item.acquisition_id is not None
+        receipt = receipts[item.acquisition_id]
+        assert (receipt.api_name, receipt.raw_hash) == ("media_page_get", item.raw_hash)
+        assert item.restored.content_sha256 == text_hash(pages[str(item.restored.url)].decode())
+    assert (restored[missing].raw_hash, restored[foreign].raw_hash) == (None, None)
+    with database_connection(paths.database) as connection:
+        stored = {
+            str(row["claim_id"]): (row["title"], row["subject"])
+            for row in matched_quotes(connection, (month, year, local, missing, foreign))
+        }
+        assert set(suspect_news_claims(connection)) == {missing, foreign}
+    assert stored[month] == (
+        "国家统计局：8月份规模以上工业增加值增长6.9%",
+        "全国规模以上工业生产加快",
+    )
+    assert stored[local][0] == "广东：1—8月份全省规模以上工业增加值同比增长6.1%"
+    assert stored[missing] == stored[foreign] == ("", None)
+    assert series() == {"current_month_real_yoy": [month], "ytd_real_yoy": [year]}
 
 
 def query_one(paths: RuntimePaths, sql: str, *parameters: object) -> object:

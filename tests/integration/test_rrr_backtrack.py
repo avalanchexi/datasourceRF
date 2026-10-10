@@ -191,17 +191,24 @@ def backtrack_run(
     site: Site,
     *,
     ai: list[dict[str, Any]] | None = None,
+    pages: dict[str, bytes] | None = None,
 ) -> tuple[RuntimePaths, str, dict[str, Any], list[dict[str, Any]]]:
     """A first full run for ``TARGET``: no RRR held and no news of one."""
     from pring_cycle.full_retrieval import FullRunRetrieval
     from pring_cycle.runs import RunRepository
-    from tests.integration.test_ai_websearch import install
+    from tests.integration.test_ai_websearch import install, page_of, serve
     from tests.integration.test_tushare_news import Opener, news_response, register_at
 
     calls = None
     if ai is not None:
         calls = install(tmp_path, monkeypatch, {"codex": {"mode": "answer", "candidates": ai}})
         monkeypatch.delenv("PRING_CYCLE_AI_WEBSEARCH")
+        # Each candidate's notice, read again on its page (lookback 26).
+        serve(
+            monkeypatch,
+            pages
+            or {c["url"]: page_of("中国人民银行决定下调存款准备金率", c["quote"]) for c in ai},
+        )
     paths, model_id, _version = register_at(NOW, tmp_path, monkeypatch, request, capsys)
     opener = Opener(lambda _payload: news_response([]))
     monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: opener)
@@ -361,6 +368,56 @@ def test_the_official_column_failing_is_made_up_by_ai_websearch(
     assert (call["prompt"]["effective_after"], call["prompt"]["effective_by"]) == (None, TARGET)
     assert card(paths, model_id) == [("current", -0.5)]
     assert rrr_gaps(paths, model_id, run_id_of(paths)) == []
+
+
+@pytest.mark.parametrize("september_first", [False, True], ids=["may-first", "september-first"])
+def test_ai_candidates_on_one_page_are_each_read_there_for_their_own_day(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+    september_first: bool,
+) -> None:
+    """Lookback 26: a backtrack's candidates may name other days on one page. The page is
+    fetched once and read there for each one's own day, in either order: it announces
+    May's cut, not one in September."""
+    from pring_cycle.storage import database_connection
+    from tests.integration.test_ai_websearch import page_of
+
+    url = "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2025050709000000000/index.html"
+    may = (
+        "中国人民银行决定于2025年5月15日下调金融机构存款准备金率0.5个百分点"
+        "（不含已执行5%存款准备金率的金融机构）。"
+    )
+    september = may.replace("5月15日", "9月15日")
+    days = [(may, "2025-05-15"), (september, "2025-09-15")]
+    found = [
+        {"url": url, "quote": quote, "value": 0.5, "period": day, "published_date": "2025-05-07"}
+        for quote, day in (days[::-1] if september_first else days)
+    ]
+    paths, model_id, _plan, _made = backtrack_run(
+        tmp_path,
+        monkeypatch,
+        request,
+        capsys,
+        Site({}),
+        ai=found,
+        pages={url: page_of("中国人民银行决定下调存款准备金率", may)},
+    )
+
+    assert card(paths, model_id) == [("current", -0.5)]
+    assert {day for day, _value in selected_rrr(paths).values()} == {"2025-05-15"}
+    with database_connection(paths.database) as connection:
+        # The run's other gaps are answered alike: the backtrack's answer is the one adopted.
+        reasons = connection.execute(
+            "SELECT outcome, reason, download_request_id FROM retrieval_candidate_validation "
+            "WHERE search_request_id=(SELECT search_request_id FROM "
+            "retrieval_candidate_validation WHERE outcome='model_usable') ORDER BY rowid"
+        ).fetchall()
+    expected = [("model_usable", None), ("not_model_usable", "period_mismatch")]
+    assert [row[:2] for row in reasons] == (expected[::-1] if september_first else expected)
+    # One fetch of the page for both.
+    assert len({row[2] for row in reasons}) == 1
 
 
 def test_an_ai_candidate_the_rrr_rule_does_not_read_is_not_adopted(
