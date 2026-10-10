@@ -35,6 +35,7 @@
 | 27 | [26](issues/26-ai-websearch-claims-lack-subject-context.md) | AI WebSearch 原话无标题与主语分句，地方原话仍可能入库（22 发现） | done（按网址重取页面走媒体流程，取不到即拒收；存量 35 条重取 13 页：采用 30、排除 1（"北京…消息"电头误判）、取不到 4（人民网证书不符）；投影 4 条 AI 声明全部保留，603 个观测选值不变） |
 | 28 | [27](issues/27-historical-rerun-freshness-cutoff.md) | 历史目标日重跑时，时效与模型输入随运行截止点变化（25 第五节） | done（保持口径；报告、页面与缺口清单并列标注目标日与时效截至时点；积压批次线 A） |
 | 29 | [28](issues/28-dateline-xiaoxi-read-as-place.md) | 电头"央广网北京×月×日消息"的"北京"被当作地方主语（26 存量重取发现） | needs-triage（下一批分流） |
+| 30 | [29](issues/29-backfill-evidence-preload-and-wal-sync.md) | 补算证据运行级预载（约 27% 热点）；WAL `synchronous` 取舍（24 剩余热点） | needs-triage（下一批分流） |
 
 **下一步**：三轮均已完成，验收见 [acceptance-20261009.md](acceptance-20261009.md)、[acceptance-20261009-round2.md](acceptance-20261009-round2.md) 与 [acceptance-20261009-round3.md](acceptance-20261009-round3.md)。17 项计数指标按主要成员缺期计全部完整；最终计划只剩 7 个上游、时效或凭据类缺口；资讯声明只取全国口径，4 条旧地方声明已退出候选与选值。遗留票 24（测试反馈过慢）转入积压批次处理；26（AI WebSearch 原话无标题与主语分句）已在积压批次完成（2026-10-10），存量重取发现的电头误判另开票 28（needs-triage，下一批分流）。票 22"新入库声明带主语分句与标题"在真实运行中尚无实例可核，等以后有新资讯声明入库时再看。另记一项观察：历史目标日在晚间重跑时，日频时效与模型输入会随截止时点变化（见第三轮验收记录第五节）；用户决定保持口径，票 27 已在报告、页面与缺口清单并列标注目标日与时效截至时点（done）。
 
