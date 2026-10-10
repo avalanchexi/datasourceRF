@@ -275,6 +275,27 @@ class Run:
     def artifact(self, content_hash: str) -> bytes:
         return (self.artifacts / "sha256" / content_hash[:2] / content_hash).read_bytes()
 
+    @cached_property
+    def _scalars_cache(self) -> dict[str, list | None]:
+        return {}
+
+    def scalars(self, normalized_hash: str) -> list | None:
+        """The scalar list of a stored normalized artifact (``accepted_scalars`` when present,
+        else ``scalars``, of an object; or a top-level array), read once per run, possibly
+        empty; ``None`` when the artifact is missing or has no scalar list."""
+        cache = self._scalars_cache
+        if normalized_hash not in cache:
+            try:
+                payload = json.loads(self.artifact(normalized_hash))
+            except (OSError, ValueError):
+                payload = None
+            if isinstance(payload, dict):
+                # An empty list is a parse that carries nothing, not a missing parse.
+                key = "accepted_scalars" if "accepted_scalars" in payload else "scalars"
+                payload = payload.get(key)
+            cache[normalized_hash] = payload if isinstance(payload, list) else None
+        return cache[normalized_hash]
+
     def receipts(self, where: str, params: tuple = ()) -> list[Receipt]:
         """Receipts started by the cutoff, newest first; ``where`` filters ``a``. Whether the
         answer itself arrived by the cutoff is ``reached_source``'s question."""

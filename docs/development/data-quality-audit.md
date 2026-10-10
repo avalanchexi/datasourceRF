@@ -27,7 +27,7 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 | 文件 | 职责 |
 |---|---|
 | `tools/quality/audit.py` | 入口：解析参数、只读打开库、加载 `Run`，依次调用 `SECTIONS` 中的各节并拼成报告 |
-| `tools/quality/common.py` | 公共读取：`Run` 封装运行信息，以及冻结目录（`catalog`）、模型用到的指标（`model_used`）、截止前仅有派生值的指标（`derived_only`）、定义相同的目录版本（`same_definition`）、窗口（`window`）、各市场日历（`calendars`）、截止前的取数回执（`receipts`、`reached_source`、`validated_by_cutoff`），以及按哈希读取原件（`artifact`）；另含 Markdown 表格工具 |
+| `tools/quality/common.py` | 公共读取：`Run` 封装运行信息，以及冻结目录（`catalog`）、模型用到的指标（`model_used`）、截止前仅有派生值的指标（`derived_only`）、定义相同的目录版本（`same_definition`）、窗口（`window`）、各市场日历（`calendars`）、截止前的取数回执（`receipts`、`reached_source`、`validated_by_cutoff`），以及按哈希读取原件（`artifact`）和规范化制品中的标量列表（`scalars`，按哈希缓存）；另含 Markdown 表格工具 |
 | `tools/quality/acquisition.py` | 第一层：取数是否完整（日频、低频） |
 | `tools/quality/derived.py` | 第一层第三条：派生数据的存在性与独立重算 |
 | `tools/quality/model_input.py` | 第二层：模型输入是否完整（缺失明细与四个分母） |
@@ -72,6 +72,8 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 
 **哪些回执算数**：截止前发起的回执中，只看“请求的是这个成员的序列”的那些。具体做法是：先找出截止前为该成员在窗口内产出过声明的回执，取它们的请求签名，即接口名加上除日期类参数以外的全部参数（例如权证的 `symbol`、指数的 `ts_code`）；签名相同的回执都算数。从未持有过的成员，退而使用在运行中声明过该指标的回执（`full_run_acquisition.metric_ids_json`）；权证还要求回执请求的正是该品种（参数 `symbol`）。覆盖区间从参数中的 `start_date`／`end_date`／`trade_date`／`period`／`date` 推出。比最近一条取得应答的回执更新、但没有取得应答的尝试，不作为证据，只在依据里计数。
 
+下面的事件类指标不用这套签名规则：公告逐页请求，签名里带着各页的 `source_url`，同一指标其他日子的公告会被漏认（票 09 的根因）。
+
 **成员**：
 
 - 权证按品种（`symbol`）划分成员，品种取窗口内出现过的品种与 `warrant_conversions` 列出品种的并集。每个品种使用其 `exchange` 维度对应交易所的日历。
@@ -79,6 +81,25 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 - 局限：从未出现过的成员发现不了。
 
 **公开时间晚于目标日**：有些格已经持有，但声明的公开时间（取 `public_available_at`，缺失时取 `inferred_public_at`）晚于目标日结束。这些格单独列表：它们取数是完整的，只是按时点规则不进模型，由第二层报告。
+
+### 日频：事件类与按需求口径的指标（票 09）
+
+有两类日频指标不按“每个交易日都应有观测”核对。它们不计入应有格的日子另记一类，不算缺口；报告的日频总表只计各自口径下的应有格，结论里另起一条说明，“日频：按事件与需求口径核对的指标”一节列出口径、不计入的日期，以及待重处理的公告回执。
+
+**事件类（现行值）**：冻结清单 `confirmation_rules` 中带 `notices` 的规则所读的指标。v0015 只有 `CN_OMO_7D_RATE`，`notices` 指向 `CN_OMO_7D_AMOUNT`（`measure=injection`）。这类指标只在公告给出新值的日子有观测，其余日子沿用此前公告的现行值。有声明的日子照常记“已持有”；没有声明的日子按当日公告判断：
+
+- **当日公告**：参数 `family` 等于该指标目录 `release_event_family`（这里是 `pbc_omo_notice`），`period` 等于该日，截止前取得应答的回执，按发起时间由新到旧排列。只读截止前已通过校验的规范化制品（`normalized_hash`，有 `accepted_scalars` 键时取它，否则取 `scalars`，或顶层数组；空列表算一份不含任何值的解析件；由 `Run.scalars` 按哈希读取并缓存），列表页之类没有标量列表的制品不算公告解析件。标量的单位须是字符串、值须是数或字符串，形状不对的不作证据。
+
+| 当日公告的情况 | 类别 |
+|---|---|
+| 任一解析件含该指标、该成员、该日的值（单位须是冻结定义允许的） | 未取到。依据写明“原件含值、未入库，待重处理（票 09 线 B）”和解析件中的值，并在专表中逐日列出所依据的公告回执，供线 B 重处理 |
+| 有解析件，都不含该值，而且每份解析件都给出 `notices` 指标当日的值、都为 0 | 公告无新值：当日无操作，不计入应有格 |
+| 有解析件、不含该值，但有一份解析件的 `notices` 值非 0 或缺失 | 未取到：无法确认当日无新值 |
+| 当日公告回执都没有可读的解析件；或者没有当日公告回执（依据里注明当日是否有 `notices` 指标的声明） | 未取到 |
+
+“`notices` 值为 0 即无新值”是本脚本的取舍：公开市场公告在操作量为零的日子不列利率。报告另列窗口前最近一条已持有声明的日期和值（窗口开始时的现行值），只作说明，不计格。
+
+**只要最新值的指标**（内置表 `acquisition.LATEST_ONLY`）：目前只有 `CN_USDCNY_CENTRAL_PARITY`。它是 P2 参考指标，用户 2026-10-10 决定只要最新值和比较上下文，不补 120 日历史（票 09）。应有格只有两个：窗口内该市场最后一个不确知休市的日子（最新值），以及它之前最近一个已持有的日子（比较上下文；窗口内没有时取再前一个不确知休市的日子）。日历未覆盖的日子照常记“日历未覆盖”；其余日子记“不在需求内”，不计入应有格，已持有的也一样，另列“其中已持有”。同为 P2 的 USDCNY 16:30 收盘价、SOX 等指标仍按整窗口径核对，报告中照旧列为已知（票 01）。
 
 ### 月频、季频、周频：最新应有期与发布延迟
 

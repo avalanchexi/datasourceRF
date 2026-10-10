@@ -29,7 +29,7 @@
 | [06](issues/06-loan-structure-wrong-year-media-page.md) | 贷款结构误收 2025 年报告的值（9 条错期声明，14 个投影） | ready-for-agent（错期校验＋媒体冲突经 WebSearch 复核，复核不定记缺失＋历史保留并标注） |
 | [07](issues/07-credit-impulse-gdp-quarter-vintage.md) | GDP 当季值的修订口径 | done（体检回读规范化制品确认共同交付，误报消除；08 的旧缺口归为“已修复、历史保留”；生产端 wontfix） |
 | [08](issues/08-dr007-policy-spread-missing-0929.md) | 09-29 缺 DR007 政策利差 | wontfix（ADR-0036 已修；体检归因并入 07） |
-| [09](issues/09-daily-history-periods-never-requested.md) | 逆回购利率、中间价历史期次 | ready-for-agent（修体检口径＋重处理 12 天已存原件；中间价不补历史） |
+| [09](issues/09-daily-history-periods-never-requested.md) | 逆回购利率、中间价历史期次 | ready-for-agent（体检部分 done：事件类按公告覆盖、中间价按需求口径、12 天标“原件含值、未入库”；重处理待线 B；中间价不补历史） |
 | [10](issues/10-low-frequency-backfill-holes.md) | 低频空期 | ready-for-agent（只修体检“已清理／不在需求内”） |
 | [11](issues/11-warrant-unpublished-cells-retried-every-run.md) | 仓单未发布格每轮重试 | done（跳过本轮应答已为空的单日补取＋负缓存前移记为暂缓、不写回执；真实核对并入 16） |
 | [12](issues/12-layer3-rules-not-covered.md) | 第三层未覆盖规则 | ready-for-agent（只做按符号比较与分化封顶） |

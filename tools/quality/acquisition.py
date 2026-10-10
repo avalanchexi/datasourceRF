@@ -2,6 +2,9 @@
 
 Daily: every open day of the metric's market calendar in the run's window, for every member,
 is one cell, classified as held, not fetched, not published upstream, or calendar uncovered.
+Two kinds are checked under their own requirement instead: metrics read as a current value
+from announcements (a day whose announcement carries no new value is not due), and metrics
+needed only at the latest day and the value it is compared with (other days are not due).
 Monthly, quarterly and weekly: is the latest period due by the cutoff held, and how long after
 its official publication was each period first stored.
 """
@@ -9,14 +12,18 @@ its official publication was each period first stored.
 from __future__ import annotations
 
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 
-from common import Receipt, Run, compress_days, iso_day, parse_time, table
+from common import Calendar, Receipt, Run, compress_days, iso_day, parse_time, table
 
 HELD, NOT_FETCHED, NOT_PUBLISHED, UNCOVERED = "已持有", "未取到", "上游未发布", "日历未覆盖"
 CLASSES = (HELD, NOT_FETCHED, NOT_PUBLISHED, UNCOVERED)
+# Cells that are not due under the metric's own requirement: not counted among due cells.
+NO_NEW_VALUE, OUT_OF_DEMAND = "公告无新值", "不在需求内"
+NOT_DUE = (NO_NEW_VALUE, OUT_OF_DEMAND)
+RECOVERABLE = "原件含值、未入库，待重处理（票 09 线 B）"
 BEIJING = timezone(timedelta(hours=8))
 
 # Market calendar per daily metric; anything not listed is domestic and uses the SSE calendar.
@@ -40,6 +47,13 @@ DATE_PARAMETERS = {
     "start_date", "end_date", "trade_date", "period", "date", "start_m", "end_m", "start_q",
     "end_q", "year", "definition_version",
 }  # fmt: skip
+# Daily metrics needed only at the latest day plus the earlier value it is compared with, not
+# over the whole window (user decision 2026-10-10, ticket 09: the central parity is P2 context).
+LATEST_ONLY = {
+    "CN_USDCNY_CENTRAL_PARITY": (
+        "P2 参考指标，只要最新值和比较上下文（用户 2026-10-10 决定，票 09）"
+    ),
+}
 
 # Official NBS release items (``release_schedule`` origin ``nbs:schedule_page``) and how far the
 # released period lags the publication month: -1 is the previous month or quarter.
@@ -89,6 +103,17 @@ class DailyResult:
     # Held cells whose earliest declared public time is after the target day ends: acquired,
     # but the point-in-time rule keeps them out of the model (layer 2 reports that).
     public_after_target: list[tuple[Cell, str]] = field(default_factory=list)
+    # Metrics checked under their own requirement (announcements, latest only): per
+    # (metric, member) what that requirement is and what it found outside the cells.
+    rules: dict[tuple[str, str], RuleNote] = field(default_factory=dict)
+    # Missing cells whose announcement's stored parse holds the value: (cell, receipt, values).
+    recoverable: list[tuple[Cell, str, str]] = field(default_factory=list)
+
+
+@dataclass
+class RuleNote:
+    basis: str
+    note: str
 
 
 @dataclass
@@ -259,6 +284,224 @@ def _classify_missing(
     )
 
 
+# --- daily metrics read as a current value, or needed only at the latest day ----------------
+
+
+@dataclass
+class Announced:
+    """A daily metric the frozen rules read as a current value: a new value comes only with
+    an announcement, and the rule's ``notices`` metric marks the days that had one.
+
+    ``documents`` maps a day to that day's receipts of the metric's release family, newest
+    first, each with the hash of its stored parse (``None``: no parse in hand by the cutoff);
+    the parse itself is read only for the days that need it."""
+
+    family: str
+    notice: tuple[str, dict]
+    documents: dict[str, list[tuple[str, str | None]]]
+    notice_days: frozenset[str]
+
+
+def _announced_metrics(run: Run) -> dict[str, tuple[str, dict]]:
+    """``{metric: (notice metric, notice dimensions)}`` for every confirmation rule that names
+    the announcements its metric is read from (``notices``)."""
+    found: dict[str, tuple[str, dict]] = {}
+
+    def walk(node) -> None:
+        if isinstance(node, dict):
+            notices = node.get("notices")
+            if isinstance(notices, dict) and node.get("metric_id") in run.catalog:
+                found[node["metric_id"]] = (notices["metric_id"], notices.get("dimensions") or {})
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk(run.manifest["confirmation_rules"])
+    return found
+
+
+def _load_announced(run: Run, metric: str, notice: tuple[str, dict]) -> Announced:
+    family = run.catalog[metric].get("release_event_family") or ""
+    documents: dict[str, list[tuple[str, str | None]]] = defaultdict(list)
+    rows = run.db.execute(
+        "SELECT acquisition_id, json_extract(parameters_json, '$.period'), normalized_hash,"
+        " validated_at FROM acquisition_request WHERE json_extract(parameters_json, '$.family') = ?"
+        " AND started_at <= ? AND raw_hash IS NOT NULL AND received_at <= ?"
+        " ORDER BY started_at DESC, acquisition_id",
+        (family, run.cutoff, run.cutoff),
+    )
+    for acquisition, period, normalized, validated in rows:
+        if not period:
+            continue
+        in_hand = normalized if validated and validated <= run.cutoff else None
+        documents[iso_day(str(period))].append((acquisition, in_hand))
+    notice_metric, notice_dims = notice
+    notice_days = frozenset(
+        day
+        for day, dimensions in run.db.execute(
+            "SELECT DISTINCT period_start, dimensions_json FROM source_claim"
+            " WHERE metric_id = ? AND period_kind = 'business_day' AND available_at <= ?",
+            (notice_metric, run.cutoff),
+        )
+        if json.loads(dimensions) == notice_dims
+    )
+    return Announced(family, notice, dict(documents), notice_days)
+
+
+def _day_values(run: Run, scalars: list, metric: str, dims: dict | None, day: str) -> list[str]:
+    """Values a stored parse gives ``metric`` for the member ``dims`` (``None``: any) on
+    ``day``, in a unit the frozen definition allows."""
+    definition = run.catalog.get(metric, {})
+    units = set(definition.get("allowed_units") or [definition.get("unit")])
+    return sorted(
+        {
+            str(s["value"])
+            for s in scalars
+            if isinstance(s, dict)
+            and isinstance(s.get("unit"), str)
+            and isinstance(s.get("value"), (int, float, str))
+            and s.get("metric_id") == metric
+            and str(s.get("period_start") or s.get("period_end") or "")[:10] == day
+            and (dims is None or (s.get("dimensions") or {}) == dims)
+            and s.get("unit") in units
+        }
+    )
+
+
+def _is_zero(value: str) -> bool:
+    try:
+        return float(value) == 0
+    except ValueError:
+        return False
+
+
+def _classify_announced(
+    run: Run, rule: Announced, metric: str, member: str, day: str
+) -> tuple[str, str, tuple[str, str] | None]:
+    """A day without a claim of an announced metric, judged by that day's announcements.
+
+    A stored parse holding the value: acquired, not stored. Every parse giving the
+    ``notices`` metric zero: no operation, so no new value; the current value stands and the
+    cell is not due. Anything else (a parse whose notice value is nonzero or missing, no
+    parse, no announcement) leaves the cell not fetched."""
+    dims = json.loads(member) if member.startswith("{") else None  # None: never held
+    parsed = []
+    for acquisition, normalized in rule.documents.get(day, []):
+        scalars = run.scalars(normalized) if normalized else None
+        if scalars is not None:
+            parsed.append((acquisition, scalars))
+    for acquisition, scalars in parsed:
+        values = _day_values(run, scalars, metric, dims, day)
+        if values:
+            shown = "、".join(values)
+            evidence = f"{RECOVERABLE}：当日公告的已存解析件含该值（{shown}），截止前无声明"
+            return NOT_FETCHED, evidence, (acquisition, shown)
+    notice_metric, notice_dims = rule.notice
+    if parsed:
+        per_parse = [_day_values(run, s, notice_metric, notice_dims, day) for _, s in parsed]
+        notices = {v for values in per_parse for v in values}
+        if all(values and all(_is_zero(v) for v in values) for values in per_parse):
+            return (
+                NO_NEW_VALUE,
+                f"当日公告已解析：{notice_metric} 为 0，不含该指标的值；当日无操作、无新值，"
+                "现行值沿用此前公告",
+                None,
+            )
+        shown = "、".join(sorted(notices)) or "无"
+        gaps = "（有解析件缺该值）" if not all(per_parse) else ""
+        return (
+            NOT_FETCHED,
+            f"当日公告已解析，但不含该指标的值，{notice_metric} 为 {shown}{gaps}："
+            "无法确认当日无新值",
+            None,
+        )
+    others = len(rule.documents.get(day, []))
+    if others:
+        return (
+            NOT_FETCHED,
+            f"当日 {rule.family} 回执 {others} 条已取得应答，但截止前都没有可读的公告解析件",
+            None,
+        )
+    if day in rule.notice_days:
+        return (
+            NOT_FETCHED,
+            f"截止前无当日 {rule.family} 公告回执；当日有 {notice_metric} 声明，"
+            "但其来源没有可逐项核对的公告解析件",
+            None,
+        )
+    return NOT_FETCHED, f"截止前无当日 {rule.family} 公告回执，也无当日 {notice_metric} 声明", None
+
+
+def _base_before(run: Run, metric: str, member: str, compatible: frozenset[str]) -> str:
+    """The newest claim of the member dated before the window: the value current when the
+    window opens, as ``day（values）``."""
+    rows = run.db.execute(
+        "SELECT period_start, dimensions_json, definition_version, value FROM source_claim"
+        " WHERE metric_id = ? AND period_kind = 'business_day' AND period_start < ?"
+        " AND available_at <= ?",
+        (metric, run.window[0], run.cutoff),
+    )
+    found: dict[str, set[str]] = defaultdict(set)
+    for day, dims, version, value in rows:
+        if version in compatible and _member(metric, dims)[0] == member:
+            found[day].add(str(value))
+    if not found:
+        return "窗口前无已持有的声明"
+    day = max(found)
+    return f"窗口前最近声明 {day}（{'、'.join(sorted(found[day]))}）"
+
+
+def _demand_days(candidates: list[str], held: set[str]) -> dict[str, str]:
+    """``{day: role}`` a latest-only metric needs among the days not known closed: the latest
+    one, and the earlier value it is compared with (the newest earlier day held, else the
+    day before)."""
+    if not candidates:
+        return {}
+    latest, earlier = candidates[-1], candidates[:-1]
+    days = {latest: "最新"}
+    held_before = [d for d in earlier if d in held]
+    compared = held_before[-1] if held_before else (earlier[-1] if earlier else None)
+    if compared:
+        days[compared] = "比较"
+    return days
+
+
+def _own_rule(
+    run: Run,
+    result: DailyResult,
+    key: tuple[str, str],
+    rule: Announced | None,
+    calendar: Calendar | None,
+    days: list[str],
+    by_day: dict,
+) -> tuple[Announced | None, dict[str, str] | None]:
+    """The requirement a member is checked under when it is not "every open day": its
+    announcements, or the days a latest-only metric needs. Records it for the report."""
+    metric, member = key
+    compatible = run.same_definition[metric]
+    if rule is not None:
+        notice_metric, notice_dims = rule.notice
+        named = json.dumps(notice_dims, ensure_ascii=False, sort_keys=True)
+        result.rules[key] = RuleNote(
+            f"事件类（现行值）：冻结规则的 notices 指向 {notice_metric} {named}，"
+            f"公告族 {rule.family}",
+            _base_before(run, metric, member, compatible),
+        )
+        return rule, None
+    if metric in LATEST_ONLY:
+        # An uncovered day may be open: it stays a candidate (and is reported uncovered).
+        candidates = [d for d in days if not calendar or calendar.classify(d) != "closed"]
+        demand = _demand_days(candidates, {d for d, v in by_day.items() if v & compatible})
+        roles = sorted(demand.items(), reverse=True)
+        result.rules[key] = RuleNote(
+            LATEST_ONLY[metric], "，".join(f"{role} {day}" for day, role in roles)
+        )
+        return None, demand
+    return None, None
+
+
 def daily(run: Run) -> DailyResult:
     excluded = OPERATIONAL | run.derived_only
     metrics = [m for m, d in run.catalog.items() if d["frequency"] == "daily" and m not in excluded]
@@ -269,6 +512,7 @@ def daily(run: Run) -> DailyResult:
     warrant_symbols = {
         c["symbol"] for c in run.manifest["confirmation_rules"].get("warrant_conversions", [])
     }
+    announced = _announced_metrics(run)
     for metric in metrics:
         compatible = run.same_definition[metric]
         members = {member for (m, member) in holdings.versions if m == metric}
@@ -280,18 +524,28 @@ def daily(run: Run) -> DailyResult:
         result.calendar_of[metric] = (
             "各品种交易所" if metric == WARRANTS else MARKET.get(metric, "SSE")
         )
+        notice = announced.get(metric)
+        announcements = _load_announced(run, metric, notice) if notice else None
         for member in sorted(members):
             name = holdings.exchange_of.get(member, "SHFE") if metric == WARRANTS else None
             name = name or MARKET.get(metric, "SSE")
             calendar = run.calendars.get(name)
             by_day = holdings.versions.get((metric, member), {})
             receipts: list[Receipt] | None = None
+            rule, demand = _own_rule(
+                run, result, (metric, member), announcements, calendar, days, by_day
+            )
             for day in days:
                 kind = calendar.classify(day) if calendar else "uncovered"
                 if kind == "closed":
                     continue
                 if kind == "uncovered":
                     result.cells.append(Cell(metric, member, day, UNCOVERED, f"{name} 日历"))
+                    continue
+                if demand is not None and day not in demand:
+                    held_here = bool(by_day.get(day, set()) & compatible)
+                    note = "已持有" if held_here else ""
+                    result.cells.append(Cell(metric, member, day, OUT_OF_DEMAND, note))
                     continue
                 versions = by_day.get(day, set())
                 if versions & compatible:
@@ -304,13 +558,20 @@ def daily(run: Run) -> DailyResult:
                     if public_at and parse_time(public_at) > target_end:
                         result.public_after_target.append((cell, public_at))
                     continue
-                if receipts is None:
-                    receipts = _member_receipts(run, metric, member, holdings)
-                status, evidence = _classify_missing(run, receipts, raw, metric, member, day)
+                found = None
+                if rule is not None:
+                    status, evidence, found = _classify_announced(run, rule, metric, member, day)
+                else:
+                    if receipts is None:
+                        receipts = _member_receipts(run, metric, member, holdings)
+                    status, evidence = _classify_missing(run, receipts, raw, metric, member, day)
                 if versions:
                     listed = "、".join(sorted(versions))
                     evidence = f"仅有定义不同的目录版本 {listed} 的声明；{evidence}"
-                result.cells.append(Cell(metric, member, day, status, evidence))
+                cell = Cell(metric, member, day, status, evidence)
+                result.cells.append(cell)
+                if found:
+                    result.recoverable.append((cell, *found))
     return result
 
 
@@ -486,9 +747,11 @@ def low_frequency(run: Run) -> tuple[list[PeriodRow], list[DelayRow], list[str]]
 
 
 def _counts(cells: list[Cell]) -> dict[str, int]:
+    """Cells per class; cells not due under the metric's own requirement are left out."""
     counts = dict.fromkeys(CLASSES, 0)
     for cell in cells:
-        counts[cell.status] += 1
+        if cell.status in counts:
+            counts[cell.status] += 1
     return counts
 
 
@@ -536,6 +799,22 @@ def _conclusion(run: Run, result: DailyResult, periods, delays) -> list[str]:
             f"超过宽限的期次 {len(late)} 个（其中发布早于系统启用 {run.system_start[:10]} 的"
             f" {sum(d.backfilled for d in late)} 个），宽限无法判定 {unknown} 个。"
         )
+    if result.rules:
+        parts = []
+        for metric in dict.fromkeys(m for m, _ in result.rules):
+            cells = [c for c in result.cells if c.metric == metric]
+            skipped = Counter(c.status for c in cells if c.status in NOT_DUE)
+            counted = "、".join(f"{status} {n} 格" for status, n in sorted(skipped.items()))
+            again = sum(1 for c, *_ in result.recoverable if c.metric == metric)
+            parts.append(
+                f"{metric}（模型用到：{scope_label(run, metric)}）{counted or '无不计入的格'}"
+                + (f"，{RECOVERABLE} {again} 格（计入未取到）" if again else "")
+            )
+        out.append(
+            "- **按事件与需求口径核对的指标**不按“每个交易日都应有观测”计应有格，"
+            f"上面两种范围的日频计数已按各自口径计：{'；'.join(parts)}。"
+            "见“日频：按事件与需求口径核对的指标”。"
+        )
     sse_end = max(run.calendars["SSE"].covered)
     judged = parse_time(run.cutoff).astimezone(BEIJING).date().isoformat()
     if sse_end < judged:
@@ -571,10 +850,9 @@ def _daily_tables(run: Run, result: DailyResult) -> list[str]:
     out += [table(headers, summary), "", "缺格明细（同一指标、成员、类别、依据的日期合并）：", ""]
     grouped: dict[tuple, list[str]] = defaultdict(list)
     for cell in result.cells:
-        if cell.status != HELD:
+        if cell.status != HELD and cell.status not in NOT_DUE:
             grouped[(cell.metric, cell.member, cell.status, cell.evidence)].append(cell.day)
-    # Consecutive means consecutive on the union of every calendar's open days.
-    all_open = sorted(set().union(*(c.open_days for c in run.calendars.values())))
+    all_open = _all_open(run)
     detail = [
         [
             metric,
@@ -599,6 +877,86 @@ def _daily_tables(run: Run, result: DailyResult) -> list[str]:
         for cell, public_at in result.public_after_target
     ]
     out.append(table(["指标", "成员", "日期", "公开时间"], late_public) if late_public else "无。")
+    return [*out, ""]
+
+
+def _all_open(run: Run) -> list[str]:
+    """Consecutive means consecutive on the union of every calendar's open days."""
+    return sorted(set().union(*(c.open_days for c in run.calendars.values())))
+
+
+def _rule_tables(run: Run, result: DailyResult) -> list[str]:
+    if not result.rules:
+        return []
+    out = [
+        "### 日频：按事件与需求口径核对的指标",
+        "",
+        "以下指标不按“每个交易日都应有观测”核对。上表只计按各自口径应有的格；"
+        "不计入的格及其日期列在这里。",
+        "",
+        "- 事件类（现行值）：冻结确认规则带 `notices` 的指标，只在公告给出新值的日子才有观测。"
+        "没有声明的日子按当日公告判断：公告的已存解析件含该值，记未取到，"
+        f"并注明“{RECOVERABLE}”；当日公告的每份解析件都不含该值、且 `notices` 指标的值都为 0"
+        f"（当日无操作），记“{NO_NEW_VALUE}”，不计入应有格；`notices` 值非 0 或缺失、"
+        "没有当日公告解析件的，都记未取到。",
+        "- 只要最新值的指标（内置表 `LATEST_ONLY`）：只有最新开市日和与之比较的上一个值是应有格，"
+        f"其余日子记“{OUT_OF_DEMAND}”，不计入应有格；日历未覆盖的日子仍记日历未覆盖。",
+        "",
+    ]
+    rows = []
+    for (metric, member), note in result.rules.items():
+        cells = [c for c in result.cells if (c.metric, c.member) == (metric, member)]
+        counts = _counts(cells)
+        skipped = Counter(c.status for c in cells if c.status in NOT_DUE)
+        rows.append(
+            [
+                metric,
+                scope_label(run, metric),
+                _display(member),
+                note.basis,
+                len(cells),
+                sum(counts.values()),
+                counts[HELD],
+                counts[NOT_FETCHED] + counts[NOT_PUBLISHED],
+                "、".join(f"{s} {n}" for s, n in sorted(skipped.items())) or "0",
+                sum(1 for c in cells if c.status == OUT_OF_DEMAND and c.evidence),
+                note.note,
+            ]
+        )
+    headers = [
+        "指标",
+        "模型用到",
+        "成员",
+        "口径",
+        "窗口开市日",
+        "应有格",
+        "已持有",
+        "缺格",
+        "不计入应有",
+        "其中已持有",
+        "说明",
+    ]
+    out += [table(headers, rows), "", "不计入应有的格：", ""]
+    grouped: dict[tuple, list[str]] = defaultdict(list)
+    for cell in result.cells:
+        if cell.status in NOT_DUE:
+            evidence = cell.evidence if cell.status == NO_NEW_VALUE else ""
+            grouped[(cell.metric, cell.member, cell.status, evidence)].append(cell.day)
+    all_open = _all_open(run)
+    detail = [
+        [metric, _display(member), status, compress_days(days, all_open), evidence or "—"]
+        for (metric, member, status, evidence), days in sorted(grouped.items())
+    ]
+    out.append(table(["指标", "成员", "类别", "日期", "依据"], detail) if detail else "无。")
+    out += ["", f"{RECOVERABLE}的格（逐日列出所依据的公告回执）：", ""]
+    again = [
+        [cell.metric, _display(cell.member), cell.day, acquisition, values]
+        for cell, acquisition, values in sorted(
+            result.recoverable, key=lambda r: (r[0].metric, r[0].day)
+        )
+    ]
+    headers = ["指标", "成员", "日期", "公告回执", "解析件中的值"]
+    out.append(table(headers, again) if again else "无。")
     return [*out, ""]
 
 
@@ -679,6 +1037,7 @@ def section(run: Run) -> str:
     ]
     out += ["", table(["日历", "来源", "覆盖"], calendars), ""]
     out += _daily_tables(run, result)
+    out += _rule_tables(run, result)
     out += _low_frequency_tables(run, periods, delays)
     out += [
         "### 不在本层核对范围",
