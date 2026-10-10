@@ -213,8 +213,8 @@ def batch_series(run: Run, batch: str, template: dict[str, Series]) -> dict[str,
         receipt_ids = [
             r.acquisition_id
             for r in run.receipts(
-                "a.acquisition_id IN"
-                " (SELECT acquisition_id FROM full_run_acquisition WHERE run_id = ?)",
+                "a.acquisition_id IN (SELECT acquisition_id FROM full_run_acquisition"
+                " WHERE run_id = ? AND phase != 'referenced')",
                 (batch,),
             )
             if (r.api_name, r.parameters.get("ts_code")) in wanted

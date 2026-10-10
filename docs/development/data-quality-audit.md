@@ -2,7 +2,7 @@
 
 对**一次已完成的运行**及其 120 日证据窗口做只读体检，回答三个问题：数据取全了吗？进模型的输入全吗？模型输出对吗？结果输出为 Markdown 报告，只报告问题，不阻断运行，也不改库。规格见 `.scratch/data-quality-audit-20261010/spec.md`。
 
-目前已实现第一层中的日频逐日核对，以及低频的最新期与发布延迟核对（票 01）；第二层模型输入完整，以及第三层的输出内部一致性复查（票 03）和三核心独立重算（票 04）。派生数据（票 02）会陆续加到同一套脚本里。
+目前已实现第一层中的日频逐日核对、低频的最新期与发布延迟核对（票 01），以及派生数据的存在性与独立重算（票 02）；第二层模型输入完整，以及第三层的输出内部一致性复查（票 03）和三核心独立重算（票 04）。
 
 ## 用法
 
@@ -14,6 +14,7 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 - 不加 `--out` 时报告打印到标准输出。报告末尾会记录本次耗时，对 `run-a8675946…` 实测为 5～9 秒。
 - 排序用的临时数据放在内存里（`PRAGMA temp_store = MEMORY`），只读沙箱里也能运行。
 - 被审运行必须处于 `completed` 状态。截止时点取 `run_cutoff_freeze.system_as_of`；若该表无记录，则退回 `parent_run.system_as_of`。所有“已持有”都以 `available_at <= 截止` 为准，所以审旧运行时，运行之后才入库的数据不会被算进去。
+- `full_run_acquisition` 中 `phase='referenced'` 的行（票 30 引入）是本运行引用的旧回执，不是它自己发出的请求。读原件时，这些回执算作本运行可见（日历、核心原件）；统计本运行的请求和回执时则排除（`acquisition.py` 中声明过该指标的回执、`model_input.py` 的回执状态统计、`core_recompute.py` 中早前运行自己的核心回执）。
 - 从源码目录直接跑时，建议加上 `PYTHONDONTWRITEBYTECODE=1`，避免在 `tools/quality/` 下留下字节码。
 
 ## 独立性约束
@@ -28,6 +29,7 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 | `tools/quality/audit.py` | 入口：解析参数、只读打开库、加载 `Run`，依次调用 `SECTIONS` 中的各节并拼成报告 |
 | `tools/quality/common.py` | 公共读取：`Run` 封装运行信息，以及冻结目录（`catalog`）、模型用到的指标（`model_used`）、截止前仅有派生值的指标（`derived_only`）、定义相同的目录版本（`same_definition`）、窗口（`window`）、各市场日历（`calendars`）、截止前的取数回执（`receipts`、`reached_source`、`validated_by_cutoff`），以及按哈希读取原件（`artifact`）；另含 Markdown 表格工具 |
 | `tools/quality/acquisition.py` | 第一层：取数是否完整（日频、低频） |
+| `tools/quality/derived.py` | 第一层第三条：派生数据的存在性与独立重算 |
 | `tools/quality/model_input.py` | 第二层：模型输入是否完整（缺失明细与四个分母） |
 | `tools/quality/output_consistency.py` | 第三层（一）：输出内部一致性（阶段映射、确认度计数、报告与投影） |
 | `tools/quality/core_recompute.py` | 第三层（二）：三核心独立重算（趋势状态 → 正式阶段），与系统输出逐日比对 |
@@ -98,12 +100,72 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 
 发布时间早于系统启用时间（库内第一条回执的时间）的期次，是系统启用后回填入库的。这些期次照样列出并计数，只在“启用前发布”栏标“是”，结论中另外给出数量；其中到截止仍未入库的，就是回填也没补上的期次。
 
+### 派生数据：存在性与独立重算（票 02）
+
+实现在 `tools/quality/derived.py`。被审运行用到的派生值分四类存放，都要核：
+
+- **派生观测表** `derived_observation`：运行为目标日落库的派生值（`batch_id` 等于运行编号）。每个公式一行，贷款按成员各一行，只存最新齐全期。
+- **窗口内各日的汇总投影**：每个交易日发布一份投影。目标日取被审运行自己的投影，其他日子取数据截止（`system_as_of`）不晚于被审运行截止的最新一份；没有投影的交易日列为问题。补算日的派生值只写进当日投影，不落派生观测表（`persist_derived=False`，见 `.scratch/architecture-review-20260929/issues/12-backfill-day-evidence-snapshot.md`），所以“窗口内每一天”要在各日投影里核。这一处只核冻结清单 `derived_formula_versions` 中的公式。
+- **本运行发布的投影**（`Run.datasets` 的 `macro`）：确认规则里规则级公式按期给出的序列，包括 M1−M2、DR007 每期政策利差、当月增量较去年同月、每期净投放，以及价格一致性中的相对动量。
+
+- **股市广度**：系统按 ADR-0030 逐股计算、再以来源声明入库的 7 项序列。本节按窗口内每一天，从 TuShare `daily` 与 `stk_factor_pro` 原件重算，再与截止前可用的声明比对。
+
+逐项结论表列出 v0015 的全部派生指标，共 22 项：冻结清单 `derived_formula_versions` 中的 8 个公式、确认规则中的 7 个规则级公式，以及 7 项股市广度。商品篮子与分项贡献以来源声明入库，归在规则级公式 `ex-hog-calendar-settlement-v0003` 一项里。
+
+**原料**：只用当时能用的来源声明。“当时”对目标日指截止时点，对窗口内其他日子指该日投影的 `system_as_of`。条件有四：当时已入库；公开时间（`public_available_at`，缺失时用 `inferred_public_at`）不晚于该日结束（北京时间）；目录版本与冻结定义相同（`same_definition`，按被审运行的冻结目录判断）；没有被另一条满足前述条件的声明取代（`supersedes_claim_id`）。同一观测有多个来源且取值不一致时，取哪个来源属于选源规则，本节不核：一律用系统所选的那条声明重算，即使它的值为空。派生观测取其血缘，投影读数取 `observation_version_ids`。全部候选值列在备注里。
+
+**存在性**：
+
+| 存放处 | 判据 |
+|---|---|
+| 派生观测（目标日落库、窗口内各日投影） | 从锚定指标的期次由新往旧逐期试算，第一个原料齐全的期次就是“原料最新齐全期”。拿它与库中该公式（贷款按成员）那一条的期次比较：相同为“存在”；库中没有为“缺失”；库中期次更旧为“期次落后”；库中期次更新为“库中期次晚于独立判断”；原料不齐、库中也没有，为“原料不齐，无派生值”，不算问题。库中期次取血缘中锚定指标的最大期次。实际库存近似（v0002）按定义只锚定最新库存月，不往前回退。若血缘中的声明已被留存删除、无从比较，记为“原料已被留存删除，无法核对”，不算问题。窗口内各日按该日投影所用模型的 `derived_formula_versions` 判断应有哪些公式；本脚本没有实现的旧版本公式只计数；只出现在旧模型日投影中的公式，其问题也列入分流 |
+| 投影：每期净投放、DR007 政策利差 | 应有期次取自冻结规则，不取自读数：最后一期止于目标日，往前共 `lookback_periods` 期，每期 `period_sessions` 个交易日（流动性 12×5，DR007 50×5）。不在这些期次上的读数列为问题；应有期次缺失且原料齐全的列为问题；原料不齐的缺期只计数（例如政策利率只从窗口前一日起有公告） |
+| 投影：M1−M2 | 应有期次为原料齐全的最新月份往前共 3 个月（辅成员回看 3 期，见 `.scratch/macro-semantics-20261006/issues/04-monthly-official-key-indicators.md:35`），判据同上 |
+| 投影：当月增量较去年同月 | 读数只给最新一期，须有值，且与原料最新齐全的月份相同 |
+| 投影：相对动量 | 三对都应有读数。按定义，121 个交易日里两个核心每天都要有实际收盘：中间缺日时读数应为空，为空记一致，给出读数则列为问题；原料齐全而读数为空，记为有差异 |
+| 股市广度 | 窗口内每一天：原件齐全、能算出值，而截止前没有对应声明的，列为缺失 |
+| 投影：缺项 | 冻结规则里有、投影里却没有的读数或输入成员，以及期次与值个数不符的序列，都列为问题，不会从报告里消失 |
+
+**重算**：每个公式都按书面定义另写一遍，没有读过生产代码。下表“依据”给出定义出处，“本脚本的取舍”是定义没写明、由本脚本选定的地方。
+
+| 公式 | 重算 | 依据 | 本脚本的取舍 |
+|---|---|---|---|
+| `pmi-production-order-spread-v0001` | 同月 PMI 生产指数 − 新订单指数 | `.scratch/pring-data-acquisition-repair/research-13.md:176` | — |
+| `pmi-order-inventory-spread-v0001` | 同月新订单指数 − 产成品库存指数 | `research-13.md:175` | — |
+| `ust-2s10s-spread-v0001` | 100 ×（同日 10 年期 − 2 年期美债收益率），单位为基点 | `.scratch/pring-data-acquisition-repair/treasury-followup.md:32` | — |
+| `dr007-policy-spread-v0001` | 100 ×（DR007 − 当日现行的七天逆回购利率），单位为基点 | `research-13.md:174` | 现行利率取当日或之前最近一次公告的利率 |
+| `inventory-ppi-common-month-v0002` | 最新月名义产成品存货 ÷（1 + 同月 PPI 同比 / 100） | `docs/research/legacy-pring-model-audit.md:509`、`.scratch/pring-data-acquisition-repair/implementation-19-isolated-lifecycle.md:71` | PPI 取总指数同比 |
+| `loan-ytd-monthly-change-v0002` | 同一成员年内累计值差分，1 月直接取累计值 | `research-13.md:178` | — |
+| `credit-impulse-12m-flow-share-v0003` | 100 × 近 12 个月社融增量之和 ÷ 近 4 季名义 GDP 之和；月度和季度增量都由年初至今累计值差分得到，1 月和一季度直接取累计值。GDP 季度差分的两个累计值须出自同一次交付，或与统计局直接公布的名义当季值一致 | `CONTEXT.md` “信用脉冲”条、`.scratch/architecture-review-20260929/issues/25-model-v0014-twelve-month-horizon.md:15`、`:38` | “本月可得的近 4 季”理解为当时可用、四季都齐全的最新一季。“同一次交付”按回执判断：有一条回执（`source_claim_acquisition`）同时交付了差分两端的累计值，数值相同、目录定义相同，且回执的应答和声明都在当时已到手。不满足时，再找当时已取得的统计局 GDP 公告原件（`official_http_get`，`family=nbs_gdp`），读第一张表中 GDP 行的当季绝对额，差分值在公告精度的半个单位内即算一致。两条都不满足时，值照样重算，同时列为“定义条件未满足”问题 |
+| `repo-net-injection-trading-calendar-v0002` | 自上一个开市日之后到当天的投放 − 当天到期量。到期日为投放日加 7 个自然日，遇休市顺延到下一个上交所开市日，所以当天到期的是到期日落在“上一个开市日之后、当天及以前”的投放。开市日必须有公告，显式零按零计 | `.scratch/lookback-fetch-gaps-20261008/issues/16-derived-coverage-flag-counts-whole-family.md:64`、`.scratch/macro-semantics-20261006/issues/06-policy-dimension.md:52` | 库中没有到期量声明，一律按日历推算 |
+| `sf-monthly-increment-yoy-change-v0001` | 社融当月增量 − 去年同月增量 | `.scratch/macro-semantics-20261006/issues/04-monthly-official-key-indicators.md:33` | — |
+| `loan-monthly-increment-yoy-change-v0001` | 贷款成员当月增量 − 去年同月增量 | `.scratch/macro-semantics-20261006/issues/07-cumulative-and-quarterly-indicators.md:10` | 1 月沿用贷款差分的定义，直接取累计值 |
+| `m1-m2-yoy-spread-v0001` | 同月 M1 同比 − M2 同比，单位为百分点 | `04-monthly-official-key-indicators.md:12` | — |
+| `omo-7d-net-injection-v0001` | 每期内各交易日净投放之和，每日净投放的算法同上 | `06-policy-dimension.md:41`、`:52` | 分期取投影读数的期次，再单独核对分期是否合规 |
+| `dr007-policy-spread-sessions-v0001` | 100 ×（每期 DR007 均值 − 期末现行政策利率），单位为基点 | `06-policy-dimension.md:98` | 换算成基点依据冻结清单中的标签“DR007 政策利差（基点）”；期末现行利率的取法同 `dr007-policy-spread-v0001` |
+| `return-difference-v0001` | 100 ×（甲核心 120 日收益 − 乙核心 120 日收益），收益为末日收盘 ÷ 基日收盘 − 1，基日为截至目标日第 121 个上交所交易日 | `.scratch/macro-semantics-20261006/issues/09-price-consistency-and-observation-interfaces.md:35` | 核心价格多源时，逐一试算两端价格的全部实际组合，有一种组合在容差内重现库中值即为一致 |
+| 股市广度 7 项 | 上涨／下跌／平盘家数与净额、参与家数；涨跌比；上涨成交额占比（`daily.amount`）；90／250 日新高新低（`topdays`／`lowdays` ≥ N）；站上 90／250 日均线占比（`close_qfq` 严格大于 `ma_qfq_N`，分母为当天有交易且因子不为空的股票） | `docs/adr/0030-breadth-and-basket-from-tushare-inputs.md:9` | 成员取当日 `daily` 应答里的股票，剔除深市 200、沪市 900 开头的 B 股和沪市 689 开头的 CDR（`stock_basic` 没有区分 CDR 的字段）；成交量为 0 的不参与；“上市满 N 个交易日”以因子为空体现，不另按上市日期过滤。每个请求（含分页）取截止前最新的应答 |
+
+**容差**：|库中值 − 重算值| ≤ 1×10⁻⁶ × max(1, |库中值|)，所有公式统一使用。依据是：公式都是对十进制输入做加减乘除，同一份输入重算时，差异只来自浮点尾差；对两次运行实测，一致的值中相对差最大为 2.2×10⁻¹⁴。容差留出的余量远大于浮点尾差，所以超过容差，就说明公式、配期或选料确实不同。反过来不成立：对数值很大的派生值（例如约 7 万亿元的库存近似，容差约 0.07），输入末位的微小改动可能落在容差之内，本节不保证查出这类改动。
+
+**无法独立核对**（报告中标为“已知”）：
+
+- `ex-hog-calendar-settlement-v0003`，包括商品篮子、分项贡献和分项广度：篮子要用逐合约结算价，按换月规则从期货原件重建；广度的累计起止日、首日贡献是否计入、持平怎样处理，定义里都没写全（`09-price-consistency-and-observation-interfaces.md:52`）。
+
+**局限**：
+
+- 相对动量的基日是窗口首日的前一个交易日。被审运行之后只要又有一次运行成功，留存就会删掉这一天的核心价格，相对动量随之只能报“原料不齐”；10-10 的两次运行即属此种情况。所以应在运行结束后尽快体检。
+- 补算日的派生值不落库，其血缘声明到了窗口外就会被留存删除。这些日子只能记“原料已被留存删除，无法核对”。
+- 窗口内各日投影大多由当时生效的旧模型生成（已汇总的日子不再重算）。逐日核对按各日投影所用模型的公式清单判断应有哪些值，但目录定义仍按被审运行的冻结目录判断。
+- 股市广度的新高新低与均线直接用 TuShare 计算的因子，本节核的是系统对这些因子的汇总，不核因子本身。
+- 选源规则，即多源取值不一致时该取哪个来源，不在本节范围。
+
 ## 日历来源
 
 | 日历 | 来源 | 用于 |
 |---|---|---|
-| SSE | 库内 TuShare `trade_cal`（上交所）原件，优先用被审运行自己的回执 | 国内日频指标（含银行间指标，按规格统一用上交所日历）；窗口；宽限 |
-| SHFE／DCE／CZCE／INE | 库内 TuShare `fut_trade_cal` 原件，优先用被审运行自己的回执；回执在下游失败（如 `ContextObservationsMissingError`）不影响原件中的日历 | 南华指数与商品篮子（SHFE）、各品种权证 |
+| SSE | 库内 TuShare `trade_cal`（上交所）原件：合并截止前取得应答的全部回执，同一天有多份应答时，以被审运行自己的回执为准，其次取最新的 | 国内日频指标（含银行间指标，按规格统一用上交所日历）；窗口；宽限 |
+| SHFE／DCE／CZCE／INE | 库内 TuShare `fut_trade_cal` 原件，合并方式同上；回执在下游失败（如 `ContextObservationsMissingError`）不影响原件中的日历 | 南华指数与商品篮子（SHFE）、各品种权证 |
 | US_EQUITY | 内置 NYSE 假日表 | VIX、SOX、EIA Brent／WTI |
 | US_TREASURY | 内置 NYSE 假日表，加 SIFMA 的哥伦布日、退伍军人节 | UST 2Y／10Y |
 | TARGET | 内置 TARGET 关闭日：元旦、耶稣受难日、复活节周一、5/1、12/25、12/26 | ECB 交叉汇率 |
@@ -111,7 +173,8 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 - 内置的 NYSE、SIFMA、TARGET 表目前覆盖 **2025–2027 年**，在 `tools/quality/common.py` 中，**每年都需要补下一年**；超出覆盖年份的日子会报为“日历未覆盖”，不做猜测。
 - 耶稣受难日美国债市有时只提前收市而不全天休市，表里按休市处理。
 - 美股表用于 EIA Brent 时，英国银行假日（Brent 当天无报价）不会被排除。EIA 原件是 HTML，无法逐日核对，所以这些日子会报为“未取到”，需要人工按假日解释。
-- 报告的“日历与窗口”一节会列出每份日历实际使用的回执编号和覆盖范围。如果上交所日历只覆盖到目标日、没有覆盖到判定日，结论会单独提示，这是 lookback/30 的特征。
+- 合并的原因：票 30 之后，运行会另取一份只覆盖判定段（目标日到判定日）的窄回执。只用一份回执的话，可能选中这份窄回执，窗口就算不出来了。合并后，窗口取开市日，判定段取窄回执里写明的开市日和休市日。
+- 报告的“日历与窗口”一节会列出每份日历合并了几份回执、最后采用的是哪一份，以及覆盖范围。如果上交所日历只覆盖到目标日、没有覆盖到判定日，结论会单独提示，这是 lookback/30 的特征。
 
 ## 第二层：模型输入是否完整
 

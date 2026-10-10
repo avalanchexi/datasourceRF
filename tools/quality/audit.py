@@ -16,6 +16,7 @@ from pathlib import Path
 
 import acquisition
 import core_recompute
+import derived
 import model_input
 import output_consistency
 from common import DEFAULT_DATABASE, Run, connect
@@ -23,6 +24,7 @@ from common import DEFAULT_DATABASE, Run, connect
 # One entry per audit section, in report order. Each takes the loaded run and returns Markdown.
 SECTIONS = [
     acquisition.section,
+    derived.section,
     model_input.section,
     output_consistency.section,
     core_recompute.section,

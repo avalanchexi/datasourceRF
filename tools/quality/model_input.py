@@ -198,7 +198,7 @@ def _explain(run: Run, final: dict, items: list[MissingItem], selected: set) -> 
         rows = run.db.execute(
             "SELECT a.state, COALESCE(a.rejection_reason, a.error_type, '') FROM"
             " full_run_acquisition f JOIN acquisition_request a USING (acquisition_id)"
-            " WHERE f.run_id = ? AND f.metric_ids_json LIKE ?"
+            " WHERE f.run_id = ? AND f.phase != 'referenced' AND f.metric_ids_json LIKE ?"
             " AND (f.period IS NULL OR f.period = ?) AND a.started_at <= ?",
             (run.run_id, f'%"{item.metric}"%', item.period, run.cutoff),
         ).fetchall()

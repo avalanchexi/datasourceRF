@@ -177,7 +177,7 @@ def _member_receipts(run: Run, metric: str, member: str, holdings: Holdings) -> 
     if not producing:
         declared = run.receipts(
             "a.acquisition_id IN (SELECT acquisition_id FROM full_run_acquisition"
-            " WHERE metric_ids_json LIKE ?)",
+            " WHERE metric_ids_json LIKE ? AND phase != 'referenced')",
             (f'%"{metric}"%',),
         )
         if metric != WARRANTS:

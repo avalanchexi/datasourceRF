@@ -297,6 +297,8 @@ class Run:
         )
 
     def run_receipts(self, api_name: str) -> list[Receipt]:
+        """Receipts visible to the run, including ones it only references (``referenced``):
+        right for reading raw answers, not for counting the run's own requests."""
         return self.receipts(
             "a.api_name = ? AND a.acquisition_id IN"
             " (SELECT acquisition_id FROM full_run_acquisition WHERE run_id = ?)",
@@ -306,32 +308,36 @@ class Run:
     # -- calendars and window -------------------------------------------------------------
 
     def _tushare_calendar(self, name: str, api_name: str, exchange: str) -> Calendar | None:
-        """Open days from the stored raw response: the run's own receipt first, else the
-        newest earlier one. A receipt failed downstream still carries the upstream answer."""
-        candidates = self.run_receipts(api_name)
-        candidates += [
-            r for r in self.receipts("a.api_name = ?", (api_name,)) if r not in candidates
+        """Open and closed days merged from every stored raw response answered by the cutoff:
+        a narrow top-up receipt (e.g. one covering only the judging days) extends the calendar
+        instead of replacing it. Where answers overlap, the run's own receipts win, then the
+        newest. A receipt failed downstream still carries the upstream answer."""
+        own = {r.acquisition_id for r in self.run_receipts(api_name)}
+        receipts = [
+            r
+            for r in self.receipts("a.api_name = ?", (api_name,))
+            if r.parameters.get("exchange", "SSE") == exchange and self.reached_source(r)
         ]
-        for receipt in candidates:
-            if receipt.parameters.get("exchange", "SSE") != exchange:
-                continue
-            if not self.reached_source(receipt):
-                continue
+        receipts.sort(key=lambda r: (r.acquisition_id in own, r.received_at or ""))
+        is_open: dict[str, bool] = {}
+        used: list[str] = []
+        for receipt in receipts:  # oldest and other runs' first; later ones overwrite
             try:
                 payload = json.loads(self.artifact(receipt.raw_hash))
                 fields, items = payload["data"]["fields"], payload["data"]["items"]
                 day_at, open_at = fields.index("cal_date"), fields.index("is_open")
-                covered = {iso_day(str(item[day_at])) for item in items}
-                open_days = {
-                    iso_day(str(item[day_at])) for item in items if int(item[open_at]) == 1
-                }
+                answer = {iso_day(str(i[day_at])): int(i[open_at]) == 1 for i in items}
             except (OSError, ValueError, KeyError, TypeError, IndexError):
-                continue  # an error payload or another shape: try the next receipt
-            if not covered:
-                continue
-            source = f"{api_name} {receipt.acquisition_id} ({receipt.state})"
-            return Calendar(name, source, frozenset(open_days), frozenset(covered))
-        return None
+                continue  # an error payload or another shape: skip it
+            if answer:
+                is_open.update(answer)
+                used.append(receipt.acquisition_id)
+        if not is_open:
+            return None
+        mine = sum(acquisition in own for acquisition in used)
+        source = f"{api_name} 合并 {len(used)} 份回执（本运行 {mine} 份；最后采用 {used[-1]}）"
+        open_days = frozenset(day for day, flag in is_open.items() if flag)
+        return Calendar(name, source, open_days, frozenset(is_open))
 
     @cached_property
     def calendars(self) -> dict[str, Calendar]:
