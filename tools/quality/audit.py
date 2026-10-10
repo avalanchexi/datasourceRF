@@ -15,6 +15,7 @@ import time
 from pathlib import Path
 
 import acquisition
+import core_recompute
 import model_input
 import output_consistency
 from common import DEFAULT_DATABASE, Run, connect
@@ -24,6 +25,7 @@ SECTIONS = [
     acquisition.section,
     model_input.section,
     output_consistency.section,
+    core_recompute.section,
 ]
 
 
