@@ -29,7 +29,7 @@
 | [06](issues/06-loan-structure-wrong-year-media-page.md) | 贷款结构误收 2025 年报告的值（9 条错期声明，14 个投影） | needs-info（①错期校验与③标注更正已提交；②媒体冲突复核有 6 项领域选择待用户决定，见票面） |
 | [07](issues/07-credit-impulse-gdp-quarter-vintage.md) | GDP 当季值的修订口径 | done（体检回读规范化制品确认共同交付，误报消除；08 的旧缺口归为“已修复、历史保留”；生产端 wontfix） |
 | [08](issues/08-dr007-policy-spread-missing-0929.md) | 09-29 缺 DR007 政策利差 | wontfix（ADR-0036 已修；体检归因并入 07） |
-| [09](issues/09-daily-history-periods-never-requested.md) | 逆回购利率、中间价历史期次 | ready-for-agent（体检部分 done：事件类按公告覆盖、中间价按需求口径、12 天标“原件含值、未入库”；重处理待线 B；中间价不补历史） |
+| [09](issues/09-daily-history-periods-never-requested.md) | 逆回购利率、中间价历史期次 | done（体检部分：事件类按公告覆盖、中间价按需求口径；重处理：`pring-cycle official-reprocess` 从已存原件补回 12 天利率，0 次外调、只补不改变选值的部分；对运行库的执行待票 16；中间价不补历史） |
 | [10](issues/10-low-frequency-backfill-holes.md) | 低频空期 | done（体检按最终计划与截止前回执，把核心 CPI 04、05 报“不在需求内”、工业三项 03 报“已入库后被清理”；“到截止仍未入库”归零；留存与需求不变） |
 | [11](issues/11-warrant-unpublished-cells-retried-every-run.md) | 仓单未发布格每轮重试 | done（跳过本轮应答已为空的单日补取＋负缓存前移记为暂缓、不写回执；真实核对并入 16） |
 | [12](issues/12-layer3-rules-not-covered.md) | 第三层未覆盖规则 | done（体检按裁决补两项：当月增量同比差按正负读方向、与主成员比较，未知或过期为 `not_compared`；分化的关键指标既不算支持也不算反证；两次运行均为非典型组合，按符号比较 10 个成员全部一致，封顶只核到分化识别；口径写入 `CONTEXT.md`；A4–A6 见 15） |

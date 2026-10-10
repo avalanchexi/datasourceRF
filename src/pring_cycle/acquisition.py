@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
@@ -615,6 +615,28 @@ class AcquisitionRepository:
             if not _schema_available(connection):
                 return ()
             rows = connection.execute("SELECT * FROM acquisition_request ORDER BY rowid").fetchall()
+        return tuple(receipt_from_row(row) for row in rows)
+
+    def validated_receipts(
+        self, *, api_names: tuple[str, ...], parser_version: str, parameters: Mapping[str, str]
+    ) -> tuple[AcquisitionReceipt, ...]:
+        """The validated calls of these APIs read by this parser whose parameters include
+        ``parameters``, earliest received first."""
+        clauses = ["state='validated'", "parser_version=?"]
+        values: list[str] = [parser_version]
+        clauses.append(f"api_name IN ({','.join('?' for _ in api_names)})")
+        values.extend(api_names)
+        for key, value in sorted(parameters.items()):
+            clauses.append("json_extract(parameters_json, ?)=?")
+            values.extend((f'$."{key}"', value))
+        with self._connect() as connection:
+            if not _schema_available(connection):
+                return ()
+            rows = connection.execute(
+                f"SELECT * FROM acquisition_request WHERE {' AND '.join(clauses)} "
+                "ORDER BY julianday(received_at), rowid",
+                values,
+            ).fetchall()
         return tuple(receipt_from_row(row) for row in rows)
 
     def read_content(self, acquisition_id: str, kind: str) -> bytes:

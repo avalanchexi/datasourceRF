@@ -38,6 +38,7 @@ from pring_cycle.artifacts import store_artifact
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.evidence import (
+    AsOfMode,
     EvidenceRepository,
     EvidenceValueState,
     MetricSeriesPoint,
@@ -592,6 +593,7 @@ def _ingest_acquired_official_release(
     clock: Callable[[], datetime],
     metric_ids: tuple[str, ...] | None,
     held_members: frozenset[str] = frozenset(),
+    record_attempt: bool = True,
 ) -> OfficialContextIngestionResult:
     parsed, receipt = acquired.value, acquired.receipt
     # Keep the original and its normalized full announcement intact for revalidation.
@@ -710,7 +712,7 @@ def _ingest_acquired_official_release(
     family = parsed.family
     expected_period = parsed.period
     metric_ids = tuple(sorted({scalar.metric_id for scalar in scalars}))
-    for metric_id in metric_ids:
+    for metric_id in metric_ids if record_attempt else ():
         repository.record_retrieval_attempt(
             metric_id=metric_id,
             channel="official_direct_candidate",
@@ -750,6 +752,220 @@ def _official_metric_scope(family: str, metric_ids: tuple[str, ...] | None) -> f
     if not requested or not requested.issubset(_FAMILY_METRICS[family]):
         raise ValueError("official_context_metric_scope_invalid")
     return requested
+
+
+@dataclass(frozen=True)
+class RestoredOfficialRelease:
+    acquisition_id: str
+    period: str
+    release_event_id: str
+    metric_ids: tuple[str, ...]
+    claim_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class SkippedOfficialRelease:
+    acquisition_id: str
+    period: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class OfficialReprocessResult:
+    status: str
+    family: str
+    definition_version: str
+    metric_ids: tuple[str, ...]
+    start: str
+    end: str
+    # Validated originals of the family read; those with nothing to restore are not listed.
+    examined: int
+    restored: tuple[RestoredOfficialRelease, ...]
+    restored_claim_count: int
+    skipped: tuple[SkippedOfficialRelease, ...]
+    network_requests: int = 0
+
+
+def reprocess_stored_official_releases(
+    paths: RuntimePaths,
+    *,
+    metric_ids: tuple[str, ...],
+    start: str,
+    end: str,
+    definition_version: str,
+    clock: Callable[[], datetime] = utc_now,
+) -> OfficialReprocessResult:
+    """Store what stored official originals state of ``metric_ids`` and their ingest left out.
+
+    An older ingest kept only the metrics a retrieval named, leaving the rest of the page
+    out: an OMO notice's rate beside the amount asked for (audit ticket 09; fixed by
+    lookback fetch gaps 02). Each validated original of the family is rebuilt and checked
+    against its receipt as a run reads it, and today's ingest stores the members it states
+    for periods ending within ``start``..``end`` that nothing holds. Nothing is requested.
+
+    Only what cannot change a selection is restored, the rest is left to a run. A member is
+    restored only when no claim of its source holds it, and only from an original that is
+    the one source of everything its source states of the release: a claim stored now is
+    the newest of its source, so restoring an older notice beside a revision already held
+    would turn the selection back to it, and a revision held would make the ingest take the
+    original for a revision itself. Such an original is skipped as
+    ``revised_by_another_original``. A member another source delivered (of a like
+    definition, ADR-0036) is not restated either, as the ingest never contests one; whether
+    it can be adopted is a run's to judge, which fetches the page itself if not. A member
+    restored is held by its source, so running it again stores nothing more.
+
+    The claims tell the truth about their time: published when the source published it,
+    fetched when the original was, and available to this system only from now (``clock``),
+    so a SYSTEM cutoff before the reprocessing never sees them. Nothing is retrieved, so no
+    retrieval attempt is recorded, and the original's receipt keeps the ingest result it
+    said once. The range keeps values retention removed before it out.
+    """
+    family = official_family_for_metrics(metric_ids)
+    requested = frozenset(metric_ids)
+    if not requested <= frozenset(
+        official_family_metrics(
+            family, definition_version=definition_version, database_path=paths.database
+        )
+    ):
+        raise ValueError("official_reprocess_metric_undefined")
+    start = _required_iso_date(start, "official_reprocess_range_invalid")
+    end = _required_iso_date(end, "official_reprocess_range_invalid")
+    if start > end:
+        raise ValueError("official_reprocess_range_invalid")
+
+    # The sources each member is delivered by; reprocessing adds none but the official one.
+    evidence = EvidenceRepository(paths.database)
+    providers: dict[tuple[str, str, str, str], set[str]] = {}
+    for metric_id in sorted(requested):
+        for point in evidence.metric_series(
+            metric_id,
+            mode=AsOfMode.SYSTEM,
+            as_of=max(clock(), utc_now()),
+            definition_version=definition_version,
+        ):
+            member = official_member(metric_id, point.dimensions)
+            providers.setdefault(
+                (member, point.period_start, point.period_end, metric_id), set()
+            ).update(claim.provider for claim in point.claims)
+
+    def delivered_elsewhere(scalar: ContextScalar, provider: str) -> bool:
+        member = official_member(scalar.metric_id, scalar.dimensions)
+        key = (member, scalar.period_start, scalar.period_end, scalar.metric_id)
+        return bool(providers.get(key, set()) - {provider})
+
+    receipts = AcquisitionRepository(paths.database, paths.artifacts)
+    stored = receipts.validated_receipts(
+        api_names=("document_import", "official_http_get"),
+        parser_version="official-context-parser-v0004",
+        parameters={"family": family},
+    )
+    restored: list[RestoredOfficialRelease] = []
+    skipped: list[SkippedOfficialRelease] = []
+    for receipt in stored:
+        period = receipt.parameters.get("period", "")
+        try:
+            raw = receipts.read_receipt_content(receipt, "raw")
+        except (LookupError, OSError, ValueError):
+            skipped.append(SkippedOfficialRelease(receipt.acquisition_id, period, "raw_missing"))
+            continue
+        parsed = _rebuilt_official_acquisition(receipt, raw)
+        if parsed is None:
+            skipped.append(SkippedOfficialRelease(receipt.acquisition_id, period, "rebuild_failed"))
+            continue
+        # The reference the ingest gives the claims of this original.
+        reference = f"{parsed.source_url}#sha256={receipt.raw_hash}"
+        # Every original of its source each member stated is held by, in any version, as the
+        # ingest reads them to tell a revision.
+        held_by = {
+            id(scalar): _provider_references(paths.database, scalar, parsed.provider)
+            for scalar in parsed.scalars
+        }
+        missing = tuple(
+            scalar
+            for scalar in parsed.scalars
+            if scalar.metric_id in requested
+            and start <= scalar.period_end <= end
+            and not held_by[id(scalar)]
+            and not delivered_elsewhere(scalar, parsed.provider)
+        )
+        if not missing:
+            continue
+        if any(references - {reference} for references in held_by.values()):
+            skipped.append(
+                SkippedOfficialRelease(
+                    receipt.acquisition_id, period, "revised_by_another_original"
+                )
+            )
+            continue
+        restoring = {official_member(s.metric_id, s.dimensions) for s in missing}
+        others = [scalar for scalar in parsed.scalars if scalar not in missing]
+        # The ingest leaves members out, not periods: one also stated for another period
+        # would be stored beside the missing one.
+        if any(official_member(s.metric_id, s.dimensions) in restoring for s in others):
+            skipped.append(
+                SkippedOfficialRelease(receipt.acquisition_id, period, "member_periods_mixed")
+            )
+            continue
+        try:
+            result = _ingest_acquired_official_release(
+                paths,
+                Acquired(parsed, receipt),
+                definition_version=definition_version,
+                clock=clock,
+                metric_ids=tuple(sorted({scalar.metric_id for scalar in missing})),
+                held_members=frozenset(official_member(s.metric_id, s.dimensions) for s in others),
+                record_attempt=False,
+            )
+        except ValueError as error:
+            skipped.append(
+                SkippedOfficialRelease(
+                    receipt.acquisition_id, period, f"ingest_refused:{str(error)[:200]}"
+                )
+            )
+            continue
+        restored.append(
+            RestoredOfficialRelease(
+                acquisition_id=receipt.acquisition_id,
+                period=parsed.period,
+                release_event_id=result.release_event_id,
+                metric_ids=result.metric_ids,
+                claim_ids=result.claim_ids,
+            )
+        )
+    return OfficialReprocessResult(
+        status="completed",
+        family=family,
+        definition_version=definition_version,
+        metric_ids=tuple(sorted(requested)),
+        start=start,
+        end=end,
+        examined=len(stored),
+        restored=tuple(restored),
+        restored_claim_count=sum(len(item.claim_ids) for item in restored),
+        skipped=tuple(skipped),
+    )
+
+
+def _provider_references(database: Path, scalar: ContextScalar, provider: str) -> set[str]:
+    """The originals of ``provider`` holding a claim of the scalar's member and period, in
+    any catalog version: those the ingest reads as earlier statements of it."""
+    with database_connection(database) as connection:
+        rows = connection.execute(
+            """
+            SELECT DISTINCT source_reference FROM source_claim
+            WHERE metric_id=? AND period_kind=? AND period_start=? AND period_end=?
+              AND dimensions_json=? AND provider=?
+            """,
+            (
+                scalar.metric_id,
+                scalar.period_kind,
+                scalar.period_start,
+                scalar.period_end,
+                json.dumps(scalar.dimensions, ensure_ascii=False, sort_keys=True),
+                provider,
+            ),
+        ).fetchall()
+    return {str(row[0]) for row in rows}
 
 
 # Listing pages one run reads from a site, all its listings together (lookback L05).

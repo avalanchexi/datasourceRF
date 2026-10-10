@@ -35,6 +35,7 @@ _MUTATING_COMMANDS = {
     "ecb-reference-import",
     "ecb-reference-refresh",
     "core-history-refresh",
+    "official-reprocess",
 }
 
 
@@ -283,6 +284,18 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             definition_version=namespace.definition_version,
         )
         return asdict(history_result)
+    if namespace.command == "official-reprocess":
+        from pring_cycle.official_context import reprocess_stored_official_releases
+
+        return asdict(
+            reprocess_stored_official_releases(
+                paths,
+                metric_ids=tuple(namespace.metric),
+                start=namespace.start,
+                end=namespace.end,
+                definition_version=namespace.definition_version,
+            )
+        )
     if namespace.command == "model-register":
         manifest = json.loads(namespace.manifest.read_text(encoding="utf-8"))
         if not isinstance(manifest, dict):
@@ -453,6 +466,12 @@ def _parser() -> argparse.ArgumentParser:
         "--definition-version",
         default="metric-catalog-v0001",
     )
+    # Stores what stored official originals state that no claim holds; no request is made.
+    official_reprocess = _runtime_parser(subparsers, "official-reprocess")
+    official_reprocess.add_argument("--metric", action="append", required=True)
+    official_reprocess.add_argument("--start", required=True)
+    official_reprocess.add_argument("--end", required=True)
+    official_reprocess.add_argument("--definition-version", required=True)
     model_register = _runtime_parser(subparsers, "model-register")
     model_register.add_argument("--manifest", type=Path, required=True)
     model_activate = _runtime_parser(subparsers, "model-activate")
