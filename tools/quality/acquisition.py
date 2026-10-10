@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter, defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 
@@ -220,38 +221,251 @@ def _member_receipts(run: Run, metric: str, member: str, holdings: Holdings) -> 
     return [r for r in candidates if _signature(r) in signatures]
 
 
+@dataclass(frozen=True)
+class Answer:
+    """One stored TuShare-shaped raw response: its fields, its row count, rows per day, and
+    the rows themselves by day unless parsed for counting only. ``damaged``: some row is not
+    a list as long as the fields or has no valid date, so no day's rows are known for sure."""
+
+    fields: list[str]
+    total: int
+    counts: dict[str, int]
+    by_day: dict[str, list[list]] | None
+    damaged: bool
+
+    def rows(self, day: str, symbol: str | None = None) -> list[list] | None:
+        """The day's rows (of ``symbol``); None when a symbol is asked of an answer that has
+        rows that day but no symbol column."""
+        rows = (self.by_day or {}).get(day, [])
+        if symbol is None or not rows:
+            return rows
+        if "symbol" not in self.fields:
+            return None
+        at = self.fields.index("symbol")
+        return [row for row in rows if row[at] == symbol]
+
+
+def _cut_short(receipt: Receipt, answer: Answer) -> bool:
+    """The answer holds as many rows as the request's ``limit``: later rows may be missing."""
+    try:
+        limit = int(str(receipt.parameters.get("limit", "")).strip())
+    except ValueError:
+        return False  # no usable limit: the request was not paged
+    return limit > 0 and answer.total >= limit
+
+
+def _day_of(value) -> str | None:
+    """A row's date as ``YYYY-MM-DD``, or None when it is not a valid date."""
+    if not isinstance(value, (str, int)):
+        return None
+    day = iso_day(str(value))
+    try:
+        return date.fromisoformat(day).isoformat() if len(day) == 10 else None
+    except ValueError:
+        return None
+
+
 class RawRows:
-    """Rows per day (and per symbol) in stored TuShare-shaped raw responses, parsed once."""
+    """Stored TuShare-shaped raw responses, parsed once (rows kept only when asked for)."""
 
     def __init__(self, run: Run) -> None:
         self._run = run
-        self._cache: dict[str, dict | None] = {}
+        self._cache: dict[str, Answer | None] = {}
 
-    def count(self, raw_hash: str, day: str, symbol: str | None) -> int | None:
-        """Rows for the day (and symbol); None when the raw is not TuShare-shaped."""
-        if raw_hash not in self._cache:
-            self._cache[raw_hash] = self._parse(raw_hash)
-        parsed = self._cache[raw_hash]
-        if parsed is None:
-            return None
-        return parsed.get((day, symbol), 0)
+    def answer(self, receipt: Receipt, rows: bool = True) -> Answer | None:
+        """The receipt's raw response; None when it is not TuShare-shaped."""
+        cached = self._cache.get(receipt.raw_hash, False)
+        if cached is False or (rows and cached is not None and cached.by_day is None):
+            cached = self._cache[receipt.raw_hash] = self._parse(receipt.raw_hash, rows)
+        return cached
 
-    def _parse(self, raw_hash: str) -> dict | None:
+    def _parse(self, raw_hash: str, keep: bool) -> Answer | None:
         try:
             payload = json.loads(self._run.artifact(raw_hash))
             fields, items = payload["data"]["fields"], payload["data"]["items"]
             day_field = next(f for f in ("trade_date", "cal_date", "date") if f in fields)
             day_at = fields.index(day_field)
-            symbol_at = fields.index("symbol") if "symbol" in fields else None
-            counts: dict = defaultdict(int)
+            counts: dict[str, int] = defaultdict(int)
+            by_day: dict[str, list[list]] = defaultdict(list)
+            damaged = False
             for item in items:
-                day = iso_day(str(item[day_at]))
-                counts[(day, None)] += 1
-                if symbol_at is not None:
-                    counts[(day, item[symbol_at])] += 1
-        except (OSError, ValueError, KeyError, TypeError, IndexError, StopIteration):
+                whole = isinstance(item, list) and len(item) == len(fields)
+                day = _day_of(item[day_at]) if whole else None
+                if day is None:
+                    damaged = True
+                    continue
+                counts[day] += 1
+                if keep:
+                    by_day[day].append(item)
+        except (OSError, ValueError, KeyError, TypeError, StopIteration):
             return None
-        return counts
+        kept = dict(by_day) if keep else None
+        return Answer(list(fields), len(items), dict(counts), kept, damaged)
+
+
+# What one member needs from a day's rows, beyond "some row that day" (ticket 13): the field
+# holding its value and, for a total over several row keys, the key field and the keys it
+# needs. ``member`` maps the member's dimensions to (needed keys or None, value field).
+@dataclass(frozen=True)
+class RowRule:
+    key_field: str | None
+    member: Callable[[dict], tuple[tuple[str, ...] | None, str]]
+    meaning: str
+
+
+# Margin scopes and the exchanges each one totals (the current two-exchange member and the
+# older all-exchange ones).
+SCOPE_EXCHANGES = {
+    "sse_szse": ("SSE", "SZSE"),
+    "all_exchanges": ("SSE", "SZSE", "BSE"),
+    "SSE+SZSE+BSE": ("SSE", "SZSE", "BSE"),
+}
+MARGIN_FIELDS = {"financing_balance": "rzye", "financing_buy_amount": "rzmre"}
+SHIBOR_FIELDS = {"overnight": "on", "1w": "1w", "3m": "3m"}
+VALUATION_FIELDS = {"price_earnings": "pe", "price_book": "pb", "turnover_rate": "turnover_rate"}
+MEMBER_ROWS = {
+    "CN_MARGIN_BALANCE_SSE_SZSE": RowRule(
+        "exchange_id",
+        lambda d: (SCOPE_EXCHANGES[d["scope"]], MARGIN_FIELDS[d["measure"]]),
+        "两融合计：成员 scope 所含交易所各一行",
+    ),
+    "CN_SHIBOR_ON_1W_3M": RowRule(
+        None, lambda d: (None, SHIBOR_FIELDS[d["tenor"]]), "SHIBOR：当日一行，各期限一列"
+    ),
+    "CN_INDEX_VALUATION": RowRule(
+        "ts_code",
+        lambda d: ((d["index"],), VALUATION_FIELDS[d["measure"]]),
+        "指数估值：该指数一行，各估值字段一列",
+    ),
+}
+# Members built from several raw answers per day. True: every answer the member was ever
+# built from is needed every day (breadth: daily bars and factors). False: which answers a
+# day needs changes over time (the basket's contracts roll), so the script does not infer it
+# and only all of them empty counts as nothing published.
+MULTI_RAW = {
+    "CN_EQ_ADV_DEC": True,
+    "CN_EQ_AD_RATIO": True,
+    "CN_EQ_ADV_AMOUNT_SHARE": True,
+    "CN_EQ_NEW_HIGH_LOW_90": True,
+    "CN_EQ_NEW_HIGH_LOW_250": True,
+    "CN_EQ_ABOVE_MA90": True,
+    "CN_EQ_ABOVE_MA250": True,
+    "CN_COMMODITY_EX_HOG_BASKET": False,
+    "CN_COMMODITY_SLEEVE_CONTRIBUTION": False,
+}
+CALENDAR_APIS = {"trade_cal", "fut_trade_cal"}  # cover every day, published or not
+PAGING = {"limit", "offset"}
+
+
+def _check_rows(metric: str, member: str, answer: Answer, rows: list[list]) -> tuple[str, str]:
+    """The member's own rows and value field among a day's rows (``MEMBER_ROWS``).
+
+    Some of the keys it needs absent: the answer lacks part of the member, published upstream
+    only in part. Rows all there but the value empty, the key column missing, or no rule for
+    the member: not fetched, since an empty value or a damaged answer says nothing about
+    publication."""
+    rule = MEMBER_ROWS.get(metric)
+    try:
+        keys, value_field = rule.member(json.loads(member)) if rule else (None, "")
+    except (KeyError, ValueError, TypeError):
+        rule = None  # a member the rule does not know: count rows only
+    if rule and not (
+        isinstance(value_field, str) and (keys is None or all(isinstance(k, str) for k in keys))
+    ):
+        rule = None
+    if rule is None:
+        return NOT_FETCHED, f"该日有 {len(rows)} 行，但无声明"
+    own = rows
+    if keys is not None:
+        if rule.key_field not in answer.fields:
+            return NOT_FETCHED, f"该日有行，但应答无行键字段 {rule.key_field}，无法核对成员"
+        at = answer.fields.index(rule.key_field)
+        if any(not isinstance(row[at], str) or not row[at] for row in rows):
+            return NOT_FETCHED, f"该日有 {rule.key_field} 为空或无效的行，无法核对成员"
+        present = {row[at] for row in rows}
+        lacking = [k for k in keys if k not in present]
+        if lacking:
+            return NOT_PUBLISHED, (
+                f"应答该日缺 {'、'.join(lacking)}（{rule.meaning}，需 {'、'.join(keys)}；"
+                f"有 {'、'.join(sorted(present))}），上游部分未发布"
+            )
+        own = [row for row in rows if row[at] in keys]
+    if value_field not in answer.fields:
+        return NOT_FETCHED, f"该日有行，但应答无字段 {value_field}"
+    at = answer.fields.index(value_field)
+    empty = [row for row in own if row[at] is None or row[at] == ""]
+    if empty:
+        return NOT_FETCHED, (
+            f"该日所需行齐全，但 {len(empty)} 行的 {value_field} 为空（空值不算上游未发布），无声明"
+        )
+    held = f"（{'、'.join(keys)}）" if keys else ""
+    return NOT_FETCHED, f"该日所需行齐全{held}、{value_field} 有值，但无声明"
+
+
+def _series(receipt: Receipt) -> tuple[str, tuple[tuple[str, str], ...]]:
+    """Which series a request asks for, its pages taken together: the endpoint and every
+    parameter that neither chooses dates nor pages."""
+    chosen = sorted(
+        (k, str(v)) for k, v in receipt.parameters.items() if k not in DATE_PARAMETERS | PAGING
+    )
+    return receipt.api_name, tuple(chosen)
+
+
+def _first_page(receipt: Receipt) -> bool:
+    return str(receipt.parameters.get("offset", "0")) in ("0", "")
+
+
+def _classify_multi(
+    run: Run, metric: str, receipts: list[Receipt], raw: RawRows, day: str
+) -> tuple[str, str]:
+    """A member built from several answers per day (``MULTI_RAW``).
+
+    Each series the member's receipts ask for by date (calendars aside) is judged by its
+    newest first page that covers the day and reached the source: a first page not cut short
+    holds every row of the request. A series the member always needs with no such page, or a
+    page cut short with no row that day, leaves the member not fetched."""
+    series: dict[tuple, list[Receipt]] = defaultdict(list)
+    for receipt in receipts:  # newest first
+        span = _span(receipt)
+        if receipt.api_name in CALENDAR_APIS or span is None:
+            continue
+        found = series[_series(receipt)]  # known to the member, covering the day or not
+        if span[0] <= day <= span[1] and _first_page(receipt):
+            found.append(receipt)
+    if not MULTI_RAW[metric]:  # needs only what covers the day
+        series = defaultdict(list, {k: v for k, v in series.items() if v})
+    if not series:
+        return NOT_FETCHED, "无覆盖该日的取数回执（交易日历除外）"
+    counts, unanswered = {}, []
+    for key, covering in sorted(series.items()):
+        label = " ".join([key[0], *(v for _, v in key[1])])
+        receipt = next((r for r in covering if run.reached_source(r)), None)
+        answer = raw.answer(receipt, rows=False) if receipt else None
+        if not covering:
+            unanswered.append(f"{label} 无覆盖该日的回执")
+        elif receipt is None:
+            unanswered.append(f"{label} 覆盖该日的 {len(covering)} 条回执截止前均未取得应答")
+        elif answer is None:
+            unanswered.append(f"{label}（{receipt.acquisition_id}）原件非 TuShare 结构")
+        elif answer.damaged:
+            unanswered.append(f"{label}（{receipt.acquisition_id}）原件有结构不全或日期无效的行")
+        elif not answer.counts.get(day) and _cut_short(receipt, answer):
+            unanswered.append(f"{label}（{receipt.acquisition_id}）达到 limit 行数（分页不全）")
+        else:
+            counts[key] = (label, answer.counts.get(day, 0))
+    shown = "、".join(f"{label} {n} 行" for label, n in counts.values())
+    if unanswered:
+        return NOT_FETCHED, "；".join(unanswered) + (f"；{shown}" if shown else "")
+    empty = [label for label, n in counts.values() if n == 0]
+    if empty and len(empty) == len(counts):
+        return NOT_PUBLISHED, f"所需原件该日均 0 行（{shown}）"
+    if empty and MULTI_RAW[metric]:
+        return NOT_PUBLISHED, f"应答该日缺 {'、'.join(empty)}（{shown}），上游部分未发布"
+    if empty:
+        return NOT_FETCHED, (
+            f"部分原件该日 0 行（{shown}）；所需合约随换月而变，脚本不推断，不判上游未发布"
+        )
+    return NOT_FETCHED, f"所需原件该日均有行（{shown}），但无声明"
 
 
 def _classify_missing(
@@ -259,7 +473,11 @@ def _classify_missing(
 ) -> tuple[str, str]:
     """Decide from the newest receipt that covers the day and reached the source by the
     cutoff; newer attempts that never reached it (blocked, failed before sending) carry no
-    upstream evidence and are only counted."""
+    upstream evidence and are only counted. Members needing several row keys or answers a
+    day are judged by what they need (``MEMBER_ROWS``, ``MULTI_RAW``); an answer possibly cut
+    short (``limit``) is never evidence that something was not published."""
+    if metric in MULTI_RAW:
+        return _classify_multi(run, metric, receipts, raw, day)
     covering = [r for r in receipts if (s := _span(r)) and s[0] <= day <= s[1]]
     if not covering:
         return NOT_FETCHED, "无覆盖该日的取数回执"
@@ -275,11 +493,23 @@ def _classify_missing(
     skipped = covering.index(receipt)
     later = f"；其后另有 {skipped} 次未取得应答的尝试" if skipped else ""
     stamp = f"{receipt.acquisition_id}（{receipt.api_name}，{receipt.started_at[:10]}）"
-    rows = raw.count(receipt.raw_hash, day, member if metric == WARRANTS else None)
-    if rows == 0:
-        return NOT_PUBLISHED, f"最近取得应答的原件 {stamp} 该日 0 行{later}"
-    if rows:
-        return NOT_FETCHED, f"原件 {stamp} 该日有 {rows} 行，但无声明{later}"
+    answer = raw.answer(receipt)
+    if answer is not None:
+        rows = answer.rows(day, member if metric == WARRANTS else None)
+        if answer.damaged or rows is None:
+            flaw = "有结构不全或日期无效的行" if answer.damaged else "该日有行但缺 symbol 列"
+            return NOT_FETCHED, f"原件 {stamp} {flaw}，无法逐日核对{later}"
+        if rows:
+            status, finding = _check_rows(metric, member, answer, rows)
+            text = f"原件 {stamp} {finding}{later}"
+        else:
+            status, text = NOT_PUBLISHED, f"最近取得应答的原件 {stamp} 该日 0 行{later}"
+        if status == NOT_PUBLISHED and _cut_short(receipt, answer):
+            return NOT_FETCHED, (
+                f"原件 {stamp} 行数达到请求的 limit，可能分页不全，该日缺行不作上游未发布的证据"
+                f"{later}"
+            )
+        return status, text
     one_day = _span(receipt) == (day, day) and run.validated_by_cutoff(receipt)
     if one_day and receipt.source_record_count == 0:
         return NOT_PUBLISHED, f"当日回执 {stamp} 来源记录为 0{later}"

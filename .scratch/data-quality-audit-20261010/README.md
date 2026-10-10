@@ -33,6 +33,6 @@
 | [10](issues/10-low-frequency-backfill-holes.md) | 低频空期 | done（体检按最终计划与截止前回执，把核心 CPI 04、05 报“不在需求内”、工业三项 03 报“已入库后被清理”；“到截止仍未入库”归零；留存与需求不变） |
 | [11](issues/11-warrant-unpublished-cells-retried-every-run.md) | 仓单未发布格每轮重试 | done（跳过本轮应答已为空的单日补取＋负缓存前移记为暂缓、不写回执；真实核对并入 16） |
 | [12](issues/12-layer3-rules-not-covered.md) | 第三层未覆盖规则 | ready-for-agent（只做按符号比较与分化封顶） |
-| [13](issues/13-audit-partial-upstream-composite-members.md) | 合计类成员部分未发布误判 | ready-for-agent |
+| [13](issues/13-audit-partial-upstream-composite-members.md) | 合计类成员部分未发布误判 | done（按成员所需行键／原件核对：两融交易所、SHIBOR 期限、估值字段、广度、商品篮子；部分缺项记上游未发布并注明缺项，空值、损坏、分页不全记未取到；“本运行回执”识别票 11 的暂缓与本轮应答为空） |
 | [14](issues/14-scheduler-weekday-fallback-on-holidays.md) | 调度在节假日误提交 | done（缺覆盖先补一次 `trade_cal`、开市才提交；失败暂缓、每 10 分钟重试至 21:00） |
 | [15](issues/15-trend-rules-a4-a6-interview.md) | A4–A6 规则口径访谈 | needs-info（另开访谈） |

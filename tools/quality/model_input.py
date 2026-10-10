@@ -16,13 +16,16 @@ from datetime import date, timedelta
 
 import acquisition
 from acquisition import BEIJING, HELD, UNCOVERED, WARRANTS, scope_label
-from common import Run, parse_time, table
+from common import Run, iso_day, parse_time, table
 
 CONFIRMATION_STATUSES = ("current", "stale", "missing")
 LATE_PUBLIC = "已持有，公开时间晚于目标日"
 HELD_NO_PUBLIC = "已持有，无公开时间"
 HELD_UNEXPLAINED = "已持有，原因不明"
 NO_CLAIM = "无声明"
+# Requests settled without a receipt (ticket 11): held back by the ledger, or not asked again.
+NEGATIVE_CACHE = "negative_cache_active"
+EMPTY_IN_ANSWER = "warrant_day_empty_in_run_answer"
 
 
 @dataclass
@@ -153,6 +156,112 @@ def _one_behind(
     return f"上一期 {previous} 的值已入选冻结输入（{taken[0][:12]}…），落后 1 期"
 
 
+def _query_span(params: dict) -> tuple[str, str] | None:
+    """The days a request's date parameters ask for, when they name days."""
+    start = params.get("start_date") or params.get("trade_date") or params.get("date")
+    end = params.get("end_date") or params.get("trade_date") or params.get("date")
+    span = (iso_day(str(start)), iso_day(str(end))) if start and end else None
+    return span if span and all(len(d) == 10 for d in span) else None
+
+
+class Unsent:
+    """Requests the run settled without a receipt (ticket 11), so the receipt count alone
+    would read them as never asked.
+
+    - Held back: a TuShare query the ledger (``retrieval_query``) recorded as
+      ``negative_cache_active`` with no request sent. The older path left a failed receipt
+      as well; a query with a matching receipt of the run (same endpoint and parameters,
+      rejected ``negative_cache_active``) is already counted there and is not repeated.
+    - Answered empty: the channel result ``warrant_day_empty_in_run_answer``
+      (``run_retrieval_attempt`` of the release event ``full:<family>:<period>``): the run's
+      own answer already held no row that day, so it did not ask again.
+    """
+
+    def __init__(self, run: Run) -> None:
+        self._run = run
+        self._apis: dict[str, set[str]] = {}
+        self._notes: dict[tuple[str, str], list[str]] = {}
+        failed: Counter = Counter()
+        for api, params in run.db.execute(
+            "SELECT a.api_name, a.parameters_json FROM full_run_acquisition f"
+            " JOIN acquisition_request a USING (acquisition_id) WHERE f.run_id = ?"
+            " AND f.phase != 'referenced' AND a.rejection_reason = ? AND a.started_at <= ?",
+            (run.run_id, NEGATIVE_CACHE, run.cutoff),
+        ):
+            try:
+                failed[(api, _canonical(params))] += 1
+            except (ValueError, TypeError):
+                continue
+        self.held_back: list[tuple[str, tuple[str, str], str | None]] = []
+        for text, eligible in run.db.execute(
+            "SELECT query_text, next_eligible_at FROM retrieval_query WHERE run_id = ?"
+            " AND channel = 'tushare' AND classification = ? AND physical_request_id IS NULL"
+            " AND attempted_at <= ? ORDER BY attempted_at",
+            (run.run_id, NEGATIVE_CACHE, run.cutoff),
+        ):
+            try:
+                query = json.loads(text)
+                api, params = query["api_name"], query.get("params") or {}
+                key = (api, _canonical(json.dumps(params)))
+                span = _query_span(params)
+            except (ValueError, KeyError, TypeError, AttributeError):
+                continue
+            if failed[key]:
+                failed[key] -= 1  # the older path's failed receipt already counts it
+            elif span:
+                self.held_back.append((api, span, eligible))
+
+    def _metric_apis(self, metric: str) -> set[str]:
+        """Endpoints of the receipts any run declared for the metric."""
+        if metric not in self._apis:
+            self._apis[metric] = {
+                r[0]
+                for r in self._run.db.execute(
+                    "SELECT DISTINCT a.api_name FROM full_run_acquisition f"
+                    " JOIN acquisition_request a USING (acquisition_id)"
+                    " WHERE f.metric_ids_json LIKE ?",
+                    (f'%"{metric}"%',),
+                )
+            }
+        return self._apis[metric]
+
+    def notes(self, metric: str, period: str) -> list[str]:
+        if (metric, period) not in self._notes:
+            self._notes[(metric, period)] = self._find(metric, period)
+        return self._notes[(metric, period)]
+
+    def _find(self, metric: str, period: str) -> list[str]:
+        first, last = _bounds(period)
+        apis = self._metric_apis(metric)
+        held = [
+            eligible
+            for api, (start, end), eligible in self.held_back
+            if api in apis and start <= last and first <= end
+        ]
+        notes = []
+        if held:
+            soonest = min((e for e in held if e), default=None)
+            notes.append(
+                f"暂缓、未发请求（{NEGATIVE_CACHE}，账本无回执"
+                + (f"，最早 {_fmt(soonest)} 可再查" if soonest else "")
+                + f"） {len(held)}"
+            )
+        family = self._run.catalog.get(metric, {}).get("release_event_family")
+        if family:
+            empty = self._run.db.execute(
+                "SELECT COUNT(*) FROM run_retrieval_attempt WHERE run_id = ?"
+                " AND release_event_id = ? AND classification = ? AND occurred_at <= ?",
+                (self._run.run_id, f"full:{family}:{period}", EMPTY_IN_ANSWER, self._run.cutoff),
+            ).fetchone()[0]
+            if empty:
+                notes.append(f"本轮应答已为空、未再请求（{EMPTY_IN_ANSWER}） {empty}")
+        return notes
+
+
+def _canonical(params: str) -> str:
+    return json.dumps(json.loads(params), sort_keys=True, ensure_ascii=False)
+
+
 def _explain(run: Run, final: dict, items: list[MissingItem], selected: set) -> None:
     """Attach layer 1's verdict and the run's own receipts to each missing item."""
     if not items:
@@ -169,6 +278,7 @@ def _explain(run: Run, final: dict, items: list[MissingItem], selected: set) -> 
     }
     target_end = f"{run.target_date}T23:59:59.999999+08:00"
     public_cutoff = min(parse_time(run.cutoff), parse_time(target_end))
+    markers = Unsent(run)
     for item in items:
         item.carried = _one_behind(run, final, item, series, carried_core, selected)
         cell = cells.get((item.metric, item.member, item.period))
@@ -203,7 +313,9 @@ def _explain(run: Run, final: dict, items: list[MissingItem], selected: set) -> 
             (run.run_id, f'%"{item.metric}"%', item.period, run.cutoff),
         ).fetchall()
         tally = Counter(f"{state}{f'（{why}）' if why else ''}" for state, why in rows)
-        item.receipts = _tally(tally) or "无"
+        notes = [_tally(tally)] if tally else []
+        notes += markers.notes(item.metric, item.period)
+        item.receipts = "；".join(notes) or "无"
 
 
 # --- denominators -------------------------------------------------------------------------
