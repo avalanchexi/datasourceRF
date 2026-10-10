@@ -1,4 +1,4 @@
-Status: blocked
+Status: ready-for-agent
 Type: task
 Blocked by: 06, 07, 09, 10, 11, 12, 13, 14
 
