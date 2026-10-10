@@ -30,7 +30,7 @@
 | [09](issues/09-same-definition-original-checks-and-cache-keys.md) | 02c：相同定义——原件复核与缓存键（依赖 07） | 票 02 拆分 | done |
 | [10](issues/10-omo-rate-dropped-when-notice-ingested-for-amount.md) | OMO 公告原件写了利率，入库只存了操作量（验收运行发现） | 否，既有 | duplicate（并入 lookback 02） |
 | [11](issues/11-first-retrieval-plan-before-run-calendar.md) | 完整补缺首次规划在装入运行日历之前（票 01 审查发现） | 否，既有 | done（首次、恢复与最终规划在推算期次前装入判定日历） |
-| [12](issues/12-scheduler-skips-only-weekends.md) | 盘后自动调度只排除周末（票 01 审查发现） | 否，既有 | ready-for-agent（运行库调度已开启） |
+| [12](issues/12-scheduler-skips-only-weekends.md) | 盘后自动调度只排除周末（票 01 审查发现） | 否，既有 | done（有日历声明按开／休市，无声明才按工作日；跨过计划时刻后才读日历，不触网） |
 
 **分流（2026-10-02）**：01 节假日沿用上一期、国内国外分开（ready-for-agent）；02 按 [ADR-0036](../../docs/adr/0036-observation-identity-by-same-definition.md) 实施（ready-for-agent）。顺序 02 → 01，两张完成后跑一次真实完整运行一起验收。03–06 待分流。
 

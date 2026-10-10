@@ -784,6 +784,75 @@ def test_enabled_schedule_only_runs_when_a_live_worker_crosses_1830_shanghai(
     assert runs.get(crossed).target_business_date == "2026-08-28"
 
 
+def crossing_1830_shanghai(paths: RuntimePaths, day: date) -> str | None:
+    return submit_schedule_if_crossed(
+        paths,
+        datetime.combine(day, datetime.min.time(), tzinfo=UTC).replace(hour=10, minute=29),
+        datetime.combine(day, datetime.min.time(), tzinfo=UTC).replace(hour=10, minute=31),
+    )
+
+
+def calendar_requests(paths: RuntimePaths) -> int:
+    with database_connection(paths.database) as connection:
+        row = connection.execute(
+            "SELECT COUNT(*) FROM acquisition_request WHERE api_name='trade_cal'"
+        ).fetchone()
+    return int(row[0])
+
+
+def test_enabled_schedule_skips_a_stated_sse_holiday_and_submits_a_session_once(
+    tmp_path: Path,
+) -> None:
+    paths = runtime(tmp_path)
+    runs = RunRepository(paths.database)
+    # 9/30 and 10/8 open; National Day 10/1–10/7 stated closed, weekdays included.
+    record_sse_calendar(paths, [date(2026, 9, 30), date(2026, 10, 8)])
+    assert crossing_1830_shanghai(paths, date(2026, 9, 30)) is None
+    runs.configure_schedule(enabled=True, requested_by="test")
+    requests = calendar_requests(paths)
+
+    holidays = [crossing_1830_shanghai(paths, date(2026, 10, day)) for day in (1, 2, 5, 6, 7)]
+    first = crossing_1830_shanghai(paths, date(2026, 9, 30))
+    later = submit_schedule_if_crossed(
+        paths,
+        datetime(2026, 9, 30, 10, 31, tzinfo=UTC),
+        datetime(2026, 9, 30, 10, 32, tzinfo=UTC),
+    )
+    again = crossing_1830_shanghai(paths, date(2026, 9, 30))
+    next_day_check = submit_schedule_if_crossed(
+        paths,
+        datetime(2026, 10, 8, 10, 29, tzinfo=UTC) - timedelta(days=1),
+        datetime(2026, 10, 8, 10, 31, tzinfo=UTC),
+    )
+
+    assert holidays == [None] * 5
+    assert first is not None
+    assert runs.get(first).target_business_date == "2026-09-30"
+    assert later is None
+    assert again == first
+    assert next_day_check is None
+    assert calendar_requests(paths) == requests
+
+
+def test_enabled_schedule_falls_back_to_weekdays_only_where_no_calendar_states_the_day(
+    tmp_path: Path,
+) -> None:
+    paths = runtime(tmp_path)
+    runs = RunRepository(paths.database)
+    runs.configure_schedule(enabled=True, requested_by="test")
+    # Stated through 10/8 only: 10/9 (Friday) and 10/10 (Saturday) are uncovered.
+    record_sse_calendar(paths, [date(2026, 9, 30), date(2026, 10, 8)])
+
+    stated_holiday = crossing_1830_shanghai(paths, date(2026, 10, 7))
+    uncovered_weekday = crossing_1830_shanghai(paths, date(2026, 10, 9))
+    uncovered_weekend = crossing_1830_shanghai(paths, date(2026, 10, 10))
+
+    assert stated_holiday is None
+    assert uncovered_weekday is not None
+    assert runs.get(uncovered_weekday).target_business_date == "2026-10-09"
+    assert uncovered_weekend is None
+
+
 def test_targeted_refresh_runs_serial_retrieval_and_persists_auditable_attempts(
     tmp_path: Path,
 ) -> None:

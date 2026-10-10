@@ -165,11 +165,17 @@ def submit_schedule_if_crossed(
     timezone = ZoneInfo(str(schedule["timezone"]))
     previous_local = previous_check.astimezone(timezone)
     observed_local = observed_at.astimezone(timezone)
-    if previous_local.date() != observed_local.date() or observed_local.weekday() >= 5:
+    if previous_local.date() != observed_local.date():
         return None
     hour, minute = (int(value) for value in str(schedule["start_time"]).split(":"))
     scheduled_at = observed_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
     if not previous_local < scheduled_at <= observed_local:
+        return None
+    # The stored SSE calendar answers the day where it states it, so a holiday weekday is
+    # closed (run-findings 12); only a day no response covers falls back to weekdays.
+    today = observed_local.date()
+    stated = SseCalendar(paths, as_of=observed_at).stated_between(today, today)
+    if not stated.get(today, today.weekday() < 5):
         return None
     try:
         model_version_id = ModelRepository(paths.database).active().model_version_id
