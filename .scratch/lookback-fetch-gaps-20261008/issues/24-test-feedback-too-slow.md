@@ -1,4 +1,4 @@
-Status: claimed（诊断完成；连接复用待批准）
+Status: done（框 1、5 随终点全套勾选）
 Category: enhancement
 Type: task
 
@@ -20,8 +20,8 @@ Type: task
 
 - [ ] 诊断：同一提交下补齐全部阶段耗时，能列出前 30 用例、前 15 文件及前 50／前 10% 占比
 - [x] 诊断：对固定慢节点串行重复测量，分开报告初始化、取数／检索、汇总、清理，冷建与热材料分开（见下"2026-10-09 诊断"：单节点 4 轮，另有同文件交替 A/B 6 轮）
-- [ ] 实施后：代表性单票的受影响测试明显缩短（给出前后同口径计时），必要消费者与 ADR-0025 收尾覆盖不缩减
-- [ ] 若采用建库模板：副本修改不污染模板或其他用例，准备＋复制＋清理净收益为正
+- [x] 实施后：代表性单票的受影响测试明显缩短（给出前后同口径计时），必要消费者与 ADR-0025 收尾覆盖不缩减（见"2026-10-10 实施"：交替 A/B 中位数 −28%／−50%，未删减任何测试）
+- [ ] 若采用建库模板：副本修改不污染模板或其他用例，准备＋复制＋清理净收益为正（未采用：初始化每次仅约 1 秒，见诊断）
 - [ ] 全套不缩减覆盖，记录 C 盘峰值；不以并行争用下的时间宣称提速
 
 ## 主要模块
@@ -74,3 +74,48 @@ Type: task
 - 已实施（只动 `tools/`）：`check.py` 每次运行都用 `-p tools.timings` 记录全部用例的三个阶段，结束时打印前 30 用例、前 15 文件、前 50 与前 10% 占比和计时文件路径（验收框 1 随下一次必跑全套即可取得，不必另跑）。
 - 待主 agent／用户批准（改生产代码 `storage.py`）：`database_connection` 改为按线程、按库的空闲连接池（独占借出、嵌套另取、归还复位），预计每次完整运行快约 35–45%，测试与真实运行同时受益。需要定的风险：池中连接的生命周期（进程退出或测试删库时关闭，否则会占住已删除的 226 MB 库文件，抬高 basetemp 峰值）；未耗尽的游标可能让复用连接停在旧的 WAL 快照上；调用方改过的连接级设置（`row_factory`、`isolation_level`、`foreign_keys` 等）要在归还时复位。
 - 建议另开票：补算日的证据读取改为运行级预载（涉及双时间边界语义）。
+
+### 2026-10-10 实施
+
+主 agent 批准第 2 项（只改 `storage.py`；补算证据预载暂不开票，合入后重新剖析再定；quick 是否排队暂不改规程）。
+
+**改动**（`src/pring_cycle/storage.py`，新测试 `tests/integration/test_database_connection_reuse.py` 16 例，先红后绿）
+- `keep_database_open` 作用域内（Worker 的 `process_pending_run` 与守护循环），**本线程**对该库的 `database_connection` 改从空闲连接池借出：每次借出独占一个连接，嵌套借出另取一个；作用域退出时先关闭池中连接，保活连接仍最后关闭（WAL 收尾时机不变）。嵌套作用域（守护循环内再进 `process_pending_run`）按深度计数，只有最外层退出才关闭池。
+- 归还时复位：关闭经 `cursor()`、`execute*`、`blobopen` 产生的游标与 blob，避免未读完的语句把复用连接钉在旧 WAL 快照上；恢复 `autocommit` 为 legacy 后再回滚残留事务；`row_factory`、`text_factory`、`isolation_level` 复位；`PRAGMA foreign_keys=OFF`。复位失败（例如调用方自行关闭了连接）则丢弃该连接。
+- 借出前 `stat` 库文件：文件被删除或替换时关闭旧空闲连接，改读路径上的新文件。
+- fork：`os.register_at_fork` 让子进程从空池开始；`database_connection` 与 `keep_database_open` 只在打开连接的进程里提交、回滚、归还或关闭，子进程展栈时一律不碰继承来的连接。新用例证明，在旧实现下子进程正常退出 `with` 时会**提交父进程未提交的事务**（4≠3），这是原有隐患，现一并修正。子进程（`subprocess`）不继承库文件描述符（SQLite 以 `O_CLOEXEC` 打开，已有用例验证）。
+- 不入池：`:memory:`、空名、`file:` 名称和 `uri=True`；不在作用域内的线程（租约心跳线程仍每次新建并关闭，`test_worker_database_lifetime.py` 两例照旧验证）；`sqlite3.connect` 被替换时（`tests/fixtures/attempt_reads.py`、`worker_heartbeat_shutdown.py` 观察每个新连接）回退为新建。所以无需改任何调用方或夹具。
+
+**绕过连接池的直连盘点**（`grep -n "database_connection\|sqlite3.connect"`，src 与 tools）
+- `freshness.py:479` `batch_freshness` 直接 `sqlite3.connect`（每次运行 1 次）；
+- `catalog_registry.py:94`、`:144`，`same_definition.py:169`：`uri=True` 只读连接（按设计不入池）；
+- `storage.py` 的 `migrate_database`：SQLAlchemy 自有引擎；
+- 保活连接本身；租约心跳线程（`worker.py` 的 `lease_heartbeat`）；作用域外的 CLI、Web、仓储调用和测试直连。
+- 剖析中，一次完整运行池借出 69,212 次，新建池连接仅 2 个，其余直连约 2,080 次（主要是心跳线程与作用域外）。
+
+**已知边界（非阻断，已写入 docstring）**：只追踪经上述方法产生的游标，`sqlite3.Cursor(connection)` 或基类方法直接调用不在追踪范围内，生产代码中没有这样用的；调用方设置的自定义函数、回调及其他 pragma 不复位，生产代码中也没有设置这些的；保活连接本就会持有已删除的库文件直到作用域结束（旧实现相同；同进程有连接持有该 inode 时，SQLite 也会推迟关闭其他 fd）。
+
+**前后同口径计时**：在 0e45e8c 之上，base 为 main 的 `storage.py`，pool 为本分支；`flock` 串行交替，每轮前确认没有别的 pytest（others=0），负载 1.1–1.2；剔除 08:40–09:05 系统卡顿期间的计时，重测。
+
+| 范围 | base 三轮（秒） | pool 三轮（秒） | 中位数 |
+|---|---|---|---|
+| `test_gap_source_repairs.py`（8 例，1 次完整运行） | 102.4／110.1／102.9 | 78.7／74.1／72.4 | **102.9 → 74.1（−28%）** |
+| `test_core_carry_forward.py`（2 例，2 次完整运行） | 80.8／80.3／82.1 | 40.5／38.2／41.0 | **80.8 → 40.5（−50%）** |
+
+分阶段（gap 文件，中位数）：背景源刷新 19.5→9.6，检索 20.9→13.7，补算 49.7→37.7，evaluate 5.8→4.9，初始化与留存不变。原型估计的 −37%～−44% 偏高：当时基线受到未加锁并发的 quick pytest 拖累，而正式实现又多了游标追踪、`stat` 与复位开销（微测每次借还约 0.016 ms，新建连接约 1.1 ms）。
+
+**合入后剩余占比**（同节点 cProfile，总 113 秒；未剖析时整次运行约 70 秒）：补算约 54%，检索约 20%，背景源约 14%，evaluate 约 7%。热点如下：
+- `EvidenceRepository.metric_series` 1.35 万次，累计 30 秒（约 27%），即补算证据运行级预载候选；
+- `select_warrant_inputs` 8,765 次，累计 20 秒（约 18%，与前者部分重叠）；
+- `Connection.commit` 7.1 万次，自身 9.5 秒（约 8%）。strace 计得一次运行 10,953 次 fsync。WAL 模式下默认 `synchronous=FULL`，每次写事务都 fsync；改为 `NORMAL` 属于耐久性取舍，需要用户决定，不在本票。
+- `sqlite3 execute` 自身从 32 秒降到 8.6 秒。
+
+是否为预载开票，由主 agent 决定。
+
+**验证**（rebase 到 0e45e8c 并重装 venv 之后）
+- 受影响测试 `check.py quick`：13 个目标，含新用例、Worker 执行与库生命周期、编排（attempt_reads）、`test_gap_source_repairs`、目录 URI 读取、租约心跳、e2e 本地运行 CLI、留存、模型切换、日历门禁、冒烟 1 例及 check 工具，**115 passed，523.9 秒**。
+- 重型两例在 `flock` 下运行：`test_worker_registered_catalog.py`＋`test_core_carry_forward.py` **4 passed，348.1 秒**（窗口前取数 222.8 秒，历史为 277.6 秒；PPI 回退 90.2 秒，历史为 114.3 秒；三核心两例各约 16–17 秒）。
+- ruff、ruff format、mypy（改动文件）均干净。
+- Codex 两轴审查：首轮有阻断，共三项：fork 子进程展栈时会提交、关闭继承连接（P1）；`blobopen` 未追踪；`autocommit` 未复位。修复后定向复审，结论"阻断：无"。
+
+验收框 1、5 随终点那次全套勾选：`check.py full` 会自动给出排名摘要，届时同时记录 C 盘峰值。
