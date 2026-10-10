@@ -40,6 +40,18 @@ AGREE, DIFFER, NO_INPUT, UNCHECKABLE = "一致", "有差异", "原料不齐", "�
 TICKET = "待开票"
 # A stored value whose input claims retention has since deleted: nothing left to check against.
 PRUNED = "原料已被留存删除，无法核对"
+# ADR-0036 (reads across catalog versions that define a metric alike) took effect with commit
+# 6fa8941 at this time. Before it, a run read only claims stored under its own catalog version.
+# A day projection whose run was accepted earlier, and whose gap reading that way explains, is a
+# fixed defect kept in history: published projections are not recomputed (ADR-0036, last
+# point).
+ADR_0036_IN_EFFECT = "2026-10-02T16:05:46+00:00"
+FIXED_HISTORY = "已修复、历史保留"
+FIXED_HISTORY_WHY = (
+    "生成该日投影的运行受理早于 ADR-0036 实施（6fa8941，2026-10-02 16:05Z），当时只读本目录版本下的"
+    "声明；改按该日模型的目录版本严格读取，独立判断与投影相符。ADR-0036 已改为按相同定义"
+    "跨版本读取，已发布历史不重算，不开票"
+)
 
 PMI, PMI_INVENTORY = "CN_PMI_ACTIVITY", "CN_PMI_INVENTORY"
 PMI_PRODUCTION = {"measure": "level", "series": "production"}
@@ -166,6 +178,7 @@ class Claims:
         self.run = run
         self._rows: dict[str, dict[str, dict[str, list[Claim]]]] = {}
         self._deliveries: dict[str, list[tuple]] = {}
+        self._on_file: dict[str, list[tuple]] = {}
 
     def of(self, metric: str) -> dict[str, dict[str, list[Claim]]]:
         if metric not in self._rows:
@@ -206,13 +219,16 @@ class Claims:
 
     def deliveries(self, metric: str) -> list[tuple]:
         """(acquisition, period, member, value, catalog version, when both the claim and its
-        acquisition's answer were in hand) of every claim of ``metric``."""
+        acquisition's answer were in hand) of every claim of ``metric`` delivered by TuShare.
+        Only a TuShare delivery makes a difference of two totals compatible as it stands; any
+        other source still goes to the NBS check (user decision, run-findings-20260928/13)."""
         if metric not in self._deliveries:
             rows = self.run.db.execute(
                 "SELECT x.acquisition_id, s.period_end, s.dimensions_json, s.value,"
                 " s.definition_version, MAX(s.available_at, COALESCE(a.received_at, ''))"
                 " FROM source_claim s JOIN source_claim_acquisition x USING (claim_id)"
-                " JOIN acquisition_request a USING (acquisition_id) WHERE s.metric_id = ?",
+                " JOIN acquisition_request a USING (acquisition_id)"
+                " WHERE s.metric_id = ? AND a.provider = 'tushare'",
                 (metric,),
             )
             self._deliveries[metric] = [
@@ -220,6 +236,44 @@ class Claims:
                 for acquisition, period, dims, value, version, known in rows
             ]
         return self._deliveries[metric]
+
+    def delivered_on_file(self, metric: str) -> list[tuple]:
+        """(acquisition, period, member, value, when validated) of every scalar of ``metric``
+        in the normalized artifacts of validated TuShare receipts of the APIs that delivered
+        its claims. Retention deletes claims no projection cites any more, and with them their
+        links to receipts; the receipts and their artifacts stay, so what one delivery carried
+        can still be read back. The artifacts carry no catalog version: a scalar counts when
+        its unit is one the frozen definition allows."""
+        if metric not in self._on_file:
+            definition = self.run.catalog.get(metric, {})
+            units = set(definition.get("allowed_units") or [definition.get("unit")])
+            rows = self.run.db.execute(
+                "SELECT acquisition_id, normalized_hash, validated_at FROM acquisition_request"
+                " WHERE provider = 'tushare' AND state = 'validated'"
+                " AND normalized_hash IS NOT NULL AND api_name IN"
+                " (SELECT a.api_name FROM source_claim s"
+                " JOIN source_claim_acquisition x USING (claim_id)"
+                " JOIN acquisition_request a USING (acquisition_id)"
+                " WHERE s.metric_id = ? AND a.provider = 'tushare')"
+                " ORDER BY validated_at, acquisition_id",
+                (metric,),
+            )
+            found = []
+            for acquisition, normalized, validated in rows:
+                try:
+                    payload = json.loads(self.run.artifact(normalized))
+                    if isinstance(payload, dict):
+                        payload = payload.get("accepted_scalars") or payload.get("scalars") or []
+                    carried = [
+                        (s["period_end"], member_key(s["dimensions"]), s["value"])
+                        for s in payload
+                        if s.get("metric_id") == metric and s.get("unit") in units
+                    ]
+                except (OSError, ValueError, KeyError, TypeError, AttributeError):
+                    continue  # missing or another shape: nothing on file from this receipt
+                found += [(acquisition, *scalar, validated) for scalar in carried]
+            self._on_file[metric] = found
+        return self._on_file[metric]
 
 
 QUARTER_LABEL = {"03": "一季度", "06": "二季度", "09": "三季度", "12": "四季度"}
@@ -252,14 +306,23 @@ def _nbs_quarter_value(page: str, quarter: str) -> tuple[float, float] | None:
 class Held:
     """Claims usable at one point in time: stored by ``as_of``, made public by ``until``,
     under a catalog version with the frozen definition, not superseded by another such
-    claim."""
+    claim. ``exact_version`` narrows the catalog versions to that one alone: how reads
+    worked before ADR-0036."""
 
-    def __init__(self, claims: Claims, as_of: str, until: datetime) -> None:
+    def __init__(
+        self, claims: Claims, as_of: str, until: datetime, exact_version: str | None = None
+    ) -> None:
         self.claims, self.run, self.as_of, self.until = claims, claims.run, as_of, until
+        self.exact_version = exact_version
         self._views: dict[str, dict[str, dict[str, Observation]]] = {}
 
+    def _versions(self, metric: str) -> frozenset[str] | None:
+        if self.exact_version:
+            return frozenset({self.exact_version})
+        return self.run.same_definition.get(metric)
+
     def _usable(self, metric: str, claim: Claim) -> bool:
-        versions = self.run.same_definition.get(metric)
+        versions = self._versions(metric)
         return (
             claim.available_at <= self.as_of
             and (not versions or claim.version in versions)
@@ -302,7 +365,7 @@ class Held:
         metric, period, dims = row
         stored = self.claims.of(metric)[member_key(json.loads(dims))][period]
         claim = next(c for c in stored if c.claim_id == claim_id)
-        versions = self.run.same_definition.get(metric)
+        versions = self._versions(metric)
         if claim.available_at > self.as_of:
             return "截止后入库"
         if versions and claim.version not in versions:
@@ -314,15 +377,36 @@ class Held:
             return "已被更新的声明取代"
         return None
 
-    def same_delivery(self, metric: str, member: dict, ends: list[tuple[str, float]]) -> bool:
-        """Did one acquisition, usable here, deliver every (period, value) of ``ends``?"""
-        key, versions = member_key(member), self.run.same_definition.get(metric)
-        delivered: dict[str, dict[str, set]] = defaultdict(lambda: defaultdict(set))
-        for acquisition, period, member_, value, version, known in self.claims.deliveries(metric):
-            usable = not versions or version in versions
-            if member_ == key and usable and known <= self.as_of:
-                delivered[acquisition][period].add(value)
-        return any(all(v in got.get(p, ()) for p, v in ends) for got in delivered.values())
+    def same_delivery(
+        self, metric: str, member: dict, ends: list[tuple[str, float]]
+    ) -> tuple[bool, str]:
+        """Did one acquisition, in hand here, deliver every (period, value) of ``ends``? First
+        by the stored claims' links to their receipts; failing that, by the normalized
+        artifacts on file (retention prunes claims and their links, not receipts). The note
+        names the earliest receipt when only its artifact shows the delivery."""
+        key, versions = member_key(member), self._versions(metric)
+
+        def together(rows) -> str | None:
+            delivered: dict[str, dict[str, set]] = defaultdict(lambda: defaultdict(set))
+            for acquisition, period, member_, value, known in rows:
+                if member_ == key and known and known <= self.as_of:
+                    delivered[acquisition][period].add(value)
+            return next(
+                (a for a, got in delivered.items() if all(v in got.get(p, ()) for p, v in ends)),
+                None,
+            )
+
+        linked = [
+            (*delivery, known)
+            for *delivery, version, known in self.claims.deliveries(metric)
+            if not versions or version in versions
+        ]
+        if together(linked):
+            return True, ""
+        on_file = together(self.claims.delivered_on_file(metric))
+        if on_file:
+            return True, f"声明关联未见共同交付，回执 {on_file} 的规范化制品同时载有两端累计值"
+        return False, ""
 
 
 class Sessions:
@@ -410,9 +494,12 @@ def quarterly_flow(c: Calc, metric: str, member: dict, period: str) -> float:
     previous = shift_month(period, -3)
     before = c.get(metric, previous, member)
     flow = total - before
-    if c.presence_only or c.held.same_delivery(
-        metric, member, [(period, total), (previous, before)]
-    ):
+    if c.presence_only:
+        return flow
+    together, note = c.held.same_delivery(metric, member, [(period, total), (previous, before)])
+    if together:
+        if note:
+            c.notes.append(f"GDP {period} 当季差分：{note}")
         return flow
     official, source = c.held.claims.nbs_quarter(period, c.held.as_of)
     if official is None:
@@ -762,6 +849,7 @@ def _judge(formula, spec, held, sessions, day, member, record: Record | None):
 
 
 PRESENT_OR_NOT_DUE = ("存在", "原料不齐，无派生值", PRUNED)
+EXPLAINED = ("存在", "原料不齐，无派生值")
 
 
 def stored_items(run: Run, claims: Claims, sessions: Sessions) -> tuple[list[Item], list[list]]:
@@ -852,15 +940,20 @@ class DailyTally:
     def __init__(self) -> None:
         self.counts: dict[str, Counter] = defaultdict(Counter)
         self.bad: dict[str, list[str]] = defaultdict(list)
+        self.fixed: dict[str, list[str]] = defaultdict(list)
         self.flags: dict[str, dict[str, list[str]]] = defaultdict(dict)
 
-    def add(self, formula: str, day: str, status: str, row: Compared) -> None:
+    def add(self, formula: str, day: str, status: str, row: Compared, fixed=False) -> None:
+        """``fixed``: the status is a problem of a fixed defect kept in history."""
         self.counts[formula]["天×成员"] += 1
-        self.counts[formula][status.split("（")[0]] += 1
+        label = status.split("（")[0]
+        self.counts[formula][f"{label}（{FIXED_HISTORY}）" if fixed else label] += 1
         if row.verdict in (AGREE, DIFFER, NO_INPUT):
             self.counts[formula][f"重算{row.verdict}"] += 1
         where = day if row.reading == "—" else f"{day} {row.reading}"
-        if not status.startswith(PRESENT_OR_NOT_DUE):
+        if fixed:
+            self.fixed[formula].append(f"{where}：{status}")
+        elif not status.startswith(PRESENT_OR_NOT_DUE):
             self.bad[formula].append(f"{where}：{status}")
         if row.verdict == DIFFER:
             shown = f"库中 {_num(row.stored)}、重算 {_num(row.recomputed)}"
@@ -877,24 +970,42 @@ class DailyTally:
 
 
 def daily_checks(
-    run: Run, claims: Claims, sessions: Sessions, items: list[Item], extra: list[str]
+    run: Run,
+    claims: Claims,
+    sessions: Sessions,
+    items: list[Item],
+    extra: list[str],
+    history: list[str],
 ) -> list[list]:
     """Every day of the window: does that day's projection hold each stored-formula value
     whose inputs were complete that day (point in time: stored by the projection's
-    ``system_as_of``, public by the end of the day), and does it recompute?"""
+    ``system_as_of``, public by the end of the day), and does it recompute? Gaps of
+    projections made before ADR-0036 that its fix explains go to ``history``, not to
+    ``extra``."""
     projections = _day_projections(run)
-    formulas_of = {run.model_version_id: run.manifest.get("derived_formula_versions", {})}
+    manifests = {run.model_version_id: run.manifest}
     tally = DailyTally()
     absent = [day for day in run.window if day not in projections]
     for day, (projection, envelope) in sorted(projections.items()):
         model = envelope.get("model_version_id")
-        if model not in formulas_of:
+        if model not in manifests:
             row = run.db.execute(
                 "SELECT manifest_json FROM model_version WHERE model_version_id = ?", (model,)
             ).fetchone()
-            formulas_of[model] = (
-                json.loads(row[0]).get("derived_formula_versions", {}) if row else {}
-            )
+            manifests[model] = json.loads(row[0]) if row else {}
+        as_of = envelope.get("system_as_of") or run.cutoff
+        catalog = manifests[model].get("metric_catalog_version")
+        accepted = run.db.execute(
+            "SELECT r.accepted_at FROM projection_set s JOIN parent_run r ON r.run_id = s.batch_id"
+            " WHERE s.projection_set_id = ?",
+            (projection,),
+        ).fetchone()
+        before_fix = bool(accepted) and parse_time(accepted[0]) < parse_time(ADR_0036_IN_EFFECT)
+        own = projection == run.projection_set_id
+        # A projection made by a run accepted before ADR-0036 read only its own catalog
+        # version: a problem that reading that way explains is the fixed defect, kept in history.
+        strict = Held(claims, as_of, day_end(day), catalog) if catalog and before_fix else None
+        strict = None if own else strict
         found: dict[str, dict] = {}
         documents = run.db.execute(
             "SELECT document_json FROM analytical_dataset WHERE projection_set_id = ?"
@@ -903,8 +1014,8 @@ def daily_checks(
         )
         for (document,) in documents:
             _derived_records(json.loads(document), found)
-        held = Held(claims, envelope.get("system_as_of") or run.cutoff, day_end(day))
-        for formula in formulas_of[model].values():
+        held = Held(claims, as_of, day_end(day))
+        for formula in manifests[model].get("derived_formula_versions", {}).values():
             spec = STORED.get(formula)
             if spec is None:
                 tally.counts[formula]["该日模型的公式无独立实现"] += 1
@@ -918,23 +1029,37 @@ def daily_checks(
                     records[member_key(record.member)] = record
             for key in sorted({member_key(m) for m in _members(held, spec)} | set(records)):
                 member = json.loads(key)
-                status, _, row = _judge(
-                    formula, spec, held, sessions, day, member, records.get(key)
-                )
-                tally.add(formula, day, status, row)
+                record = records.get(key)
+                status, _, row = _judge(formula, spec, held, sessions, day, member, record)
+                fixed = False
+                if strict and not status.startswith(PRESENT_OR_NOT_DUE):
+                    # Explained only when the strict reading agrees with the projection;
+                    # "lineage pruned, cannot check" explains nothing.
+                    again = _judge(formula, spec, strict, sessions, day, member, record)[0]
+                    fixed = again in EXPLAINED
+                tally.add(formula, day, status, row, fixed)
 
     by_formula = {i.formula: i for i in items}
     rows = []
     for formula, counts in tally.counts.items():
-        bad = tally.problems(formula)
+        bad, fixed = tally.problems(formula), tally.fixed[formula]
+        where = (
+            f"{formula}（{by_formula[formula].label}）"
+            if formula in by_formula
+            else f"{formula}（只出现在旧模型的日投影中）"
+        )
         if bad:
             found = f"逐日核对有 {len(bad)} 处问题（{'；'.join(bad[:3])}）"
             if formula in by_formula:
                 by_formula[formula].problems.append(found)
             else:
-                extra.append(f"{formula}（只出现在旧模型的日投影中）：{found}")
+                extra.append(f"{where}：{found}")
+        if fixed:
+            shown = "；".join(fixed[:3])
+            history.append(f"{where}：逐日核对有 {len(fixed)} 处旧投影问题（{shown}）")
         shown = "、".join(f"{k} {v}" for k, v in counts.items())
-        rows.append([formula, shown, "；".join(bad[:4]) or "—"])
+        examples = bad + [f"{f}（{FIXED_HISTORY}）" for f in fixed]
+        rows.append([formula, shown, "；".join(examples[:4]) or "—"])
     models = Counter(e.get("model_version_id") for _, e in projections.values())
     sources = "、".join(f"{m} {n} 天" for m, n in sorted(models.items()))
     rows.append(["（各日投影的模型）", sources, f"无投影 {len(absent)} 天" if absent else "—"])
@@ -1375,12 +1500,13 @@ def breadth_items(run: Run, claims: Claims) -> list[Item]:
     return list(items.values())
 
 
-def _items(run: Run) -> tuple[list[Item], list[list], list[list], list[str]]:
+def _items(run: Run) -> tuple[list[Item], list[list], list[list], list[str], list[str]]:
     claims, sessions = Claims(run), Sessions(run)
     held = Held(claims, run.cutoff, day_end(run.target_date))
     items, detail = stored_items(run, claims, sessions)
     extra: list[str] = []
-    daily = daily_checks(run, claims, sessions, items, extra)
+    history: list[str] = []
+    daily = daily_checks(run, claims, sessions, items, extra, history)
     items += rule_items(run, held, sessions) + breadth_items(run, claims)
     for item in items:
         _verdict(item)
@@ -1389,11 +1515,11 @@ def _items(run: Run) -> tuple[list[Item], list[list], list[list], list[str]]:
             item.known = "已知（定义不足或本票未实现，记于票 02 与文档）"
         elif item.verdict.startswith(NO_INPUT):
             item.known = "已知（基日核心价格被留存删除，见文档“局限”）"
-    return items, detail, daily, extra
+    return items, detail, daily, extra, history
 
 
 def section(run: Run) -> str:
-    items, detail, daily, extra = _items(run)
+    items, detail, daily, extra, history = _items(run)
     differ = [i for i in items if i.verdict.startswith(DIFFER)]
     agree = [i for i in items if i.verdict.startswith("重算一致")]
     unchecked = [i for i in items if i.verdict == UNCHECKABLE]
@@ -1405,7 +1531,8 @@ def section(run: Run) -> str:
     out.append(
         f"**结论**：{len(items)} 项派生指标中，重算一致 {len(agree)} 项、有差异 {len(differ)} 项、"
         f"无法独立核对 {len(unchecked)} 项、其余 {rest} 项原料不齐或无可比值；"
-        f"有问题待开票的 {sum(bool(i.problems) for i in items) + len(extra)} 项。"
+        f"有问题待开票的 {sum(bool(i.problems) for i in items) + len(extra)} 项"
+        + (f"；{FIXED_HISTORY}的旧投影问题 {len(history)} 项。" if history else "。")
     )
     out += [
         "",
@@ -1421,6 +1548,7 @@ def section(run: Run) -> str:
         )
     out += ["", "**问题与分流**：", ""]
     out += [f"- {problem}。{TICKET}。" for problem in extra]
+    out += [f"- {line}。{FIXED_HISTORY}：{FIXED_HISTORY_WHY}。" for line in history]
     for item in items:
         out += [f"- {item.formula}（{item.label}）：{p}。{TICKET}。" for p in item.problems]
         if item.known:
