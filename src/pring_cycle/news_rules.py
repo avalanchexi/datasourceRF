@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
+from urllib.parse import urlsplit
 
 from pring_cycle.evidence import MetricSeriesPoint
 
@@ -67,10 +68,18 @@ _MENTION = re.compile(
     r"|(?P<half>上半年)"
     r"|前(?P<q3>三)季度"
     r"|(?P<fy>全年)"
-    r"|(?P<q>[一二三四])季度"
+    r"|第?(?P<q>[一二三四])季度"
     r"|(?P<m>\d{1,2})月(?:份|末)?"
     r")"
 )
+# A dated wording that names a period to compare with, not the text's own: "较2025年8月末",
+# "比2025年8月多增", "2025年8月以来", "与2025年8月相比". Not "来自2025年…" nor "自2025年
+# 9月15日起": a source or an effective day is the text's own.
+_COMPARED_BEFORE = re.compile(r"[较比]\s*$")
+_COMPARED_AFTER = re.compile(r"\s*(?:以来|同期|相比)")
+# Words that turn a text back to its own year: what follows them is not read in an earlier
+# wording's year ("今年前八个月").
+_OWN_YEAR = re.compile(r"今年|本年|年内")
 _CONTEXT_CHARS = 600
 # Every rule states a national figure. A city's or province's own one ("1-7月，全市规模以上
 # 工业增加值…", lookback 15) names its place before the figure, where the release says
@@ -135,6 +144,103 @@ def _wanted(period: str, form: Form) -> tuple[int, ...]:
     if form in {"month", "year_to_month"}:
         return (month,)
     return ((month - 1) // 3 + 1,) if month % 3 == 0 else ()
+
+
+# A publication date in an address's path: "/2026-09-15/", "/20260514/", "/202509/12/",
+# "/2026/0914/", "/2026/09/14/", "/202509/". Tried in turn; an article id that starts like
+# a date ("/a/202609143873695615.html") is no path segment of its own.
+_URL_DATES = (
+    re.compile(r"/(20\d{2})-(\d{2})-(\d{2})/"),
+    re.compile(r"/(20\d{2})(\d{2})(\d{2})/"),
+    re.compile(r"/(20\d{2})(\d{2})/(\d{2})/"),
+    re.compile(r"/(20\d{2})/(\d{2})/?(\d{2})/"),
+    re.compile(r"/(20\d{2})(\d{2})/()"),
+)
+
+
+def _dated_otherwise(metric_ids: tuple[str, ...], period: str, title: str, url: str | None) -> bool:
+    """Whether a text's title or address dates it otherwise than ``period`` (audit 06).
+
+    A year written in the title with a month or a quarter ("2025年8月金融统计数据报告")
+    names the text's period, and must fit ``period``: one such wording that does is enough.
+    A period the title compares with ("较2025年8月", "2025年8月以来") is no wording of its
+    own. A full date in the title ("今日汇市晨报（2026年9月11日）") or the address
+    ("/2025-09-15/") is the text's publication, and every one must fall in the period's last
+    month or later (a monthly LPR is published within its month), a day's on that day or
+    later. An event is announced before the day it takes effect: its month or the one
+    before fits. A title or address with no year dates nothing.
+
+    The text's sentences may name the period without its year ("前八个月"): this is what
+    stops a page of another year then (中国政府网's 2025 August report read for 2026-08).
+    """
+    from pring_cycle.freshness import FRESHNESS_REGISTRY
+
+    event = any(
+        (rule := FRESHNESS_REGISTRY.get(metric_id)) is not None and rule.frequency == "event"
+        for metric_id in metric_ids
+    )
+    year = int(period[:4])
+    if "-Q" in period:
+        quarter = int(period[-1])
+        months = {year * 12 + m - 1 for m in range(quarter * 3 - 2, quarter * 3 + 1)}
+    else:
+        months = {year * 12 + int(period[5:7]) - 1}
+    if event:
+        months |= {month - 1 for month in months}
+    # The earliest a text of the period is published: its last month and day, an event's
+    # month before.
+    earliest = (
+        min(months) if event else max(months),
+        0 if event or len(period) < 10 else int(period[8:10]),
+    )
+
+    def published_before(published_year: str, month: str, day: str) -> bool:
+        published = int(published_year) * 12 + int(month) - 1
+        return (published, int(day)) < earliest if day else published < earliest[0]
+
+    stated = [m for m in _MENTION.finditer(title) if m["year"] and not _compared(title, m)]
+    periods = [m for m in stated if not m["dm"]]
+    if periods and not any(_names_month(m, months) for m in periods):
+        return True
+    if any(published_before(m["year"], m["dm"], m["dd"]) for m in stated if m["dm"]):
+        return True
+    path = urlsplit(url).path if url else ""
+    for pattern in _URL_DATES:
+        found = pattern.search(path)
+        if found is not None and 1 <= int(found[2]) <= 12:
+            return published_before(*found.groups())
+    return False
+
+
+def _compared(text: str, mention: re.Match[str]) -> bool:
+    """Whether a dated wording names a period the text compares with."""
+    return bool(
+        _COMPARED_BEFORE.search(text, max(0, mention.start() - 4), mention.start())
+        or _COMPARED_AFTER.match(text, mention.end())
+    )
+
+
+def _year_written_before(text: str, at: int) -> int | None:
+    """The year of the nearest wording of a period written with its year before ``at``, a
+    compared period's aside: what "前八个月" with no year of its own is read in. None when
+    the text turns to its own year ("今年") after it."""
+    own = [m.end() for m in _OWN_YEAR.finditer(text, 0, at)]
+    for mention in reversed(list(_MENTION.finditer(text, own[-1] if own else 0, at))):
+        if mention["year"] and not mention["dm"] and not _compared(text, mention):
+            return int(mention["year"])
+    return None
+
+
+def _names_month(mention: re.Match[str], months: set[int]) -> bool:
+    """Whether a dated wording of a period names a month of ``months``."""
+    year = int(mention["year"]) * 12 - 1
+    named: set[int] = set()
+    for form, key in _mention_keys(mention).items():
+        if form in {"quarter", "year_to_quarter"}:
+            named |= {year + m for m in range(key[0] * 3 - 2, key[0] * 3 + 1)}
+        else:
+            named.add(year + key[0])
+    return bool(named & months)
 
 
 @dataclass(frozen=True)
@@ -612,6 +718,7 @@ def extract(
     *,
     recheck: bool = False,
     title: str = "",
+    url: str | None = None,
 ) -> NewsExtraction:
     """The values the registered rules state for ``period`` in ``text``.
 
@@ -622,7 +729,11 @@ def extract(
     not taken: the text contradicts itself. ``recheck`` re-reads a kept quote, whose
     heading context and subject clause were checked when it was first taken (the clause is
     kept beside it). A ``title`` naming a place makes every figure of the text that place's.
+    A ``title`` or ``url`` dating the text otherwise than ``period`` gives no value at all
+    (``_dated_otherwise``).
     """
+    if _dated_otherwise(metric_ids, period, title, url):
+        return NewsExtraction((), PERIOD_MISMATCH)
     readings, other_period = _readings(metric_ids, period, text, recheck=recheck, title=title)
     found: dict[tuple[str, tuple[tuple[str, str], ...]], list[NewsValue]] = {}
     for item in readings:
@@ -655,6 +766,12 @@ def _readings(
             if placed is None:
                 continue
             (form, key, stated_year), context = placed
+            if stated_year is None and form != "day":
+                # A heading's year ("2025年8月金融统计数据报告") holds for the periods
+                # written after it without one ("前八个月", audit 06), whatever the title
+                # says: rather lose a value than take another year's. A day's year is the
+                # one nearest the text instead (``stated_event_days``).
+                stated_year = _year_written_before(text, match.start())
             # Compared as far as both go: "8月" answers a day of August, and a fixing's
             # "9月20日" answers September's (the LPR's gap is its month).
             wanted = _wanted(period, form)
@@ -1120,6 +1237,7 @@ def news_claims_matching_quotes(
                 str(row["quote"]),
                 None if row["subject"] is None else str(row["subject"]),
                 str(row["title"]),
+                None if row["url"] is None else str(row["url"]),
             ):
                 valid.add(claim_id)
         return valid - _awaiting_subjects(
@@ -1142,7 +1260,7 @@ def news_claims_matching_quotes(
 # A kept quote with the page it was read from: its address, else its body's hash.
 _KEPT_QUOTES = (
     "SELECT q.claim_id, q.quote, q.subject, q.title, COALESCE(q.url, q.body_hash), "
-    "c.metric_id, c.dimensions_json, c.period_start, c.period_end, c.value, q.route "
+    "c.metric_id, c.dimensions_json, c.period_start, c.period_end, c.value, q.route, q.url "
     "FROM claim_matched_quote AS q CROSS JOIN source_claim AS c ON c.claim_id = q.claim_id "
 )
 
@@ -1168,10 +1286,10 @@ def news_claims_no_longer_stated(
         (json.dumps(list(metric_ids)),),
     ).fetchall()
     stated = {
-        str(claim_id): (subject, str(page), str(route))
-        for claim_id, quote, subject, title, page, metric_id, dims, start, end, value, route in rows
+        str(claim): (subject, str(page), str(route))
+        for claim, quote, subject, title, page, metric, dims, start, end, value, route, url in rows
         if _quote_states(
-            metric_id, json.loads(dims), start, end, value, str(quote), subject, str(title)
+            metric, json.loads(dims), start, end, value, str(quote), subject, str(title), url
         )
     }
     unstated = frozenset(str(row[0]) for row in rows if str(row[0]) not in stated)
@@ -1185,6 +1303,37 @@ def news_claims_no_longer_stated(
     )
 
 
+def news_claims_dated_otherwise(connection: sqlite3.Connection) -> frozenset[str]:
+    """The kept news claims whose page's title or address, or their subject clause, dates
+    them otherwise than their period (audit 06): read for the wrong period, whatever their
+    quote states."""
+    if not connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE name='claim_matched_quote'"
+    ).fetchone():
+        return frozenset()
+    dated = set()
+    for (
+        claim_id,
+        _q,
+        subject,
+        title,
+        _p,
+        metric_id,
+        dims,
+        start,
+        end,
+        _v,
+        _r,
+        url,
+    ) in connection.execute(_KEPT_QUOTES).fetchall():
+        period = gap_period(metric_id, json.loads(dims), start, end)
+        if _dated_otherwise((metric_id,), period, str(title), url) or _dated_otherwise(
+            (metric_id,), period, subject or "", None
+        ):
+            dated.add(str(claim_id))
+    return frozenset(dated)
+
+
 # A claim kept before its subject clause was recorded (lookback 22) is read on its quote and
 # title alone. Its page may have named a place before the quote, as c8dcb77e's did; a page
 # with another claim read as a place's makes it a suspect, not taken until its page is read
@@ -1196,20 +1345,14 @@ def suspect_news_claims(connection: sqlite3.Connection) -> tuple[str, ...]:
     value, from AI WebSearch or on a page with another claim read as a place's: neither
     listed nor selected."""
     rows = connection.execute(_KEPT_QUOTES + "WHERE q.subject IS NULL").fetchall()
-    return tuple(
-        sorted(
-            _awaiting_subjects(
-                connection,
-                {
-                    str(claim): (str(page), str(route))
-                    for claim, quote, _, title, page, metric, dims, start, end, value, route in rows
-                    if _quote_states(
-                        metric, json.loads(dims), start, end, value, str(quote), None, str(title)
-                    )
-                },
-            )
+    stated = {
+        str(claim): (str(page), str(route))
+        for claim, quote, _, title, page, metric, dims, start, end, value, route, url in rows
+        if _quote_states(
+            metric, json.loads(dims), start, end, value, str(quote), None, str(title), url
         )
-    )
+    }
+    return tuple(sorted(_awaiting_subjects(connection, stated)))
 
 
 def _awaiting_subjects(
@@ -1233,9 +1376,9 @@ def _on_local_pages(connection: sqlite3.Connection, pages: Mapping[str, str]) ->
     ).fetchall()
     local = {
         str(page)
-        for _id, quote, subject, title, page, metric_id, dimensions, start, end, value, _r in rows
+        for _id, quote, subject, title, page, metric, dims, start, end, value, _r, _u in rows
         if _quote_local(
-            metric_id, json.loads(dimensions), start, end, value, str(quote), subject, str(title)
+            metric, json.loads(dims), start, end, value, str(quote), subject, str(title)
         )
     }
     return frozenset(claim_id for claim_id, page in pages.items() if page in local)
@@ -1320,7 +1463,7 @@ def restore_suspect_subjects(
             subject, title = connection.execute(
                 "SELECT subject, title FROM claim_matched_quote WHERE claim_id = ?", (claim_id,)
             ).fetchone()
-        states = _quote_states(metric_id, dimensions, start, end, value, quote, subject, title)
+        states = _quote_states(metric_id, dimensions, start, end, value, quote, subject, title, url)
         restored.append(
             RestoredSubject(claim_id, url, text_hash(content), "national" if states else "local")
         )
@@ -1340,18 +1483,23 @@ def _quote_states(
     quote: str,
     subject: str | None,
     title: str,
+    url: str | None,
 ) -> bool:
     """Whether a kept quote still gives the claim's member its value for its period.
 
     Its subject clause and its page's title are read again too (lookback 22); a quote kept
     before has no subject clause, and an AI WebSearch quote kept before lookback 26 no title.
+    A title, address or subject clause dating its page otherwise than its period states
+    nothing (audit 06).
     """
     if _names_place(title) or _names_place(subject or ""):
         return False
     period = gap_period(metric_id, dimensions, start, end)
+    if _dated_otherwise((metric_id,), period, subject or "", None):
+        return False
     return any(
         item.dimensions == dimensions and item.value == value
-        for item in extract((metric_id,), period, quote, recheck=True).values
+        for item in extract((metric_id,), period, quote, recheck=True, title=title, url=url).values
     )
 
 

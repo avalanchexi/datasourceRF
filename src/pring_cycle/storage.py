@@ -15,7 +15,7 @@ from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 if TYPE_CHECKING:
     from alembic.config import Config
 
-SCHEMA_HEAD = "0033_matched_quote_subject"
+SCHEMA_HEAD = "0034_publication_corrections"
 
 
 @contextmanager

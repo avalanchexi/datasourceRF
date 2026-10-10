@@ -574,7 +574,7 @@ class _Pages:
             page = None
             if kept is not None:
                 try:
-                    page = read_page_content(*kept, metric_ids, period)
+                    page = read_page_content(*kept, metric_ids, period, url=url)
                 except CandidateRejected as error:
                     # Kept, but not stating the period: its receipt says so once settled.
                     reason = str(error)
@@ -687,7 +687,7 @@ def _adopt(
     if not rules_for(scope.metric_ids):
         # No rule to read its page by, nor the subject of its figure.
         return RULE_NOT_MATCHED, ()
-    extraction = extract(scope.metric_ids, scope.period, quote)
+    extraction = extract(scope.metric_ids, scope.period, quote, url=url)
     if extraction.reason is not None:
         return extraction.reason, ()
     # The CLI reports the number as the sentence writes it ("437.5万亿元", "下降0.4%");

@@ -616,6 +616,9 @@ class ReportSnapshot:
     explanation_verification: dict[str, Any] = field(default_factory=dict)
     input_schema_version: str = "not_recorded"
     input_prompt_version: str = "not_recorded"
+    # Read with it: whether its projection was computed on a value read for the wrong
+    # period, and the reports that correct it or that it corrects (audit 06).
+    corrections: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -864,7 +867,11 @@ class ReportRepository:
             return explanation_reviews(connection, report_snapshot_id)
 
     def _with_runtime_metadata(self, snapshot: ReportSnapshot) -> ReportSnapshot:
+        from pring_cycle.publication_corrections import report_corrections
+
         reviews = self.explanation_reviews(snapshot.report_snapshot_id)
+        with self._connect() as connection:
+            corrections = report_corrections(connection, snapshot.projection_set_id)
         attempts = self.attempts(snapshot.report_snapshot_id)
         measured_duration = (
             _timing_duration(attempts[-1].process_audit, "report_elapsed_ms") if attempts else None
@@ -888,6 +895,7 @@ class ReportRepository:
             duration_ms=(
                 measured_duration if measured_duration is not None else snapshot.duration_ms
             ),
+            corrections=corrections,
         )
 
     @contextmanager

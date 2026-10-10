@@ -108,8 +108,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         rejection = mutation_rejection(
             paths.database,
             paths.data,
-            non_core_large_task=namespace.command
-            in {"report-generate"},
+            non_core_large_task=namespace.command in {"report-generate"},
         )
         if rejection is not None:
             raise ValueError(rejection)
@@ -353,6 +352,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         return {
             "datasets": projection.datasets,
             "envelope": asdict(projection.envelope),
+            "corrections": projection.corrections,
             "status": "ok",
         }
     if namespace.command == "evidence-ingest":

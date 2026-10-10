@@ -538,6 +538,7 @@ def _projection_document(projection: ProjectionSet) -> dict[str, object]:
     return {
         "envelope": asdict(projection.envelope),
         "datasets": projection.datasets,
+        "corrections": projection.corrections,
     }
 
 

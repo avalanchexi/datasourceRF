@@ -152,6 +152,13 @@ def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> Rete
         )
         delete("p0_assessment", "target_business_date < ?", start)
         delete("analytical_dataset", retired_projection)
+        delete("publication_impact", retired_projection)
+        delete(
+            "publication_correction",
+            retired_projection
+            + " OR corrected_by_projection_set_id IN (SELECT projection_set_id FROM "
+            "retired_projection)",
+        )
         delete("projection_set", retired_projection)
         delete("derived_observation", "date(as_of_cutoff) < ?", start)
         # The evidence a kept projection froze goes only with the projection (lookback 08).

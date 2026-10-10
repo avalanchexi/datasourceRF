@@ -617,7 +617,7 @@ def read_news_page(
 
     def read(content: str) -> tuple[str, str, NewsExtraction, str | None]:
         text = plain_text(content)
-        extraction = extract(metric_ids, period, text, title=page_title(content))
+        extraction = extract(metric_ids, period, text, title=page_title(content), url=url)
         if extraction.reason is not None:
             raise CandidateRejected(extraction.reason)
         return content, text, extraction, page_published_at(content)
@@ -675,15 +675,21 @@ def fetch_news_page(
 
 
 def read_page_content(
-    receipt: AcquisitionReceipt, content: str, metric_ids: tuple[str, ...], period: str
+    receipt: AcquisitionReceipt,
+    content: str,
+    metric_ids: tuple[str, ...],
+    period: str,
+    *,
+    url: str | None = None,
 ) -> NewsPage:
     """A fetched page read by the rules for ``period``, its title and subject clauses
-    included; rejected with the reason when they read no value for it."""
+    included, and its address ``url`` dating it (audit 06); rejected with the reason when
+    they read no value for it."""
     from pring_cycle.news_rules import extract, page_published_at, page_title, plain_text
 
     text = plain_text(content)
     title = page_title(content)
-    extraction = extract(metric_ids, period, text, title=title)
+    extraction = extract(metric_ids, period, text, title=title, url=url)
     if extraction.reason is not None:
         raise CandidateRejected(extraction.reason)
     return NewsPage(receipt, title, text, page_published_at(content), extraction)

@@ -173,6 +173,39 @@ def test_a_page_titled_a_place_s_gives_no_national_figure(
 
 
 @pytest.mark.parametrize(
+    ("title", "url"),
+    [
+        ("2025年8月份规模以上工业增加值增长5.2%", CLS),
+        ("规模以上工业增加值", "https://app.www.gov.cn/govdata/gov/202509/15/536600/article.html"),
+    ],
+    ids=["title", "address"],
+)
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_page_dated_another_year_gives_no_value(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    title: str,
+    url: str,
+) -> None:
+    """Audit 06: the page's sentence names no year; its title or its address dates it 2025.
+    The candidate is refused for its period and nothing is stored."""
+    stored, paths, _version, _calls = media_run(
+        tmp_path,
+        monkeypatch,
+        capsys,
+        body=page("<p>8月份，规模以上工业增加值同比增长5.2%。</p>", title=title),
+        metric_ids=("CN_INDUSTRIAL_VA",),
+        url=url,
+    )
+
+    [validation] = stored.retrieval_ledger["candidate_validations"]
+    assert (validation["outcome"], validation["reason"]) == ("not_model_usable", "period_mismatch")
+    with database_connection(paths.database) as connection:
+        assert connection.execute("SELECT count(*) FROM claim_matched_quote").fetchone() == (0,)
+
+
+@pytest.mark.parametrize(
     ("body", "period", "reason"),
     [
         pytest.param(

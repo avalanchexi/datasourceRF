@@ -31,6 +31,9 @@ def dashboard_shell(
     projection_id = envelope.projection_set_id if envelope is not None else "等待首次完整运行"
     completeness = envelope.completeness if envelope is not None else "不可用"
     drawer_document = _projection_detail(projection, runs, reports)
+    projection_notes = _correction_notes(
+        projection.corrections if projection is not None else {}, "当前投影", "投影"
+    )
     return html.Div(
         [
             dcc.Location(id="dashboard-location", refresh=False),
@@ -70,6 +73,9 @@ def dashboard_shell(
             ),
             html.Aside(source_contract_notice, className="source-contract-notice", role="alert")
             if source_contract_notice is not None
+            else None,
+            html.Aside(projection_notes, className="source-contract-notice", role="status")
+            if projection_notes
             else None,
             html.Div(
                 [
@@ -2074,9 +2080,10 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
         ],
         className="compact-facts",
     )
+    head = [*_correction_notes(report.corrections, "本报告的投影", "报告"), identity]
     if not report.body_retained:
         return html.Div(
-            [identity, _empty_state("正文已不在保留期", "结构化身份与报告输入仍在留存期内保留。")],
+            [*head, _empty_state("正文已不在保留期", "结构化身份与报告输入仍在留存期内保留。")],
             className="report-reader",
         )
     body = report.body
@@ -2128,7 +2135,39 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
                 else []
             ),
         ]
-    return html.Div([identity, *content], className="report-reader")
+    return html.Div([*head, *content], className="report-reader")
+
+
+def _correction_notes(corrections: dict[str, Any], whose: str, kind: str) -> list[html.P]:
+    """A projection or report computed on a value read for the wrong period stays as
+    published, marked; a later one of its day says what it corrects (audit 06). ``whose``
+    names the projection, ``kind`` what is shown."""
+    notes = []
+    if corrections.get("affected"):
+        count = len({c for item in corrections["affected"] for c in item["claim_ids"]})
+        corrected_by = corrections.get("corrected_by") or []
+        notes.append(
+            html.P(
+                f"受错期值影响：{whose}有 {count} 项模型输入是期次不符的来源值或由其派生，"
+                f"本{kind}按原样保留。"
+                + (
+                    "已由 " + "、".join(corrected_by) + " 更正。"
+                    if corrected_by
+                    else "尚无更正版本。"
+                ),
+                className="report-correction-note",
+            )
+        )
+    if corrections.get("corrects"):
+        notes.append(
+            html.P(
+                f"更正版本：本{kind}更正 "
+                + "、".join(corrections["corrects"])
+                + "（受错期值影响）。",
+                className="report-correction-note",
+            )
+        )
+    return notes
 
 
 def _report_fact_section(title: str, value: object) -> html.Section:
@@ -2458,6 +2497,7 @@ def _projection_detail(
     return {
         "projection": envelope,
         "datasets": sorted(projection.datasets),
+        "corrections": projection.corrections,
         "run_count": len(runs),
         "report_count": len(reports),
     }

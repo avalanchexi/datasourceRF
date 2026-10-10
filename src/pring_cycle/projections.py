@@ -5,7 +5,7 @@ import json
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
@@ -16,6 +16,11 @@ from pring_cycle.confirmation import DIMENSIONS as CONFIRMATION_DIMENSIONS
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.confirmation import RELATIONS as CONFIRMATION_RELATIONS
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
+from pring_cycle.publication_corrections import (
+    PUBLICATION_CORRECTION_SCHEMA,
+    publication_corrections,
+    record_publication_corrections,
+)
 from pring_cycle.source_contract_review import require_stored_model_source_contract
 from pring_cycle.storage import database_connection, ensure_wal
 
@@ -66,6 +71,9 @@ class ProjectionEnvelope:
 class ProjectionSet:
     envelope: ProjectionEnvelope
     datasets: dict[str, dict[str, object]]
+    # Read with it: whether it was computed on a value read for the wrong period, and the
+    # projections that correct it or that it corrects (audit 06).
+    corrections: dict[str, Any] = field(default_factory=dict)
 
 
 class ProjectionSetRepository:
@@ -79,6 +87,7 @@ class ProjectionSetRepository:
         with repository._connect() as connection:
             connection.executescript(_PROJECTION_SCHEMA)
             connection.executescript(_P0_ASSESSMENT_SCHEMA)
+            connection.executescript(PUBLICATION_CORRECTION_SCHEMA)
             add_batch_columns(connection)
         return repository
 
@@ -95,7 +104,9 @@ class ProjectionSetRepository:
 
         A backfilled day's set is kept as history only: the page stays on the last whole
         set until the run publishes its target (ADR-0008). A set already stored under its id
-        is not written again; with ``as_current`` it may still take the pointer.
+        is not written again; with ``as_current`` it may still take the pointer. A new set
+        marks the kept ones computed on a value read for the wrong period, and corrects its
+        day's (audit 06).
         """
         _validate_projection(envelope, datasets)
         envelope_json = _canonical_json(_envelope_document(envelope))
@@ -108,6 +119,9 @@ class ProjectionSetRepository:
             ).fetchone()
             if stored is None:
                 self._insert_set(connection, envelope, envelope_json, datasets)
+                record_publication_corrections(
+                    connection, envelope.projection_set_id, envelope.target_business_date
+                )
             if fail_before_pointer:
                 connection.rollback()
                 raise RuntimeError("injected_projection_failure")
@@ -367,6 +381,7 @@ class ProjectionSetRepository:
                 """,
                 (projection_set_id,),
             ).fetchall()
+            corrections = publication_corrections(connection, projection_set_id)
         document = json.loads(str(row["envelope_json"]))
         envelope = ProjectionEnvelope(
             projection_set_id=str(document["projection_set_id"]),
@@ -388,6 +403,7 @@ class ProjectionSetRepository:
                 str(item["dataset_name"]): json.loads(str(item["document_json"]))
                 for item in dataset_rows
             },
+            corrections,
         )
 
     @contextmanager

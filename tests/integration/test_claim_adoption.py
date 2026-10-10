@@ -790,6 +790,89 @@ def test_ai_websearch_quotes_kept_before_their_pages_were_read_wait_for_them(
     assert series() == {"current_month_real_yoy": [month], "ytd_real_yoy": [year]}
 
 
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_kept_news_claim_whose_page_is_dated_another_year_is_no_candidate(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Audit 06: 中国政府网's page of 2025's August statistics was kept for 2026-08, its
+    quote's "前八个月" naming no year. Its title, its address or its subject clause dates it
+    2025: read again, it is neither listed nor selected, and the year's own value is. The
+    claims stay as stored."""
+    version = registered_version(paths, capsys)
+    evidence = EvidenceRepository(paths.database)
+    first = datetime(2026, 9, 16, 2, tzinfo=UTC)
+    quote = "1—8月份，规模以上工业增加值同比增长{}%。"
+    wrong = (
+        news_claim(
+            paths,
+            version,
+            "中国政府网",
+            5.9,
+            quote.format(5.9),
+            first,
+            title="2025年1—8月份规模以上工业增加值增长5.9%",
+            url="https://www.gov.cn/lianbo/fabu/202509/content_7041000.htm",
+        ),
+        news_claim(
+            paths,
+            version,
+            "中国政府网",
+            5.9,
+            quote.format(5.9),
+            first + timedelta(hours=1),
+            title="规模以上工业增加值",
+            url="https://app.www.gov.cn/govdata/gov/202509/15/536600/article.html",
+        ),
+        # Its subject clause names the year the page's heading gave it.
+        news_claim(
+            paths,
+            version,
+            "中国政府网",
+            5.9,
+            quote.format(5.9),
+            first + timedelta(hours=2),
+            title="规模以上工业增加值",
+            subject="2025年1—8月份，全国规模以上工业增加值同比增长5.9%",
+        ),
+    )
+    right = news_claim(
+        paths,
+        version,
+        "新浪财经",
+        5.3,
+        quote.format(5.3),
+        first,
+        title="国家统计局：2026年1—8月份规模以上工业增加值增长5.3%",
+        url="https://finance.sina.com.cn/jjxw/2026-09-15/doc-inhyhpyv8210291.shtml",
+    )
+    as_of = first + timedelta(days=10)
+
+    with database_connection(paths.database) as connection:
+        assert news_claims_no_longer_stated(connection, ("CN_INDUSTRIAL_VA",)) == frozenset(wrong)
+    for preloaded in (False, True):
+        repository = EvidenceRepository(paths.database)
+        if preloaded:
+            repository.preload_metric_series({("CN_INDUSTRIAL_VA", version)})
+        (point,) = repository.metric_series(
+            "CN_INDUSTRIAL_VA", mode=AsOfMode.SYSTEM, as_of=as_of, definition_version=version
+        )
+        assert [claim.claim_id for claim in point.claims] == [right]
+        assert (point.selected_claim_id, point.selected_value) == (right, 5.3)
+    adoption = ClaimAdoption(evidence, definition_version=version).check(
+        {"CN_INDUSTRIAL_VA": (point,)}
+    )["CN_INDUSTRIAL_VA"]
+    assert adoption.adoptable == {right}
+    assert (
+        query_one(
+            paths,
+            "SELECT count(*) FROM source_claim WHERE quality_status='validated' AND claim_id IN "
+            "(SELECT value FROM json_each(?))",
+            json.dumps(wrong),
+        )
+        == 3
+    )
+
+
 def query_one(paths: RuntimePaths, sql: str, *parameters: object) -> object:
     with database_connection(paths.database) as connection:
         return connection.execute(sql, parameters).fetchone()[0]
