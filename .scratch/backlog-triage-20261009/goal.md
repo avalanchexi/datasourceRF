@@ -97,5 +97,5 @@
 | 阶段 | 票 | 状态 | 提交 |
 |---|---|---|---|
 | 1 | 分流（8 张＋时效口径） | done：0928/11 done；1002/03 wontfix；1002/04(a)、05、11、12、lookback/24 ready-for-agent（05 偏离预设：现象未复现但根因仍在）；1002/04(b) 用户决定 wontfix；lookback/26、27 按用户决定转 ready-for-agent | 4a72eaa |
-| 2 | 实施 | 进行中：04(a) 已合入（dd2058c）；1002/11 已合入（732cbc7，受影响 540 passed、重型 4 passed，两轴无阻断）；1002/05 已合入（68b50d2，受影响 128 passed、重型 2 passed，两轴无阻断）；1002/12 已合入（cbac9b7，受影响 58 passed，两轴无阻断；Worker 重启后生效）；A 线 lookback/27（a27）、D 线 24（d24）、C 线 26（c26）实施中 | dd2058c、732cbc7、68b50d2、cbac9b7 |
+| 2 | 实施 | 进行中：已合入 04(a) dd2058c、1002/11 732cbc7、1002/05 68b50d2、1002/12 cbac9b7、lookback/27 cfbe4d2（四框齐，前后比对投影与报告正文除新增字段外全同）、lookback/26 cf87ddc＋6397ec4（存量 35 条串行重取 13 页：采用 30、排除 1、取不到 4，603 个观测选值不变；残余开票 28，needs-triage 下一批）；剩 D 线 24（d24，storage 连接复用） | dd2058c、732cbc7、68b50d2、cbac9b7、cfbe4d2、cf87ddc、6397ec4 |
 | 3 | 收尾验收 | 未开始 | |
