@@ -34,5 +34,5 @@
 | [11](issues/11-warrant-unpublished-cells-retried-every-run.md) | 仓单未发布格每轮重试 | done（跳过本轮应答已为空的单日补取＋负缓存前移记为暂缓、不写回执；真实核对并入 16） |
 | [12](issues/12-layer3-rules-not-covered.md) | 第三层未覆盖规则 | ready-for-agent（只做按符号比较与分化封顶） |
 | [13](issues/13-audit-partial-upstream-composite-members.md) | 合计类成员部分未发布误判 | ready-for-agent |
-| [14](issues/14-scheduler-weekday-fallback-on-holidays.md) | 调度在节假日误提交 | ready-for-agent（缺覆盖先补当天日历，失败暂缓） |
+| [14](issues/14-scheduler-weekday-fallback-on-holidays.md) | 调度在节假日误提交 | done（缺覆盖先补一次 `trade_cal`、开市才提交；失败暂缓、每 10 分钟重试至 21:00） |
 | [15](issues/15-trend-rules-a4-a6-interview.md) | A4–A6 规则口径访谈 | needs-info（另开访谈） |

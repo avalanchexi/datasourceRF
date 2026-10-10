@@ -133,6 +133,7 @@ def run_worker(paths: RuntimePaths) -> None:
     runs = RunRepository(paths.database)
     runs.audit_lease()
     previous_schedule_check = started_at
+    deferred = DeferredSchedule()
     try:
         with keep_database_open(paths.database):
             while not stopped.is_set():
@@ -143,7 +144,7 @@ def run_worker(paths: RuntimePaths) -> None:
                     started_at=started_at,
                     heartbeat_at=observed_at,
                 )
-                submit_schedule_if_crossed(paths, previous_schedule_check, observed_at)
+                submit_schedule_if_crossed(paths, previous_schedule_check, observed_at, deferred)
                 previous_schedule_check = observed_at
                 process_pending_run(paths)
                 stopped.wait(1)
@@ -151,11 +152,34 @@ def run_worker(paths: RuntimePaths) -> None:
         write_runtime_event(paths, "worker", "worker_stopped")
 
 
+# How long a scheduled day whose SSE calendar could not be fetched waits to ask again.
+SCHEDULE_CALENDAR_RETRY = timedelta(minutes=10)
+# How far back a scheduled day's calendar is asked from: past the longest SSE closure, so
+# the response holds a session and the calendar's parser does not refuse it as having none.
+SCHEDULE_CALENDAR_REACH = timedelta(days=14)
+
+
+@dataclass
+class DeferredSchedule:
+    """The scheduled day a live Worker holds back while its SSE calendar cannot be fetched,
+    and when it asks again (ticket 14).
+
+    Held in memory only: a Worker started later does not make up a day it missed, deferred
+    or not, as it does not for one it was down for.
+    """
+
+    day: date | None = None
+    retry_at: datetime | None = None
+
+
 def submit_schedule_if_crossed(
     paths: RuntimePaths,
     previous_check: datetime,
     observed_at: datetime,
+    deferred: DeferredSchedule | None = None,
 ) -> str | None:
+    """Submit today's scheduled run when a live Worker crosses its start time on an SSE
+    session; with ``deferred``, also when a day held back for its calendar is due again."""
     if previous_check.tzinfo is None or observed_at.tzinfo is None:
         raise ValueError("schedule_check_times_must_be_timezone_aware")
     repository = RunRepository(paths.database)
@@ -165,29 +189,73 @@ def submit_schedule_if_crossed(
     timezone = ZoneInfo(str(schedule["timezone"]))
     previous_local = previous_check.astimezone(timezone)
     observed_local = observed_at.astimezone(timezone)
-    if previous_local.date() != observed_local.date():
-        return None
+    today = observed_local.date()
     hour, minute = (int(value) for value in str(schedule["start_time"]).split(":"))
     scheduled_at = observed_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    if not previous_local < scheduled_at <= observed_local:
+    hour, minute = (int(value) for value in str(schedule["p0_deadline"]).split(":"))
+    deadline = observed_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if deferred is not None and (deferred.day != today or observed_local > deadline):
+        # A day held back is not made up once it has turned, nor past its P0 deadline,
+        # where its run would only expire.
+        deferred.day = deferred.retry_at = None
+    if previous_local.date() != today:
         return None
-    # The stored SSE calendar answers the day where it states it, so a holiday weekday is
-    # closed (run-findings 12); only a day no response covers falls back to weekdays.
-    today = observed_local.date()
-    stated = SseCalendar(paths, as_of=observed_at).stated_between(today, today)
-    if not stated.get(today, today.weekday() < 5):
+    retrying = (
+        deferred is not None and deferred.retry_at is not None and deferred.retry_at <= observed_at
+    )
+    if not (previous_local < scheduled_at <= observed_local or retrying):
+        return None
+    is_session = _scheduled_day_is_session(paths, today, observed_at)
+    if deferred is not None:
+        deferred.day = today if is_session is None else None
+        deferred.retry_at = observed_at + SCHEDULE_CALENDAR_RETRY if is_session is None else None
+    if not is_session:
         return None
     try:
         model_version_id = ModelRepository(paths.database).active().model_version_id
     except LookupError:
         return None
     run = repository.submit_scheduled_full(
-        target_business_date=observed_local.date().isoformat(),
-        client_request_id=(f"scheduled-{observed_local.date().isoformat()}-v{schedule['version']}"),
+        target_business_date=today.isoformat(),
+        client_request_id=(f"scheduled-{today.isoformat()}-v{schedule['version']}"),
         model_version_id=model_version_id,
         system_as_of=observed_at,
     )
     return run.run_id
+
+
+def _scheduled_day_is_session(paths: RuntimePaths, day: date, observed_at: datetime) -> bool | None:
+    """Whether the SSE opens on ``day``, or None when no response can yet say (ticket 14).
+
+    The stored calendar answers the day where it states it, a holiday weekday closed
+    (run-findings 12), with no call. A day it leaves unstated is fetched, one call, as a
+    run's own calendar may end on the day before a holiday.
+    """
+    stated = SseCalendar(paths, as_of=observed_at).stated_between(day, day)
+    if day in stated:
+        return stated[day]
+    try:
+        sessions = _fetch_sse_calendar(paths, day - SCHEDULE_CALENDAR_REACH, day)
+    except Exception as error:
+        # Whatever the failure, the day waits: this runs in the Worker's loop, which goes on.
+        write_runtime_event(
+            paths,
+            "worker",
+            f"scheduled_run_deferred:calendar_unavailable:{type(error).__name__}:{error}",
+            "warning",
+        )
+        return None
+    return day in sessions
+
+
+def _fetch_sse_calendar(paths: RuntimePaths, first: date, last: date) -> tuple[date, ...]:
+    """Fetch the SSE sessions from ``first`` to ``last`` from TuShare, one call."""
+    from pring_cycle.trading_calendar import acquire_sse_calendar
+
+    token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
+    if token is None:
+        raise LookupError("tushare_token_missing")
+    return acquire_sse_calendar(paths, TushareCoreAdapter(token), first, last)
 
 
 def process_pending_run(
@@ -1957,11 +2025,7 @@ def _reach_judging_day(paths: RuntimePaths, run: RunRecord) -> datetime:
     turn while it is made, the new day is asked after too.
     """
     from pring_cycle.full_retrieval import record_first_outcome
-    from pring_cycle.trading_calendar import (
-        acquire_sse_calendar,
-        judging_day,
-        judging_days_unstated,
-    )
+    from pring_cycle.trading_calendar import judging_day, judging_days_unstated
 
     target = date.fromisoformat(run.target_business_date)
     fetches: list[dict[str, str]] = []
@@ -1969,12 +2033,9 @@ def _reach_judging_day(paths: RuntimePaths, run: RunRecord) -> datetime:
         judged_at = datetime.now(UTC)
         if unstated := judging_days_unstated(paths, target, judged_at):
             first, last = unstated
-            token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
             outcome = "fetched"
             try:
-                if token is None:
-                    raise LookupError("tushare_token_missing")
-                acquire_sse_calendar(paths, TushareCoreAdapter(token), first, last)
+                _fetch_sse_calendar(paths, first, last)
             except (LookupError, TypeError, ValueError, OSError) as error:
                 outcome = f"unavailable:{type(error).__name__}:{error}"
             fetches.append(

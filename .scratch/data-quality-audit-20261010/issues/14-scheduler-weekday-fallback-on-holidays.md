@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Category: bug
 Type: task
 
@@ -29,3 +29,41 @@ Type: task
 **用户决定**：当天没有日历覆盖时，先补取当天日历（缓存已覆盖则 0 次，否则 1 次 `trade_cal`），确认开市才提交；补取失败就暂缓，之后定时重试。
 
 **Agent Brief**：改调度判断（`worker.py:174` 一带），TDD 覆盖四种情形：已覆盖开市、已覆盖休市、缺覆盖时补取后开市或休市、补取失败暂缓再重试。外部调用串行。
+
+### 2026-10-10 实施
+
+**改了什么**（worktree 分支，线 B）：
+
+- `worker.submit_schedule_if_crossed`：到 18:30 时先读已存上交所日历（`SseCalendar(as_of=observed_at)`）。写明开市就提交，写明休市就不提交，这两种情况都不发请求。当天没被覆盖时，由新函数 `_scheduled_day_is_session` 向 TuShare 补取一次 `trade_cal`，区间为当天往前 14 天至当天（`SCHEDULE_CALENDAR_REACH`）：一来含最近交易日，解析器不会因区间内没有开市日而拒收；二来该区间比最长的上交所休市还长。补取后直接用应答判断，当天开市才提交。周末同样补取（按规格轴意见去掉了“周末不补”的捷径）。
+- 补取失败（任何异常，包括非 `OSError` 的 `IncompleteRead`、无 token、TuShare 拒绝、限额）：不提交，写 `worker.jsonl` 事件 `scheduled_run_deferred:calendar_unavailable:<类型>:<原因>`。暂缓状态记在 `DeferredSchedule` 里，每 10 分钟重试一次（`SCHEDULE_CALENDAR_RETRY`），超过 21:00 P0 截止或跨日后清空、不再补跑。暂缓状态只存在运行中 Worker 的内存里，重启不补，与 ADR-0010“启动不自动补跑”一致。`run_worker` 在整个生命周期里只持有一个 `DeferredSchedule`。
+- 抽出 `_fetch_sse_calendar`（读 token、构造 `TushareCoreAdapter`、调用 `acquire_sse_calendar`），由票 30 的 `_reach_judging_day` 与调度共用，行为不变。
+- 文档：`docs/development/local-runtime.md` 的盘后计划段补充上述调度规则。
+
+**测试**（`tests/integration/test_worker_execution.py`，TuShare 用 opener 替身 `TradeCalOpener`，时钟用 `install_runtime_clock`）：
+
+- 已覆盖且开市 → 提交；已覆盖且休市 → 不提交；两种情况替身调用均为 0（`test_an_uncovered_weekday_fetches_its_sse_calendar_before_the_schedule_submits` 前段，原有用例 `test_enabled_schedule_skips_a_stated_sse_holiday_and_submits_a_session_once` 也保留）；
+- 缺覆盖 → 补取 1 次：10-01（国庆）补取后休市，不提交；10-09 补取后开市，提交；再次检查 10-09 时已覆盖，不再请求；10-10 周六补取后休市（同一用例）；
+- 补取失败 → 暂缓，等待期内不请求，到期重试成功后提交；参数化覆盖 `OSError` 与 `IncompleteRead`，并断言写了日志事件（`test_a_failed_calendar_fetch_defers_the_schedule_and_retries_it`）；
+- 超过 21:00 不再重试、跨日不补，暂缓状态被清空（`test_a_deferred_schedule_is_not_retried_past_its_p0_deadline_or_the_next_day`）。
+- 原用例 `test_enabled_schedule_falls_back_to_weekdays_only_where_no_calendar_states_the_day` 测的是被本票取消的工作日推定，已由上面的新用例取代；`test_enabled_schedule_only_runs_when_a_live_worker_crosses_1830_shanghai` 补种了当天的日历。
+- 先红后绿：实现前，10-01 被误提交，`DeferredSchedule` 也不存在，3 例失败。
+
+**验证**（专用 venv `dev-venv-fixb`）：
+
+- `test_worker_execution.py` 全文件 29 passed（33 秒，含冒烟例 `test_worker_completes_a_valid_noncanonical_projection_and_report`）；
+- `test_worker_calendar_gate.py`、`test_trading_calendar.py`、`test_holiday_freshness.py` 加冒烟例 `test_manual_run_cannot_backdate_daily_core_availability`，共 42 passed（87 秒）；
+- 重型 `test_worker_registered_catalog.py` 与 `test_core_carry_forward.py` 经 flock 跑，4 passed（409 秒）；
+- ruff check／format 通过；mypy 对 `worker.py` 无错，测试文件只剩 main 上原有的错误（conftest:21 以及本文件原有各处），本票没有新增。
+
+**审查**（Codex 两轴，两轮）：
+
+- 第一轮：标准轴无阻断；规格轴有 3 项阻断。
+  - ① 非 OSError 异常会结束 Worker 循环 → 已修，改为捕获 `Exception`，并加 `IncompleteRead` 用例；
+  - ② 周末跳过补取，违反“缺覆盖就请求 1 次” → 已修；
+  - ③ 补取应答如果漏列当天，会被读成休市 → 不采纳，见下方残余风险。
+- 第二轮：两轴均“阻断：无”，规格轴接受 ③ 不采纳的理由。
+- 采纳的标准轴意见：过截止或跨日时清空暂缓状态；收窄测试时钟注释的说法。
+
+**已知残余风险**：核心日历解析器 `_calendar_rows`（`source_adapters.py:313`）不检查区间内每天都有一行，`SseCalendar` 把区间内没列为开市的日子一律当作休市。所以如果 TuShare 应答漏了当天那一行，调度会把当天读成休市，不提交也不重试。这是所有已存 `trade_cal` 回执共用的既有读法，本票没有引入新的信任假设；后果是漏掉一次自动运行，而不是误提交。如果要在解析器层强制“开市、休市都列出的完整日历”（`CONTEXT.md` 交易日历词条），会影响全部核心日历取数路径，以及大量只列开市日的测试替身，建议另开票处理。
+
+**遗留**：本票不做真实运行。调度行为的真实核对（需要 Worker 跨过 18:30）并入票 16，按需进行。

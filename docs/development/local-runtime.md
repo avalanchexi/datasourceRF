@@ -400,7 +400,11 @@ pring-cycle run-resume --run-id RUN_ID --request-id UNIQUE_RESUME_ID \
 ```
 
 恢复保留原 `system_as_of`、`report_cutoff`、目标业务日和已消耗预算；没有确认参数时拒绝恢复。
-可选盘后计划默认关闭，启用后固定使用 `Asia/Shanghai`、18:30 开始与 21:00 P0 截止：
+可选盘后计划默认关闭，启用后固定使用 `Asia/Shanghai`、18:30 开始与 21:00 P0 截止。
+到点时 Worker 先看已存上交所日历是否写明当天开市：写明开市才提交，写明休市不提交，均不发请求；当天
+未被覆盖时先向 TuShare 补取一次 `trade_cal`（当天往前 14 天至当天），确认开市才提交。补取失败则暂缓、写
+`worker.jsonl` 事件 `scheduled_run_deferred`，每 10 分钟重试一次，到 21:00 截止或跨日为止；暂缓
+只记在运行中的 Worker 内存里，重启不补（体检票 14）：
 
 ```bash
 pring-cycle schedule --json

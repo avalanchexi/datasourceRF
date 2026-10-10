@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, date, datetime, timedelta
+from http.client import IncompleteRead
 from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
@@ -33,6 +34,7 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.storage import database_connection
 from pring_cycle.worker import process_pending_run, submit_schedule_if_crossed
+from tests.conftest import install_runtime_clock
 from tests.integration.test_trading_calendar import record_sse_calendar
 
 
@@ -767,6 +769,7 @@ def test_enabled_schedule_only_runs_when_a_live_worker_crosses_1830_shanghai(
     paths = runtime(tmp_path)
     runs = RunRepository(paths.database)
     runs.configure_schedule(enabled=True, requested_by="test")
+    record_sse_calendar(paths, [date(2026, 8, 27), date(2026, 8, 28)])
 
     missed_on_startup = submit_schedule_if_crossed(
         paths,
@@ -790,6 +793,11 @@ def crossing_1830_shanghai(paths: RuntimePaths, day: date) -> str | None:
         datetime.combine(day, datetime.min.time(), tzinfo=UTC).replace(hour=10, minute=29),
         datetime.combine(day, datetime.min.time(), tzinfo=UTC).replace(hour=10, minute=31),
     )
+
+
+def worker_events(paths: RuntimePaths) -> list[dict[str, Any]]:
+    lines = (paths.logs / "worker.jsonl").read_text(encoding="utf-8").splitlines()
+    return [json.loads(line) for line in lines]
 
 
 def calendar_requests(paths: RuntimePaths) -> int:
@@ -834,23 +842,148 @@ def test_enabled_schedule_skips_a_stated_sse_holiday_and_submits_a_session_once(
     assert calendar_requests(paths) == requests
 
 
-def test_enabled_schedule_falls_back_to_weekdays_only_where_no_calendar_states_the_day(
-    tmp_path: Path,
-) -> None:
+NATIONAL_DAY = frozenset(date(2026, 10, day) for day in range(1, 8))
+
+
+class TradeCalOpener:
+    """TuShare's ``trade_cal`` reached through the Worker's own opener: weekdays open but
+    National Day; while ``failure`` is set every request raises it."""
+
+    def __init__(self) -> None:
+        self.failure: Exception | None = None
+        self.ranges: list[tuple[date, date]] = []
+
+    def open(self, request: Any, *, timeout: int) -> BytesIO:
+        payload = json.loads(request.data)
+        assert payload["api_name"] == "trade_cal"
+        start = datetime.strptime(payload["params"]["start_date"], "%Y%m%d").date()
+        end = datetime.strptime(payload["params"]["end_date"], "%Y%m%d").date()
+        self.ranges.append((start, end))
+        if self.failure is not None:
+            raise self.failure
+        days = (start + timedelta(days=n) for n in range((end - start).days + 1))
+        items = [
+            [day.strftime("%Y%m%d"), int(day.weekday() < 5 and day not in NATIONAL_DAY)]
+            for day in days
+        ]
+        document = {"code": 0, "data": {"fields": ["cal_date", "is_open"], "items": items}}
+        return BytesIO(json.dumps(document).encode())
+
+
+@pytest.fixture
+def scheduled_sse(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> tuple[RuntimePaths, TradeCalOpener]:
+    """An enabled schedule whose stored calendar ends on 2026-09-30, the day before National
+    Day, as a run of that day leaves it; TuShare stood in for by ``TradeCalOpener``."""
+    # Receipts are validated before every check below, so a later check reads what an
+    # earlier one fetched; the check that fetches judges by the answer, not by a re-read.
+    install_runtime_clock(monkeypatch, request, datetime(2026, 9, 30, 12, tzinfo=UTC))
     paths = runtime(tmp_path)
+    paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
+    tushare = TradeCalOpener()
+    monkeypatch.setattr("pring_cycle.source_adapters.build_opener", lambda *handlers: tushare)
+    september = (date(2026, 9, 1) + timedelta(days=n) for n in range(30))
+    record_sse_calendar(paths, [day for day in september if day.weekday() < 5])
+    RunRepository(paths.database).configure_schedule(enabled=True, requested_by="test")
+    return paths, tushare
+
+
+def utc(day: int, hour: int, minute: int, second: int = 0) -> datetime:
+    return datetime(2026, 10, day, hour, minute, second, tzinfo=UTC)
+
+
+def test_an_uncovered_weekday_fetches_its_sse_calendar_before_the_schedule_submits(
+    scheduled_sse: tuple[RuntimePaths, TradeCalOpener],
+) -> None:
+    """A day no stored response states is asked of TuShare once, a fortnight back so the
+    response holds a session, and only an open day is submitted (ticket 14). A day stated,
+    open or closed, is asked nothing."""
+    paths, tushare = scheduled_sse
     runs = RunRepository(paths.database)
-    runs.configure_schedule(enabled=True, requested_by="test")
-    # Stated through 10/8 only: 10/9 (Friday) and 10/10 (Saturday) are uncovered.
-    record_sse_calendar(paths, [date(2026, 9, 30), date(2026, 10, 8)])
 
-    stated_holiday = crossing_1830_shanghai(paths, date(2026, 10, 7))
-    uncovered_weekday = crossing_1830_shanghai(paths, date(2026, 10, 9))
-    uncovered_weekend = crossing_1830_shanghai(paths, date(2026, 10, 10))
+    stated_session = crossing_1830_shanghai(paths, date(2026, 9, 30))
+    stated_weekend = crossing_1830_shanghai(paths, date(2026, 9, 26))
+    asked_when_stated = list(tushare.ranges)
+    holiday = crossing_1830_shanghai(paths, date(2026, 10, 1))
+    session = crossing_1830_shanghai(paths, date(2026, 10, 9))
+    again = crossing_1830_shanghai(paths, date(2026, 10, 9))
+    weekend = crossing_1830_shanghai(paths, date(2026, 10, 10))
 
-    assert stated_holiday is None
-    assert uncovered_weekday is not None
-    assert runs.get(uncovered_weekday).target_business_date == "2026-10-09"
-    assert uncovered_weekend is None
+    assert stated_session is not None
+    assert runs.get(stated_session).target_business_date == "2026-09-30"
+    assert stated_weekend is None
+    assert asked_when_stated == []
+    assert holiday is None
+    assert session is not None
+    assert runs.get(session).target_business_date == "2026-10-09"
+    assert again == session
+    assert weekend is None
+    # Stated once fetched, 10-09 is not asked again.
+    assert tushare.ranges == [
+        (date(2026, 9, 17), date(2026, 10, 1)),
+        (date(2026, 9, 25), date(2026, 10, 9)),
+        (date(2026, 9, 26), date(2026, 10, 10)),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("failure", "event"),
+    [
+        (
+            OSError("fixture_calendar_unavailable"),
+            "scheduled_run_deferred:calendar_unavailable:OSError:fixture_calendar_unavailable",
+        ),
+        # Not an OSError: whatever a fetch raises, the Worker's loop must go on.
+        (IncompleteRead(b"{"), "scheduled_run_deferred:calendar_unavailable:IncompleteRead:"),
+    ],
+)
+def test_a_failed_calendar_fetch_defers_the_schedule_and_retries_it(
+    scheduled_sse: tuple[RuntimePaths, TradeCalOpener], failure: Exception, event: str
+) -> None:
+    paths, tushare = scheduled_sse
+    runs = RunRepository(paths.database)
+    deferred = worker_module.DeferredSchedule()
+    tushare.failure = failure
+
+    def check(previous: datetime, observed: datetime) -> str | None:
+        return submit_schedule_if_crossed(paths, previous, observed, deferred)
+
+    crossed = check(utc(9, 10, 29), utc(9, 10, 31))
+    waiting = check(utc(9, 10, 31), utc(9, 10, 32))
+    asked_while_waiting = len(tushare.ranges)
+    tushare.failure = None
+    retried = check(utc(9, 10, 40), utc(9, 10, 41))
+    after = check(utc(9, 10, 51), utc(9, 10, 52))
+
+    assert crossed is None
+    assert waiting is None
+    assert asked_while_waiting == 1
+    assert worker_events(paths)[-1]["event_code"].startswith(event)
+    assert retried is not None
+    assert runs.get(retried).target_business_date == "2026-10-09"
+    assert after is None
+    assert len(tushare.ranges) == 2
+
+
+def test_a_deferred_schedule_is_not_retried_past_its_p0_deadline_or_the_next_day(
+    scheduled_sse: tuple[RuntimePaths, TradeCalOpener],
+) -> None:
+    paths, tushare = scheduled_sse
+    tushare.failure = OSError("fixture_calendar_unavailable")
+    late = worker_module.DeferredSchedule()
+    crossed = submit_schedule_if_crossed(paths, utc(9, 10, 29), utc(9, 10, 31), late)
+    tushare.failure = None
+    # 21:00:01 in Shanghai: the P0 deadline has passed, a run would only be expired.
+    past_deadline = submit_schedule_if_crossed(paths, utc(9, 13, 0), utc(9, 13, 0, 1), late)
+    # Held back on 10-09 and due, but checked on 10-12: the day is not made up.
+    turned = worker_module.DeferredSchedule(day=date(2026, 10, 9), retry_at=utc(9, 10, 41))
+    next_day = submit_schedule_if_crossed(paths, utc(12, 2, 0), utc(12, 2, 0, 1), turned)
+
+    assert (crossed, past_deadline, next_day) == (None, None, None)
+    assert (late.day, late.retry_at) == (None, None)
+    assert (turned.day, turned.retry_at) == (None, None)
+    assert len(tushare.ranges) == 1
 
 
 def test_targeted_refresh_runs_serial_retrieval_and_persists_auditable_attempts(
