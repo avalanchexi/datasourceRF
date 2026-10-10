@@ -121,6 +121,11 @@ def run_retrieval_cascade(
     # TuShare has a value, no official or media page is needed (ADR-0026). Exa stands in
     # for Tavily only once Tavily's monthly quota is spent (or it has no key).
     channels = ["local", "tushare", "tushare_news", "official", "tavily", "exa", "ai_websearch"]
+    # Media values of one member that disagree are rechecked by AI WebSearch first, once:
+    # only what it settles is taken (audit 06, ADR-0039).
+    rechecks_first = getattr(adapters.get("ai_websearch"), "rechecks_first", None)
+    if rechecks_first is not None and request.searchable and rechecks_first():
+        channels = ["ai_websearch", *channels[:-1]]
     attempts: list[RetrievalAttempt] = []
     candidates: list[str] = []
     for channel in channels:

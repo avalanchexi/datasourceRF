@@ -198,6 +198,12 @@ def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> Rete
         delete("claim_matched_quote", "claim_id IN (SELECT claim_id FROM retired_claim)")
         delete("source_claim_acquisition", "claim_id IN (SELECT claim_id FROM retired_claim)")
         delete("source_claim", "claim_id IN (SELECT claim_id FROM retired_claim)")
+        # A recheck verdict goes once none of the claims it judged is kept (ADR-0039).
+        delete(
+            "media_conflict_recheck",
+            "NOT EXISTS (SELECT 1 FROM json_each(contested_claim_ids_json) AS judged "
+            "JOIN source_claim AS kept ON kept.claim_id = judged.value)",
+        )
         delete(
             "release_event",
             "release_event_id NOT IN (SELECT release_event_id FROM source_claim)",

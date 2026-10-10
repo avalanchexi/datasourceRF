@@ -40,12 +40,15 @@ from pring_cycle.storage import database_connection
 
 if TYPE_CHECKING:
     from pring_cycle.acquisition import AcquisitionReceipt
+    from pring_cycle.media_recheck import MediaConflict
     from pring_cycle.search_evidence import ModelInputSelection, NewsPage
 
 AI_ADAPTERS = ("codex_cli", "claude_code_cli")
 AI_CALL_SECONDS = 300
 AI_RUN_BUDGET = timedelta(minutes=60)
 AI_TIME_EXHAUSTED = "ai_time_exhausted"
+# Every member the gap misses is one whose media values a recheck left unsettled.
+MEDIA_CONFLICT_UNSETTLED = "media_conflict_unsettled"
 AI_PARSER_VERSION = "ai-websearch-v0001"
 MAX_CANDIDATES = 5
 _SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -184,18 +187,58 @@ def ai_websearch_adapter(
     *,
     definition_version: str,
     adapters: tuple[str, ...] = AI_ADAPTERS,
-) -> Callable[[str], RetrievalAdapterResponse]:
+) -> AiWebSearch:
     """The cascade adapter for one gap; it calls at most one CLI answer into the run."""
-    from pring_cycle.retrieval_ledger import RetrievalBudgetBlocked
-    from pring_cycle.retrieval_registry import search_domains, search_query
-    from pring_cycle.search_evidence import select_retrieval_input
+    return AiWebSearch(
+        paths, run_id, scope_run, definition_version=definition_version, adapters=adapters
+    )
 
-    def retrieve(release_event_id: str) -> RetrievalAdapterResponse:
+
+class AiWebSearch:
+    """The cascade adapter for one gap; it calls at most one CLI answer into the run.
+
+    A gap whose media values of a member disagree is asked first (``rechecks_first``), the
+    disagreeing members with those it misses, and the answer's page-read values settle them
+    or not (``media_recheck``, ADR-0039). A member a recheck left unsettled for the same
+    claims is not asked again.
+    """
+
+    def __init__(
+        self,
+        paths: RuntimePaths,
+        run_id: str,
+        scope_run: RunRecord,
+        *,
+        definition_version: str,
+        adapters: tuple[str, ...] = AI_ADAPTERS,
+    ) -> None:
+        self.paths, self.run_id, self.scope_run = paths, run_id, scope_run
+        self.definition_version, self.adapters = definition_version, adapters
+
+    def rechecks_first(self) -> bool:
+        """Whether the gap holds media values that disagree and no recheck has judged."""
+        from pring_cycle.media_recheck import media_conflicts
+
+        return bool(media_conflicts(self.paths, self.scope_run).pending)
+
+    def __call__(self, release_event_id: str) -> RetrievalAdapterResponse:
+        from pring_cycle.media_recheck import media_conflicts
+        from pring_cycle.retrieval_ledger import RetrievalBudgetBlocked
+        from pring_cycle.retrieval_registry import search_domains, search_query
+        from pring_cycle.search_evidence import select_retrieval_input
+
+        paths, run_id, scope_run = self.paths, self.run_id, self.scope_run
         scope = scope_run.retrieval_scope
         assert scope is not None
         remaining = AI_RUN_BUDGET.total_seconds() - ai_seconds_used(paths, run_id)
         if remaining <= 0:
             return RetrievalAdapterResponse("not_attempted", classification=AI_TIME_EXHAUSTED)
+        conflicts = media_conflicts(paths, scope_run)
+        missing = select_retrieval_input(paths, scope_run).missing_members
+        if missing and set(missing) <= conflicts.unsettled:
+            return RetrievalAdapterResponse(
+                "not_attempted", classification=MEDIA_CONFLICT_UNSETTLED
+            )
         query = search_query(scope.metric_ids, scope.period)
         domains = search_domains(scope.metric_ids)
         ledger = RetrievalLedger(paths.database, scope_run=scope_run)
@@ -209,9 +252,13 @@ def ai_websearch_adapter(
             )
         # A scope reads every member of its period; the AI is asked for, and adopts, only
         # those the gap still misses: the stock held, the growth is what it wants (lookback 14).
-        asked = _asked_members(scope, select_retrieval_input(paths, scope_run).missing_members)
+        # A member whose media values disagree is missed too, unless a recheck already left
+        # it unsettled for the same claims.
+        asked = _asked_members(
+            scope, tuple(member for member in missing if member not in conflicts.unsettled)
+        )
         adapter, document = _ask(
-            _prompt(scope, query, domains, asked), request_id, remaining, adapters
+            _prompt(scope, query, domains, asked), request_id, remaining, self.adapters
         )
         return _record_answer(
             paths,
@@ -221,10 +268,9 @@ def ai_websearch_adapter(
             adapter,
             document,
             asked,
-            definition_version=definition_version,
+            definition_version=self.definition_version,
+            conflicts=conflicts.pending,
         )
-
-    return retrieve
 
 
 def _ask(
@@ -301,8 +347,13 @@ def _record_answer(
     asked: Asked,
     *,
     definition_version: str,
+    conflicts: tuple[MediaConflict, ...] = (),
 ) -> RetrievalAdapterResponse:
-    """Keep the exchange as an acquisition, then check each candidate on its own."""
+    """Keep the exchange as an acquisition, then check each candidate on its own. What its
+    adopted values make of the ``conflicts`` asked about is kept before the gap is selected
+    again (ADR-0039)."""
+    from pring_cycle.media_recheck import record_rechecks
+    from pring_cycle.runs import member_key
     from pring_cycle.search_evidence import select_retrieval_input
 
     scope = run.retrieval_scope
@@ -335,6 +386,21 @@ def _record_answer(
             for candidate in candidates
         ]
     claim_ids = [claim_id for _candidate, _reason, stored in adopted for claim_id in stored]
+    record_rechecks(
+        paths.database,
+        (
+            conflict
+            for conflict in conflicts
+            if any(
+                members is None or any(member_key(metric_id, m) == conflict.member for m in members)
+                for metric_id, members in asked.items()
+                if metric_id == conflict.metric_id
+            )
+        ),
+        claim_ids,
+        run_id=run.run_id,
+        search_request_id=request_id,
+    )
     selection = select_retrieval_input(paths, run)
     # Each is recorded against what the gap then holds, as a searched page is (lookback 14).
     for candidate, reason, stored in adopted:

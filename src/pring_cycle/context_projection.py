@@ -1955,8 +1955,9 @@ def _point_at_target(
 def _selected_among(
     point: MetricSeriesPoint, claims: tuple[ClaimView, ...], *, tolerance: float | None
 ) -> MetricSeriesPoint:
-    # The target day selects as the repository does, among the claims public by then.
-    selected, reason = select_among(claims, tolerance=tolerance)
+    # The target day selects as the repository does, among the claims public by then, with
+    # the recheck verdicts on them (ADR-0039).
+    selected, reason = select_among(claims, tolerance=tolerance, verdicts=point.verdicts)
     return MetricSeriesPoint(
         observation_id=point.observation_id,
         period_start=point.period_start,
@@ -1968,6 +1969,7 @@ def _selected_among(
         selected_claim_id=selected.claim_id,
         claims=claims,
         conflict_reason=reason,
+        verdicts=point.verdicts,
     )
 
 

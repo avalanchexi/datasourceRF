@@ -228,3 +228,48 @@ def test_a_value_from_tushare_news_stops_before_official_and_media_pages() -> No
 
     assert (result.status, result.channel) == ("verified", "tushare_news")
     assert calls == ["local", "tushare", "tushare_news"]
+
+
+class _Recheck:
+    """An AI WebSearch adapter whose gap holds media values that disagree (audit 06)."""
+
+    def __init__(self, calls: list[str], pending: bool) -> None:
+        self.calls, self.pending = calls, pending
+
+    def rechecks_first(self) -> bool:
+        return self.pending
+
+    def __call__(self, _release_event_id: str) -> str | None:
+        self.calls.append("ai_websearch")
+        return None
+
+
+def test_a_media_conflict_is_rechecked_by_ai_websearch_before_any_other_channel() -> None:
+    calls: list[str] = []
+    channels = adapters(calls, "official")
+    channels["ai_websearch"] = _Recheck(calls, pending=True)
+
+    result = run_retrieval_cascade(
+        RetrievalRequest("release-loans", ("CN_LOAN_STRUCTURE",), "P1"),
+        channels,
+        RetrievalBudget(),
+    )
+
+    # Asked once, first; the cascade then goes on as before.
+    assert calls == ["ai_websearch", "local", "tushare", "tushare_news", "official"]
+    assert result.status == "verified"
+    assert [attempt.channel for attempt in result.attempts][0] == "ai_websearch"
+
+
+def test_with_no_conflict_to_recheck_ai_websearch_stays_last() -> None:
+    calls: list[str] = []
+    channels = adapters(calls, None)
+    channels["ai_websearch"] = _Recheck(calls, pending=False)
+
+    run_retrieval_cascade(
+        RetrievalRequest("release-loans", ("CN_LOAN_STRUCTURE",), "P1"),
+        channels,
+        RetrievalBudget(),
+    )
+
+    assert calls == ["local", "tushare", "tushare_news", "official", "tavily", "ai_websearch"]

@@ -5,7 +5,7 @@ import json
 import os
 import sqlite3
 from bisect import bisect_right
-from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, date, datetime, time, timedelta
@@ -147,6 +147,21 @@ class EvidenceQueryResult:
 
 
 @dataclass(frozen=True)
+class MediaVerdict:
+    """What an AI WebSearch recheck made of a member's media values that disagree: the
+    claims it judged, its own claims (evidence, not a side), and the side it settled on,
+    empty when it did not (ADR-0039)."""
+
+    contested: frozenset[str]
+    evidence: frozenset[str]
+    winners: frozenset[str]
+
+
+# Each claim's verdicts, judged or evidence (``media_recheck.load_media_verdicts``).
+MediaVerdicts = Mapping[str, tuple[MediaVerdict, ...]]
+
+
+@dataclass(frozen=True)
 class MetricSeriesPoint:
     observation_id: str
     period_start: str
@@ -158,6 +173,8 @@ class MetricSeriesPoint:
     selected_claim_id: str | None
     claims: tuple[ClaimView, ...]
     conflict_reason: str | None = None
+    # The recheck verdicts on its claims, for a selection made again among them.
+    verdicts: tuple[MediaVerdict, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -580,6 +597,8 @@ class EvidenceRepository:
         self._database_path = database_path
         self._writes_key = os.path.abspath(database_path)
         self._series_snapshot: _SeriesSnapshot | None = None
+        # The recheck verdicts, as of a count of this process's writes (``forget_selections``).
+        self._verdicts: tuple[int, MediaVerdicts] | None = None
         self._preloaded_writes = 0
         self._preloaded_series_rows: dict[
             tuple[str, str, AsOfMode],
@@ -721,6 +740,25 @@ class EvidenceRepository:
         _CLAIM_WRITES[self._writes_key] = _CLAIM_WRITES.get(self._writes_key, 0) + 1
         self._forget_stale_preloads()
         return tuple(stored)
+
+    def _media_verdicts(self, connection: sqlite3.Connection | None = None) -> MediaVerdicts:
+        """The recheck verdicts on each claim, read again once this process wrote anything."""
+        from pring_cycle.media_recheck import load_media_verdicts
+
+        writes = _CLAIM_WRITES.get(self._writes_key, 0)
+        if self._verdicts is None or self._verdicts[0] != writes:
+            if connection is not None:
+                self._verdicts = (writes, load_media_verdicts(connection))
+            else:
+                with self._connect() as opened:
+                    self._verdicts = (writes, load_media_verdicts(opened))
+        return self._verdicts[1]
+
+    def forget_selections(self) -> None:
+        """Have every repository of this process read its series again, as after appended
+        claims: a recheck verdict changes which claims are listed (ADR-0039)."""
+        _CLAIM_WRITES[self._writes_key] = _CLAIM_WRITES.get(self._writes_key, 0) + 1
+        self._forget_stale_preloads()
 
     def _forget_stale_preloads(self) -> None:
         """Drop preloaded series once any repository of this process appended claims."""
@@ -1164,12 +1202,14 @@ class EvidenceRepository:
                     ),
                 ).fetchall()
             rows = _without_unstated_news(connection, rows)
+            verdicts = self._media_verdicts(connection)
         return _select_claim_rows(
             observation_id,
             rows,
             mode=mode,
             as_of=as_of,
             tolerance=tolerance,
+            verdicts=verdicts,
         )
 
     def claim_count(self, observation_id: str) -> int:
@@ -1247,7 +1287,11 @@ class EvidenceRepository:
                 changed_observations.add(observation_id)
             for observation_id in changed_observations:
                 state.points_by_observation[observation_id] = _series_point(
-                    state.rows_by_observation[observation_id], mode, as_of, tolerance
+                    state.rows_by_observation[observation_id],
+                    mode,
+                    as_of,
+                    tolerance,
+                    self._media_verdicts(),
                 )
             state.visible_count = visible_count
             state.tolerance = tolerance
@@ -1290,6 +1334,7 @@ class EvidenceRepository:
                     (metric_id, *versions, *cutoff_parameters),
                 ).fetchall()
                 rows = _without_unstated_news(connection, rows)
+                verdicts = self._media_verdicts(connection)
             rows_by_observation: dict[str, list[sqlite3.Row]] = {}
             for row in rows:
                 if (
@@ -1306,7 +1351,7 @@ class EvidenceRepository:
                     continue
                 rows_by_observation.setdefault(_observation_key(row, merged=merged), []).append(row)
             points = [
-                _series_point(observation_rows, mode, as_of, tolerance)
+                _series_point(observation_rows, mode, as_of, tolerance, verdicts)
                 for observation_rows in rows_by_observation.values()
             ]
         points.sort(key=lambda point: (point.period_end, point.observation_id))
@@ -1365,7 +1410,9 @@ class EvidenceRepository:
             key = (mode, as_of, tolerance, *(item.claim_id for item in group))
             point = snapshot.points.get(key)
             if point is None:
-                point = _series_point([item.row for item in group], mode, as_of, tolerance)
+                point = _series_point(
+                    [item.row for item in group], mode, as_of, tolerance, self._media_verdicts()
+                )
                 snapshot.points[key] = point
             points.append(replace(point, dimensions=dict(point.dimensions)))
         return points
@@ -1761,10 +1808,16 @@ def _observation_key(row: sqlite3.Row, *, merged: bool) -> str:
 
 
 def _series_point(
-    rows: list[sqlite3.Row], mode: AsOfMode, as_of: datetime, tolerance: float | None
+    rows: list[sqlite3.Row],
+    mode: AsOfMode,
+    as_of: datetime,
+    tolerance: float | None,
+    verdicts: MediaVerdicts,
 ) -> MetricSeriesPoint:
     """One observation's point in a series, from its claims in the query's order."""
-    result = _select_merged_rows(rows, mode=mode, as_of=as_of, tolerance=tolerance)
+    result = _select_merged_rows(
+        rows, mode=mode, as_of=as_of, tolerance=tolerance, verdicts=verdicts
+    )
     row = rows[0]
     return MetricSeriesPoint(
         observation_id=result.observation_id,
@@ -1779,6 +1832,7 @@ def _series_point(
         selected_claim_id=result.selected_claim_id,
         claims=result.claims,
         conflict_reason=result.conflict_reason,
+        verdicts=_verdicts_of((claim.claim_id for claim in result.claims), verdicts),
     )
 
 
@@ -1788,6 +1842,7 @@ def _select_merged_rows(
     mode: AsOfMode,
     as_of: datetime,
     tolerance: float | None,
+    verdicts: MediaVerdicts,
 ) -> EvidenceQueryResult:
     """Select among one observation's claims, whichever catalog version stored them.
 
@@ -1795,7 +1850,12 @@ def _select_merged_rows(
     key; ``query`` on it reaches every version's claims.
     """
     result = _select_claim_rows(
-        str(rows[0]["observation_id"]), rows, mode=mode, as_of=as_of, tolerance=tolerance
+        str(rows[0]["observation_id"]),
+        rows,
+        mode=mode,
+        as_of=as_of,
+        tolerance=tolerance,
+        verdicts=verdicts,
     )
     if result.selected_claim_id is not None:
         for row in rows:
@@ -1811,6 +1871,7 @@ def _select_claim_rows(
     mode: AsOfMode,
     as_of: datetime,
     tolerance: float | None,
+    verdicts: MediaVerdicts,
 ) -> EvidenceQueryResult:
     time_column = "public_available_at" if mode == AsOfMode.PUBLIC else "available_at"
     # SQLite julianday is only a coarse index filter: it rounds sub-millisecond
@@ -1827,9 +1888,16 @@ def _select_claim_rows(
             str(row["claim_id"]),
         ),
     )
-    newest_by_provider: dict[str, sqlite3.Row] = {}
+    # A provider's newest claim; a news value's provider gives one per page, as two of its
+    # pages may disagree, and a recheck's claim is kept apart from the page it read again
+    # (ADR-0039).
+    held = _verdicts_of((str(row["claim_id"]) for row in rows), verdicts)
+    evidence = frozenset().union(*(verdict.evidence for verdict in held))
+    newest_by_provider: dict[tuple[str, str | None], sqlite3.Row] = {}
     for row in rows:
-        newest_by_provider[str(row["provider"])] = row
+        claim_id = str(row["claim_id"])
+        page = claim_id if claim_id in evidence else news_page(str(row["source_reference"]))
+        newest_by_provider[str(row["provider"]), page] = row
     claims = tuple(_claim_view(row) for row in newest_by_provider.values())
     if not claims:
         return EvidenceQueryResult(
@@ -1842,7 +1910,7 @@ def _select_claim_rows(
             None,
             (),
         )
-    selected, reason = select_among(claims, tolerance=tolerance)
+    selected, reason = select_among(claims, tolerance=tolerance, verdicts=held)
     return EvidenceQueryResult(
         observation_id=observation_id,
         mode=mode,
@@ -1857,27 +1925,78 @@ def _select_claim_rows(
 
 
 def select_among(
-    claims: Sequence[ClaimView], *, tolerance: float | None
+    claims: Sequence[ClaimView],
+    *,
+    tolerance: float | None,
+    verdicts: Sequence[MediaVerdict] = (),
 ) -> tuple[ClaimView, str | None]:
     """The claim an observation selects among its sources' claims, and why they conflict.
 
-    A certified claim goes first, then by provider. Only certified, validated reported
-    values are compared: several registered sources can disagree, a news or search value
-    cannot (ADR-0033).
+    A certified claim goes first, then a source's own over a recheck's, then by provider, a
+    provider's newest page first. Certified, validated reported values are compared
+    (ADR-0033). With none, the news, media and AI values are, page by page, within the same
+    tolerance: pages that disagree are a source conflict, unless an AI WebSearch recheck
+    settled these very claims, whose side is then selected. A recheck's own claims are its
+    evidence, never a side (``media_recheck``, ADR-0039).
     """
-    selected = sorted(
-        claims,
-        key=lambda item: (item.certification_status != "certified", item.provider),
-    )[0]
-    reported_values = [
-        item.value
+    evidence = frozenset().union(*(verdict.evidence for verdict in verdicts))
+
+    def order(item: ClaimView) -> tuple[bool, bool, str, float]:
+        return (
+            item.certification_status != "certified",
+            item.claim_id in evidence,
+            item.provider,
+            -item.available_at.timestamp(),
+        )
+
+    selected = sorted(claims, key=order)[0]
+    reported = [
+        (item, item.value)
         for item in claims
-        if item.certification_status == "certified"
-        and item.quality_status == "validated"
+        if item.quality_status == "validated"
         and item.value_state is EvidenceValueState.REPORTED_VALUE
         and item.value is not None
     ]
-    return selected, value_conflict_reason(reported_values, tolerance=tolerance)
+    certified = [value for item, value in reported if item.certification_status == "certified"]
+    if certified:
+        return selected, value_conflict_reason(certified, tolerance=tolerance)
+    sides = [
+        (item, value)
+        for item, value in reported
+        if news_page(item.source_reference) is not None and item.claim_id not in evidence
+    ]
+    reason = value_conflict_reason([value for _item, value in sides])
+    if reason is None:
+        return selected, None
+    contested = frozenset(item.claim_id for item, _value in sides)
+    settled = next((v for v in verdicts if v.contested == contested and v.winners), None)
+    if settled is None:
+        return selected, reason
+    return sorted((item for item, _v in sides if item.claim_id in settled.winners), key=order)[
+        0
+    ], None
+
+
+def _verdicts_of(claim_ids: Iterable[str], verdicts: MediaVerdicts) -> tuple[MediaVerdict, ...]:
+    """The verdicts on any of these claims, each once."""
+    return tuple(
+        dict.fromkeys(verdict for claim_id in claim_ids for verdict in verdicts.get(claim_id, ()))
+    )
+
+
+# How a news value's source reference names its page (``news_rules.store_news_values``):
+# a media or AI page by its address, a TuShare news text by its body's hash.
+_NEWS_PAGE_ROUTES = ("media_page:", "ai_websearch:")
+_NEWS_TEXT_ROUTE = "tushare_news:"
+
+
+def news_page(source_reference: str) -> str | None:
+    """The page a news, media or AI value was read from, or None for any other claim."""
+    if source_reference.startswith(_NEWS_PAGE_ROUTES):
+        return source_reference.split(":", 1)[1].rpartition("#")[0] or None
+    if source_reference.startswith(_NEWS_TEXT_ROUTE):
+        return source_reference.rpartition("#")[2] or None
+    return None
 
 
 COMPATIBLE_RELATIVE_DEVIATION = 0.005
