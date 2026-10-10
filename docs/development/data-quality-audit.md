@@ -2,7 +2,7 @@
 
 对**一次已完成的运行**及其 120 日证据窗口做只读体检，回答三个问题：数据取全了吗？进模型的输入全吗？模型输出对吗？结果输出为 Markdown 报告，只报告问题，不阻断运行，也不改库。规格见 `.scratch/data-quality-audit-20261010/spec.md`。
 
-目前已实现第一层中的日频逐日核对，以及低频的最新期与发布延迟核对（票 01）。派生数据（票 02）、模型输入与输出一致性（票 03）、三核心独立重算（票 04）会陆续加到同一套脚本里。
+目前已实现第一层中的日频逐日核对，以及低频的最新期与发布延迟核对（票 01）；第二层模型输入完整，以及第三层的输出内部一致性复查（票 03）。派生数据（票 02）、三核心独立重算（票 04）会陆续加到同一套脚本里。
 
 ## 用法
 
@@ -28,6 +28,8 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 | `tools/quality/audit.py` | 入口：解析参数、只读打开库、加载 `Run`，依次调用 `SECTIONS` 中的各节并拼成报告 |
 | `tools/quality/common.py` | 公共读取：`Run` 封装运行信息，以及冻结目录（`catalog`）、模型用到的指标（`model_used`）、截止前仅有派生值的指标（`derived_only`）、定义相同的目录版本（`same_definition`）、窗口（`window`）、各市场日历（`calendars`）、截止前的取数回执（`receipts`、`reached_source`、`validated_by_cutoff`），以及按哈希读取原件（`artifact`）；另含 Markdown 表格工具 |
 | `tools/quality/acquisition.py` | 第一层：取数是否完整（日频、低频） |
+| `tools/quality/model_input.py` | 第二层：模型输入是否完整（缺失明细与四个分母） |
+| `tools/quality/output_consistency.py` | 第三层（一）：输出内部一致性（阶段映射、确认度计数、报告与投影） |
 
 后续各层的接法：新建一个模块（例如 `derived.py`），提供 `section(run: Run) -> str`，再追加到 `audit.py` 的 `SECTIONS` 列表。需要的公共读取能力放进 `Run`，不要在各层模块里重复写查询。
 
@@ -109,3 +111,63 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 - 耶稣受难日美国债市有时只提前收市而不全天休市，表里按休市处理。
 - 美股表用于 EIA Brent 时，英国银行假日（Brent 当天无报价）不会被排除。EIA 原件是 HTML，无法逐日核对，所以这些日子会报为“未取到”，需要人工按假日解释。
 - 报告的“日历与窗口”一节会列出每份日历实际使用的回执编号和覆盖范围。如果上交所日历只覆盖到目标日、没有覆盖到判定日，结论会单独提示，这是 lookback/30 的特征。
+
+## 第二层：模型输入是否完整
+
+`tools/quality/model_input.py`。读取运行的最终取数计划（`full_run_gap_plan` 的 `final`、`adoption`）、投影的分析数据集与 `batch_freshness`，为此 `Run` 增加了 `projection_set_id`、`envelope`、`datasets`、`gap_plan(phase)` 四项只读能力。
+
+### 缺失明细
+
+- 取最终计划中 `status = model_input_missing` 的行，按 `missing_members` 展开为“指标 × 期次 × 成员”。成员键转换成第一层的写法：权证取品种（`CN_FUTURES_WARRANTS:symbol_missing:CU` → `CU`），其他取排序后的维度 JSON。
+- 每项附四列依据：
+  - **计划的发布判定**：计划 `gaps[]` 中该指标期的 `release_gate`。`awaiting_release` 只说明生产的发布门禁没有找到截止前已公开的声明、且登记的发布时间未到，**不等于**已持有；没有该键也不代表完整。
+  - **第一层**：同一格在第一层的类别（已持有／上游未发布／未取到／日历未覆盖）；低频项不逐格核对，标“第一层未逐格核对”。
+  - **原因**：截止前已持有该期该成员的声明（只计与冻结定义相同的目录版本，同第一层的 `same_definition`；低频按期次覆盖的月或季匹配 `period_end`）时，比较其公开时间与**公开截止**。公开截止取运行截止与目标日结束（北京时间 23:59:59.999999）中较早者，与生产的完整运行一致（`full_retrieval.py` 中 `min(known_at, utc_now(), _target_end(run))`）。公开时间按生产读视图的口径取 `public_available_at`，为空时取 `inferred_public_at`（标“推定”）。晚于公开截止的，判为“已持有，公开时间晚于目标日”，即按时点规则不进模型。未持有的，沿用第一层的依据。
+  - **本运行回执**：本运行在 `full_run_acquisition` 中为该指标、该期（或不限期）登记的回执，按状态和失败原因计数，例如被负缓存拦截的 `failed（negative_cache_active）`。
+- **落后 1 期算完整**（规格要求）。满足以下条件的缺失项在“算完整”一列注明，并在结论中与真正缺失分开计数：该项是计划对该指标要求的最新一期，且模型实际用了上一期的值。三核心只以投影里的 `carried_forward` 为准（核心沿用），标记为假时不再按上一期输入推断；其他指标要求上一期该成员的声明（同定义的目录版本、截止前入库）出现在本运行的冻结输入编号中。日频的“上一期”是该成员在第一层里的前一开市日，该日日历未覆盖时不判；低频是上一个月或上一个季度。只凭“上一期已持有”不算：例如 `run-a8675946…` 的两融 09-29 已持有，却不在冻结输入里，所以 09-30 仍算缺失。
+- 局限：生产的计划只列它声明过的期次，计划没要求的期次不会出现在这里（第一层负责发现它们）。
+
+### 四个分母
+
+四者口径不同，分别报告，不能互相换算：
+
+| 分母 | 来源 | 计数单位 |
+|---|---|---|
+| 最终计划行 | `final.requirements`，状态 `local_complete`／`model_input_missing`／`operational_evidence`，其他状态（如 `event_presence_unknown`）另列；公式需求 `derived_requirements` 单独列 | 指标 × 期次（日频为交易日） |
+| 冻结输入编号 | 投影 `core_assets`、`macro` 的 `model_input_observation_version_ids`，合并去重后与 `adoption.selected_observation_version_ids` 比对 | 入选的观测（来源声明或派生值） |
+| 确认度成员 | `macro.confirmation.dimensions[].key_indicators[].members[]`，逐个展开 | 关键指标的成员 |
+| 批次时效 | `batch_freshness`（`batch_id` 为运行编号） | 指标，只看尾部落后 |
+
+- 确认度：**当前阶段为空（非典型组合、核心待定）时，生产在判指标级缺失之前就返回，`key_indicators[].missing` 必为空**，不能据此认定完整。所以本节逐个展开 `members[]`，统计 `evidence_status`（取值不封闭，除 current、stale、missing 外另列）和成员级 `missing`，并列出不是 current 或有缺期的成员。
+- 批次时效：`stale` 包含落后 1 期，生产没有单独的沿用状态。本节把 `periods_behind = 1` 的项标为“落后 1 期，算完整”。`periods_behind` 是相对已过宽限的应有期计算的，日历未覆盖时生产会按工作日推定（lookback/30），所以“落后 6 期”不等于真缺 6 个交易日。
+
+### 追溯断链
+
+输入编号既联接不到 `source_claim.claim_id`，也联接不到 `derived_observation.derived_observation_id` 的，单列为追溯断链，不算缺失。核心输入包括 120 日窗口之前用于均线、斜率和持续确认的观测；按留存规则，三核心价格的窗口前声明即使被投影引用也可删除（`retention.py`）。本节会注明核心断链中有多少不在三核心窗口观测之内；宏观断链不适用这条留存例外，出现时需单独查明。
+
+## 第三层（一）：输出内部一致性
+
+`tools/quality/output_consistency.py`。只做 SQL 复查，不重算趋势（重算归票 04）。每项检查列出“期望”和“实际”：期望由冻结清单（`stage_mapping`、`core_metrics`、`confirmation_rules.key_indicators`）和 ADR-0001、ADR-0037、`CONTEXT.md` 的规则推出，实际取自投影与报告。
+
+**核心状态 → 正式阶段**
+
+- `stage_mapping` 的键按债、股、商品的顺序排列。若任一核心状态不是 bull／bear，或 `p0_assessment.gaps` 非空，则期望当前阶段为空、原因为 `core_data_pending`；否则按映射得到阶段（原因 `canonical_combination`），映射不到就是非典型组合（当前阶段为空，原因 `noncanonical_combination`）。
+- 核对 `p0_assessment` 的 `event_kind`（有当前阶段为 formal，否则为 gap）、阶段与原因；核对沿用名单与 `carried_forward`，沿用资产的 `reason` 应以 `carried_forward` 开头；核对总览、核心数据集和 P0 评估中的核心资产是否相同，以及阶段史中本投影的事件是否恰有一条且与 P0 评估相同。
+- 上一确认阶段：有当前阶段时等于当前阶段；否则取阶段史中目标日及以前最近的 formal 评估（按业务日、`system_as_of`、评估编号排序）。
+- 投影信封的目标日、模型、截止与运行一致；确认度记录的阶段、原因与总览一致。
+
+**确认度计数与成员读法**
+
+- 关键指标集合与冻结规则一致；关系只取 support、counterevidence、observation_only、unconfirmed、not_applicable 五种。
+- `applicable` 等于“当前阶段非空”；不适用时每个关键指标都是 not_applicable。
+- 每个已连接维度的 `counts` 等于其关键指标关系的逐项统计；未连接维度的 `counts` 为空。
+- 成员读法：冻结规则列出的主要与辅助成员（库存象限按三条线）都必须展开，主要成员标为 `main`；按动量比较（`agrees_by = momentum`）、状态为 current 且未标 `not_compared` 的成员，动量与主要成员（按冻结规则认定）相反（up 对 down）当且仅当标为 `opposes`；冻结主要成员以外不得有标为 `main` 的成员。库存象限有多个主要成员，不做这两项；按符号比较（`sign`）的成员缺少可比字段，本脚本不复核。有成员与主要成员相反（`opposes`）的关键指标不能标为 `consistent`；分化的关键指标关系不能是 support（`CONTEXT.md`：分化时确认关系不高于仅观察）；计入的关键指标（support／counterevidence）不能有指标级缺失。
+- **规则歧义**：“不高于仅观察”是否也排除反证（counterevidence），文档没有写明。脚本不判定，遇到时只在结论中提示。
+
+**报告与投影**
+
+- 取绑定本投影的最新版本报告（`report_snapshot` 按 `projection_set_id` 取最大 `version`），状态应为 `completed` 或降级完成 `completed_degraded`；降级报告没有 AI 解释，不核对报告自检。注意 `version` 是按目标日递增的，不能拿目标日的最新版本代表别的投影。
+- 核对报告身份、冻结证据包（属于本投影、哈希相同）、`report_snapshot.current_stage` 列、`formal_stage_basis`、`core_states`、结构化结论（`confirmation_applicable`、`dimension:*`、`key_indicator:*`）、`gap_list`、`core_carry_forward`；核对 `verified_results` 中的正式阶段、核心资产状态、确认度、缺口计数，以及它与冻结证据包 `results` 是否相同；最后列出报告自检的身份与结论校验结果。
+- `cycle_overview.macro_confirmation` 是旧版宏观标签的摘要，新版输出通常为空，不与 `macro.confirmation` 比较。
+
+不一致的检查在“实际”一列给出差异所在（不同的键或位置），避免长值被截断后看不出差别。

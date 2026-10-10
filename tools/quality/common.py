@@ -361,6 +361,40 @@ class Run:
         """The first receipt in the database: periods published before it were backfilled."""
         return self.db.execute("SELECT MIN(started_at) FROM acquisition_request").fetchone()[0]
 
+    # -- published outputs (layers 2 and 3) ----------------------------------------------
+
+    @cached_property
+    def projection_set_id(self) -> str | None:
+        return self.db.execute(
+            "SELECT projection_set_id FROM parent_run WHERE run_id = ?", (self.run_id,)
+        ).fetchone()[0]
+
+    @cached_property
+    def envelope(self) -> dict:
+        row = self.db.execute(
+            "SELECT envelope_json FROM projection_set WHERE projection_set_id = ?",
+            (self.projection_set_id,),
+        ).fetchone()
+        return json.loads(row[0]) if row else {}
+
+    @cached_property
+    def datasets(self) -> dict[str, dict]:
+        """The run's analytical datasets (``core_assets``, ``cycle_overview``, ``macro``, …)."""
+        rows = self.db.execute(
+            "SELECT dataset_name, document_json FROM analytical_dataset"
+            " WHERE projection_set_id = ?",
+            (self.projection_set_id,),
+        )
+        return {name: json.loads(document) for name, document in rows}
+
+    def gap_plan(self, phase: str) -> dict | None:
+        """One phase (``initial``, ``final``, ``adoption``, …) of the run's gap plan."""
+        row = self.db.execute(
+            "SELECT document_json FROM full_run_gap_plan WHERE run_id = ? AND phase = ?",
+            (self.run_id, phase),
+        ).fetchone()
+        return json.loads(row[0]) if row else None
+
 
 # --- markdown -----------------------------------------------------------------------------
 
