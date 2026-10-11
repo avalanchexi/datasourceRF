@@ -156,6 +156,14 @@ EXTENSION_SESSIONS = tuple(
 )
 
 
+# The last day the archived calendar states.
+ARCHIVE_END = date(2026, 8, 28)
+
+
+def _compact_date(value: str) -> date:
+    return date(int(value[:4]), int(value[4:6]), int(value[6:]))
+
+
 def extended_core_opener() -> Any:
     """Archived core responses followed by flat synthetic sessions through the target date."""
     archive = real_core_opener()
@@ -176,10 +184,16 @@ def extended_core_opener() -> Any:
                 )["data"]["items"]
                 close = max(archived, key=lambda item: item[1])[fields.index("close")]
             added = []
-            for day in (d.strftime("%Y%m%d") for d in EXTENSION_SESSIONS):
+            # The calendar states every day past the archive, closed ones too (ticket 02).
+            sessions = {d.strftime("%Y%m%d") for d in EXTENSION_SESSIONS}
+            extension = (
+                (ARCHIVE_END + timedelta(days=n)).strftime("%Y%m%d")
+                for n in range(1, (_compact_date(params["end_date"]) - ARCHIVE_END).days + 1)
+            )
+            for day in extension if calendar else sorted(sessions):
                 if params["start_date"] <= day <= params["end_date"]:
                     row = (
-                        {"cal_date": day, "is_open": 1}
+                        {"cal_date": day, "is_open": int(day in sessions)}
                         if calendar
                         else {
                             "ts_code": params["ts_code"],

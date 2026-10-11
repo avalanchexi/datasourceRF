@@ -156,10 +156,13 @@ def sse_days(first: date, last: date) -> list[date]:
 
 class CalendarOnlyTushare:
     """TuShare answering ``trade_cal`` alone, National Day closed; ``fail_past`` refuses a
-    range ending after that day."""
+    range ending after that day; ``left_out`` days go unlisted."""
 
-    def __init__(self, *, fail_past: date | None = None) -> None:
+    def __init__(
+        self, *, fail_past: date | None = None, left_out: frozenset[date] = frozenset()
+    ) -> None:
         self.fail_past = fail_past
+        self.left_out = left_out
         self.calendar_ranges: list[tuple[date, date]] = []
 
     def open(self, request: Any, *, timeout: int) -> BytesIO:
@@ -175,6 +178,7 @@ class CalendarOnlyTushare:
         items = [
             [day.strftime("%Y%m%d"), int(day in open_days)]
             for day in (start + timedelta(days=n) for n in range((end - start).days + 1))
+            if day not in self.left_out
         ]
         document = {"code": 0, "data": {"fields": ["cal_date", "is_open"], "items": items}}
         return BytesIO(json.dumps(document).encode())
@@ -328,6 +332,28 @@ def test_a_failed_calendar_fetch_leaves_weekdays_and_says_so(
                 "first": "2026-09-30",
                 "last": "2026-10-09",
                 "outcome": "unavailable:OSError:fixture_calendar_unavailable",
+            }
+        ]
+    }
+
+
+def test_an_answer_leaving_the_judging_day_out_is_a_failed_fetch_not_a_closure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> None:
+    # Read before ticket 02, 10-09 unlisted was closed and nothing owed past the holiday.
+    # Unlisted is unknown: the fetch failed, and the days stay weekdays as for any failure.
+    tushare = CalendarOnlyTushare(left_out=frozenset({date(2026, 10, 9)}))
+    paths, run_id = run_after_national_day(tmp_path, monkeypatch, request, tushare)
+
+    assert len(tushare.past_target()) == 1
+    assert set(core_freshness(paths, run_id).values()) == {("stale", 6)}
+    plan = RunRepository(paths.database).full_retrieval_plan(run_id)
+    assert plan["judging_calendar"] == {
+        "fetches": [
+            {
+                "first": "2026-09-30",
+                "last": "2026-10-09",
+                "outcome": "unavailable:ValueError:china_trading_calendar_incomplete",
             }
         ]
     }

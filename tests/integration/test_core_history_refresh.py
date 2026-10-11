@@ -42,8 +42,12 @@ def historical_response(payload: dict[str, Any]) -> bytes:
         if (start + timedelta(days=i)).weekday() < 5
     ]
     if payload["api_name"] == "trade_cal":
+        # Every day of the range is stated, closed ones too (ticket 02).
         fields = ["cal_date", "is_open"]
-        items = [[day.strftime("%Y%m%d"), 1] for day in calendar]
+        items = [
+            [day.strftime("%Y%m%d"), int(day.weekday() < 5)]
+            for day in (start + timedelta(days=i) for i in range((end - start).days + 1))
+        ]
     else:
         fields = ["ts_code", "trade_date", "close", "pre_close", "pct_chg"]
         items = [
@@ -139,8 +143,6 @@ def test_unknown_core_catalog_is_rejected_before_any_request(tmp_path: Path) -> 
         )
     assert calls == []
     assert AcquisitionRepository(paths.database, paths.artifacts).history() == ()
-
-
 
 
 @pytest.mark.usefixtures("runtime_clock")

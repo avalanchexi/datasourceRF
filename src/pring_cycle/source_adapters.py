@@ -310,19 +310,39 @@ class TushareCoreAdapter:
             return bytes(response.read())
 
 
+def calendar_sessions(raw: bytes, start: date, end: date) -> tuple[date, ...]:
+    """The sessions a kept ``trade_cal`` answer for ``start``..``end`` states, checked as when
+    it is fetched: refused (as then) unless it states every day of them."""
+    return _calendar_rows(_response_document(raw), start, end)
+
+
 def _calendar_rows(response: dict[str, Any], start: date, end: date) -> tuple[date, ...]:
+    """The SSE sessions from ``start`` to ``end``, from an answer stating every day of them.
+
+    A day the answer does not list is unknown, never closed (ticket 02): the answer is
+    refused as incomplete, so it covers none of its days.
+    """
     rows = _rows(response)
     dates = [date.fromisoformat(str(row["cal_date"])) for row in rows]
     if len(dates) != len(set(dates)) or any(day < start or day > end for day in dates):
         raise ValueError("china_trading_calendar_invalid")
-    days = sorted(
-        date.fromisoformat(str(row["cal_date"])) for row in rows if int(row["is_open"]) == 1
-    )
+    if any(_open_flag(row["is_open"]) is None for row in rows):
+        raise ValueError("china_trading_calendar_invalid")
+    days = sorted(day for day, row in zip(dates, rows, strict=True) if _open_flag(row["is_open"]))
     if any(day.weekday() >= 5 for day in days):
         raise ValueError("china_trading_calendar_invalid")
+    if dates and len(dates) != (end - start).days + 1:
+        raise ValueError("china_trading_calendar_incomplete")
     if not days:
         raise ValueError("china_trading_calendar_missing")
     return tuple(days)
+
+
+def _open_flag(value: object) -> bool | None:
+    """``is_open`` as TuShare states it, 1 or 0 (as a number or its digit); else None."""
+    if isinstance(value, bool) or value not in (0, 1, "0", "1"):
+        return None
+    return value in (1, "1")
 
 
 def _core_bars_response(

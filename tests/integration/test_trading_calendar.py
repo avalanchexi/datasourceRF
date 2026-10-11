@@ -241,6 +241,94 @@ def test_an_unreadable_response_is_reported_not_read(paths: RuntimePaths) -> Non
     assert len(calendar.unreadable) == 1
 
 
+def capture_stored_calendar(
+    paths: RuntimePaths, first: date, last: date, *, left_out: Iterable[date] = ()
+) -> None:
+    """Keep a core calendar response as the parser before ticket 02 kept one: the days it
+    lists open, though it may leave days of its range out."""
+    missing = frozenset(left_out)
+    days = [first + timedelta(days=n) for n in range((last - first).days + 1)]
+    items = [[day.strftime("%Y%m%d"), int(day.weekday() < 5)] for day in days if day not in missing]
+    raw = json.dumps({"code": 0, "data": {"fields": ["cal_date", "is_open"], "items": items}})
+    AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider="tushare",
+        api_name="trade_cal",
+        parameters={
+            "exchange": "SSE",
+            "start_date": first.strftime("%Y%m%d"),
+            "end_date": last.strftime("%Y%m%d"),
+        },
+        fields="cal_date,is_open",
+        parser_version=CORE_PARSER_VERSION,
+        fetch=raw.encode,
+        parse=lambda _raw: [
+            day.isoformat() for day in days if day not in missing and day.weekday() < 5
+        ],
+        normalize=lambda value: value,
+        clock=lambda: datetime(2026, 10, 1, tzinfo=UTC),
+    )
+
+
+def test_a_stored_response_is_read_only_once_its_raw_answer_states_every_day(
+    paths: RuntimePaths,
+) -> None:
+    # Before ticket 02 a response leaving a day out was kept, the day read as closed. Its raw
+    # answer says which days it states: one that leaves any out is no calendar at all.
+    capture_stored_calendar(
+        paths, date(2026, 9, 1), date(2026, 9, 30), left_out={date(2026, 9, 30)}
+    )
+    capture_stored_calendar(paths, date(2026, 8, 1), date(2026, 8, 31))
+
+    calendar = SseCalendar(paths)
+
+    assert calendar.around(date(2026, 9, 30)) is None
+    assert calendar.around(date(2026, 9, 15)) is None
+    assert calendar.stated_between(date(2026, 9, 1), date(2026, 9, 30)) == {}
+    assert calendar.unreadable == ()
+    complete = calendar.around(date(2026, 8, 31))
+    assert complete is not None and complete.is_trading(date(2026, 8, 31))
+    assert not complete.is_trading(date(2026, 8, 30))
+
+
+def test_a_stored_response_whose_sessions_differ_from_its_raw_answer_is_reported_not_read(
+    paths: RuntimePaths,
+) -> None:
+    raw = json.dumps(
+        {"code": 0, "data": {"fields": ["cal_date", "is_open"], "items": [["20260831", 1]]}}
+    )
+    AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider="tushare",
+        api_name="trade_cal",
+        parameters={"exchange": "SSE", "start_date": "20260831", "end_date": "20260831"},
+        fields="cal_date,is_open",
+        parser_version=CORE_PARSER_VERSION,
+        fetch=raw.encode,
+        parse=lambda _raw: ["2026-08-28"],
+        normalize=lambda value: value,
+    )
+
+    calendar = SseCalendar(paths)
+
+    assert calendar.around(date(2026, 8, 31)) is None
+    assert [str(error) for error, _receipt in calendar.unreadable] == [
+        "calendar_normalized_mismatch"
+    ]
+
+
+def test_a_stored_response_whose_raw_answer_is_missing_is_reported_not_read(
+    paths: RuntimePaths,
+) -> None:
+    capture_stored_calendar(paths, date(2026, 8, 1), date(2026, 8, 31))
+    receipt = AcquisitionRepository(paths.database, paths.artifacts).history()[0]
+    assert receipt.raw_hash is not None
+    (paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash).unlink()
+
+    calendar = SseCalendar(paths)
+
+    assert calendar.around(date(2026, 8, 31)) is None
+    assert len(calendar.unreadable) == 1
+
+
 def capture_unreadable_calendar(paths: RuntimePaths, at: datetime) -> None:
     AcquisitionRepository(paths.database, paths.artifacts).capture(
         provider="tushare",

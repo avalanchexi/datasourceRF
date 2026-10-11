@@ -37,6 +37,11 @@ def _weekdays(start: str, end: str) -> int:
     return sum((first + timedelta(days=i)).weekday() < 5 for i in range((last - first).days + 1))
 
 
+def _days(start: str, end: str) -> int:
+    first = datetime.strptime(start, "%Y%m%d").date()
+    return (datetime.strptime(end, "%Y%m%d").date() - first).days + 1
+
+
 @pytest.fixture(scope="module")
 def completed_run(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[RuntimePaths, str]]:
     """One Worker run shared by the read-only assertions below."""
@@ -134,7 +139,12 @@ def test_every_interface_call_records_parameters_counts_and_raw_hash(
         # The source's rows and the values read from them are kept apart (lookback 06).
         expected = _weekdays(parameters["start_date"], parameters["end_date"])
         assert call["row_count"] is None, call["api_name"]
-        assert call["source_record_count"] == expected, call["api_name"]
+        # A calendar answer states every day of its range, closed ones too (ticket 02).
+        assert call["source_record_count"] == (
+            _days(parameters["start_date"], parameters["end_date"])
+            if call["api_name"] == "trade_cal"
+            else expected
+        ), call["api_name"]
         # A calendar answer states no metric value; a day's bar states its close.
         assert call["normalized_scalar_count"] == (
             None if call["api_name"] == "trade_cal" else expected

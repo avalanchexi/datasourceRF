@@ -36,7 +36,7 @@ from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.storage import database_connection
 from pring_cycle.worker import process_pending_run, submit_schedule_if_crossed
 from tests.conftest import install_runtime_clock
-from tests.integration.test_trading_calendar import record_sse_calendar
+from tests.integration.test_trading_calendar import capture_stored_calendar, record_sse_calendar
 
 
 def runtime(tmp_path: Path) -> RuntimePaths:
@@ -944,11 +944,13 @@ NATIONAL_DAY = frozenset(date(2026, 10, day) for day in range(1, 8))
 
 class TradeCalOpener:
     """TuShare's ``trade_cal`` reached through the Worker's own opener: weekdays open but
-    National Day and ``closed``; while ``failure`` is set every request raises it."""
+    National Day and ``closed``, every day listed but ``left_out``; while ``failure`` is set
+    every request raises it."""
 
     def __init__(self) -> None:
         self.failure: Exception | None = None
         self.closed: frozenset[date] = frozenset()
+        self.left_out: frozenset[date] = frozenset()
         self.ranges: list[tuple[date, date]] = []
 
     def open(self, request: Any, *, timeout: int) -> BytesIO:
@@ -966,6 +968,7 @@ class TradeCalOpener:
                 int(day.weekday() < 5 and day not in NATIONAL_DAY | self.closed),
             ]
             for day in days
+            if day not in self.left_out
         ]
         document = {"code": 0, "data": {"fields": ["cal_date", "is_open"], "items": items}}
         return BytesIO(json.dumps(document).encode())
@@ -1100,6 +1103,58 @@ def test_a_response_without_the_session_before_today_defers_the_schedule(
     assert retried is not None
     assert runs.get(retried).target_business_date == "2026-10-08"
     assert len(tushare.ranges) == 2
+
+
+@pytest.mark.parametrize(
+    "left_out",
+    [
+        pytest.param(date(2026, 10, 9), id="today"),
+        pytest.param(date(2026, 10, 8), id="the-session-before"),
+        pytest.param(date(2026, 10, 3), id="a-day-between"),
+    ],
+)
+def test_a_day_the_fetched_calendar_leaves_out_defers_the_schedule_not_closes_it(
+    scheduled_sse: tuple[RuntimePaths, TradeCalOpener], left_out: date
+) -> None:
+    """An answer that does not list a day of its range says nothing of it (ticket 02):
+    leaving out today is no holiday, nor leaving out 10-08 a run for 9-30. The day waits
+    and is asked again, as for a failed fetch."""
+    paths, tushare = scheduled_sse
+    runs = RunRepository(paths.database)
+    deferred = worker_module.DeferredSchedule()
+    tushare.left_out = frozenset({left_out})
+
+    crossed = submit_schedule_if_crossed(paths, utc(9, 0, 59), utc(9, 1, 1), deferred)
+    tushare.left_out = frozenset()
+    retried = submit_schedule_if_crossed(paths, utc(9, 1, 10), utc(9, 1, 11), deferred)
+
+    assert crossed is None
+    assert deferrals(paths) == [
+        "scheduled_run_deferred:calendar_unavailable:ValueError:china_trading_calendar_incomplete"
+    ]
+    assert retried is not None
+    assert runs.get(retried).target_business_date == "2026-10-08"
+    assert len(tushare.ranges) == 2
+
+
+def test_a_stored_calendar_leaving_today_out_is_fetched_again_not_read_as_closed(
+    scheduled_sse: tuple[RuntimePaths, TradeCalOpener],
+) -> None:
+    # Kept before ticket 02, a response for 10-08..10-09 that did not list 10-09 read it as
+    # closed: the day was skipped with no request. Unconfirmed by its raw answer, it is not
+    # read, and the day is asked.
+    paths, tushare = scheduled_sse
+    runs = RunRepository(paths.database)
+    capture_stored_calendar(
+        paths, date(2026, 10, 8), date(2026, 10, 9), left_out={date(2026, 10, 9)}
+    )
+
+    submitted = crossing_0900_shanghai(paths, date(2026, 10, 9))
+
+    assert submitted is not None
+    assert runs.get(submitted).target_business_date == "2026-10-08"
+    assert tushare.ranges == [(date(2026, 9, 25), date(2026, 10, 9))]
+    assert deferrals(paths) == []
 
 
 def test_a_deferred_schedule_is_not_retried_past_its_p0_deadline_or_the_next_day(

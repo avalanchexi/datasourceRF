@@ -7,7 +7,9 @@ metric's market its own.
 The calendar comes only from TuShare ``trade_cal`` responses captured by the core adapter
 (parser ``CORE_PARSER_VERSION``). Market breadth once asked the same API for open days
 itself; those older receipts keep breadth figures, not sessions, and are never read as a
-calendar. Breadth now reads its sessions here.
+calendar. Breadth now reads its sessions here. Only a response stating every day of its
+range, open or closed, is a calendar: a kept one is read once its raw answer is confirmed
+to, as the adapter now checks it when fetched (ticket 02).
 
 Responses are data versions of one source: where two cover the same day, the later one
 wins, and each day it changes is kept as a revision (never a conflict that blocks a run).
@@ -30,7 +32,7 @@ from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import Acquired, AcquisitionReceipt, AcquisitionRepository, utc_now
 from pring_cycle.runtime import RuntimePaths
-from pring_cycle.source_adapters import CORE_PARSER_VERSION
+from pring_cycle.source_adapters import CORE_PARSER_VERSION, calendar_sessions
 from pring_cycle.storage import database_connection
 
 
@@ -294,14 +296,20 @@ class SseCalendar:
                 ):
                     continue
                 sessions = frozenset(date.fromisoformat(day) for day in document)
+                raw = acquisitions.read_receipt_content(receipt, "raw")
             except (KeyError, ValueError, LookupError, OSError, TypeError) as error:
                 unreadable.append((error, receipt))
                 continue
-            if "is_open" in receipt.parameters:
-                # A filtered response lists open days only: it covers no day beyond them.
-                if not sessions:
-                    continue
-                start, end = min(sessions), max(sessions)
+            try:
+                stated = calendar_sessions(raw, start, end)
+            except (KeyError, ValueError, TypeError):
+                # Kept before ticket 02, an answer leaving a day of its range out (or listing
+                # open days only) read the day as closed; it states no full calendar, so it
+                # covers none of its days and they are asked again.
+                continue
+            if frozenset(stated) != sessions:
+                unreadable.append((ValueError("calendar_normalized_mismatch"), receipt))
+                continue
             readable.append((validated, acquisition_id, start, end, sessions))
         self.unreadable = tuple(unreadable)
         opened: dict[date, bool] = {}
