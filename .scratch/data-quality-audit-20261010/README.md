@@ -35,6 +35,6 @@
 | [12](issues/12-layer3-rules-not-covered.md) | 第三层未覆盖规则 | done（体检按裁决补两项：当月增量同比差按正负读方向、与主成员比较，未知或过期为 `not_compared`；分化的关键指标既不算支持也不算反证；两次运行均为非典型组合，按符号比较 10 个成员全部一致，封顶只核到分化识别；口径写入 `CONTEXT.md`；A4–A6 见 15） |
 | [13](issues/13-audit-partial-upstream-composite-members.md) | 合计类成员部分未发布误判 | done（按成员所需行键／原件核对：两融交易所、SHIBOR 期限、估值字段、广度、商品篮子；部分缺项记上游未发布并注明缺项，空值、损坏、分页不全记未取到；“本运行回执”识别票 11 的暂缓与本轮应答为空） |
 | [14](issues/14-scheduler-weekday-fallback-on-holidays.md) | 调度在节假日误提交 | done（缺覆盖先补一次 `trade_cal`、开市才提交；失败暂缓、每 10 分钟重试至 21:00） |
-| [15](issues/15-trend-rules-a4-a6-interview.md) | A4–A6 规则口径访谈 | needs-info（另开访谈） |
+| [15](issues/15-trend-rules-a4-a6-interview.md) | A4–A6 规则口径访谈 | done（2026-10-11 访谈：认可现行做法，见 model-rules-validation-20261011） |
 | [16](issues/16-fix-batch-acceptance.md) | 修复批次收尾验收 | done（[acceptance-20261011.md](acceptance-20261011.md)：全套 2362 通过；重处理补回 12 天；真实运行 `run-8186b774087648d921e3`，与 report.md 的差异逐项说明，没有退化） |
 | [17](issues/17-audit-multi-source-note-lists-excluded-claims.md) | 体检“多源取值不一致”的备注仍列出已排除的错期声明（脚本缺陷，票 16 发现） | needs-triage |

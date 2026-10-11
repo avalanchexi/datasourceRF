@@ -1,4 +1,4 @@
-Status: needs-info
+Status: done
 Category: enhancement
 Type: grilling
 
@@ -17,3 +17,7 @@ Type: grilling
 注意：这些属于模型语义。如果定下的口径和生产现行做法不一致，属于模型变更，需另行立项，不能直接写进体检脚本。
 
 ## Comments
+
+### 2026-10-11 访谈结论
+
+用户认可 A4、A5、A6 的生产现行做法，已写入 CONTEXT.md（待定方向、30 日候选方向）和规格。A7 改为核心回看约 260 点（ADR-0040）。详见 [访谈记录](../../model-rules-validation-20261011/interview.md)。本票关闭；实施见 `.scratch/model-rules-validation-20261011/`。
