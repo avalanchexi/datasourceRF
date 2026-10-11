@@ -15,7 +15,7 @@ from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 if TYPE_CHECKING:
     from alembic.config import Config
 
-SCHEMA_HEAD = "0035_media_conflict_recheck"
+SCHEMA_HEAD = "0036_scheduled_run_t_plus_1"
 
 
 @contextmanager

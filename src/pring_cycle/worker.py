@@ -10,8 +10,10 @@ from collections import Counter
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
+from enum import Enum
 from functools import partial
 from time import monotonic
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from pring_cycle import credit_impulse, lookback
@@ -155,8 +157,13 @@ def run_worker(paths: RuntimePaths) -> None:
 # How long a scheduled day whose SSE calendar could not be fetched waits to ask again.
 SCHEDULE_CALENDAR_RETRY = timedelta(minutes=10)
 # How far back a scheduled day's calendar is asked from: past the longest SSE closure, so
-# the response holds a session and the calendar's parser does not refuse it as having none.
+# the response holds the session before it, which the run is for (ADR-0041), and the
+# calendar's parser does not refuse it as having none.
 SCHEDULE_CALENDAR_REACH = timedelta(days=14)
+
+
+class _CalendarStatus(Enum):
+    UNAVAILABLE = "unavailable"
 
 
 @dataclass
@@ -178,8 +185,9 @@ def submit_schedule_if_crossed(
     observed_at: datetime,
     deferred: DeferredSchedule | None = None,
 ) -> str | None:
-    """Submit today's scheduled run when a live Worker crosses its start time on an SSE
-    session; with ``deferred``, also when a day held back for its calendar is due again."""
+    """Submit the scheduled run for the session before today when a live Worker crosses its
+    start time on an SSE session (ADR-0041); with ``deferred``, also when a day held back
+    for its calendar is due again."""
     if previous_check.tzinfo is None or observed_at.tzinfo is None:
         raise ValueError("schedule_check_times_must_be_timezone_aware")
     repository = RunRepository(paths.database)
@@ -205,37 +213,54 @@ def submit_schedule_if_crossed(
     )
     if not (previous_local < scheduled_at <= observed_local or retrying):
         return None
-    is_session = _scheduled_day_is_session(paths, today, observed_at)
+    target = _scheduled_target(paths, today, observed_at)
+    held_back = target is _CalendarStatus.UNAVAILABLE
     if deferred is not None:
-        deferred.day = today if is_session is None else None
-        deferred.retry_at = observed_at + SCHEDULE_CALENDAR_RETRY if is_session is None else None
-    if not is_session:
+        deferred.day = today if held_back else None
+        deferred.retry_at = observed_at + SCHEDULE_CALENDAR_RETRY if held_back else None
+    if not isinstance(target, date):
         return None
     try:
         model_version_id = ModelRepository(paths.database).active().model_version_id
     except LookupError:
         return None
     run = repository.submit_scheduled_full(
-        target_business_date=today.isoformat(),
-        client_request_id=(f"scheduled-{today.isoformat()}-v{schedule['version']}"),
+        target_business_date=target.isoformat(),
+        client_request_id=(f"scheduled-{target.isoformat()}-v{schedule['version']}"),
         model_version_id=model_version_id,
         system_as_of=observed_at,
     )
     return run.run_id
 
 
-def _scheduled_day_is_session(paths: RuntimePaths, day: date, observed_at: datetime) -> bool | None:
-    """Whether the SSE opens on ``day``, or None when no response can yet say (ticket 14).
+def _scheduled_target(
+    paths: RuntimePaths, today: date, observed_at: datetime
+) -> date | None | Literal[_CalendarStatus.UNAVAILABLE]:
+    """The session before ``today`` when the SSE opens on ``today``, None when it does not,
+    or ``UNAVAILABLE`` while no response can yet say (ticket 14, ADR-0041).
 
-    The stored calendar answers the day where it states it, a holiday weekday closed
-    (run-findings 12), with no call. A day it leaves unstated is fetched, one call, as a
-    run's own calendar may end on the day before a holiday.
+    No call is made where the stored calendar states ``today`` closed, or open with every
+    day back to the session before it. Otherwise one call asks from a fortnight back.
     """
-    stated = SseCalendar(paths, as_of=observed_at).stated_between(day, day)
-    if day in stated:
-        return stated[day]
+    first = today - SCHEDULE_CALENDAR_REACH
+    stated = SseCalendar(paths, as_of=observed_at).stated_between(first, today)
+    if stated.get(today) is False:
+        return None
+    if stated.get(today):
+        day = today - timedelta(days=1)
+        while day in stated:
+            if stated[day]:
+                return day
+            day -= timedelta(days=1)
     try:
-        sessions = _fetch_sse_calendar(paths, day - SCHEDULE_CALENDAR_REACH, day)
+        sessions = _fetch_sse_calendar(paths, first, today)
+        if today not in sessions:
+            return None
+        before = [day for day in sessions if day < today]
+        if not before:
+            # No SSE closure outlasts the reach: a response without the session before
+            # today cannot say which day the run is for, so the day waits as for a failure.
+            raise ValueError("previous_session_not_in_response")
     except Exception as error:
         # Whatever the failure, the day waits: this runs in the Worker's loop, which goes on.
         write_runtime_event(
@@ -244,8 +269,8 @@ def _scheduled_day_is_session(paths: RuntimePaths, day: date, observed_at: datet
             f"scheduled_run_deferred:calendar_unavailable:{type(error).__name__}:{error}",
             "warning",
         )
-        return None
-    return day in sessions
+        return _CalendarStatus.UNAVAILABLE
+    return max(before)
 
 
 def _fetch_sse_calendar(paths: RuntimePaths, first: date, last: date) -> tuple[date, ...]:
@@ -2005,11 +2030,17 @@ def _scheduled_p0_deadline_elapsed(
     *,
     observed_at: datetime,
 ) -> bool:
+    """Whether the P0 deadline of the day the run was scheduled on has passed: the session
+    after its target, whose own deadline had passed when it was scheduled (ADR-0041).
+
+    That day is the one it was submitted on: a cutoff frozen later, past midnight, does not
+    move the deadline on to the next.
+    """
     schedule = runs.schedule()
     timezone = ZoneInfo(str(schedule["timezone"]))
     hour, minute = (int(value) for value in str(schedule["p0_deadline"]).split(":"))
     deadline = datetime.combine(
-        date.fromisoformat(run.target_business_date),
+        runs.submitted_as_of(run.run_id).astimezone(timezone).date(),
         time(hour, minute),
         timezone,
     )

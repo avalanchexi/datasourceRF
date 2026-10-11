@@ -99,6 +99,12 @@ def member_keys(metric_id: str, members: Iterable[Mapping[str, str]] | None) -> 
     return tuple(member_key(metric_id, member) for member in members or ())
 
 
+# The scheduled run's fixed times in Shanghai: it starts at 9:00 on an SSE session, for the
+# session before (ADR-0041), and expires past 21:00 of that day.
+SCHEDULE_START_TIME = "09:00"
+SCHEDULE_P0_DEADLINE = "21:00"
+
+
 @dataclass(frozen=True)
 class LeaseDecision:
     owner_state: str
@@ -150,9 +156,9 @@ class RunRepository:
                 INSERT OR IGNORE INTO schedule_configuration(
                     version, enabled, timezone, start_time, p0_deadline,
                     requested_by, created_at
-                ) VALUES (1, 0, 'Asia/Shanghai', '18:30', '21:00', 'system-default', ?)
+                ) VALUES (1, 0, 'Asia/Shanghai', ?, ?, 'system-default', ?)
                 """,
-                (datetime.now(UTC).isoformat(),),
+                (SCHEDULE_START_TIME, SCHEDULE_P0_DEADLINE, datetime.now(UTC).isoformat()),
             )
         from pring_cycle.models import (
             ModelRepository,
@@ -371,6 +377,17 @@ class RunRepository:
             if row is None:
                 raise LookupError("run_not_found")
             return self._run_record(connection, row)
+
+    def submitted_as_of(self, run_id: str) -> datetime:
+        """The cutoff the run was submitted with, which freezing its cutoffs leaves as it was.
+
+        A run whose contract predates the table reads its stored cutoff.
+        """
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT initial_system_as_of FROM run_cutoff_contract WHERE run_id=?", (run_id,)
+            ).fetchone()
+        return _parse_time(row[0]) if row is not None else self.get(run_id).system_as_of
 
     def status(self, run_id: str) -> str:
         """The run's status alone, read without the rest of its record.
@@ -950,11 +967,13 @@ class RunRepository:
                 INSERT INTO schedule_configuration(
                     version, enabled, timezone, start_time, p0_deadline,
                     requested_by, created_at
-                ) VALUES (?, ?, 'Asia/Shanghai', '18:30', '21:00', ?, ?)
+                ) VALUES (?, ?, 'Asia/Shanghai', ?, ?, ?, ?)
                 """,
                 (
                     version,
                     int(enabled),
+                    SCHEDULE_START_TIME,
+                    SCHEDULE_P0_DEADLINE,
                     requested_by,
                     (now or datetime.now(UTC)).isoformat(),
                 ),

@@ -8,7 +8,9 @@ from pathlib import Path
 import pytest
 
 from pring_cycle.runs import RunRepository
+from pring_cycle.storage import migrate_database
 from tests.fixtures.attempt_reads import AttemptRowCounter
+from tests.integration.test_receipt_counts import _upgrade
 
 NOW = datetime(2026, 8, 28, 10, tzinfo=UTC)
 
@@ -146,13 +148,68 @@ def test_after_close_schedule_is_versioned_and_disabled_by_default(tmp_path: Pat
     assert default == {
         "enabled": False,
         "timezone": "Asia/Shanghai",
-        "start_time": "18:30",
+        "start_time": "09:00",
         "p0_deadline": "21:00",
         "version": 1,
     }
     assert enabled["enabled"] is True
+    assert enabled["start_time"] == "09:00"
     assert enabled["version"] == 2
     assert runs.startup_actions() == {"automatic_runs": 0, "external_requests": 0}
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_an_upgraded_schedule_moves_to_the_next_morning_and_keeps_its_switch(
+    tmp_path: Path, enabled: bool
+) -> None:
+    """A database whose schedule still starts at 18:30 gets a version starting at 9:00, on
+    or off as it was (ADR-0041); its earlier versions are kept as they were."""
+    database = tmp_path / "runtime.sqlite3"
+    _upgrade(database, "0035_media_conflict_recheck")
+    with sqlite3.connect(database) as connection:
+        connection.executemany(
+            "INSERT INTO schedule_configuration VALUES (?, ?, 'Asia/Shanghai', '18:30', "
+            "'21:00', ?, '2026-08-28T10:00:00+00:00')",
+            [(1, 0, "system-default"), (2, int(enabled), "local-user")],
+        )
+    connection.close()
+    empty = tmp_path / "empty.sqlite3"
+    _upgrade(empty, "0035_media_conflict_recheck")
+    current = tmp_path / "current.sqlite3"
+    _upgrade(current, "0035_media_conflict_recheck")
+    with sqlite3.connect(current) as connection:
+        connection.executemany(
+            "INSERT INTO schedule_configuration VALUES (?, 1, 'Asia/Shanghai', ?, '21:00', "
+            "'local-user', '2026-10-11T00:00:00+00:00')",
+            [(1, "18:30"), (2, "09:00")],
+        )
+    connection.close()
+
+    for upgraded in (database, empty, current):
+        migrate_database(upgraded)
+
+    with sqlite3.connect(database) as connection:
+        rows = connection.execute(
+            "SELECT version, enabled, start_time, p0_deadline FROM schedule_configuration "
+            "ORDER BY version"
+        ).fetchall()
+    connection.close()
+    assert rows == [
+        (1, 0, "18:30", "21:00"),
+        (2, int(enabled), "18:30", "21:00"),
+        (3, int(enabled), "09:00", "21:00"),
+    ]
+    assert RunRepository(database).schedule()["start_time"] == "09:00"
+    with sqlite3.connect(empty) as connection:
+        # A new database is given its first version when the runtime is bootstrapped.
+        assert connection.execute("SELECT COUNT(*) FROM schedule_configuration").fetchone() == (0,)
+    connection.close()
+    # One whose latest version already starts at 9:00 is left as it is.
+    with sqlite3.connect(current) as connection:
+        assert connection.execute(
+            "SELECT version, start_time FROM schedule_configuration ORDER BY version"
+        ).fetchall() == [(1, "18:30"), (2, "09:00")]
+    connection.close()
 
 
 def test_explicit_manual_run_is_queued_ahead_of_an_unstarted_schedule(
