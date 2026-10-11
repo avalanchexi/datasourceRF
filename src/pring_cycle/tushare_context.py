@@ -166,6 +166,15 @@ class ContextObservationsMissingError(ValueError):
         self.completeness = completeness
 
 
+class WindowAlreadyHeld(ContextObservationsMissingError):
+    """Nothing new, found from responses that passed their checks: every day they were read
+    for is held already. Those responses end checked, not failed (residual 01); an empty
+    result alone says no such thing."""
+
+    def __init__(self) -> None:
+        super().__init__("nothing_new")
+
+
 class TushareSourceError(SourceFailed, ValueError):
     """TuShare answered without data: a non-zero code such as a permission or rate limit.
 
@@ -229,7 +238,14 @@ class TushareContextAdapter:
         self._field_rejections = []
         stage = "acquire"
         try:
-            scalars = retrieve()
+            try:
+                scalars = retrieve()
+            except WindowAlreadyHeld:
+                # The responses read passed their checks and had nothing to add, which is no
+                # failure of theirs (residual 01); any other missing delivery still fails them.
+                stage = "store"
+                self._close_unneeded()
+                raise
             if not self._receipts:
                 raise ValueError("context_acquisition_receipts_missing")
             if not scalars and self._field_rejections:
@@ -484,6 +500,13 @@ class TushareContextAdapter:
             self._failure = None
             self._request_wrapper = None
             self._field_rejections = []
+
+    def _close_unneeded(self) -> None:
+        """End each received response as checked, with no value read or ingested from it."""
+        assert self._acquisitions is not None
+        for receipt in self._receipts:
+            self._acquisitions.complete_validation(receipt.acquisition_id, [], normalized_scalars=0)
+            self._acquisitions.record_ingest_result(receipt.acquisition_id, None)
 
     def _original(self, receipt: AcquisitionReceipt) -> bytes:
         assert self._acquisitions is not None
@@ -1055,8 +1078,11 @@ class TushareContextAdapter:
 
         scalars = basket_scalars(self._call, end_date=end_date, held_levels=held_levels)
         if not scalars:
-            # Every day of the window is held already: nothing new.
-            raise ContextObservationsMissingError("nothing_new")
+            # Every day of the window its calendars give is held already: nothing new. The
+            # basket returns nothing only then (or before its base, unasked): a requested day it
+            # cannot compute raises its reason, and calendars without a basket day are an empty
+            # delivery. A day the calendars leave out is theirs to answer for (residual 02).
+            raise WindowAlreadyHeld()
         return scalars
 
     def _call(

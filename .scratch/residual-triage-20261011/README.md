@@ -2,7 +2,7 @@
 
 | 票 | 内容 | 状态 |
 |---|---|---|
-| [01](issues/01-recurring-context-observation-failures.md) | 每次运行固定 12 条失败回执（订正：篮子“无需新增”时把 12 张输入回执误标为 failed） | ready-for-agent（线 E） |
+| [01](issues/01-recurring-context-observation-failures.md) | 每次运行固定 12 条失败回执（订正：篮子“无需新增”时把 12 张输入回执误标为 failed） | done（线 E：篮子窗口全持有时 12 张输入回执正常收尾；breadth 不变） |
 | [02](issues/02-calendar-parser-missing-day-read-as-closed.md) | 日历解析器把漏列的日子当作休市 | ready-for-agent（线 B，排在票 03 之后） |
 | [03](issues/03-core-pre-window-inputs-untraceable.md) | 核心窗口前输入追溯断链 | done（用户选 B：体检精确恢复；线 F，480/480 命中） |
 | [体检 17](../data-quality-audit-20261010/issues/17-audit-multi-source-note-lists-excluded-claims.md) | 体检备注误列已排除的错期值 | done（线 C；多源 20→2，数值与结论变化 0） |

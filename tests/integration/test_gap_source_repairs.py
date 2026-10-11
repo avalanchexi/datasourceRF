@@ -7,6 +7,7 @@ reads what that run holds, and how its gap list explains what it could not hold.
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
 from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
@@ -16,6 +17,7 @@ from typing import Any
 import pytest
 
 from pring_cycle.acquisition import AcquisitionRepository
+from pring_cycle.acquisition_outcome import AcquisitionOutcomes
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.models import EFFECTIVE_CATALOG_VERSION, ModelRepository, effective_model_manifest
 from pring_cycle.projections import ProjectionSetRepository
@@ -415,3 +417,85 @@ def test_usdcny_1630_close_is_held_from_cfets_not_its_night_close(
             "'ai_websearch') AND outcome <> 'not_attempted'"
         ).fetchone()[0]
     assert searched == 0
+
+
+BASKET = ("CN_COMMODITY_EX_HOG_BASKET", "CN_COMMODITY_SLEEVE_CONTRIBUTION")
+
+
+@pytest.fixture(scope="module")
+def rerun(
+    completed: tuple[RuntimePaths, str], tmp_path_factory: pytest.TempPathFactory
+) -> tuple[RuntimePaths, str, list[tuple[str, str, str, float | None]], int]:
+    """A second manual run of the same day on a copy of the first's runtime, the basket's
+    window all held by the first; the first run's state stays as the other tests read it."""
+    first, _run_id = completed
+    assert first.override_root is not None
+    root = tmp_path_factory.mktemp("gap-sources-rerun") / "runtime"
+    shutil.copytree(first.override_root, root)
+    paths = RuntimePaths.discover(root)
+    held, claims = basket_series(paths), basket_claims(paths)
+    run = RunRepository(paths.database).submit_manual_full(
+        target_business_date=TARGET.isoformat(),
+        client_request_id="gap-source-repairs-rerun",
+        model_version_id=CURRENT_MODEL,
+        system_as_of=datetime.now(UTC),
+    )
+    process_pending_run(paths, report_adapters=())
+    return paths, run.run_id, held, claims
+
+
+def basket_series(paths: RuntimePaths) -> list[tuple[str, str, str, float | None]]:
+    """Every held day of the basket and its sleeves, with the value selected for it."""
+    evidence = EvidenceRepository(paths.database)
+    return [
+        (
+            metric_id,
+            point.period_end,
+            json.dumps(point.dimensions, sort_keys=True),
+            point.selected_value,
+        )
+        for metric_id in BASKET
+        for point in evidence.metric_series(
+            metric_id,
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime.now(UTC),
+            definition_version=EFFECTIVE_CATALOG_VERSION,
+        )
+    ]
+
+
+def basket_claims(paths: RuntimePaths) -> int:
+    with sqlite3.connect(paths.database) as connection:
+        return int(
+            connection.execute(
+                "SELECT count(*) FROM source_claim WHERE metric_id IN (?, ?)", BASKET
+            ).fetchone()[0]
+        )
+
+
+def test_the_basket_s_inputs_end_checked_when_its_window_is_all_held(
+    rerun: tuple[RuntimePaths, str, list[tuple[str, str, str, float | None]], int],
+) -> None:
+    """Residual 01: the contracts and calendars the basket read end validated, not failed,
+    when the window it reads them for is held already; nothing is added or changed."""
+    paths, run_id, held, claims = rerun
+
+    with sqlite3.connect(paths.database) as connection:
+        receipts = connection.execute(
+            "SELECT a.api_name, a.state, a.structure_check, a.ingest_result "
+            "FROM full_run_acquisition f JOIN acquisition_request a USING(acquisition_id) "
+            "WHERE f.run_id=? AND a.api_name IN ('fut_basic', 'fut_trade_cal', 'fut_daily') "
+            "ORDER BY f.rowid",
+            (run_id,),
+        ).fetchall()
+    assert sorted(receipts) == sorted(
+        [("fut_basic", "validated", "passed", "accepted")] * 8
+        + [("fut_trade_cal", "validated", "passed", "accepted")] * 4
+    )
+    assert len(held) > 120 and basket_claims(paths) == claims
+    assert basket_series(paths) == held
+    outcomes = AcquisitionOutcomes(paths.database)
+    for metric_id in BASKET:
+        attempt = outcomes.latest(metric_id, as_of=datetime.now(UTC))
+        assert attempt is not None
+        assert (attempt.outcome, attempt.completeness) == ("succeeded", "nothing_new")
