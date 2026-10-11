@@ -27,6 +27,11 @@ class TrendRules:
     # The public Pring 12-month proxy, off from model v0014 on (ADR-0035, ticket 25).
     proxy_12m_enabled: bool = True
 
+    @property
+    def history_required(self) -> int:
+        """Closes a day's reading needs: the moving average and the one it slopes from."""
+        return self.window_days + self.slope_days
+
     def candidate_days_for_output(self, result: TrendResult | TrendHistoryPoint) -> int:
         # Historical manifests retain their published duration semantics.
         if self.candidate_duration_rule_version == "candidate-duration-v0001":
@@ -72,7 +77,7 @@ class TrendHistoryPoint:
 
 def evaluate_trend(points: list[PricePoint], rules: TrendRules) -> TrendResult:
     ordered = sorted(points, key=lambda point: point.business_date)
-    required = rules.window_days + rules.slope_days
+    required = rules.history_required
     if len(ordered) < required or any(point.value <= 0 for point in ordered):
         return TrendResult(
             stable_state=None,
@@ -150,7 +155,7 @@ def evaluate_trend_history(
     ordered = sorted(points, key=lambda point: point.business_date)
     if any(point.value <= 0 for point in ordered):
         return tuple(TrendHistoryPoint(point.business_date, None, None) for point in ordered)
-    required = rules.window_days + rules.slope_days
+    required = rules.history_required
     values = [point.value for point in ordered]
     stable_state: CoreAssetState | None = None
     candidate_state: CoreAssetState | None = None
