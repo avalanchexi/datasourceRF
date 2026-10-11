@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent
 Category: bug
 Type: task
 
@@ -10,4 +10,29 @@ Type: task
 ## 待分流确认
 上游应答是否真的会漏日；收紧为“开市、休市都必须列出”会影响多少取数路径和测试替身；修法候选。
 
+## 验收
+
+- [ ] 先红后绿：应答漏列请求区间内某天（漏今天、漏中间日、漏上一交易日）时，视为日历覆盖不足，而不是休市；调度走补取／暂缓重试，不误判休市
+- [ ] 入口严格校验：请求区间内每个自然日恰有一行、开闭市标记合法（`source_adapters.py`）
+- [ ] 存量读取：从已存原件确认完整性后才认可覆盖（`trading_calendar.py`）；本库 32 份完整核心日历回执继续可用，不靠全局提升 `CORE_PARSER_VERSION`
+- [ ] 只返回工作日开市行的测试替身改为逐日列出（`test_core_history_refresh.py`、`test_context_acquisition_receipts.py`、`test_full_run_retrieval.py`、`test_worker_registered_catalog.py` 组合替身）；`tests/adapters/test_fixed_window_calendar.py` 的“周日开市”负例补齐周六
+- [ ] 完整应答下外部调用次数与选值不变
+- [ ] 与票 03（T+1 调度）联合验证：漏今天、漏上一交易日时的补取与暂缓
+- [ ] 受影响测试、两例冒烟、重型两例、ruff、mypy 通过；Codex 两轴审查无阻断
+
+## 主要模块
+
+`src/pring_cycle/source_adapters.py`（`_calendar_rows`，约 `:313-319`）、`src/pring_cycle/trading_calendar.py`（约 `:277`、`:310-313`）、上列测试替身；`worker.py` 的盘后调度由票 03 维护，本票尽量不动。
+
 ## Comments
+
+### 2026-10-11 分流
+
+取证：`codex exec -s read-only`（g2）。
+
+1. **现象仍在（读码推断＋内存实测）**：`source_adapters.py:313` 的 `_calendar_rows` 只查重复、越界、周末开市、开市日非空，`:319` 只留开市日；`trading_calendar.py:313` 以 `is_open = day in sessions` 把区间内未列为开市的日子一律当休市。内存实测：“只返回 10-08 开市”与“10-08 开市、10-09 休市”解析结果相同。调度 `worker.py:248` 得到 `False` 后 `:210-212` 清空暂缓、不提交、不重试。
+2. **没有真实漏日或漏跑的证据（实测）**：32 份核心日历成功回执逐份核对，请求天数与行数全部相等（合计 11,866 行＝7,927 开市＋3,939 休市），漏日 0；`scheduled_full` 运行数为 0。旧上下文 15 份 `trade_cal` 明确带 `is_open=1`，按核心解析版本筛选不会被当作核心日历读——票面“所有已存日历回执都这样读”不准确。
+3. **影响面**：取数业务路径 5 条（调度补取、时效截止日补取、三核心历史、人工目标日判定、广度日历补取），`SseCalendar(...)` 读取 12 个调用点跨 6 个模块；可能传播到三核心预期日期、120 日窗口、广度、郑商所仓单日期与公式回看（读码推断，不能据此说现有结果有错）。体检独立实现不受此误读影响（`tools/quality/common.py:58、350、361`）。
+4. **测试替身**：需改 4 条路径、5 个实现位置（见验收）；`test_worker_registered_catalog.py` 组合替身对 293 天只返回 289 行。
+5. **修复候选**：入口严格校验＋存量原件完整性复核（推荐）；正常运行外部调用 +0；漏日时改为覆盖不足，调度按既有重试每次 1 次 `trade_cal`。`CONTEXT.md:142` 已规定只认开闭市完整的日历，**无需用户决定**。不要全局提升 `CORE_PARSER_VERSION`（它还参与核心价格原件身份校验，`source_adapters.py:50`）。
+6. **去向**：`ready-for-agent`。与模型规则票 03 不重复（03 改触发时刻与目标日，本票保证日历依据可信），但同属日历与调度，排在线 B 的票 03 之后实施，并做联合验证。

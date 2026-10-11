@@ -20,7 +20,7 @@
 | [12](issues/12-layer3-rules-not-covered.md) | 第三层未覆盖的规则：A4、A5、A6 与按符号比较的成员读法 | needs-triage |
 | [13](issues/13-audit-partial-upstream-composite-members.md) | 体检把合计成员的“上游部分未发布”误判为“未取到”（脚本缺陷） | needs-triage |
 
-**下一步**：修复批次 06–14 已由票 16 验收（[acceptance-20261011.md](acceptance-20261011.md)）；17 待分流，15 待访谈。
+**下一步**：修复批次 06–14 已由票 16 验收（[acceptance-20261011.md](acceptance-20261011.md)）；17 已于 2026-10-11 分流为 ready-for-agent（在模型规则批次线 C 实施），15 待访谈。
 
 ## 体检发现（2026-10-10 分流，[取证原文](triage-20261010-codex.md)）
 
@@ -37,4 +37,4 @@
 | [14](issues/14-scheduler-weekday-fallback-on-holidays.md) | 调度在节假日误提交 | done（缺覆盖先补一次 `trade_cal`、开市才提交；失败暂缓、每 10 分钟重试至 21:00） |
 | [15](issues/15-trend-rules-a4-a6-interview.md) | A4–A6 规则口径访谈 | done（2026-10-11 访谈：认可现行做法，见 model-rules-validation-20261011） |
 | [16](issues/16-fix-batch-acceptance.md) | 修复批次收尾验收 | done（[acceptance-20261011.md](acceptance-20261011.md)：全套 2362 通过；重处理补回 12 天；真实运行 `run-8186b774087648d921e3`，与 report.md 的差异逐项说明，没有退化） |
-| [17](issues/17-audit-multi-source-note-lists-excluded-claims.md) | 体检“多源取值不一致”的备注仍列出已排除的错期声明（脚本缺陷，票 16 发现） | needs-triage |
+| [17](issues/17-audit-multi-source-note-lists-excluded-claims.md) | 体检“多源取值不一致”的备注仍列出已排除的错期声明（脚本缺陷，票 16 发现） | ready-for-agent（2026-10-11 分流：限定范围，排在模型规则线 C 之后） |
