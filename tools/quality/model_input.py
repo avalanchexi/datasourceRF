@@ -4,7 +4,8 @@ Lists every model input the run's final plan found missing, per metric x period 
 the reason from layer 1 and from the run's own receipts, and reports the four denominators the
 system keeps apart: final plan rows, frozen input ids, confirmation members, batch freshness.
 A value one period behind (carried forward) counts as complete. Core input ids that no longer
-join a stored claim (the retention exception) are listed as a broken trace, not as missing.
+join a stored claim (the retention exception) are listed as a broken trace, not as missing;
+those rebuilt exactly from the run's core receipts (``core_trace``) are marked verified.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 import acquisition
+import core_trace
 from acquisition import BEIJING, HELD, UNCOVERED, WARRANTS, scope_label
 from common import Run, iso_day, parse_time, table
 
@@ -449,6 +451,7 @@ def section(run: Run) -> str:
     core_ids = run.datasets.get("core_assets", {}).get("model_input_observation_version_ids", [])
     macro_ids = run.datasets.get("macro", {}).get("model_input_observation_version_ids", [])
     core, macro = _trace(run, "核心", core_ids), _trace(run, "宏观", macro_ids)
+    recovery = core_trace.recover(run, core_ids)
     union = core.ids | macro.ids
     _explain(run, final, items, union)
     adoption = run.gap_plan("adoption") or {}
@@ -483,7 +486,10 @@ def section(run: Run) -> str:
     out.append(
         f"- **冻结输入编号**：核心 {len(core.ids)}、宏观 {len(macro.ids)}，合并去重 {len(union)}"
         f"（与采纳记录 {'一致' if union == adopted else f'**不一致**，采纳 {len(adopted)}'}）。"
-        f"核心追溯断链 {len(core.broken)} 个，宏观 {len(macro.broken)} 个，单列，不算缺失。"
+        f"核心追溯断链 {len(core.broken)} 个（已从原件精确恢复并核验"
+        f" {len(core.broken & set(recovery.recovered))}、无法恢复且未核验"
+        f" {len(core.broken - set(recovery.recovered))}），宏观 {len(macro.broken)} 个，单列，"
+        "不算缺失。"
     )
     stage = run.datasets.get("cycle_overview", {}).get("current_stage")
     stage_note = (
@@ -619,4 +625,35 @@ def section(run: Run) -> str:
     else:
         out.append("无。")
     out.append("")
+    if core.broken:
+        out += _recovery(run, core.broken, recovery)
     return "\n".join(out)
+
+
+def _recovery(run: Run, broken: frozenset[str], recovery: core_trace.Recovery) -> list[str]:
+    """The core broken trace split by the exact recovery (residual ticket 03)."""
+    recovered = broken & set(recovery.recovered)
+    ambiguous, missed = broken & recovery.ambiguous, broken - recovered - recovery.ambiguous
+    out = [
+        "#### 核心断链的精确恢复",
+        "",
+        f"声明行已删除、已从原件精确恢复并核验 {len(recovered)} 个；无法恢复、未核验"
+        f" {len(missed) + len(ambiguous)} 个（未命中 {len(missed)}、有歧义 {len(ambiguous)}）。"
+        "规则见体检口径文档“三核心窗口前冻结编号的精确恢复”：校验原件哈希、来源身份、截止"
+        "时间、原始件与规范化件取值一致，再按编号规则逐日重算，与冻结编号逐个匹配。",
+        "",
+    ]
+    rows = []
+    for metric in run.manifest["core_metrics"].values():
+        days = [r.day for i, r in recovery.recovered.items() if i in broken and r.metric == metric]
+        rows.append([
+            metric, len(days), f"{min(days)}～{max(days)}" if days else "—",
+            "、".join(recovery.receipts.get(metric, [])) or "—",
+        ])  # fmt: skip
+    headers = ["指标", "已恢复并核验", "恢复的首末日", "恢复所用回执"]
+    out += [table(headers, rows), ""]
+    if recovery.rejected:
+        out += ["未用于恢复的回执：" + "；".join(recovery.rejected) + "。", ""]
+    if missed or ambiguous:
+        out += ["无法恢复的示例：" + "、".join(sorted(missed | ambiguous)[:3]) + "。", ""]
+    return out

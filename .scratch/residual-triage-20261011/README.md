@@ -4,7 +4,7 @@
 |---|---|---|
 | [01](issues/01-recurring-context-observation-failures.md) | 每次运行固定 12 条失败回执（订正：篮子“无需新增”时把 12 张输入回执误标为 failed） | ready-for-agent（线 E） |
 | [02](issues/02-calendar-parser-missing-day-read-as-closed.md) | 日历解析器把漏列的日子当作休市 | ready-for-agent（线 B，排在票 03 之后） |
-| [03](issues/03-core-pre-window-inputs-untraceable.md) | 核心窗口前输入追溯断链 | ready-for-agent（用户选 B：体检精确恢复；线 F） |
+| [03](issues/03-core-pre-window-inputs-untraceable.md) | 核心窗口前输入追溯断链 | done（用户选 B：体检精确恢复；线 F，480/480 命中） |
 | [体检 17](../data-quality-audit-20261010/issues/17-audit-multi-source-note-lists-excluded-claims.md) | 体检备注误列已排除的错期值 | ready-for-agent（线 C，排在 05 之后） |
 | [04](issues/04-audit-p2-quotes-latest-plus-comparison.md) | 体检对 USDCNY 16:30、SOX 改为“最新值＋比较上下文”口径（用户决定项） | ready-for-agent（用户选同中间价；线 C，排在体检 17 之后） |
 

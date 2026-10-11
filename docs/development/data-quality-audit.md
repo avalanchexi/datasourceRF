@@ -21,6 +21,7 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 
 - 只用 Python 标准库，**不导入 `pring_cycle`**，也不照抄生产代码里的计算逻辑。规则来源只有三类：库里存储的数据、冻结模型清单（`model_version.manifest_json`），以及本文档写明的内置表。
 - 脚本不做任何外部调用，不启动 Worker，也不写库。
+- 唯一抄录自生产代码的是来源声明的编号规则（见“三核心窗口前冻结编号的精确恢复”）：它是存储格式，不是被核对的计算；按用户 2026-10-11 的决定写入本文档，脚本只依据本文档实现，并逐份回执用现存声明自检。
 
 ## 结构
 
@@ -33,6 +34,7 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 | `tools/quality/model_input.py` | 第二层：模型输入是否完整（缺失明细与四个分母） |
 | `tools/quality/output_consistency.py` | 第三层（一）：输出内部一致性（阶段映射、确认度计数、报告与投影） |
 | `tools/quality/core_recompute.py` | 第三层（二）：三核心独立重算（趋势状态 → 正式阶段），与系统输出逐日比对 |
+| `tools/quality/core_trace.py` | 三核心窗口前冻结编号的精确恢复（残余票 03），供第二层追溯断链与第三层（二）共用 |
 
 后续各层的接法：新建一个模块（例如 `derived.py`），提供 `section(run: Run) -> str`，再追加到 `audit.py` 的 `SECTIONS` 列表。需要的公共读取能力放进 `Run`，不要在各层模块里重复写查询。
 
@@ -288,6 +290,40 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 
 输入编号既联接不到 `source_claim.claim_id`，也联接不到 `derived_observation.derived_observation_id` 的，单列为追溯断链，不算缺失。核心输入包括 120 日窗口之前用于均线、斜率和持续确认的观测；按留存规则，三核心价格的窗口前声明即使被投影引用也可删除（`retention.py`）。本节会注明核心断链中有多少不在三核心窗口观测之内；宏观断链不适用这条留存例外，出现时需单独查明。
 
+核心断链再按下一节的规则逐个恢复，分两类报告：**声明行已删除、已从原件精确恢复并核验**；**无法恢复、未核验**（再分“未命中”与“有歧义”）。报告列出各核心指标恢复的个数、首末日和所用回执（至少恢复出一个编号的回执），没通过校验的回执写明没通过哪一项。
+
+### 三核心窗口前冻结编号的精确恢复
+
+出处：2026-10-11 用户决定（残余票 03，方案 B，`.scratch/residual-triage-20261011/issues/03-core-pre-window-inputs-untraceable.md`）。不扩大留存，ADR-0022、0035、0040 不变，生产不改；体检用回执原件逐个重建被删声明的编号，命中即为已核验。实现在 `tools/quality/core_trace.py`，第二层与第三层（二）共用。
+
+**范围**：被审运行 `core_assets.model_input_observation_version_ids` 中联接不到 `source_claim` 的编号。
+
+**候选回执**：本运行在 `full_run_acquisition` 登记、并经 `source_claim_acquisition` 与该核心指标现存声明关联的回执（与第三层（二）读原件的是同一组）。逐份校验，任一项不满足，该回执不参与恢复，报告写明原因：
+
+1. **原件哈希**：原始件（`raw_hash`）与规范化件（`normalized_hash`）都在制品库里，内容的 SHA-256 等于登记的哈希。
+2. **来源身份**：回执的 `provider` 为 `tushare`，参数带 `ts_code`；规范化件每一行的 `metric_id` 都是该核心指标、`source_code` 都等于参数 `ts_code`；关联的现存声明 `provider` 为 `tushare`，`period_start` 等于 `period_end`，`source_reference` 都等于 `tushare:<api_name>:<ts_code>:<period_end>`。
+3. **截止时间**：回执在截止前发起、取得应答并通过校验（有原件，状态为 `validated`，`started_at`、`received_at`、`validated_at` 都不晚于截止），声明的入库时间（见第 5 项）也不晚于截止。时间都解析为带时区的时刻再比较，不按文本比较；候选回执也不经按文本筛选发起时间的公共读取（`Run.receipts`），请求参数在逐份校验时才解析，参数损坏只让这一份回执不用。
+4. **原始件与规范化件取值一致**：原始件是 TuShare 结构（`data.fields/items`），每个 `trade_date` 只出现一次，收盘 `close` 是有限数（布尔值不算数）；规范化件是顶层数组，每个 `business_date` 只出现一次，`close` 也是有限数；两者的日期集合相同，同一天的 `close` 数值相等。
+5. **声明模板唯一**：关联的现存声明在 (`definition_version`, `period_kind`, `dimensions_json`, `value_state`, `public_available_at`, `available_at`) 上只有一组取值；不唯一时记“有歧义”，该回执不用。`available_at` 是整批声明写入时取的同一个时钟（`evidence.py` 的 `availability_clock`），一批里所有声明共用，不是回执的 `validated_at` 或 `received_at`，不能拿后两者代替。
+6. **现存声明自检**：每条关联的现存声明，其 `value` 必须等于原始件当日收盘；再按下面的规则用该收盘重算编号，必须重现库中的 `claim_id`。任一条不满足，该回执不用（报告写明是值不一致还是“编号规则未重现现存声明”）。结构异常（字段类型不对、时间缺时区、数值溢出等）同样记为不用，不中断体检。
+
+**编号规则**：抄录自生产代码 `src/pring_cycle/evidence.py` 中写入声明的 `_append_source_claim` 与 `_stable_hash`，只作为文档化的规则，脚本不导入生产代码。
+
+- `H(a, b, …)`：各部分用 U+001F（单元分隔符）连接，按 UTF-8 编码后取 SHA-256，写成十六进制小写。
+- 观测编号 `observation_id = H(metric_id, definition_version, period_kind, period_start, period_end, dimensions_json)`。三核心是 `business_day`，起止都是该交易日的 ISO 日期，`dimensions_json` 为 `{}`（按键排序、不转义非 ASCII 的 JSON）。
+- 声明编号 `claim_id = H(observation_id, provider, source_reference, value_state, repr(value), public_available_at, available_at)`。`provider` 为 `tushare`；`value_state` 为 `reported_value`；`value` 是原始件当日的 `close`，按 Python 浮点数的 `repr` 写（最短往返表示，如 `231.0961`）；两个时间都是 UTC 的 ISO 文本（`isoformat()`，带 `+00:00`），与库中存储的文本相同，为空时取空串。TuShare 的核心应答没有可靠的发布字段，三核心声明的 `public_available_at` 为空。
+- `period_start`、`period_end`、`source_reference`、`value` 逐日取自原始件，其余各项取自第 5 项的模板。
+
+**匹配**：通过校验的回执，对原始件的每一天按上式算出编号，落在断链集合里的就是“已从原件精确恢复并核验”，同时得到该编号对应的日期和收盘值。同一个断链编号被不同的（指标，日期，值）命中，记“有歧义”，不算恢复；没有任何一天命中的记“未命中”。两类都“无法恢复、未核验”。
+
+**第三层（二）的用法**：已恢复的编号按其日期与收盘值直接进入冻结核心序列，不再注“不能逐一对应”。全部恢复时不再补读任何原件日子（原件覆盖得比冻结集合更早也不影响）。仍有未恢复的编号时沿用原办法：从同一批原件补读已持有首日（声明与已恢复的日子中最早的一天）之前的日子，补读条数必须等于未恢复的编号数，否则报告“未重算”；这部分照旧注明只能按条数与日期推定、未核验。
+
+**局限**：
+
+- 只用本运行自己的核心回执。一份回执关联的现存声明全被清理时，模板（尤其 `available_at`）无从得知，这份回执的编号只能记“未命中”。
+- 生产的编号规则一旦改变，第 6 项自检就会失败，相关编号全部记为未恢复；此时要按新规则更新本节。
+- 实测：`run-8186b774…` 的 480 个核心冻结编号中，360 个能联接声明，追不到的 120 个（三核心各 40 天，02-05～04-10）全部恢复并核验，未命中、有歧义均为 0；`run-a1110cb8…` 追不到 126 个（窗口前 120 个，加上后续运行推移窗口后被清理的 04-09、04-10 两天共 6 个），也全部恢复。
+
 ## 第三层（一）：输出内部一致性
 
 `tools/quality/output_consistency.py`。只做 SQL 复查，不重算趋势（重算归票 04）。每项检查列出“期望”和“实际”：期望由冻结清单（`stage_mapping`、`core_metrics`、`confirmation_rules.key_indicators`）和 ADR-0001、ADR-0037、`CONTEXT.md` 的规则推出，实际取自投影与报告。
@@ -331,7 +367,7 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 **输入**：被审运行 `core_assets` 数据集里的 `model_input_observation_version_ids`。
 
 - 能追到 `source_claim` 的编号，直接取声明值。
-- 追不到的是窗口前的预热输入：按 ADR-0035，三核心价格不因被投影引用而保留，运行结束后被留存清理。它们改从本运行自己的核心回执原件补读，回执经 `source_claim_acquisition` 与该核心指标的声明关联。只补读声明首日之前的日子，补读条数必须等于追不到的编号数，否则本节报告“未重算”。编号是不可逆的哈希，补读的日子只能按条数和日期推定为被冻结的那批预热输入，报告会注明这一点未核验。
+- 追不到的是窗口前的预热输入：按 ADR-0035，三核心价格不因被投影引用而保留，运行结束后被留存清理。它们先按第二层“三核心窗口前冻结编号的精确恢复”逐个重建编号，命中的按其日期与收盘值进入序列，记为已核验（输入表“原件精确恢复”列）。仍未恢复的，从本运行自己的核心回执原件补读（回执经 `source_claim_acquisition` 与该核心指标的声明关联），只补读已持有首日之前的日子，补读条数必须等于未恢复的编号数，否则本节报告“未重算”；这部分只能按条数和日期推定为被冻结的那批预热输入，报告会注明未核验（输入表“原件推定补读”列）。
 - 与声明重叠的日子，核对原件收盘价是否等于声明值。
 
 **收益链**：按官方 `change/pre_close` 收益链构造价格水平（`pre_close` 取自原件）。原件 `pre_close` 与上一条收盘不相等的日子记为断点，断点照常参与计算。以下两种情况下，收益链无法按文档构造：序列中间缺了一个上交所开市日，或者某一天缺 `pre_close`。此时要用到文档没有写明的沿用处理（A5），所以从这一天起的所有日子都不重算，记为“未核验”。状态机带有记忆，后面的日子也会受影响。

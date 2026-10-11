@@ -7,8 +7,9 @@ neither imported nor mirrored.
 
 Inputs are the run's frozen core inputs: the ``model_input_observation_version_ids`` of its
 ``core_assets`` dataset, resolved to source claims. Ids that no longer resolve are the
-pre-window warm-up that retention deletes (ADR-0035); their values are read from the run's own
-core receipts, whose raw responses are kept.
+pre-window warm-up that retention deletes (ADR-0035); they are rebuilt exactly from the run's
+own core receipts, whose raw responses are kept (``core_trace``, residual ticket 03), and only
+ids that cannot be rebuilt are still inferred from those raw days by count.
 
 Every day is recomputed from the observations up to that day and compared with the system's
 day summaries (``stage_history``; for the target day also ``p0_assessment`` and
@@ -27,6 +28,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import cache
 
+import core_trace
 from common import Run, compress_days, iso_day, table
 
 ASSETS = ("bond", "stock", "commodity")  # stage_mapping keys read bond,stock,commodity
@@ -61,7 +63,8 @@ class Series:
     closes: dict[str, float] = field(default_factory=dict)
     pre_closes: dict[str, float] = field(default_factory=dict)  # from raw rows
     from_claims: int = 0
-    from_raw: int = 0
+    recovered: int = 0  # days rebuilt exactly from the raw response (core_trace)
+    from_raw: int = 0  # days inferred from the raw response by count, not matched one by one
     duplicate_days: list[str] = field(default_factory=list)  # several frozen values, one day
     raw_mismatch: list[str] = field(default_factory=list)  # raw close != claim value
     receipts: list[str] = field(default_factory=list)
@@ -139,11 +142,15 @@ def _fill_raw(series: Series, rows: dict[str, dict]) -> None:
             series.pre_closes[day] = float(row["pre_close"])
 
 
-def frozen_series(run: Run, core: dict) -> tuple[dict[str, Series], int, int, str]:
-    """Per asset the frozen series; also (frozen ids, unresolved ids, problem or "")."""
+def frozen_series(run: Run, core: dict) -> tuple[dict[str, Series], int, core_trace.Recovery, str]:
+    """Per asset the frozen series; also (frozen ids, the exact recovery, problem or "").
+
+    Ids without a stored claim are first rebuilt exactly from the run's core receipts
+    (``core_trace``); only those that cannot be are still inferred from the raw days before
+    the first held day, by count."""
     ids = core["model_input_observation_version_ids"]
+    recovery = core_trace.recover(run, ids)
     by_metric: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
-    resolved = 0
     for chunk in range(0, len(ids), 500):
         part = ids[chunk : chunk + 500]
         for metric, day, value in run.db.execute(
@@ -152,45 +159,41 @@ def frozen_series(run: Run, core: dict) -> tuple[dict[str, Series], int, int, st
             part,
         ):
             by_metric[metric][day].append(value)
-            resolved += 1
+    left = len(recovery.unresolved) - len(recovery.recovered)
     found = {}
     for asset in ASSETS:
         metric = run.manifest["core_metrics"][asset]
         series = Series(asset, metric)
+        series.from_claims = len(by_metric[metric])
+        for item in recovery.by_metric(metric):
+            if item.day not in by_metric[metric]:
+                series.recovered += 1
+            by_metric[metric][item.day].append(item.close)
         for day, held in by_metric[metric].items():
             if len(set(held)) > 1:
                 series.duplicate_days.append(day)
             series.closes[day] = held[-1]
-        series.from_claims = len(series.closes)
-        receipt_ids = [
-            r[0]
-            for r in run.db.execute(
-                "SELECT DISTINCT sca.acquisition_id FROM source_claim_acquisition sca"
-                " JOIN source_claim s ON s.claim_id = sca.claim_id"
-                " JOIN full_run_acquisition f ON f.acquisition_id = sca.acquisition_id"
-                " WHERE f.run_id = ? AND s.metric_id = ?",
-                (run.run_id, metric),
-            )
-        ]
-        rows, series.receipts = _raw_rows(run, receipt_ids, run.target_date)
+        rows, series.receipts = _raw_rows(
+            run, core_trace.core_receipts(run, metric), run.target_date
+        )
         _fill_raw(series, rows)
-        first_claim = min(series.closes, default="")
+        first_held = min(series.closes, default="")
         for day, row in rows.items():
             if day in series.closes:
                 if not math.isclose(series.closes[day], float(row["close"]), rel_tol=TOLERANCE):
                     series.raw_mismatch.append(day)
-            elif day < first_claim:  # only the warm-up before the frozen claims is read back
+            elif left and day < first_held:  # only ids not rebuilt exactly are inferred
                 series.closes[day] = float(row["close"])
                 series.from_raw += 1
         found[asset] = series
-    unresolved = len(ids) - resolved
     from_raw = sum(s.from_raw for s in found.values())
     problem = ""
-    if from_raw != unresolved:
+    if from_raw != left:
         problem = (
-            f"原件补读 {from_raw} 条与追不到的编号 {unresolved} 个数目不符，无法确认冻结输入的集合"
+            f"原件推定补读 {from_raw} 条与未能精确恢复的追不到编号 {left} 个数目不符，"
+            "无法确认冻结输入的集合"
         )
-    return found, len(ids), unresolved, problem
+    return found, len(ids), recovery, problem
 
 
 def batch_series(run: Run, batch: str, template: dict[str, Series]) -> dict[str, Series] | None:
@@ -519,7 +522,7 @@ def section(run: Run) -> str:
     core = run.datasets.get("core_assets")
     if not core:
         return "\n".join(out + ["**未重算**：被审运行没有 `core_assets` 数据集。", ""])
-    series, total_ids, unresolved, problem = frozen_series(run, core)
+    series, total_ids, recovery, problem = frozen_series(run, core)
     if problem or any(not s.closes for s in series.values()):
         out.append(f"**未重算**：{problem or '有核心资产没有任何冻结输入'}。")
         return "\n".join(out + [""])
@@ -534,7 +537,7 @@ def section(run: Run) -> str:
     result = judge(run, rc, by_day, series)
     status, findings = result["status"], result["findings"]
 
-    out += _conclusion(run, rc, series, events, status, findings, total_ids, unresolved)
+    out += _conclusion(run, rc, series, events, status, findings, total_ids, recovery)
     out += _input_table(run, series)
     out += _target_tables(run, rc, events)
     out += _daily_table(run, rc, by_day, status)
@@ -543,7 +546,7 @@ def section(run: Run) -> str:
     return "\n".join(out)
 
 
-def _conclusion(run, rc, series, events, status, findings, total_ids, unresolved) -> list[str]:
+def _conclusion(run, rc, series, events, status, findings, total_ids, recovery) -> list[str]:
     target = run.target_date
     sources = [e.source for e in events if e.business_date == target]
     missing = {"stage_history", "p0_assessment", "cycle_overview"} - set(sources)
@@ -583,13 +586,22 @@ def _conclusion(run, rc, series, events, status, findings, total_ids, unresolved
         )
     out.append(f"- **系统记录的模型**：{_models(run, events)}")
     from_raw = sum(s.from_raw for s in series.values())
-    out.append(
+    unresolved, recovered = len(recovery.unresolved), len(recovery.recovered)
+    left = unresolved - recovered
+    text = (
         f"- **冻结核心输入**：{total_ids} 个编号，{total_ids - unresolved} 个能追到来源声明；"
-        f"{unresolved} 个追不到（窗口前预热已被留存删除，属追溯断链）。这些值按日从本运行自己的"
-        f"核心回执原件补读（只取声明首日之前的日子），共 {from_raw} 条，与断链数目吻合。"
-        "编号是不可逆的哈希，补读的日子只能按条数与日期推定为被冻结的那批预热输入，"
-        "无法逐一对应（未核验）；"
-        "与声明重叠的日子，原件收盘"
+        f"{unresolved} 个追不到（窗口前预热已被留存删除，属追溯断链）。其中 {recovered} 个已从"
+        "本运行自己的核心回执原件按编号规则逐个精确恢复并核验（见第二层“追溯断链”）"
+    )
+    if left:
+        text += (
+            f"；其余 {left} 个无法恢复，按日从同一批原件补读（只取已持有首日之前的日子），共"
+            f" {from_raw} 条，与未恢复的数目吻合。这部分只能按条数与日期推定为被冻结的那批预热"
+            "输入，无法逐一对应（未核验）"
+        )
+    out.append(
+        text
+        + "；与声明重叠的日子，原件收盘"
         + (
             "与声明值一致。"
             if not any(s.raw_mismatch for s in series.values())
@@ -690,11 +702,11 @@ def _input_table(run: Run, series: dict[str, Series]) -> list[str]:
         _, breaks, no_pre = s.levels()
         rows.append([
             NAMES[s.asset], s.metric, len(days), f"{days[0]}～{days[-1]}", s.from_claims,
-            s.from_raw, len(s.duplicate_days), len(s.raw_mismatch), len(breaks), len(no_pre),
-            compress_days(missing, open_days) or "无", ", ".join(s.receipts) or "—",
+            s.recovered, s.from_raw, len(s.duplicate_days), len(s.raw_mismatch), len(breaks),
+            len(no_pre), compress_days(missing, open_days) or "无", ", ".join(s.receipts) or "—",
         ])  # fmt: skip
-    headers = ["资产", "指标", "条数", "首末日", "来自声明", "来自原件", "同日多个冻结值",
-               "原件≠声明", "收益链断点", "缺 pre_close", "比上交所开市日缺",
+    headers = ["资产", "指标", "条数", "首末日", "来自声明", "原件精确恢复", "原件推定补读",
+               "同日多个冻结值", "原件≠声明", "收益链断点", "缺 pre_close", "比上交所开市日缺",
                "原件所用回执"]  # fmt: skip
     return ["### 冻结核心输入", "", table(headers, rows), ""]
 
