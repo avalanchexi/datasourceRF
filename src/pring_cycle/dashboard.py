@@ -1848,11 +1848,18 @@ def _stage_event_row(item: dict[str, object]) -> html.Li:
         else "无 P0 缺口"
     )
     last_confirmed = item.get("last_confirmed_stage")
+    corrects = item.get("corrects")
+    # A day summarized again on the cores' current history says so (ticket 07).
+    correction = (
+        " · 更正版本（核心历史口径变更）"
+        if isinstance(corrects, dict) and corrects.get("reason") == "core_history_basis_changed"
+        else ""
+    )
     return html.Li(
         [
             html.Strong(
                 f"{item.get('business_date', '日期不可用')} · "
-                f"{_stage_label(item.get('current_stage'))}"
+                f"{_stage_label(item.get('current_stage'))}{correction}"
             ),
             html.Span(
                 f"上一确认 {_stage_label(last_confirmed) if last_confirmed else '尚无'} · "

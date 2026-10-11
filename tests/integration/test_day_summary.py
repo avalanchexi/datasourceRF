@@ -199,7 +199,9 @@ def test_a_day_that_cannot_be_summarized_is_returned_and_the_rest_go_on(
     failed = summaries(paths).backfill(window, target=window[-1], system_as_of=CUTOFF)
 
     assert failed == (FailedDay(broken, "ValueError"),)
-    summarized = ProjectionSetRepository(paths.database).summarized_dates()
+    summarized = {
+        event["business_date"] for event in ProjectionSetRepository(paths.database).stage_history()
+    }
     assert broken not in summarized
     assert {window[0], window[2], window[3]} <= set(summarized)
     assert window[-1] not in summarized  # the target is summarized by the run, not here
@@ -360,13 +362,10 @@ def test_the_backfilled_days_read_their_series_from_one_snapshot(
     assert module._evidence._series_snapshot is None
 
 
-def test_a_backfilled_day_sees_only_what_was_public_by_its_end(tmp_path: Path) -> None:
-    # Moved from test_backfill: July's CPI became public on 5 August.
-    paths = runtime(tmp_path)
-    seed_cores(paths)
+def july_cpi_public_on_5_august(paths: RuntimePaths) -> Any:
     public = datetime(2026, 8, 5, 9, 30, tzinfo=SHANGHAI)
     acquired = datetime(2026, 8, 6, tzinfo=UTC)
-    cpi = EvidenceRepository(paths.database).append_source_claim(
+    return EvidenceRepository(paths.database).append_source_claim(
         SourceClaimInput(
             metric_id="CN_CPI_HEADLINE",
             definition_version="metric-catalog-v0001",
@@ -387,6 +386,13 @@ def test_a_backfilled_day_sees_only_what_was_public_by_its_end(tmp_path: Path) -
             quality_status="validated",
         )
     )
+
+
+def test_a_backfilled_day_sees_only_what_was_public_by_its_end(tmp_path: Path) -> None:
+    # Moved from test_backfill: July's CPI became public on 5 August.
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    cpi = july_cpi_public_on_5_august(paths)
     module = summaries(paths)
     for day in ("2026-08-04", "2026-08-05"):
         assert module.backfill((day,), target=TARGET.isoformat(), system_as_of=CUTOFF) == ()
@@ -402,6 +408,61 @@ def test_a_backfilled_day_sees_only_what_was_public_by_its_end(tmp_path: Path) -
         # Nothing the day did not read: each member is one the day's projection names.
         published = json.dumps(projection.datasets)
         assert all(member in published for member in members)
+
+
+def test_a_day_summarized_on_an_older_core_history_is_corrected_as_of_its_end(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Ticket 07: summarized again the same way, from what was public by the day's end, and
+    # appended beside the summary it corrects; a day already on the basis is left alone.
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    july_cpi_public_on_5_august(paths)
+    repository = ProjectionSetRepository(paths.database)
+    days = ("2026-08-04", "2026-08-05")
+    with monkeypatch.context() as patch:
+        patch.setattr(day_summary, "CORE_HISTORY_BASIS", "core-history-v0001")
+        assert summaries(paths).backfill(days, target=TARGET.isoformat(), system_as_of=CUTOFF) == ()
+    old = {event["business_date"]: event for event in repository.stage_history()}
+
+    later = CUTOFF + timedelta(days=1)
+    assert summaries(paths).backfill(days, target=TARGET.isoformat(), system_as_of=later) == ()
+    assert summaries(paths).backfill(days, target=TARGET.isoformat(), system_as_of=later) == ()
+
+    latest = {event["business_date"]: event for event in repository.stage_history()}
+    assert len(query(paths, "SELECT 1 FROM p0_assessment")) == 4
+    for day, cpi_visible in zip(days, (False, True), strict=True):
+        assert latest[day]["corrects"] == {
+            "assessment_id": old[day]["assessment_id"],
+            "projection_set_id": old[day]["projection_set_id"],
+            "reason": "core_history_basis_changed",
+        }
+        assert repository.p0_assessment(str(old[day]["assessment_id"])) == old[day]
+        projection = repository.get(str(latest[day]["projection_set_id"]))
+        assert ("2026-07-31" in cpi_periods(projection)) is cpi_visible
+
+
+def test_a_correction_made_at_the_corrected_summary_s_cutoff_is_its_day_s_latest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A run interrupted before ticket 07 and resumed after it keeps its batch and cutoff: its
+    # correction is a set of its own, and the day's latest summary all the same.
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    repository = ProjectionSetRepository(paths.database)
+    days = tuple(day.isoformat() for day in sessions()[-12:-1])
+    with monkeypatch.context() as patch:
+        patch.setattr(day_summary, "CORE_HISTORY_BASIS", "core-history-v0001")
+        assert summaries(paths).backfill(days, target=TARGET.isoformat(), system_as_of=CUTOFF) == ()
+    old = {event["business_date"]: event for event in repository.stage_history()}
+
+    assert summaries(paths).backfill(days, target=TARGET.isoformat(), system_as_of=CUTOFF) == ()
+
+    latest = {event["business_date"]: event for event in repository.stage_history()}
+    for day in days:
+        assert latest[day]["corrects"]["assessment_id"] == old[day]["assessment_id"]
+        assert latest[day]["projection_set_id"] != old[day]["projection_set_id"]
+    assert repository.last_confirmed_stage(on_or_before=days[-1]) == "stage_iii"
 
 
 def snapshot_members(paths: RuntimePaths, snapshot_id: str) -> set[str]:

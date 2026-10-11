@@ -17,6 +17,11 @@ after it on the stage confirmed before it (a later run fills only that day, and 
 is recomputed in cascade); a degraded summary still counts as summarized and is never
 recomputed, since published history is not rewritten. Some freshness labels of a
 backfilled day follow the run's time rather than the day's; they are not displayed.
+
+The one exception is the core history a summary read (ticket 07, 2026-10-11 user
+decision): a window day whose latest summary was made on an older basis is summarized
+again, the same way, by a run whose cores reach as far as the current basis has them, and
+the new summary is appended as its correction. Nothing earlier is rewritten.
 """
 
 from __future__ import annotations
@@ -45,6 +50,7 @@ from pring_cycle.p0 import (
     CoreAssetReadiness,
     P0ProjectionService,
     P0PublishResult,
+    SummaryCorrection,
     formal_stage,
 )
 from pring_cycle.price_consistency import CorePrices
@@ -58,6 +64,10 @@ CORE_METRICS = {
     "commodity": "CN_COMMODITY_CORE_NHII",
 }
 SHANGHAI = ZoneInfo("Asia/Shanghai")
+# The core history a summary reads (ADR-0040): the window's sessions and, before its first,
+# the closes a trend reading needs. A summary not marked with it read only the last 160.
+CORE_HISTORY_BASIS = "core-history-v0002"
+CORE_HISTORY_CORRECTION = "core_history_basis_changed"
 
 CoreReadiness = tuple[CoreAssetReadiness, CoreAssetReadiness, CoreAssetReadiness]
 
@@ -127,6 +137,13 @@ class TargetSummary:
     result: P0PublishResult
     evidence_snapshot_id: str | None
     failed_days: tuple[FailedDay, ...] = ()
+
+
+@dataclass(frozen=True)
+class _Backfilled:
+    failed: tuple[FailedDay, ...]
+    # The core history basis the run's summaries are on; none when its cores fall short.
+    basis: str | None
 
 
 @dataclass(frozen=True)
@@ -217,9 +234,9 @@ class DaySummaries:
     ) -> TargetSummary:
         """Summarize the target day at the run's cutoff, with the window's missed days.
 
-        The target's readiness and context are computed first; the missed window days are
-        then backfilled, and the target's stage is confirmed against the history they
-        rebuilt before it is published.
+        The target's readiness and context are computed first; the missed window days, and
+        those summarized on an older core history, are then summarized, and the target's
+        stage is confirmed against the history they rebuilt before it is published.
         """
         with self._scope():
             readiness = self._core_readiness(day, system_as_of=system_as_of)
@@ -228,7 +245,7 @@ class DaySummaries:
             decided = formal_stage(readiness)
             context = self._context(day, readiness, decided, system_as_of=system_as_of)
             run_materials.step_done("context")
-            failed = self._backfill(
+            backfilled = self._backfill(
                 backfill_window,
                 target=day,
                 system_as_of=system_as_of,
@@ -259,6 +276,7 @@ class DaySummaries:
                 macro_document=context.macro,
                 inventory_document=context.inventory,
                 decided=decided,
+                core_history_basis=backfilled.basis,
                 release_calendar_events=run_materials.release_calendar_events,
                 gap_list=tuple(
                     add_projection_gaps(
@@ -270,7 +288,7 @@ class DaySummaries:
                     )
                 ),
             )
-        return TargetSummary(result, snapshot_id, failed)
+        return TargetSummary(result, snapshot_id, backfilled.failed)
 
     def backfill(
         self, window: tuple[str, ...], *, target: str, system_as_of: datetime
@@ -279,10 +297,11 @@ class DaySummaries:
 
         With no summary at all this is the first initialization: every earlier day of the
         window is summarized, which rebuilds the stage history. A daily run fills only the
-        days it missed. A day that cannot be summarized is returned, and the rest go on.
+        days it missed, and corrects those summarized on an older core history. A day that
+        cannot be summarized is returned, and the rest go on.
         """
         with self._scope():
-            return self._backfill(window, target=target, system_as_of=system_as_of)
+            return self._backfill(window, target=target, system_as_of=system_as_of).failed
 
     def _backfill(
         self,
@@ -291,21 +310,65 @@ class DaySummaries:
         target: str,
         system_as_of: datetime,
         day_failed: Callable[[FailedDay], None] = _ignore,
-    ) -> tuple[FailedDay, ...]:
-        summarized = self._projections.summarized_dates()
+    ) -> _Backfilled:
+        """A day whose latest summary is on another core history than the run's basis is
+        summarized again when the run holds that history, and the earlier summary stays."""
+        latest = {str(event["business_date"]): event for event in self._projections.stage_history()}
         failed: list[FailedDay] = []
         # Each day reads every metric's history again at its own public cutoff; the days
         # share one copy of the claims, since summarizing a day stores none (ticket 29).
         with self._evidence.series_snapshot():
-            for day in (day for day in window if day < target and day not in summarized):
+            basis = self._core_history_basis(min((*window, target)), system_as_of=system_as_of)
+            for day in (day for day in window if day < target):
+                held = latest.get(day)
+                if held is None:
+                    corrects = None
+                elif basis is not None and held.get("core_history_basis") != basis:
+                    corrects = SummaryCorrection(
+                        str(held["assessment_id"]),
+                        _text_or_none(held.get("projection_set_id")),
+                        CORE_HISTORY_CORRECTION,
+                    )
+                else:
+                    continue
                 try:
-                    self._summarize_day(day, system_as_of=system_as_of)
+                    self._summarize_day(
+                        day, system_as_of=system_as_of, basis=basis, corrects=corrects
+                    )
                 except (KeyError, LookupError, TypeError, ValueError) as error:
                     failed.append(FailedDay(day, type(error).__name__))
                     day_failed(failed[-1])
-        return tuple(failed)
+        return _Backfilled(tuple(failed), basis)
 
-    def _summarize_day(self, day: str, *, system_as_of: datetime) -> None:
+    def _core_history_basis(self, first_day: str, *, system_as_of: datetime) -> str | None:
+        """The core history basis the run's summaries are on: each core's closes reach the
+        trend's measuring threshold by the window's ``first_day`` (ADR-0040). None when one
+        falls short, as the last 160 sessions did: nothing is corrected on it, and what it
+        summarizes is left for a run that holds the history."""
+        required = self._model.trend_rules.history_required
+        for metric_id in CORE_METRICS.values():
+            held = sum(
+                1
+                for point in self._evidence.metric_series(
+                    metric_id,
+                    mode=AsOfMode.SYSTEM,
+                    as_of=system_as_of,
+                    definition_version=self._model.definition_version,
+                )
+                if point.period_end <= first_day
+            )
+            if held < required:
+                return None
+        return CORE_HISTORY_BASIS
+
+    def _summarize_day(
+        self,
+        day: str,
+        *,
+        system_as_of: datetime,
+        basis: str | None,
+        corrects: SummaryCorrection | None,
+    ) -> None:
         """Publish one earlier day's summary from what was public by that day's end."""
         public_end = datetime.combine(date.fromisoformat(day), time.max, tzinfo=SHANGHAI)
         readiness = self._core_readiness(day, system_as_of=system_as_of, public_as_of=public_end)
@@ -325,6 +388,8 @@ class DaySummaries:
             macro_document=context.macro,
             inventory_document=context.inventory,
             decided=decided,
+            core_history_basis=basis,
+            corrects=corrects,
         )
 
     def _freeze(
@@ -521,3 +586,7 @@ class DaySummaries:
         return adoption.rechecked and any(
             point.selected_claim_id not in adoption.adoptable for point in series
         )
+
+
+def _text_or_none(value: object) -> str | None:
+    return str(value) if value is not None else None

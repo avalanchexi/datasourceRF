@@ -37,6 +37,7 @@ from pring_cycle.context_projection import (
 )
 from pring_cycle.credit_impulse import InputPeriods
 from pring_cycle.day_summary import (
+    CORE_HISTORY_CORRECTION,
     CORE_METRICS,
     CoreReadiness,
     DaySummaries,
@@ -614,6 +615,23 @@ def _execute_run(
             look_back=_stage_lookback(paths, run, summary_model.trend_rules),
         ),
         backfill_window=tuple(plan["final"]["daily_window"].get("dates", ())),
+    )
+    from pring_cycle.full_retrieval import record_first_outcome
+
+    # The window days summarized again on the cores' current history (ticket 07), those of
+    # an interrupted attempt too.
+    corrected = ProjectionSetRepository(paths.database).corrected_days(
+        run.run_id, CORE_HISTORY_CORRECTION
+    )
+    record_first_outcome(
+        paths.database,
+        run.run_id,
+        "summary_corrections",
+        {
+            "reason": CORE_HISTORY_CORRECTION,
+            "corrected_days": list(corrected),
+            "count": len(corrected),
+        },
     )
     result = summary.result
     if result.assessment_id is not None:

@@ -48,6 +48,22 @@ class CoreAssetReadiness:
 
 
 @dataclass(frozen=True)
+class SummaryCorrection:
+    """The summary a day's new one corrects, and why; the corrected one stays (ticket 07)."""
+
+    assessment_id: str
+    projection_set_id: str | None
+    reason: str
+
+    def document(self) -> dict[str, object]:
+        return {
+            "assessment_id": self.assessment_id,
+            "projection_set_id": self.projection_set_id,
+            "reason": self.reason,
+        }
+
+
+@dataclass(frozen=True)
 class P0PublishResult:
     status: str
     projection_set_id: str | None
@@ -79,13 +95,16 @@ class P0ProjectionService:
         gap_list: tuple[dict[str, object], ...] = (),
         as_current: bool = True,
         decided: StageResult | None = None,
+        core_history_basis: str | None = None,
+        corrects: SummaryCorrection | None = None,
     ) -> P0PublishResult:
         """Publish the day's set; ``decided`` is its formal stage when already decided.
 
         The confirmation built before read that same stage (``formal_stage``); without
         one, it is decided here. A ``lookback`` (ADR-0040) is published with the overview and
         the stage history, and the stage it found stands as the last confirmed one there; the
-        day's assessment keeps what the window's history says.
+        day's assessment keeps what the window's history says. The assessment states the
+        ``core_history_basis`` the cores were read on, and the summary it ``corrects``.
         """
         gaps = _core_gaps(assets)
         decided = decided or formal_stage(assets)
@@ -139,6 +158,11 @@ class P0ProjectionService:
             identity_document["core_model_input_observation_version_ids"] = model_inputs
         if lookback_document is not None:
             identity_document["last_confirmed_lookback"] = lookback_document
+        if core_history_basis is not None:
+            identity_document["core_history_basis"] = core_history_basis
+        if corrects is not None:
+            # A correction is a set of its own, even computed as the one it corrects was.
+            identity_document["corrects"] = corrects.document()
         if (batch_id := current_batch_id()) is not None:
             # A re-run of the same day is a new batch with its own summaries (ADR-0022).
             identity_document["batch_id"] = batch_id
@@ -183,6 +207,8 @@ class P0ProjectionService:
                 stage_reason=stage.reason,
                 gaps=gaps,
                 projection_set_id=projection_set_id,
+                core_history_basis=core_history_basis,
+                corrects=corrects,
             )
         )
         datasets: dict[str, dict[str, object]] = {
@@ -212,10 +238,13 @@ class P0ProjectionService:
         datasets["inventory"].update(resolved_inventory_document)
         datasets["release_calendar"]["events"] = list(release_calendar_events)
         # A set is the record as of its day: no later day's event, even one summarized
-        # before this day was (ticket 14).
-        history = list(self._projections.stage_history(through=target_business_date))
-        if not any(item.get("assessment_id") == assessment["assessment_id"] for item in history):
-            history.append(assessment)
+        # before this day was (ticket 14). The day's own is this summary, which supersedes it.
+        history = [
+            item
+            for item in self._projections.stage_history(through=target_business_date)
+            if item.get("business_date") != target_business_date
+        ]
+        history.append(assessment)
         datasets["stage_history"]["events"] = history
         validate_analytical_projection(envelope, datasets)
         try:
@@ -370,8 +399,10 @@ def _assessment_document(
     stage_reason: str,
     gaps: tuple[str, ...],
     projection_set_id: str | None,
+    core_history_basis: str | None = None,
+    corrects: SummaryCorrection | None = None,
 ) -> dict[str, object]:
-    return {
+    document: dict[str, object] = {
         "business_date": target_business_date,
         "candidate_events": [
             {
@@ -395,3 +426,8 @@ def _assessment_document(
         "system_as_of": system_as_of.isoformat(),
         "trend_rule_version": "trend-v0001",
     }
+    if core_history_basis is not None:
+        document["core_history_basis"] = core_history_basis
+    if corrects is not None:
+        document["corrects"] = corrects.document()
+    return document

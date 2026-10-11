@@ -205,13 +205,27 @@ class ProjectionSetRepository:
         return {str(key): item for key, item in value.items()}
 
     def stage_history(self, *, through: str | None = None) -> tuple[dict[str, object], ...]:
-        """Every assessment in day order; ``through`` keeps those dated on or before it."""
+        """Each day's latest assessment in day order; ``through`` keeps those on or before it.
+
+        A day summarized again, by a re-run or as a correction (ticket 07), is listed once, at
+        its latest summary; the earlier ones stay stored, read by their id. A correction made
+        at the cutoff of the summary it corrects (a resumed run's) is the later of the two.
+        """
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT document_json FROM p0_assessment
-                WHERE ? IS NULL OR target_business_date <= ?
-                ORDER BY target_business_date, julianday(system_as_of), assessment_id
+                SELECT document_json FROM (
+                    SELECT target_business_date, document_json,
+                           row_number() OVER (
+                               PARTITION BY target_business_date
+                               ORDER BY julianday(system_as_of) DESC,
+                                   json_extract(document_json, '$.corrects') IS NOT NULL DESC,
+                                   assessment_id DESC
+                           ) AS newer
+                    FROM p0_assessment WHERE ? IS NULL OR target_business_date <= ?
+                )
+                WHERE newer = 1
+                ORDER BY target_business_date
                 """,
                 (through, through),
             ).fetchall()
@@ -220,19 +234,25 @@ class ProjectionSetRepository:
             for row in rows
         )
 
-    def summarized_dates(self) -> frozenset[str]:
-        """Target days that already have a summary (a P0 assessment)."""
+    def corrected_days(self, batch_id: str, reason: str) -> tuple[str, ...]:
+        """The days the batch summarized again as corrections for ``reason`` (ticket 07),
+        read from what it stored, so a resumed run counts those its first attempt made."""
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT DISTINCT target_business_date FROM p0_assessment"
+                """
+                SELECT DISTINCT target_business_date FROM p0_assessment
+                WHERE batch_id = ? AND json_extract(document_json, '$.corrects.reason') = ?
+                ORDER BY target_business_date
+                """,
+                (batch_id, reason),
             ).fetchall()
-        return frozenset(str(row[0]) for row in rows)
+        return tuple(str(row[0]) for row in rows)
 
     def last_confirmed_stage(self, *, on_or_before: str) -> str | None:
         """The stage of the latest day on or before ``on_or_before`` that had one.
 
-        Each day counts by its latest summary, in the order ``stage_history`` lists them: a
-        day summarized again without a stage no longer has one.
+        Each day counts by its latest summary, as ``stage_history`` lists it: a day
+        summarized again without a stage no longer has one.
         """
         date.fromisoformat(on_or_before)
         with self._connect() as connection:
@@ -242,7 +262,9 @@ class ProjectionSetRepository:
                     SELECT event_kind, target_business_date, document_json,
                            row_number() OVER (
                                PARTITION BY target_business_date
-                               ORDER BY julianday(system_as_of) DESC, assessment_id DESC
+                               ORDER BY julianday(system_as_of) DESC,
+                                   json_extract(document_json, '$.corrects') IS NOT NULL DESC,
+                                   assessment_id DESC
                            ) AS newer
                     FROM p0_assessment WHERE target_business_date <= ?
                 )

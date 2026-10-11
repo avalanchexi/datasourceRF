@@ -292,20 +292,23 @@ def test_switching_to_v0015_leaves_what_v0014_published_as_it_was(
         projection_id: repository.get(projection_id).datasets for projection_id in datasets
     } == datasets
     # The new day's assessments sit beside the old ones, which stay as assessed.
-    after = {item["assessment_id"]: item for item in repository.stage_history()}
-    assert all(after[item["assessment_id"]] == item for item in history)
+    assert all(repository.p0_assessment(str(item["assessment_id"])) == item for item in history)
     assert new.datasets["macro"]["output_structure"] == "confirmation-v0001"
     assert (
         new.datasets["cycle_overview"]["current_stage"]
         == old.datasets["cycle_overview"]["current_stage"]
     )
-    # The history v0014 published leads the new one unchanged; only the day summarized
-    # again is added, at the same stage.
+    # The history v0014 published leads the new one unchanged; the day summarized again is
+    # listed once, at its new summary and the same stage (ticket 07).
     events = cast(list[dict[str, Any]], old.datasets["stage_history"]["events"])
     later = cast(list[dict[str, Any]], new.datasets["stage_history"]["events"])
-    assert later[: len(events)] == events
-    assert [(item["business_date"], item["current_stage"]) for item in later[len(events) :]] == [
-        (carry.TARGET.isoformat(), "stage_iii")
+    assert later[:-1] == events[:-1]
+    assert [
+        (item["business_date"], item["current_stage"], item["model_version_id"])
+        for item in (events[-1], later[-1])
+    ] == [
+        (carry.TARGET.isoformat(), "stage_iii", "model-v0014"),
+        (carry.TARGET.isoformat(), "stage_iii", "model-v0015"),
     ]
     # The old summary, read back after the switch, still shows the four labels and seven cards.
     reread = repository.get(old.envelope.projection_set_id)
