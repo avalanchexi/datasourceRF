@@ -12,6 +12,6 @@
 | [04](issues/04-audit-commodity-breadth.md) | 体检核对商品篮子分项广度 | — | done |
 | [05](issues/05-audit-inventory-quadrant.md) | 体检核对库存象限 | 04 | done |
 | [07](issues/07-correct-window-days-summarized-under-old-core-history.md) | 窗口内旧口径日汇总追加更正版本（2026-10-11 用户决定） | 01, 02 | done |
-| [06](issues/06-acceptance.md) | 收尾验收 | 01–05、07 | ready-for-agent |
+| [06](issues/06-acceptance.md) | 收尾验收（[记录](acceptance-20261012.md)；遗留 1：85 个更正日因贷款派生越窗失败，待开票） | 01–05、07 | done |
 
-前沿：01–05、07 已完成；06 可以开始。
+前沿：01–07 均已完成。验收发现的遗留见 [acceptance-20261012.md](acceptance-20261012.md) 第六节，待主 agent 汇总到下一批积压。
