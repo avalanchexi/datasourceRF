@@ -27,6 +27,7 @@ from collections import Counter, defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
+from urllib.parse import urlsplit
 
 from common import Run, iso_day, parse_time, table
 
@@ -65,6 +66,10 @@ PPI, PPI_YOY = "CN_PPI", {"category": "headline", "measure": "yoy"}
 LOAN, SF, YTD = "CN_LOAN_STRUCTURE", "CN_SF_TOTAL", {"measure": "ytd_increment"}
 GDP, GDP_YTD = "CN_GDP", {"aggregate": "total", "measure": "nominal_ytd_level"}
 REPO_TENOR_DAYS = 7
+# Several values of one observation (ADR-0033): within 0.5% of each other they are compatible,
+# not a conflict.
+COMPATIBLE = 0.005
+COMPATIBLE_SPLIT, CONFLICT_SPLIT = "多源取值在相容范围内", "多源取值不一致"
 
 # Market breadth (ADR-0030): computed by the system per stock from TuShare ``daily`` and
 # ``stk_factor_pro`` and stored as source claims; re-implemented below from those raw answers.
@@ -153,28 +158,213 @@ class Claim:
     supersedes: str | None
 
 
+def _deviation(values: list[float]) -> float:
+    """The largest relative deviation |a−b| / max(|a|, |b|) of any two values (ADR-0033);
+    two zeros agree."""
+    return max(
+        (abs(a - b) / max(abs(a), abs(b)) for a, b in itertools.combinations(values, 2) if a or b),
+        default=0.0,
+    )
+
+
+def split_note(values: list[float]) -> str:
+    """The note on several distinct values of one observation: compatible when every two are
+    within ADR-0033's 0.5%, a conflict otherwise; empty for one value or none."""
+    if len(values) < 2:
+        return ""
+    shown, deviation = "／".join(_num(v) for v in values), _deviation(values)
+    if deviation <= COMPATIBLE:
+        within = f"相对偏差 {deviation * 100:.2g}%，ADR-0033 的 0.5% 以内"
+        return f"{COMPATIBLE_SPLIT}（{shown}，{within}）"
+    return f"{CONFLICT_SPLIT}（{shown}）"
+
+
 @dataclass
 class Observation:
-    """The usable claims of one observation identity (metric, period, member)."""
+    """The usable claims of one observation identity (metric, period, member), and of them
+    the news claims the reading rules exclude (``excluded``: claim id to reason)."""
 
     claims: list[tuple[str, float | None]] = field(default_factory=list)
+    excluded: dict[str, str] = field(default_factory=dict)
 
     def pick(self, lineage: frozenset[str]) -> tuple[float | None, str]:
         """The value to use and a note. Choosing between disagreeing sources is the selection
         rule's job, not checked here: the claim the system chose (in ``lineage``) is used even
-        when its value is empty, and a disagreement is always reported."""
+        when its value is empty, and a disagreement is always reported.
+
+        The value never depends on ``excluded`` (a frozen lineage is recomputed as it stands,
+        and with no system choice every usable claim still counts); only the note leaves out
+        the values of excluded news claims, which production reads as never stated."""
         values = sorted({v for _, v in self.claims if v is not None})
-        shown = "／".join(_num(v) for v in values)
+        listed = {v for cid, v in self.claims if v is not None and cid not in self.excluded}
+        split = split_note(sorted(listed))
         chosen = next(((cid, v) for cid, v in self.claims if cid in lineage), None)
         if chosen is not None:
+            reason = self.excluded.get(chosen[0])
+            # A frozen choice of an excluded claim is named on its own, not as a source.
+            why = f"该声明属按读取规则排除的资讯声明（{reason}）" if reason else ""
             if chosen[1] is None:
-                return None, "系统所选声明的值为空"
-            if len(values) > 1:
-                return chosen[1], f"多源取值不一致（{shown}），按系统所选 {_num(chosen[1])}"
-            return chosen[1], ""
+                return None, "；".join(x for x in ["系统所选声明的值为空", why] if x)
+            if reason:
+                own = f"按系统所选 {_num(chosen[1])}，{why}"
+                return chosen[1], "；".join(x for x in [split, own] if x)
+            return chosen[1], f"{split}，按系统所选 {_num(chosen[1])}" if split else ""
         if len(values) == 1:
             return values[0], ""
-        return None, f"多源取值不一致（{shown}），无系统所选可依" if values else "值为空"
+        if not values:
+            return None, "值为空"
+        if split:
+            return None, f"{split}，无系统所选可依"
+        # Only excluded news claims make the values differ: still no system choice to use,
+        # but no sources in disagreement either.
+        dropped = "／".join(_num(v) for v in sorted(set(values) - listed))
+        shown = "／".join(_num(v) for v in values)
+        return None, f"无系统所选可依：可用声明取值 {shown}，其中 {dropped} 属按读取规则排除的声明"
+
+
+# --- news claims the reading rules exclude (audit ticket 17) --------------------------------
+# Written from the rules in docs/development/data-quality-audit.md ("多源备注与资讯声明的读取
+# 排除"): a news claim whose kept quote production no longer reads as stating its value is
+# neither listed nor selected. Only the reasons decidable from the stored page title, address
+# and subject clause are judged here; re-reading the quote itself is not.
+
+WRONG_PERIOD, LOCAL_SUBJECT, SUSPECT = "错期", "地方主语", "缺主语嫌疑"
+AI_WEBSEARCH_ROUTE = "ai_websearch"
+_CN_NUMBER = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+_CN_NUMBER |= {"十": 10, "十一": 11, "十二": 12}
+# A year with the period it names; the alternatives are tried in this order.
+_DATED = re.compile(
+    r"(?P<year>\d{4})年(?:"
+    r"(?P<dm>\d{1,2})月(?P<dd>\d{1,2})日"
+    r"|1[—–\-－~至](?P<ytd>\d{1,2})月份?"
+    r"|前(?P<ytdn>\d{1,2}|十[一二]?|[一二三四五六七八九])个?月"
+    r"|(?P<half>上半年)|(?P<q3>前三季度)|(?P<fy>全年)"
+    r"|第?(?P<q>[一二三四])季度"
+    r"|(?P<m>\d{1,2})月(?:份|末)?"
+    r")"
+)
+# Dates in an address's path, tried in turn; the first that matches decides.
+_PATH_DATES = (
+    re.compile(r"/(20\d{2})-(\d{2})-(\d{2})/"),
+    re.compile(r"/(20\d{2})(\d{2})(\d{2})/"),
+    re.compile(r"/(20\d{2})(\d{2})/(\d{2})/"),
+    re.compile(r"/(20\d{2})/(\d{2})/?(\d{2})/"),
+    re.compile(r"/(20\d{2})(\d{2})/()"),
+)
+_COUNTRY = re.compile(r"全国|国家统计局|我国")
+_LOCAL_WORD = re.compile(r"[全本我](?:市(?!场)|区(?![间域])|[省县州盟旗])")
+_PROVINCE = (
+    "北京|天津|上海|重庆|河北|山西|辽宁|吉林|黑龙江|江苏|浙江|安徽|福建|江西|山东|河南|湖北|湖南|"
+    "广东|海南|四川|贵州|云南|陕西|甘肃|青海|台湾|内蒙古|广西|西藏|宁夏|新疆|香港|澳门"
+)
+_PLACE_NAME = re.compile(_PROVINCE + r"|[一-鿿](?:自治区|[省市州县])")
+_NO_PLACE = re.compile(
+    r"[上超股楼债车汇沪深牛熊两退开休收闭观后逆托稳油铜期]市|(?<![一-鿿])[城金]市"
+    r"|市[场值价]|北京(?=时间|\d{1,2}月\d{1,2}日[电讯])"
+)
+
+
+def _claim_period(frequency: str | None, start: str, end: str) -> tuple[set[int], tuple]:
+    """The months (year × 12 + month − 1) a claim's period covers, and the earliest a text of
+    it is published: (month, day), day 0 when any day of that month will do."""
+    year, month = int(end[:4]), int(end[5:7])
+    if frequency == "quarterly":
+        last = (month - 1) // 3 * 3 + 3
+        months = {year * 12 + m - 1 for m in range(last - 2, last + 1)}
+        earliest = (year * 12 + last - 1, 0)
+    else:
+        months = {year * 12 + month - 1}
+        earliest = (year * 12 + month - 1, int(end[8:10]) if start == end else 0)
+    if frequency == "event":
+        months |= {m - 1 for m in months}
+        earliest = (min(months), 0)
+    return months, earliest
+
+
+def _named_months(found: re.Match[str]) -> set[int]:
+    year = int(found["year"]) * 12 - 1
+    if found["ytd"] or found["m"]:
+        return {year + int(found["ytd"] or found["m"])}
+    if found["ytdn"]:
+        count = found["ytdn"]
+        return {year + (int(count) if count.isdigit() else _CN_NUMBER[count])}
+    quarter = 2 if found["half"] else 3 if found["q3"] else 4 if found["fy"] else None
+    quarter = quarter or _CN_NUMBER[found["q"]]
+    return {year + m for m in range(quarter * 3 - 2, quarter * 3 + 1)}
+
+
+def _compared_with(text: str, found: re.Match[str]) -> bool:
+    """A period the text compares with ("较2025年8月", "2025年8月以来"), not its own."""
+    before, after = text[max(0, found.start() - 4) : found.start()], text[found.end() :]
+    return bool(re.search(r"[较比]\s*$", before) or re.match(r"\s*(?:以来|同期|相比)", after))
+
+
+def _dated_otherwise(words: str, url: str | None, months: set[int], earliest: tuple) -> bool:
+    """Rule 1: a title or subject clause names its own period and none of it is the claim's,
+    or a full date in it or in the address is before the claim's period could be published."""
+
+    def before(year: str, month: str, day: str) -> bool:
+        published = int(year) * 12 + int(month) - 1
+        return (published, int(day)) < earliest if day else published < earliest[0]
+
+    stated = [f for f in _DATED.finditer(words) if not _compared_with(words, f)]
+    periods = [f for f in stated if not f["dm"]]
+    if periods and not any(_named_months(f) & months for f in periods):
+        return True
+    if any(before(f["year"], f["dm"], f["dd"]) for f in stated if f["dm"]):
+        return True
+    try:
+        path = urlsplit(url).path if url else ""
+    except ValueError:
+        path = ""  # an address that does not parse dates nothing
+    for pattern in _PATH_DATES:
+        found = pattern.search(path)
+        if found is not None and 1 <= int(found[2]) <= 12:
+            return before(*found.groups())
+    return False
+
+
+def _names_place(words: str) -> bool:
+    """Rule 2: a title or subject clause names a place and not the country."""
+    if _COUNTRY.search(words):
+        return False
+    if _LOCAL_WORD.search(words):
+        return True
+    no_place = [w.span() for w in _NO_PLACE.finditer(words)]
+    return any(
+        not any(a < p.end() and p.start() < b for a, b in no_place)
+        for p in _PLACE_NAME.finditer(words)
+    )
+
+
+def excluded_news_claims(run: Run) -> dict[str, str]:
+    """The kept news claims (with a row in ``claim_matched_quote``) the reading rules exclude,
+    to the first reason that applies: wrong period, local subject, suspect without subject."""
+    kept = "SELECT 1 FROM sqlite_master WHERE name = 'claim_matched_quote'"
+    if not run.db.execute(kept).fetchone():
+        return {}
+    rows = run.db.execute(
+        "SELECT q.claim_id, q.title, q.url, q.subject, q.route,"
+        " COALESCE(NULLIF(q.url, ''), q.body_hash), c.metric_id, c.period_start, c.period_end"
+        " FROM claim_matched_quote q JOIN source_claim c ON c.claim_id = q.claim_id"
+    ).fetchall()
+    local_pages = {
+        page for _, title, _, subject, _, page, *_ in rows
+        if _names_place(title or "") or _names_place(subject or "")
+    }  # fmt: skip
+    found = {}
+    for claim_id, title, url, subject, route, page, metric, start, end in rows:
+        frequency = run.catalog.get(metric, {}).get("frequency")
+        months, earliest = _claim_period(frequency, start, end)
+        if _dated_otherwise(title or "", url, months, earliest) or _dated_otherwise(
+            subject or "", None, months, earliest
+        ):
+            found[claim_id] = WRONG_PERIOD
+        elif _names_place(title or "") or _names_place(subject or ""):
+            found[claim_id] = LOCAL_SUBJECT
+        elif subject is None and (route == AI_WEBSEARCH_ROUTE or page in local_pages):
+            found[claim_id] = SUSPECT
+    return found
 
 
 class Claims:
@@ -185,6 +375,10 @@ class Claims:
         self._rows: dict[str, dict[str, dict[str, list[Claim]]]] = {}
         self._deliveries: dict[str, list[tuple]] = {}
         self._on_file: dict[str, list[tuple]] = {}
+        # News claims the reading rules exclude, and of them those a recomputation read
+        # among an observation's claims (for the report's list).
+        self.excluded = excluded_news_claims(run)
+        self.dropped: set[str] = set()
 
     def of(self, metric: str) -> dict[str, dict[str, list[Claim]]]:
         if metric not in self._rows:
@@ -346,9 +540,12 @@ class Held:
             ]
             superseded = {c.supersedes for _, _, c in kept if c.supersedes}
             view: dict = defaultdict(lambda: defaultdict(Observation))
+            excluded = self.claims.excluded
             for member, period, c in kept:
                 if c.claim_id not in superseded:
                     view[member][period].claims.append((c.claim_id, c.value))
+                    if c.claim_id in excluded:
+                        view[member][period].excluded[c.claim_id] = excluded[c.claim_id]
             self._views[metric] = view
         return self._views[metric]
 
@@ -471,6 +668,7 @@ class Calc:
             shown = f" {member_key(member)}" if member else ""
             raise Missing(f"缺 {metric} {period}{shown}")
         value, note = obs.pick(self.lineage)
+        self.held.claims.dropped |= obs.excluded.keys()
         if value is None and self.presence_only:
             value = next((v for _, v in obs.claims if v is not None), None)
         self.used.add((metric, period, member_key(member)))
@@ -1503,7 +1701,7 @@ def _pick_contribution(candidates, lineage, good) -> tuple[float | None, str]:
     claim used must be one a consumer may read. Choosing between sources is not checked."""
     # Only numbers are sorted and shown; any other value leaves its claim unreadable below.
     values = sorted({v for _, v in candidates if _number(v)})
-    split = f"多源取值不一致（{'／'.join(_num(v) for v in values)}）" if len(values) > 1 else ""
+    split = split_note(values)
     chosen = [(c, v) for c, v in candidates if c in lineage]
     if not chosen:
         if len(values) != 1:
@@ -1678,6 +1876,7 @@ STORED_HEADERS += ["结论", "备注"]
 DAILY_HEADERS = ["公式", "逐日计数（天×成员）", "问题示例"]
 SERIES_HEADERS = ["公式", "读数", "期数", "一致", "有差异", "原料不齐", "期次范围"]
 PERIOD_HEADERS = ["公式", "读数", "期次", "库中值", "重算值", "结论", "备注"]
+DROPPED_HEADERS = ["指标", "期次", "成员", "值", "排除原因", "页面标题", "页面"]
 
 
 def _raw_by_day(run: Run, api_name: str) -> dict[str, list[str]]:
@@ -1806,7 +2005,7 @@ def breadth_items(run: Run, claims: Claims) -> list[Item]:
     return list(items.values())
 
 
-def _items(run: Run) -> tuple[list[Item], list[list], list[list], list[str], list[str]]:
+def _items(run: Run) -> tuple[list[Item], list[list], list[list], list[str], list[str], Claims]:
     claims, sessions = Claims(run), Sessions(run)
     held = Held(claims, run.cutoff, day_end(run.target_date))
     items, detail = stored_items(run, claims, sessions)
@@ -1823,16 +2022,38 @@ def _items(run: Run) -> tuple[list[Item], list[list], list[list], list[str], lis
             item.known = "已知（定义不足或本票未实现，记于票 02 与文档）"
         elif item.verdict.startswith(NO_INPUT):
             item.known = "已知（基日核心价格被留存删除，见文档“局限”）"
-    return items, detail, daily, extra, history
+    return items, detail, daily, extra, history, claims
+
+
+def _dropped_cells(run: Run, claims: Claims) -> list[list]:
+    """The excluded news claims a recomputation read among an observation's claims."""
+    if not claims.dropped:
+        return []
+    rows = run.db.execute(
+        "SELECT c.claim_id, c.metric_id, c.period_end, c.dimensions_json, c.value, q.title,"
+        " COALESCE(NULLIF(q.url, ''), '正文哈希 ' || substr(q.body_hash, 1, 12))"
+        " FROM source_claim c JOIN claim_matched_quote q ON q.claim_id = c.claim_id"
+        " WHERE c.claim_id IN (SELECT value FROM json_each(?))"
+        " ORDER BY c.metric_id, c.period_end, c.dimensions_json, c.claim_id",
+        (json.dumps(sorted(claims.dropped)),),
+    )
+    return [
+        [metric, period, "／".join(json.loads(dims).values()) or "—", _num(value)]
+        + [claims.excluded[claim_id], title or "—", page]
+        for claim_id, metric, period, dims, value, title, page in rows
+    ]
 
 
 def section(run: Run) -> str:
-    items, detail, daily, extra, history = _items(run)
+    items, detail, daily, extra, history, claims = _items(run)
     differ = [i for i in items if i.verdict.startswith(DIFFER)]
     agree = [i for i in items if i.verdict.startswith("重算一致")]
     unchecked = [i for i in items if i.verdict == UNCHECKABLE]
     rows = [r for i in items for r in i.rows]
-    split = sum("多源取值不一致" in r.note for r in rows)
+    # Per value: a conflict when any of its inputs has one, else compatible when any differs.
+    split = sum(CONFLICT_SPLIT in r.note for r in rows)
+    compatible = sum(COMPATIBLE_SPLIT in r.note and CONFLICT_SPLIT not in r.note for r in rows)
+    dropped = _dropped_cells(run, claims)
     rest = len(items) - len(agree) - len(differ) - len(unchecked)
 
     out = ["## 第一层：派生数据（存在性与独立重算）", ""]
@@ -1849,10 +2070,16 @@ def section(run: Run) -> str:
         f"有差异 {sum(r.verdict == DIFFER for r in rows)}、"
         f"原料不齐 {sum(r.verdict == NO_INPUT for r in rows)}。",
     ]
-    if split:
+    if split or compatible:
         out.append(
-            f"- 其中 {split} 个值的输入有多源取值不一致：按系统所选的声明重算，"
-            "选值本身不在本节核对范围，明细备注列出全部候选值。"
+            f"- 其中 {split + compatible} 个值的输入有多源取值不同：多源冲突 {split} 个、"
+            f"数值不同但在相容范围内 {compatible} 个（ADR-0033：相对偏差不超过 0.5%）。"
+            "一律按系统所选的声明重算，选值本身不在本节核对范围，明细备注列出候选值。"
+        )
+    if dropped:
+        out.append(
+            f"- 按读取规则排除的资讯声明 {len(dropped)} 条不列入备注的候选值，也不算作多源的一方"
+            "（重算仍按系统所选的声明，见下文“按读取规则排除的资讯声明”）。"
         )
     out += ["", "**问题与分流**：", ""]
     out += [f"- {problem}。{TICKET}。" for problem in extra]
@@ -1893,6 +2120,8 @@ def section(run: Run) -> str:
         "当日结束前公开、目录定义与冻结定义相同、未被取代的来源声明。_",
         "",
     ]
+    if dropped:
+        out += ["### 按读取规则排除的资讯声明", "", table(DROPPED_HEADERS, dropped), ""]
     for item in items:
         out += item.detail
     return "\n".join(out)
