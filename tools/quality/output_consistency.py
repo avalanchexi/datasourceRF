@@ -311,6 +311,8 @@ def _confirmation_checks(run: Run, overview: dict, macro: dict) -> tuple[list[Ch
     ]
     readings = [_read_members(ki, rules.get(ki.get("key"), {})) for ki in indicators]
     checks += _sign_checks(group, indicators, readings)
+    quadrant_checks, quadrant_notes = _quadrant_checks(group, indicators, rules)
+    checks += quadrant_checks
     opposed = [
         ki
         for ki in indicators
@@ -332,7 +334,7 @@ def _confirmation_checks(run: Run, overview: dict, macro: dict) -> tuple[list[Ch
         ),
         Check(
             group,
-            "分化（consistency = divergent）当且仅当按成员方向独立判为分化（库存象限除外）",
+            "分化（consistency = divergent）当且仅当按成员方向独立判为分化",
             found,
             sorted(ki.get("key") for ki, _ in judged if ki.get("consistency") == "divergent"),
         ),
@@ -363,6 +365,7 @@ def _confirmation_checks(run: Run, overview: dict, macro: dict) -> tuple[list[Ch
         f"按符号比较：{len(signed)} 个成员（贷款与社融的当月增量同比差），核对读法（同比差正负"
         "→方向、水平线上下）与成员比较标注；同比差的取值由第二层“规则级公式”重算核对，"
         "取值所依据的声明本身对不对（如票 06）不在核对之内。",
+        *quadrant_notes,
     ]
     relations = {ki.get("relation") for ki in indicators if ki.get("key") in divergent}
     if not conf.get("applicable") and relations <= {"not_applicable"}:
@@ -405,8 +408,12 @@ class Reading:
 def _read_members(ki: dict, rule: dict) -> Reading | None:
     """Each member's direction (momentum, or the sign of the derived change for a by-sign
     member; unknown unless current) against the frozen main member's. Members the rule marks
-    ``compared: false`` take no part. None for the inventory quadrant (one main per line)."""
-    if rule.get("quadrant") or not rule.get("main"):
+    ``compared: false`` take no part. The inventory quadrant compares by line instead."""
+    if rule.get("quadrant"):
+        found = _read_quadrant(ki, rule)
+        known = found is not None and found.quadrant[3] != "insufficient"
+        return Reading(None, "opposes" in found.labels.values() if known else None, [], None)
+    if not rule.get("main"):
         return None
     entries = {}
     for entry, is_main in [(rule["main"], True)] + [(a, False) for a in rule.get("auxiliary", [])]:
@@ -497,6 +504,243 @@ def _sign_checks(group: str, indicators: list[dict], readings: list) -> list[Che
     ]
 
 
+# --- inventory quadrant -------------------------------------------------------------------
+# Three lines, each with a main member and auxiliary ones; demand and inventory name the
+# quadrant, production verifies it. The rules as production reads them were written into
+# the audit document from the 2026-10-11 interview (model rules ticket 05, Q10).
+
+QUADRANT_LINES = ("demand", "production", "inventory")
+
+
+def _momentum(values) -> str | None:
+    """The newer of the two months against the older: up, down or flat; unknown with
+    fewer than two numeric values."""
+    if not isinstance(values, list) or len(values) < 2:
+        return None
+    previous, value = values[-2], values[-1]
+    if any(
+        isinstance(v, bool) or not isinstance(v, int | float) or not math.isfinite(v)
+        for v in (previous, value)
+    ):
+        return None
+    tolerance = max(abs(previous) * 1e-9, 1e-12)
+    return (
+        "up" if value - previous > tolerance else "down" if previous - value > tolerance else "flat"
+    )
+
+
+def _auxiliary(part: dict) -> list:
+    found = part.get("auxiliary") or []
+    return found if isinstance(found, list) else []
+
+
+def _month_back(month: str) -> str:
+    year, number = int(month[:4]), int(month[5:7])
+    return f"{year - 1:04d}-12" if number == 1 else f"{year:04d}-{number - 1:02d}"
+
+
+@dataclass
+class QuadrantRead:
+    """The inventory quadrant read independently from its members' values."""
+
+    month: str | None  # YYYY-MM, from the quadrant member's period
+    before: str | None
+    entries: dict[str, tuple[str, bool, dict]]  # member name -> (line, is_main, frozen entry)
+    members: dict[str, dict]  # member name -> projected member
+    directions: dict[str, str | None]  # member name -> recomputed momentum
+    labels: dict[str, str]  # member name -> expected consistency
+    quadrant: tuple  # expected (evidence_status, missing, quadrant, unclassified_by)
+    head: dict | None  # the quadrant member itself
+
+
+def _read_quadrant(ki: dict, rule: dict) -> QuadrantRead | None:
+    """Each line's members read at the quadrant's month and the one before it; each
+    auxiliary member against its line's main member; the quadrant the main members'
+    directions name. None when the frozen rule does not name the three lines, each with a
+    main member, and every member by a name of its own."""
+    lines = (rule.get("quadrant") or {}).get("lines") or {}
+    if set(lines) != set(QUADRANT_LINES) or not all(
+        isinstance(part, dict)
+        and isinstance(part.get("auxiliary", []), list)
+        and all(isinstance(entry, dict) for entry in [part.get("main")] + _auxiliary(part))
+        for part in lines.values()
+    ):
+        return None
+    entries, by_id = {}, {}
+    for line in QUADRANT_LINES:
+        part = lines[line]
+        for entry, is_main in [(part["main"], True)] + [(a, False) for a in _auxiliary(part)]:
+            entries[entry.get("name")] = (line, is_main, entry)
+            metric = entry.get("metric_id") or rule.get("metric_id")
+            by_id[_member_id(metric, entry.get("dimensions"))] = entry.get("name")
+    named = sum(1 + len(_auxiliary(lines[line])) for line in QUADRANT_LINES)
+    if len(entries) != named or not all(isinstance(n, str) and n for n in entries):
+        return None
+    members = {}
+    head = None
+    for m in ki.get("members") or []:
+        if m.get("name") == "quadrant" and not m.get("member"):
+            head = m
+        elif (name := by_id.get(_member_id(m.get("metric_id"), m.get("member")))) is not None:
+            members.setdefault(name, m)
+    period = (head or {}).get("period")
+    month = period[:7] if isinstance(period, str) else None
+    skipped = set()
+    for line in QUADRANT_LINES:
+        skipped |= set(lines[line]["main"].get("unreleased_months") or [])
+    before = None
+    if month is not None:
+        before = _month_back(month)
+        while int(before[5:7]) in skipped:
+            before = _month_back(before)
+    directions = {name: _momentum(m.get("values")) for name, m in members.items()}
+    mains = {line: name for name, (line, is_main, _) in entries.items() if is_main}
+    labels = {"quadrant": "main"}
+    for name, (line, is_main, _) in entries.items():
+        if name not in members:
+            continue
+        if is_main:
+            labels[name] = "main"
+            continue
+        mine, main = directions[name], directions.get(mains[line])
+        if members[name].get("evidence_status") != "current" or mine is None or main is None:
+            labels[name] = "unknown"
+        elif mine == main:
+            labels[name] = "agrees"
+        elif "flat" in (mine, main):
+            labels[name] = "flat"
+        else:
+            labels[name] = "opposes"
+    status, missing = "current", []
+    for line in QUADRANT_LINES:
+        m = members.get(mains[line], {})
+        dims = ",".join(f"{k}={v}" for k, v in sorted((m.get("member") or {}).items()))
+        label = dims or mains[line]
+        own = m.get("evidence_status")
+        if own != "current":
+            missing.append(f"{line}:{label}:{own}")
+            status = own if status == "current" else status
+        missing += [f"{line}:{label}:{gap}" for gap in m.get("missing") or []]
+    missing = list(dict.fromkeys(missing))
+    named = {line: directions.get(mains[line]) for line in QUADRANT_LINES}
+    if missing or status != "current" or None in named.values():
+        quadrant = (status, missing, "unclassified", "insufficient")
+    else:
+        table_of = (rule.get("quadrant") or {}).get("quadrants") or {}
+        name = next((q for q, d in table_of.items() if d == named), None)
+        quadrant = (status, missing, name or "unclassified", None if name else "inconsistent")
+    return QuadrantRead(month, before, entries, members, directions, labels, quadrant, head)
+
+
+def _quadrant_checks(group: str, indicators: list[dict], rules: dict) -> tuple[list[Check], list]:
+    """The inventory quadrant's lines: months, directions, the quadrant, how each auxiliary
+    member compares with its line's main member, and whether the indicator is divergent."""
+    checks, notes = [], []
+    for ki in indicators:
+        rule = rules.get(ki.get("key"), {})
+        if not rule.get("quadrant"):
+            continue
+        q = _read_quadrant(ki, rule)
+        key = ki.get("key")
+        if q is None:
+            name = f"库存象限 {key}：冻结规则恰有三条线、各有主成员、成员名称不重"
+            checks.append(Check(group, name, True, False))
+            continue
+        expect_months = [q.before, q.month] if q.month else []
+        misaligned = []
+        for name, m in q.members.items():
+            held = [str(p)[:7] for p in m.get("periods") or []] + list(m.get("missing") or [])
+            if held and sorted(held) != expect_months:
+                misaligned.append(f"{name} {sorted(held)}")
+        misread = [
+            f"{name} 值 {m.get('values')}／重算 {q.directions[name]}"
+            f"／momentum {m.get('momentum')}／direction {m.get('direction')}"
+            f"／agrees_by {m.get('agrees_by')}"
+            for name, m in q.members.items()
+            if m.get("momentum") != q.directions[name]
+            or m.get("direction") != q.directions[name]
+            or m.get("agrees_by") != "momentum"
+        ]
+        mains = {line: n for n, (line, is_main, _) in q.entries.items() if is_main}
+        head = q.head or {}
+        expected_lines = {
+            line: {
+                "member": mains[line],
+                "label": q.entries[mains[line]][2].get("label"),
+                "period": q.members.get(mains[line], {}).get("period"),
+                "direction": q.directions.get(mains[line]),
+            }
+            for line in QUADRANT_LINES
+        }
+        stored = {name: [m.get("line"), m.get("consistency")] for name, m in q.members.items()} | {
+            "quadrant": [head.get("line"), head.get("consistency")]
+        }
+        expected = {
+            name: [q.entries[name][0] if name in q.entries else None, label]
+            for name, label in q.labels.items()
+        }
+        known = q.quadrant[3] != "insufficient"
+        opposes = sorted(n for n, label in q.labels.items() if label == "opposes")
+        consistency = "unknown" if not known else "divergent" if opposes else "consistent"
+        checks += [
+            Check(
+                group,
+                f"库存象限 {key}：象限成员存在且不带取值",
+                [True, []],
+                [q.head is not None, head.get("values")],
+            ),
+            Check(
+                group,
+                f"库存象限 {key}：各线成员只读象限月 {q.month} 与前一象限月 {q.before}",
+                [],
+                misaligned,
+            ),
+            Check(
+                group,
+                f"库存象限 {key}：各成员按动量比较，动量按两期取值重算，"
+                "与 momentum、direction 相同",
+                [],
+                misread,
+            ),
+            Check(group, f"库存象限 {key}：象限成员的三线读数", expected_lines, head.get("lines")),
+            Check(
+                group,
+                f"库存象限 {key}：象限（证据状态、缺项、象限、未分类原因）",
+                list(q.quadrant),
+                [
+                    head.get("evidence_status"),
+                    head.get("missing"),
+                    head.get("quadrant"),
+                    head.get("unclassified_by"),
+                ],
+            ),
+            Check(
+                group,
+                f"库存象限 {key}：辅成员与本线主成员比较（主成员与象限标 main）",
+                expected,
+                stored,
+            ),
+            Check(
+                group,
+                f"库存象限 {key}：分化识别（象限未知 unknown，有辅成员相反 divergent）",
+                consistency,
+                ki.get("consistency"),
+            ),
+        ]
+        directions = "／".join(
+            f"{line} {expected_lines[line]['direction']}" for line in QUADRANT_LINES
+        )
+        compared = "、".join(f"{n} {label}" for n, label in q.labels.items() if label != "main")
+        notes.append(
+            f"库存象限 {key}：象限月 {q.month or '无'}（前一象限月 {q.before or '无'}），"
+            f"三线方向 {directions}，独立判为 {q.quadrant[2]}"
+            + (f"（{q.quadrant[3]}）" if q.quadrant[3] else "")
+            + f"；辅成员比较 {compared or '无'}；分化识别为 {consistency}，"
+            "不沿用系统的成员标注。"
+        )
+    return checks, notes
+
+
 def _member_id(metric, dims) -> tuple:
     return metric, json.dumps(dims or {}, sort_keys=True, ensure_ascii=False)
 
@@ -505,13 +749,13 @@ def _frozen_members(rule: dict) -> list[tuple]:
     """(metric, dimensions, is_main) of the members a frozen key indicator names; the
     inventory quadrant names them per line."""
     parts = [rule]
-    parts += list((rule.get("quadrant") or {}).get("lines", {}).values())
+    parts += list(((rule.get("quadrant") or {}).get("lines") or {}).values())
     found = []
     for part in parts:
-        for member, is_main in [(part.get("main"), True)] + [
-            (a, False) for a in part.get("auxiliary") or []
-        ]:
-            if member:
+        if not isinstance(part, dict):
+            continue  # a malformed quadrant line is reported by the quadrant checks
+        for member, is_main in [(part.get("main"), True)] + [(a, False) for a in _auxiliary(part)]:
+            if isinstance(member, dict) and member:
                 metric = member.get("metric_id") or rule.get("metric_id")
                 found.append((metric, member.get("dimensions"), is_main))
     return found
@@ -697,6 +941,17 @@ def section(run: Run) -> str:
         + ("：" + "；".join(f"{c.group}／{c.name}" for c in failed) if failed else "")
         + "。",
         *(f"- {note}" for note in notes),
+        "",
+        "### 已知局限",
+        "",
+        "- 确认度在典型组合下尚无真实数据验证（2026-10-11 访谈 Q12）：到目前为止，真实运行都是"
+        "非典型组合，确认度不适用。本节对确认度只核计数、成员读法、分化识别与封顶，不核关系是否"
+        "符合各阶段的预期（预期表的格子、宽限、转折提示）。"
+        + (
+            "本运行确认度适用，以上各项照常核对，预期表的对应仍未核。"
+            if macro.get("confirmation", {}).get("applicable")
+            else f"本运行同样不适用（{macro.get('confirmation', {}).get('stage_reason')}）。"
+        ),
         "",
         "### 明细",
         "",
