@@ -4,7 +4,7 @@
 
 **Blocked by:** 01, 02, 03, 04, 05, 07；以及残余分流后实施的票（残余 01、02、03、04，体检 17）
 
-**Status:** blocked
+**Status:** ready-for-agent
 
 - [ ] 重装 dev-venv 后跑 `check.py full`（经 flock，带 C 盘保护），结果通过
 - [ ] 真实运行成功，外部调用串行，记录回执数与失败数
