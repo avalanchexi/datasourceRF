@@ -4,9 +4,9 @@
 |---|---|---|
 | [01](issues/01-recurring-context-observation-failures.md) | 每次运行固定 12 条失败回执（订正：篮子“无需新增”时把 12 张输入回执误标为 failed） | ready-for-agent（线 E） |
 | [02](issues/02-calendar-parser-missing-day-read-as-closed.md) | 日历解析器把漏列的日子当作休市 | ready-for-agent（线 B，排在票 03 之后） |
-| [03](issues/03-core-pre-window-inputs-untraceable.md) | 核心窗口前输入追溯断链 | needs-info（问用户：扩大留存 A／体检精确恢复 B／维持现状 C，推荐 B） |
+| [03](issues/03-core-pre-window-inputs-untraceable.md) | 核心窗口前输入追溯断链 | ready-for-agent（用户选 B：体检精确恢复；线 F） |
 | [体检 17](../data-quality-audit-20261010/issues/17-audit-multi-source-note-lists-excluded-claims.md) | 体检备注误列已排除的错期值 | ready-for-agent（线 C，排在 05 之后） |
-| 用户决定项 | P2 指标 USDCNY 16:30、SOX 是否也只核最新值（同中间价） | 待问（取证见下；推荐“最新值＋比较上下文”，SOX 授权缺口保留） |
+| [04](issues/04-audit-p2-quotes-latest-plus-comparison.md) | 体检对 USDCNY 16:30、SOX 改为“最新值＋比较上下文”口径（用户决定项） | ready-for-agent（用户选同中间价；线 C，排在体检 17 之后） |
 
 ## P2 口径取证（2026-10-11 分流，codex g4 第 B 部分）
 

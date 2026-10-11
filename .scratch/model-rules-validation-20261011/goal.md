@@ -75,9 +75,11 @@
 | 阶段 | 票 | 状态 | 提交 |
 |---|---|---|---|
 | 1-A | 01 → 02 | 01 实施中（子代理 mr-01，主工作区） | |
-| 1-B | 03 | 实施中（子代理 mr-03，worktree） | |
-| 1-C | 04 → 05 | 04 实施中（子代理 mr-04，worktree） | |
-| 1-D | 残余分流 01–03、体检 17、P2 口径 | 分流完成：01 ready-for-agent（线 E）；02 ready-for-agent（线 B，03 之后）；体检 17 ready-for-agent（线 C，05 之后）；03、P2 needs-info 待用户答 | |
+| 1-B | 03 → 残余 02 | 03 实施中（子代理 mr-03，worktree） | |
+| 1-C | 04 → 05 → 体检 17 → 残余 04 | 04 实施中（子代理 mr-04，worktree） | |
+| 1-E | 残余 01 | 实施中（子代理 rt-01，worktree） | |
+| 1-F | 残余 03 | 实施中（子代理 rt-03，worktree） | |
+| 1-D | 残余分流 01–03、体检 17、P2 口径 | done：01 ready-for-agent（线 E）；02 ready-for-agent（线 B，03 之后）；体检 17 ready-for-agent（线 C，05 之后）；03 用户选 B 体检精确恢复（线 F）；P2 用户选同中间价，新开残余 04（线 C，17 之后） | 8255232 |
 | 2 | 06 收尾验收 | blocked | |
 
 ## 监控提示词（CronCreate 用）
