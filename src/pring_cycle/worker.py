@@ -38,11 +38,13 @@ from pring_cycle.context_projection import (
 from pring_cycle.credit_impulse import InputPeriods
 from pring_cycle.day_summary import (
     CORE_METRICS,
+    CoreReadiness,
     DaySummaries,
     FailedDay,
     ModelRules,
     RunMaterials,
 )
+from pring_cycle.domain.trend import TrendRules
 from pring_cycle.eia_context import (
     EiaPetroleumAdapter,
 )
@@ -98,6 +100,7 @@ from pring_cycle.runtime import RuntimeNotInitializedError, RuntimePaths
 from pring_cycle.secrets import parse_data_source_secrets
 from pring_cycle.source_adapters import TushareCoreAdapter
 from pring_cycle.source_contract_review import require_model_source_contract
+from pring_cycle.stage_lookback import FAILED, HeldCore, StageLookback, look_back_for_stage
 from pring_cycle.storage import database_health, keep_database_open, record_worker_heartbeat
 from pring_cycle.trading_calendar import (
     Sessions,
@@ -608,6 +611,7 @@ def _execute_run(
             step_done=step_done,
             snapshot_frozen=snapshot_frozen,
             day_failed=day_failed,
+            look_back=_stage_lookback(paths, run, summary_model.trend_rules),
         ),
         backfill_window=tuple(plan["final"]["daily_window"].get("dates", ())),
     )
@@ -2161,6 +2165,45 @@ def _refresh_core_sources(
             )
         except (KeyError, TypeError, ValueError, OSError):
             continue
+
+
+def _stage_lookback(
+    paths: RuntimePaths, run: RunRecord, rules: TrendRules
+) -> Callable[[CoreReadiness, date], StageLookback]:
+    """Look back for the last confirmed stage through TuShare, as the run's calls (ADR-0040).
+
+    The outcome goes on the run's plan, where its reach and cost are read; a failed one is
+    also a warning event, and the run goes on without it.
+    """
+    from pring_cycle.acquisition import own_acquisitions
+    from pring_cycle.full_retrieval import record_first_outcome
+
+    def look_back(readiness: CoreReadiness, window_start: date) -> StageLookback:
+        token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
+        if token is None:
+            outcome = StageLookback(FAILED, failure="tushare_token_missing")
+        else:
+            with own_acquisitions(
+                paths.database,
+                run.run_id,
+                "core_lookback",
+                metric_ids=tuple(CORE_METRICS.values()),
+            ):
+                outcome = look_back_for_stage(
+                    paths,
+                    TushareCoreAdapter(token),
+                    {item.asset: HeldCore(item.metric_id, item.closes) for item in readiness},
+                    window_start=window_start,
+                    rules=rules,
+                )
+        record_first_outcome(paths.database, run.run_id, "core_lookback", outcome.document())
+        if outcome.status == FAILED:
+            write_runtime_event(
+                paths, "worker", f"core_lookback_failed:{outcome.failure}", "warning"
+            )
+        return outcome
+
+    return look_back
 
 
 def _generate_report(

@@ -15,6 +15,7 @@ from pring_cycle.projections import (
     ProjectionSetRepository,
     validate_analytical_projection,
 )
+from pring_cycle.stage_lookback import FOUND, StageLookback
 
 # A core one session behind its target is priced at its previous session (ticket 21).
 CARRIED_FORWARD = "carried_forward_one_session"
@@ -68,6 +69,7 @@ class P0ProjectionService:
         system_as_of: datetime,
         assets: tuple[CoreAssetReadiness, CoreAssetReadiness, CoreAssetReadiness],
         last_confirmed_stage: FormalStage | None,
+        lookback: StageLookback | None = None,
         model_version_id: str = "model-v0001",
         warnings: tuple[str, ...] = (),
         evidence_snapshot_id: str | None = None,
@@ -81,13 +83,19 @@ class P0ProjectionService:
         """Publish the day's set; ``decided`` is its formal stage when already decided.
 
         The confirmation built before read that same stage (``formal_stage``); without
-        one, it is decided here.
+        one, it is decided here. A ``lookback`` (ADR-0040) is published with the overview and
+        the stage history, and the stage it found stands as the last confirmed one there; the
+        day's assessment keeps what the window's history says.
         """
         gaps = _core_gaps(assets)
         decided = decided or formal_stage(assets)
         # The cores' stage is the last confirmed one; without one, the one before stands.
         stage = replace(
             decided, last_confirmed_stage=decided.last_confirmed_stage or last_confirmed_stage
+        )
+        lookback_document = lookback.document() if lookback is not None else None
+        shown_stage = stage.last_confirmed_stage or (
+            lookback.stage if lookback is not None and lookback.status == FOUND else None
         )
         resolved_macro_document = macro_document or _default_macro_document()
         resolved_inventory_document = inventory_document or _default_inventory_document()
@@ -115,9 +123,7 @@ class P0ProjectionService:
         identity_document = {
             "assets": asset_documents,
             "current_stage": stage.current_stage.value if stage.current_stage else None,
-            "last_confirmed_stage": (
-                stage.last_confirmed_stage.value if stage.last_confirmed_stage else None
-            ),
+            "last_confirmed_stage": shown_stage.value if shown_stage else None,
             "model_version_id": model_version_id,
             "evidence_snapshot_id": resolved_snapshot_id,
             "stage_reason": stage.reason,
@@ -131,6 +137,8 @@ class P0ProjectionService:
         }
         if model_inputs is not None:
             identity_document["core_model_input_observation_version_ids"] = model_inputs
+        if lookback_document is not None:
+            identity_document["last_confirmed_lookback"] = lookback_document
         if (batch_id := current_batch_id()) is not None:
             # A re-run of the same day is a new batch with its own summaries (ADR-0022).
             identity_document["batch_id"] = batch_id
@@ -183,9 +191,7 @@ class P0ProjectionService:
         datasets["cycle_overview"].update(
             {
                 "current_stage": stage.current_stage.value if stage.current_stage else None,
-                "last_confirmed_stage": (
-                    stage.last_confirmed_stage.value if stage.last_confirmed_stage else None
-                ),
+                "last_confirmed_stage": shown_stage.value if shown_stage else None,
                 "stage_reason": stage.reason,
                 "core_assets": asset_documents,
                 "transition_watch": [],
@@ -196,6 +202,9 @@ class P0ProjectionService:
                 "core_carry_forward": carried,
             }
         )
+        if lookback_document is not None:
+            datasets["cycle_overview"]["last_confirmed_lookback"] = lookback_document
+            datasets["stage_history"]["last_confirmed_lookback"] = lookback_document
         datasets["core_assets"]["assets"] = asset_documents
         if model_inputs is not None:
             datasets["core_assets"]["model_input_observation_version_ids"] = model_inputs
@@ -218,7 +227,7 @@ class P0ProjectionService:
                 "published",
                 projection_set_id,
                 stage.current_stage,
-                stage.last_confirmed_stage,
+                shown_stage,
                 stage.reason,
                 (),
                 str(assessment["assessment_id"]),
@@ -230,7 +239,7 @@ class P0ProjectionService:
             "published",
             projection_set_id,
             stage.current_stage,
-            stage.last_confirmed_stage,
+            shown_stage,
             stage.reason,
             (),
             str(assessment["assessment_id"]),

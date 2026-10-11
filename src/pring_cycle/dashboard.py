@@ -186,7 +186,11 @@ def _home_page(projection: ProjectionSet | None) -> html.Div:
                     html.Div(
                         [
                             _compact_fact(
-                                "上一确认阶段", _stage_label(overview.get("last_confirmed_stage"))
+                                "上一确认阶段",
+                                _last_confirmed_label(
+                                    overview.get("last_confirmed_stage"),
+                                    overview.get("last_confirmed_lookback"),
+                                ),
                             ),
                             _compact_fact(
                                 "业务日",
@@ -670,6 +674,7 @@ def _stage_history_page(
         if isinstance(projection_events, list)
         else []
     )
+    lookback = document.get("last_confirmed_lookback")
     return html.Div(
         [
             _page_heading("阶段历史", "FORMAL STAGE HISTORY"),
@@ -677,6 +682,7 @@ def _stage_history_page(
                 "正式区间、非典型组合与不可用空档均显式保留，不连续填充。",
                 className="body-copy page-intro",
             ),
+            *([_lookback_section(lookback)] if isinstance(lookback, dict) else []),
             html.Section(
                 [
                     _section_heading("正式区间与空档", "IMMUTABLE EVENTS"),
@@ -694,6 +700,22 @@ def _stage_history_page(
             ),
         ],
         className="page-stack",
+    )
+
+
+def _lookback_section(lookback: dict[str, object]) -> html.Section:
+    return html.Section(
+        [
+            _section_heading("窗口前的上一确认阶段", "LOOKBACK BEFORE THE WINDOW"),
+            html.P(_last_confirmed_label(lookback.get("stage"), lookback), className="body-copy"),
+            html.P(
+                f"回溯 {lookback.get('years')} 年，区间请求 {lookback.get('core_requests')} 次、"
+                f"日历请求 {lookback.get('calendar_requests')} 次；"
+                "回溯的价格只用于找出上一确认阶段，不进入宏观确认度与模型输入。",
+                className="secondary-copy",
+            ),
+        ],
+        className="content-section",
     )
 
 
@@ -2062,6 +2084,7 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
             _compact_fact("报告身份", report.report_snapshot_id),
             _compact_fact("投影身份", report.projection_set_id),
             _compact_fact("正式阶段", _stage_label(report.current_stage)),
+            *_report_last_confirmed(report.body),
             _compact_fact("截止点", report.report_cutoff.isoformat()),
             _compact_fact(
                 "时效判定", freshness_statement(report.target_business_date, report.report_cutoff)
@@ -2343,6 +2366,33 @@ def _stage_label(value: object) -> str:
     if value is None:
         return "当前阶段暂不判定"
     return labels.get(str(value).lower(), str(value))
+
+
+def _last_confirmed_label(stage: object, lookback: object) -> str:
+    """The last confirmed stage; one looked back for before the window says so (ADR-0040)."""
+    if not isinstance(lookback, dict):
+        return _stage_label(stage)
+    if lookback.get("status") == "found":
+        return f"{_stage_label(stage)}（回溯得出，最近一次在 {lookback.get('stage_date')}）"
+    if lookback.get("status") == "not_found":
+        reach = f"{lookback.get('searched_from')}～{lookback.get('searched_through')}"
+        return f"尚无（已回溯 {lookback.get('years')} 年，{reach} 无正式阶段）"
+    return f"尚无（回溯失败：{lookback.get('failure') or '未记录原因'}）"
+
+
+def _report_last_confirmed(body: dict[str, Any]) -> list[html.Div]:
+    results = body.get("verified_results")
+    stage = results.get("formal_stage") if isinstance(results, dict) else None
+    if not isinstance(stage, dict):
+        return []
+    return [
+        _compact_fact(
+            "上一确认阶段",
+            _last_confirmed_label(
+                stage.get("last_confirmed_stage"), stage.get("last_confirmed_lookback")
+            ),
+        )
+    ]
 
 
 def _stage_explanation(overview: dict[str, object]) -> str:

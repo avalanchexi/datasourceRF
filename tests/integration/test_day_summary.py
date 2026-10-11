@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from dataclasses import replace
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -17,9 +18,11 @@ from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import P0ProjectionService
 from pring_cycle.projections import ProjectionSet, ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths
+from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.trading_calendar import TradingCalendar
 from tests.integration.test_backfill import cpi_periods, query, summary
 from tests.integration.test_core_carry_forward import CUTOFF, TARGET, seed_cores, sessions
+from tests.integration.test_decertified_main_chain import claim
 from tests.integration.test_worker_execution import runtime
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -108,6 +111,58 @@ def test_a_backfilled_day_is_held_only_by_a_session_missing_by_then(tmp_path: Pa
     assert stage(summary(paths, before))[0] == "stage_iii"
     assert stage(summary(paths, after)) == (None, "core_data_pending")
     assert core(summary(paths, after), "stock")["reason"] == "window_session_missing"
+
+
+def test_a_day_summarized_again_without_a_stage_is_no_longer_the_last_confirmed_one(
+    tmp_path: Path,
+) -> None:
+    # Each day counts by its latest summary (ADR-0040): a day summarized again without a
+    # stage, the target among them, no longer has one, so the day looks back past the window.
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    staged = sessions()[-6]
+    module = summaries(paths)
+    asked: list[date] = []
+
+    def summarize(day: date, minutes: int) -> ProjectionSet:
+        def look_back(_readiness: object, window_start: date) -> None:
+            asked.append(window_start)
+
+        result = module.summarize_target(
+            day.isoformat(),
+            system_as_of=CUTOFF + timedelta(minutes=minutes),
+            run_materials=RunMaterials(look_back=look_back),
+        ).result
+        assert result.projection_set_id is not None
+        return ProjectionSetRepository(paths.database).get(result.projection_set_id)
+
+    assert stage(summarize(staged, 0))[0] == "stage_iii"
+    EvidenceRepository(paths.database).append_source_claims(
+        (stock_conflict(staged), stock_conflict(TARGET))
+    )
+
+    assert stage(summarize(staged, 1)) == (None, "core_data_pending")
+    projection = summarize(TARGET, 2)
+
+    assert stage(projection) == (None, "core_data_pending")
+    assert projection.datasets["cycle_overview"]["last_confirmed_stage"] is None
+    assert asked == [staged, TARGET]
+
+
+def stock_conflict(day: date) -> SourceClaimInput:
+    """An official stock close that disagrees with TuShare's: the day's stage is held."""
+    api_name, code = CORE_API_IDENTITIES["CN_EQUITY_CORE_000985"]
+    return replace(
+        claim(
+            "CN_EQUITY_CORE_000985",
+            day,
+            1.0,
+            unit="index_points",
+            provider="official",
+            reference=f"official:{code}:{day}",
+        ),
+        release_event_id=f"official:{code}:{day}",
+    )
 
 
 def test_a_backfilled_day_the_calendar_does_not_reach_back_for_fails(tmp_path: Path) -> None:

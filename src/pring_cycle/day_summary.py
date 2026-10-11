@@ -49,6 +49,7 @@ from pring_cycle.p0 import (
 )
 from pring_cycle.price_consistency import CorePrices
 from pring_cycle.projections import ProjectionSetRepository
+from pring_cycle.stage_lookback import StageLookback
 from pring_cycle.trading_calendar import TradingCalendar, run_calendar_scope, use_run_calendar
 
 CORE_METRICS = {
@@ -81,6 +82,10 @@ def _ignore(_value: object) -> None:
     return None
 
 
+def _no_lookback(_readiness: CoreReadiness, _window_start: date) -> StageLookback | None:
+    return None
+
+
 @dataclass(frozen=True)
 class FailedDay:
     """A window day that could not be summarized; a later run tries it again."""
@@ -100,6 +105,10 @@ class RunMaterials:
     (a run advances its own steps there, and a cancelled run stops the summary by
     raising); ``snapshot_frozen`` gets the evidence snapshot id before publishing, and
     ``day_failed`` each backfilled day that could not be summarized.
+
+    ``look_back`` is asked for the last confirmed stage before the window's first day when
+    neither the target nor the stage history has one (ADR-0040); it is given the target's
+    readiness, whose closes it reads back from.
     """
 
     freshness_gaps: tuple[Mapping[str, object], ...] = ()
@@ -110,6 +119,7 @@ class RunMaterials:
     step_done: Callable[[str], None] = _ignore
     snapshot_frozen: Callable[[str], None] = _ignore
     day_failed: Callable[[FailedDay], None] = _ignore
+    look_back: Callable[[CoreReadiness, date], StageLookback | None] = _no_lookback
 
 
 @dataclass(frozen=True)
@@ -226,6 +236,12 @@ class DaySummaries:
             )
             run_materials.step_done("backfill")
             last_stage = self._last_confirmed_stage(day)
+            # Read after the context and the snapshot's inputs are set: it changes neither.
+            lookback = (
+                run_materials.look_back(readiness, date.fromisoformat(min((*backfill_window, day))))
+                if decided.current_stage is None and last_stage is None
+                else None
+            )
             snapshot_id = self._freeze(readiness, context, system_as_of=system_as_of)
             if snapshot_id is not None:
                 run_materials.snapshot_frozen(snapshot_id)
@@ -234,6 +250,7 @@ class DaySummaries:
                 system_as_of=system_as_of,
                 assets=readiness,
                 last_confirmed_stage=last_stage,
+                lookback=lookback,
                 model_version_id=self._model.model_version_id,
                 warnings=tuple(
                     dict.fromkeys(run_materials.explanatory_warnings(context) + context.warnings)
@@ -363,7 +380,10 @@ class DaySummaries:
         )
 
     def _last_confirmed_stage(self, day: str) -> FormalStage | None:
-        value = self._projections.last_confirmed_stage(on_or_before=day)
+        """The last stage before ``day``: what the day decides now outranks an earlier
+        summary of it, which this one supersedes."""
+        before = (date.fromisoformat(day) - timedelta(days=1)).isoformat()
+        value = self._projections.last_confirmed_stage(on_or_before=before)
         return FormalStage(str(value)) if value is not None else None
 
     def _core_readiness(

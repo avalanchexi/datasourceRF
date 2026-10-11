@@ -229,14 +229,25 @@ class ProjectionSetRepository:
         return frozenset(str(row[0]) for row in rows)
 
     def last_confirmed_stage(self, *, on_or_before: str) -> str | None:
+        """The stage of the latest day on or before ``on_or_before`` that had one.
+
+        Each day counts by its latest summary, in the order ``stage_history`` lists them: a
+        day summarized again without a stage no longer has one.
+        """
         date.fromisoformat(on_or_before)
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT document_json FROM p0_assessment
-                WHERE event_kind='formal' AND target_business_date <= ?
-                ORDER BY target_business_date DESC, julianday(system_as_of) DESC,
-                         assessment_id DESC
+                SELECT document_json FROM (
+                    SELECT event_kind, target_business_date, document_json,
+                           row_number() OVER (
+                               PARTITION BY target_business_date
+                               ORDER BY julianday(system_as_of) DESC, assessment_id DESC
+                           ) AS newer
+                    FROM p0_assessment WHERE target_business_date <= ?
+                )
+                WHERE newer = 1 AND event_kind='formal'
+                ORDER BY target_business_date DESC
                 LIMIT 1
                 """,
                 (on_or_before,),

@@ -257,6 +257,12 @@ def report_input_from_projection(projection: ProjectionSet) -> ReportInput:
             "change": latest_history.get("event_kind") if latest_history else None,
             "source": _CORE_SOURCE_LABEL,
             "anomaly": [f"carried_forward:{asset}" for asset in carried],
+            # Looked back for before the window, said so with its reach (ADR-0040).
+            **(
+                {"last_confirmed_lookback": overview["last_confirmed_lookback"]}
+                if isinstance(overview.get("last_confirmed_lookback"), dict)
+                else {}
+            ),
         },
         "core_assets": [_core_result(item, carried) for item in assets_value],
         **outputs,
