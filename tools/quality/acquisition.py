@@ -51,11 +51,23 @@ DATE_PARAMETERS = {
     "end_q", "year", "definition_version",
 }  # fmt: skip
 # Daily metrics needed only at the latest day plus the earlier value it is compared with, not
-# over the whole window (user decision 2026-10-10, ticket 09: the central parity is P2 context).
+# over the whole window: P2 context (user decisions 2026-10-10, audit ticket 09: the central
+# parity; 2026-10-11, residual ticket 04: the 16:30 close and SOX, the same way).
 LATEST_ONLY = {
     "CN_USDCNY_CENTRAL_PARITY": (
         "P2 参考指标，只要最新值和比较上下文（用户 2026-10-10 决定，票 09）"
     ),
+    "CN_USDCNY_CLOSE_1630": (
+        "P2 参考指标，只要最新值和比较上下文，同人民币中间价（用户 2026-10-11 决定，残余 04）"
+    ),
+    "NASDAQ_SOX_INDEX": (
+        "P2 参考指标，只要最新值和比较上下文，同人民币中间价（用户 2026-10-11 决定，残余 04）"
+    ),
+}
+# Daily metrics with no acquisition path at all: wherever their cells are counted the report
+# says so, so a narrower requirement does not hide the gap.
+NO_PATH = {
+    "NASDAQ_SOX_INDEX": "受限授权缺口（ADR-0029）：无取数路径、不检索，应有格照记未取到",
 }
 
 # Official NBS release items (``release_schedule`` origin ``nbs:schedule_page``) and how far the
@@ -114,6 +126,10 @@ class DailyResult:
     rules: dict[tuple[str, str], RuleNote] = field(default_factory=dict)
     # Missing cells whose announcement's stored parse holds the value: (cell, receipt, values).
     recoverable: list[tuple[Cell, str, str]] = field(default_factory=list)
+    # Gaps outside a latest-only metric's demand: not due, but the class and evidence the day
+    # would have had, keyed (metric, member, day). Information only; layer 2 reads it for the
+    # final plan's periods.
+    outside: dict[tuple[str, str, str], tuple[str, str]] = field(default_factory=dict)
 
 
 @dataclass
@@ -777,12 +793,11 @@ def daily(run: Run) -> DailyResult:
                 if kind == "uncovered":
                     result.cells.append(Cell(metric, member, day, UNCOVERED, f"{name} 日历"))
                     continue
-                if demand is not None and day not in demand:
-                    held_here = bool(by_day.get(day, set()) & compatible)
-                    note = "已持有" if held_here else ""
-                    result.cells.append(Cell(metric, member, day, OUT_OF_DEMAND, note))
-                    continue
+                outside = demand is not None and day not in demand
                 versions = by_day.get(day, set())
+                if versions & compatible and outside:
+                    result.cells.append(Cell(metric, member, day, OUT_OF_DEMAND, "已持有"))
+                    continue
                 if versions & compatible:
                     # Held; cells held only under an older catalog version with the same
                     # definition are counted apart.
@@ -803,6 +818,11 @@ def daily(run: Run) -> DailyResult:
                 if versions:
                     listed = "、".join(sorted(versions))
                     evidence = f"仅有定义不同的目录版本 {listed} 的声明；{evidence}"
+                if outside:
+                    # Not due; what the gap would have been is kept apart as information.
+                    result.outside[(metric, member, day)] = (status, evidence)
+                    result.cells.append(Cell(metric, member, day, OUT_OF_DEMAND))
+                    continue
                 cell = Cell(metric, member, day, status, evidence)
                 result.cells.append(cell)
                 if found:
@@ -1174,6 +1194,7 @@ def _conclusion(run: Run, result: DailyResult, periods, delays, absent) -> list[
             parts.append(
                 f"{metric}（模型用到：{scope_label(run, metric)}）{counted or '无不计入的格'}"
                 + (f"，{RECOVERABLE} {again} 格（计入未取到）" if again else "")
+                + (f"，{NO_PATH[metric]}" if metric in NO_PATH else "")
             )
         out.append(
             "- **按事件与需求口径核对的指标**不按“每个交易日都应有观测”计应有格，"
@@ -1265,26 +1286,33 @@ def _rule_tables(run: Run, result: DailyResult) -> list[str]:
         f"（当日无操作），记“{NO_NEW_VALUE}”，不计入应有格；`notices` 值非 0 或缺失、"
         "没有当日公告解析件的，都记未取到。",
         "- 只要最新值的指标（内置表 `LATEST_ONLY`）：只有最新开市日和与之比较的上一个值是应有格，"
-        f"其余日子记“{OUT_OF_DEMAND}”，不计入应有格；日历未覆盖的日子仍记日历未覆盖。",
+        f"其余日子记“{OUT_OF_DEMAND}”，不计入应有格；日历未覆盖的日子仍记日历未覆盖。"
+        "其中没有持有的日子仍照常分类，按类别计入“需求外缺格”一列，只作信息，不计入未取到。",
         "",
     ]
     rows = []
-    for (metric, member), note in result.rules.items():
-        cells = [c for c in result.cells if (c.metric, c.member) == (metric, member)]
+    for key, note in result.rules.items():
+        metric, member = key
+        cells = [c for c in result.cells if (c.metric, c.member) == key]
         counts = _counts(cells)
         skipped = Counter(c.status for c in cells if c.status in NOT_DUE)
+        outside = Counter(
+            status for (m, who, _), (status, _) in result.outside.items() if (m, who) == key
+        )
+        basis = note.basis + (f"；{NO_PATH[metric]}" if metric in NO_PATH else "")
         rows.append(
             [
                 metric,
                 scope_label(run, metric),
                 _display(member),
-                note.basis,
+                basis,
                 len(cells),
                 sum(counts.values()),
                 counts[HELD],
                 counts[NOT_FETCHED] + counts[NOT_PUBLISHED],
                 "、".join(f"{s} {n}" for s, n in sorted(skipped.items())) or "0",
                 sum(1 for c in cells if c.status == OUT_OF_DEMAND and c.evidence),
+                "、".join(f"{s} {n}" for s, n in sorted(outside.items())) or "0",
                 note.note,
             ]
         )
@@ -1299,6 +1327,7 @@ def _rule_tables(run: Run, result: DailyResult) -> list[str]:
         "缺格",
         "不计入应有",
         "其中已持有",
+        "需求外缺格",
         "说明",
     ]
     out += [table(headers, rows), "", "不计入应有的格：", ""]

@@ -6,7 +6,7 @@
 | [02](issues/02-calendar-parser-missing-day-read-as-closed.md) | 日历解析器把漏列的日子当作休市 | ready-for-agent（线 B，排在票 03 之后） |
 | [03](issues/03-core-pre-window-inputs-untraceable.md) | 核心窗口前输入追溯断链 | done（用户选 B：体检精确恢复；线 F，480/480 命中） |
 | [体检 17](../data-quality-audit-20261010/issues/17-audit-multi-source-note-lists-excluded-claims.md) | 体检备注误列已排除的错期值 | done（线 C；多源 20→2，数值与结论变化 0） |
-| [04](issues/04-audit-p2-quotes-latest-plus-comparison.md) | 体检对 USDCNY 16:30、SOX 改为“最新值＋比较上下文”口径（用户决定项） | ready-for-agent（用户选同中间价；线 C，排在体检 17 之后） |
+| [04](issues/04-audit-p2-quotes-latest-plus-comparison.md) | 体检对 USDCNY 16:30、SOX 改为“最新值＋比较上下文”口径（用户决定项） | done（用户选同中间价；线 C；目录日频 7589／7331／250 → 7347／7329／10，第二层只多一处需求外标签） |
 
 ## P2 口径取证（2026-10-11 分流，codex g4 第 B 部分）
 

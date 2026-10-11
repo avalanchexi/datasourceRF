@@ -285,6 +285,11 @@ def _explain(run: Run, final: dict, items: list[MissingItem], selected: set) -> 
         item.carried = _one_behind(run, final, item, series, carried_core, selected)
         cell = cells.get((item.metric, item.member, item.period))
         item.layer1 = cell.status if cell else "（第一层未逐格核对）"
+        # Outside a latest-only metric's demand layer 1 does not count the day, but the plan
+        # still asks for it: explain it by the class the gap would have had.
+        outside = result.outside.get((item.metric, item.member, item.period))
+        if outside:
+            item.layer1 = f"{item.layer1}（{outside[0]}）"
         held = _claims(run, item.metric, item.member, item.period)
         if held:
             _, available, public, inferred, quality = held[0]
@@ -303,6 +308,8 @@ def _explain(run: Run, final: dict, items: list[MissingItem], selected: set) -> 
             else:
                 item.kind = HELD_UNEXPLAINED
                 item.reason = f"{stamp}，公开 {_fmt(effective)}；本脚本无法解释为何未进模型"
+        elif outside:
+            item.kind, item.reason = outside
         elif cell and cell.status != HELD:
             item.kind, item.reason = cell.status, cell.evidence
         else:
