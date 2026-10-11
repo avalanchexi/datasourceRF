@@ -73,10 +73,16 @@ BREADTH_DEFINITION = (
     "成交额占比用 daily.amount；N 日新高新低为 topdays／lowdays ≥ N；站上均线为前复权收盘价严格"
     "大于均线，分母为当天有交易且因子不为空的股票"
 )
-BASKET_REASON = (
-    "需逐合约结算价按换月规则从期货原件重建篮子；广度的累计起止日、首日贡献是否计入、"
-    "持平如何处理，定义中都不完整"
+# The commodity basket's sleeve breadth, as written in the audit document (user interview
+# 2026-10-11, Q7). The span's first session only anchors it; flat stands apart.
+BASKET_DEFINITION = (
+    "121 日跨度、首日作锚，累计其后 120 日；分项贡献直接相加；篮子按每日分项贡献合计复利；"
+    "持平单列（分项容差 1e-12 个百分点，篮子水平容差 1e-9）"
 )
+BASKET_KNOWN = (
+    "已知（篮子水平与分项贡献序列本身未从期货原件重建，以入库的分项贡献声明为原料，见文档）"
+)
+SLEEVE_TOLERANCE, BASKET_TOLERANCE = 1e-12, 1e-9
 BREADTH = {
     "CN_EQ_ADV_DEC": "股市广度：上涨／下跌／平盘家数",
     "CN_EQ_AD_RATIO": "股市广度：涨跌比",
@@ -695,6 +701,8 @@ class Item:
     rows: list[Compared] = field(default_factory=list)
     problems: list[str] = field(default_factory=list)
     known: str = ""
+    # A subsection of its own (title, then Markdown lines), shown after the series tables.
+    detail: list[str] = field(default_factory=list)
 
 
 def _compare(formula, reading, period, stored, run_calc) -> Compared:
@@ -1284,12 +1292,310 @@ def _price_items(run: Run, macro: dict, held: Held, sessions: Sessions) -> list[
         items.append(item)
     breadth = rules.get("basket_breadth")
     if breadth:
-        formula = breadth.get("dimensions", {}).get("formula_version", "ex-hog-calendar-settlement")
-        label = "价格一致性：商品篮子分项广度（及篮子、分项贡献序列）"
-        where = "投影（macro）；篮子与分项以来源声明入库"
-        status = f"读数状态 {(shown.get('basket_breadth') or {}).get('status', '—')}"
-        items.append(Item(formula, label, where, True, status, UNCHECKABLE, BASKET_REASON))
+        items.append(_basket_item(run, macro, held, sessions, breadth, momentum))
     return items
+
+
+def _direction(value: float, against: float, tolerance: float) -> str:
+    if value - against > tolerance:
+        return "up"
+    if against - value > tolerance:
+        return "down"
+    return "flat"
+
+
+def _covered_span(sessions: Sessions, target: str, count: int) -> list[str] | None:
+    """The ``count`` SSE sessions to the target day (or the open day before it), when the
+    calendar speaks for every day from the first of them to the target day."""
+    days = sessions.up_to(target)
+    if len(days) < count:
+        return None
+    span = days[-count:]
+    day = date.fromisoformat(span[0])
+    while day.isoformat() <= target:
+        if day.isoformat() not in sessions.covered:
+            return None
+        day += timedelta(days=1)
+    return span
+
+
+def _gaps(sleeve: str, absent: list[str], days: list[str]) -> list[str]:
+    """``absent`` days of ``days``, neighbouring ones merged: ``sleeve:day`` or ``sleeve:a..b``."""
+    lacking, out, first, last = set(absent), [], None, None
+    for day in [*days, None]:  # a trailing None closes the last run
+        if day is not None and day in lacking:
+            first, last = first or day, day
+            continue
+        if first is not None:
+            out.append(f"{sleeve}:{first}" if first == last else f"{sleeve}:{first}..{last}")
+            first = last = None
+    return out
+
+
+def _basket_reading(sums: dict[str, float], level: float, texts: dict) -> dict:
+    """The basket's direction, how many sleeves move with it, and the reading's word."""
+    direction = _direction(level, 1.0, BASKET_TOLERANCE)
+    sleeves = {s: _direction(v, 0.0, SLEEVE_TOLERANCE) for s, v in sums.items()}
+    along, of = sum(d == direction for d in sleeves.values()), len(sums)
+    if direction == "flat":
+        reading = "flat"
+    elif along == 0:
+        reading = "unaligned"
+    else:
+        breadth = "broad" if along * 2 > of else "single_sleeve" if along == 1 else "few_sleeves"
+        reading = f"{breadth}_{'rise' if direction == 'up' else 'fall'}"
+    return {
+        "status": "read",
+        "direction": direction,
+        "sleeve_directions": sleeves,
+        "return_pct": (level - 1) * 100,
+        "along": along,
+        "of": of,
+        "reading": reading,
+        "text": texts.get(reading),
+        "missing": [],
+    }
+
+
+def _basket_item(run: Run, macro: dict, held: Held, sessions: Sessions, rule, momentum) -> Item:
+    """The commodity basket's sleeve breadth, recomputed from the sleeves' contribution claims
+    by the rules written in the audit document, and set against the run's projection."""
+    dims = rule.get("dimensions") or {}
+    formula = dims.get("formula_version", "ex-hog-calendar-settlement")
+    label = "价格一致性：商品篮子分项广度"
+    shown = (macro.get("price_consistency") or {}).get("basket_breadth") or {}
+    item = Item(formula, label, "投影（macro）；分项贡献以来源声明入库", True)
+    item.presence = f"读数状态 {shown.get('status', '—')}"
+    item.note, item.known = BASKET_DEFINITION, BASKET_KNOWN
+    metric, sleeves = rule.get("metric_id"), list(rule.get("sleeves") or [])
+    count = (momentum or {}).get("sessions")
+    if not metric or not sleeves or type(count) is not int:
+        item.verdict, item.known = UNCHECKABLE, ""
+        item.note = "冻结规则缺分项贡献指标、分项清单或相对动量跨度"
+        return item
+    if not shown:
+        item.problems.append("投影中没有商品篮子分项广度读数")
+    lineage = frozenset(macro.get("model_input_observation_version_ids") or [])
+    span = _covered_span(sessions, run.target_date, count + 1)
+    days = span[1:] if span else []
+    contributions: dict[str, dict[str, float]] = {}
+    absent: dict[str, list[str]] = {}
+    notes: list[str] = []
+    cells, good = _contribution_cells(run, held, metric, dims, set(days))
+    for sleeve in sleeves:
+        for day in days:
+            value, note = _pick_contribution(cells.get((sleeve, day), []), lineage, good)
+            if note:
+                notes.append(f"{sleeve} {day}：{note}")
+            if value is None:
+                absent.setdefault(sleeve, []).append(day)
+            else:
+                contributions.setdefault(sleeve, {})[day] = value
+    if span is None:
+        mine = {"status": "unconfirmed", "missing": ["trading_calendar_incomplete"]}
+    elif absent:
+        missing = [g for s in sleeves if s in absent for g in _gaps(s, absent[s], days)]
+        mine = {"status": "unconfirmed", "missing": missing}
+    else:
+        sums = {s: sum(contributions[s][d] for d in days) for s in sleeves}
+        level = 1.0
+        for day in days:
+            level *= 1 + sum(contributions[s][day] for s in sleeves) / 100
+        mine = {**_basket_reading(sums, level, rule.get("texts") or {}), "sums": sums}
+
+    period = span[-1] if span else run.target_date
+    listed = [e.get("sleeve") for e in shown.get("sleeves") or []]
+    stored_sleeves = {e.get("sleeve"): e for e in shown.get("sleeves") or []}
+    if mine["status"] == "read":
+        note = "；".join(dict.fromkeys(notes))
+        for sleeve in sleeves:
+            stored = (stored_sleeves.get(sleeve) or {}).get("sum_pp")
+            item.rows.append(
+                _against(formula, f"sum_pp:{sleeve}", period, stored, mine["sums"][sleeve], note)
+            )
+        item.rows.append(
+            _against(
+                formula, "return_pct", period, shown.get("return_pct"), mine["return_pct"], note
+            )
+        )
+    elif shown.get("status") == "read":
+        why = "缺 " + "、".join(mine["missing"]) + "（声明可能已被留存删除）"
+        item.rows.append(
+            Compared(formula, "return_pct", period, shown.get("return_pct"), None, NO_INPUT, why)
+        )
+        item.known = "已知（原料不齐：分项贡献声明可能已被留存删除，见文档）"
+    else:
+        same = shown.get("missing") == mine["missing"]
+        item.rows.append(
+            Compared(formula, "missing", period, None, None, AGREE if same else DIFFER,
+                     "缺 " + "、".join(mine["missing"]) + "，按规则不读")
+        )  # fmt: skip
+
+    wanted = {
+        "status": mine["status"],
+        "direction": mine.get("direction"),
+        "along": mine.get("along"),
+        "of": len(sleeves),
+        "reading": mine.get("reading"),
+        "text": mine.get("text"),
+        "missing": mine["missing"],
+    }
+    if mine["status"] != "read":
+        wanted["return_pct"] = None
+    if shown and (mine["status"] == "read" or shown.get("status") != "read"):
+        for key, value in wanted.items():
+            if shown.get(key) != value:
+                item.problems.append(f"basket_breadth.{key} 库中 {shown.get(key)}、重算 {value}")
+        for sleeve in sleeves:
+            want = mine.get("sleeve_directions", {}).get(sleeve)
+            got = stored_sleeves.get(sleeve) or {}
+            if got.get("direction") != want:
+                item.problems.append(
+                    f"basket_breadth {sleeve} 方向 库中 {got.get('direction')}、重算 {want}"
+                )
+            if mine["status"] != "read" and got.get("sum_pp") is not None:
+                item.problems.append(f"basket_breadth {sleeve} 按规则不读，库中却有累计")
+        if sorted(map(str, listed)) != sorted(sleeves):
+            item.problems.append(f"basket_breadth 分项 库中 {listed}、冻结 {sleeves}")
+    inputs = _basket_inputs(run, metric, dims, sleeves, lineage, span, days, mine["status"])
+    if inputs[1]:
+        item.problems.append(inputs[1])
+    item.detail = _basket_detail(span, sleeves, shown, mine, inputs[0], notes)
+    return item
+
+
+def _contribution_cells(run: Run, held: Held, metric: str, dims: dict, days: set[str]):
+    """The candidate claims of each (sleeve, day): usable as ``held`` reads them, with every
+    key of ``dims`` among their dimensions; and which claims a consumer may read (validated,
+    a reported value, a number)."""
+    cells: dict[tuple[str, str], list[tuple[str, float | None]]] = defaultdict(list)
+    good: set[str] = set()
+    rows = run.db.execute(
+        "SELECT claim_id, period_end, dimensions_json, value, definition_version,"
+        " COALESCE(public_available_at, inferred_public_at), available_at, supersedes_claim_id,"
+        " quality_status, value_state FROM source_claim WHERE metric_id = ?",
+        (metric,),
+    )
+    kept = []
+    for claim_id, period, dimensions, value, version, public, available, supersedes, *q in rows:
+        d = json.loads(dimensions)
+        if period not in days or any(d.get(k) != v for k, v in dims.items()):
+            continue
+        claim = Claim(claim_id, value, version, parse_time(public) if public else None,
+                      available, supersedes)  # fmt: skip
+        if held._usable(metric, claim):
+            kept.append((d.get("sleeve"), period, claim))
+            if q == ["validated", "reported_value"] and _number(value):
+                good.add(claim_id)
+    superseded = {c.supersedes for _, _, c in kept if c.supersedes}
+    for sleeve, period, c in kept:
+        if c.claim_id not in superseded:
+            cells[(sleeve, period)].append((c.claim_id, c.value))
+    return cells, good
+
+
+def _number(value) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool)
+
+
+def _pick_contribution(candidates, lineage, good) -> tuple[float | None, str]:
+    """One cell's value: the system's choice among the candidates, else their only value; the
+    claim used must be one a consumer may read. Choosing between sources is not checked."""
+    # Only numbers are sorted and shown; any other value leaves its claim unreadable below.
+    values = sorted({v for _, v in candidates if _number(v)})
+    split = f"多源取值不一致（{'／'.join(_num(v) for v in values)}）" if len(values) > 1 else ""
+    chosen = [(c, v) for c, v in candidates if c in lineage]
+    if not chosen:
+        if len(values) != 1:
+            return None, f"{split}，无系统所选可依" if split else ""
+        chosen = [(c, v) for c, v in candidates if v is not None]
+    if any(c not in good for c, _ in chosen) or len({v for _, v in chosen}) != 1:
+        return None, "所用声明不可读（未校验、非报告值或非数值）"
+    value = chosen[0][1]
+    return value, f"{split}，按系统所选 {_num(value)}" if split else ""
+
+
+def _against(formula, reading, period, stored, value, note) -> Compared:
+    if stored is None:
+        return Compared(formula, reading, period, None, value, DIFFER, "原料齐全，读数却为空")
+    return Compared(
+        formula, reading, period, stored, value, AGREE if _agrees(stored, value) else DIFFER, note
+    )
+
+
+def _basket_inputs(run, metric, dims, sleeves, lineage, span, days, status) -> tuple[str, str]:
+    """Which (sleeve, day) cells the run's frozen inputs cite a contribution claim for: when
+    the breadth is read, each of the summed days once, the anchor and beyond the span never."""
+    cells: Counter = Counter()
+    rows = run.db.execute(
+        "SELECT claim_id, period_end, dimensions_json FROM source_claim WHERE metric_id = ?",
+        (metric,),
+    )
+    for claim_id, period, dimensions in rows:
+        d = json.loads(dimensions)
+        if claim_id in lineage and all(d.get(k) == v for k, v in dims.items()):
+            cells[(d.get("sleeve"), period)] += 1
+    summed = {(s, day) for s in sleeves for day in days}
+    anchor = sum(n for (_, p), n in cells.items() if span and p == span[0])
+    outside = sum(
+        n for (s, p), n in cells.items() if (s, p) not in summed and not (span and p == span[0])
+    )
+    twice = sum(1 for c in summed if cells[c] > 1)
+    lacking = sum(1 for c in summed if not cells[c])
+    shown = (
+        f"计入 {sum(cells.values())} 条声明；累计各日 {len(summed) - lacking}/{len(summed)} 格有，"
+        f"重复 {twice} 格；跨度首日 {anchor} 条；跨度之外 {outside} 条"
+    )
+    if status != "read" or not (anchor or outside or twice or lacking):
+        return shown, ""
+    return shown, f"basket_breadth 计入输入不符：{shown}"
+
+
+def _basket_detail(span, sleeves, shown, mine, inputs, notes) -> list[str]:
+    stored = {e.get("sleeve"): e for e in shown.get("sleeves") or []}
+    out = ["### 商品篮子分项广度", ""]
+    if span:
+        out.append(f"跨度 {span[0]}（锚点，不计入）～{span[-1]}，累计 {len(span) - 1} 日。")
+    else:
+        out.append("上交所日历不覆盖跨度，按规则不读。")
+    out.append("")
+    cells = []
+    for sleeve in sleeves:
+        e = stored.get(sleeve) or {}
+        mine_sum = mine.get("sums", {}).get(sleeve)
+        cells.append(
+            [sleeve, _num(e.get("sum_pp")), _num(mine_sum), e.get("direction") or "—",
+             mine.get("sleeve_directions", {}).get(sleeve) or "—"]
+        )  # fmt: skip
+    cells.append(
+        ["篮子（复利收益 %）", _num(shown.get("return_pct")), _num(mine.get("return_pct")),
+         shown.get("direction") or "—", mine.get("direction") or "—"]
+    )  # fmt: skip
+    out.append(table(["分项", "库中累计（百分点）", "重算累计", "库中方向", "重算方向"], cells))
+    out.append("")
+    pairs = [
+        ("状态", shown.get("status"), mine["status"]),
+        ("同向数", f"{shown.get('along')}/{shown.get('of')}",
+         f"{mine.get('along')}/{mine.get('of')}" if mine["status"] == "read" else "—"),
+        ("读法", shown.get("reading"), mine.get("reading")),
+        ("文字", shown.get("text"), mine.get("text")),
+        ("缺项", "、".join(shown.get("missing") or []) or "无", "、".join(mine["missing"]) or "无"),
+    ]  # fmt: skip
+    out.append(
+        table(
+            ["读数", "库中", "重算"],
+            [[k, a if a is not None else "—", b if b is not None else "—"] for k, a, b in pairs],
+        )
+    )
+    out += ["", f"系统计入模型输入的分项贡献声明：{inputs}。"]
+    if notes:
+        out.append(
+            f"原料与选值备注 {len(notes)} 处：{'；'.join(notes[:5])}"
+            + ("……" if len(notes) > 5 else "")
+            + "。"
+        )
+    out.append("")
+    return out
 
 
 def _momentum(held, momentum, pair, reading, days) -> Compared:
@@ -1511,7 +1817,9 @@ def _items(run: Run) -> tuple[list[Item], list[list], list[list], list[str], lis
     for item in items:
         _verdict(item)
         item.note = item.note or RULE_FORMULAS.get(item.formula, "")
-        if item.verdict == UNCHECKABLE:
+        if item.known:
+            pass  # the item names its own known limitation
+        elif item.verdict == UNCHECKABLE:
             item.known = "已知（定义不足或本票未实现，记于票 02 与文档）"
         elif item.verdict.startswith(NO_INPUT):
             item.known = "已知（基日核心价格被留存删除，见文档“局限”）"
@@ -1585,4 +1893,6 @@ def section(run: Run) -> str:
         "当日结束前公开、目录定义与冻结定义相同、未被取代的来源声明。_",
         "",
     ]
+    for item in items:
+        out += item.detail
     return "\n".join(out)
