@@ -1,4 +1,4 @@
-Status: claimed
+Status: done
 Category: enhancement
 Type: task
 
@@ -19,17 +19,17 @@ Type: task
 
 ## 主要模块
 
-`worker.py`（`submit_schedule_if_crossed`、`run_worker` 初始化、`DeferredSchedule`）、ADR-0041、`docs/development/local-runtime.md`；测试 `tests/integration/test_worker_execution.py`、`tests/integration/test_run_orchestration.py`。
+`worker.py`（`submit_schedule_if_crossed`、`run_worker` 初始化、`DeferredSchedule`；实施后改名为 `submit_schedule_if_due`、`ScheduleCheck`）、ADR-0041、`docs/development/local-runtime.md`；测试 `tests/integration/test_worker_execution.py`、`tests/integration/test_run_orchestration.py`。
 
 ## 验收
 
-- [ ] 先有稳定变红的测试：09:00 后启动的 Worker 当天不提交（改写 `test_worker_execution.py:843` 的现有断言）
-- [ ] 09:00 后、21:00 前首次判断即补交一次；重复判断、Worker 重启后不重复提交（同一幂等键）
-- [ ] 21:00 后不再提交（含同日 08:59→21:01 的跨点场景）；21:00 精确边界与现有执行入口口径一致
-- [ ] 休市日、日历失败暂缓、跨日醒来的行为不变或有测试覆盖
-- [ ] 当天已判定结果有缓存，不每秒重复读全部日历
-- [ ] ADR-0041、`local-runtime.md`、规格补写 P0 截止口径与补交规则
-- [ ] 受影响测试、两例冒烟、重型两例、ruff、mypy 通过；Codex 两轴审查无阻断
+- [x] 先有稳定变红的测试：09:00 后启动的 Worker 当天不提交（改写 `test_worker_execution.py:843` 的现有断言）
+- [x] 09:00 后、21:00 前首次判断即补交一次；重复判断、Worker 重启后不重复提交（同一幂等键）
+- [x] 21:00 后不再提交（含同日 08:59→21:01 的跨点场景）；21:00 精确边界与现有执行入口口径一致
+- [x] 休市日、日历失败暂缓、跨日醒来的行为不变或有测试覆盖
+- [x] 当天已判定结果有缓存，不每秒重复读全部日历
+- [x] ADR-0041、`local-runtime.md`、规格补写 P0 截止口径与补交规则
+- [x] 受影响测试、两例冒烟、重型两例、ruff、mypy 通过；Codex 两轴审查无阻断
 
 ## Comments
 
@@ -50,3 +50,27 @@ Codex 只读取证全文：[triage-codex-02-06.md](../triage-codex-02-06.md) 第
 - 2026-10-12 16:55 ruff/format/mypy（worker.py 无错；测试文件 mypy 18 条均为既有行）通过；ADR-0041 补写一节、`local-runtime.md`、`spec.md` 已改。下一步 Codex 两轴审查（`/tmp/fub02-review-*.log`）。
 - 2026-10-12 17:20 审查第 1 轮：标准轴 1 阻断（测试打桩私有 `_scheduled_target`、断言 `ScheduleCheck` 字段）、规格轴无阻断＋2 非阻断（无模型边界、执行入口 21:00 边界测试）；已改为替换日历来源 `SseCalendar` 计数、只断言提交与请求，补执行入口边界用例，文档补无模型与重启区分。受影响测试 56 通过 73 秒（`/tmp/fub02-affected-2.log`）。下一步定向复审。
 - 2026-10-12 17:40 审查第 2 轮（定向复审，`/tmp/fub02-review-recheck-2.log`）：第 1 轮四项修复均确认到位；新增阻断 1 项——本轮新加的执行入口 21:00 边界用例沿用了周边打桩私有 `_refresh_core_sources` 的写法。已改为 TuShare 出口替身（`source_adapters.build_opener`，首个请求即以 `BaseException` 中止），只断言是否发出请求与运行分类；受影响测试 56 通过 72 秒（`/tmp/fub02-affected-3.log`），ruff 通过。按规程（两轮后仍有新阻断）暂停，待主 agent 批准后做一次定向复审再收尾。
+- 2026-10-12 17:30 第 3 轮定向复审（经用户批准，范围只限第 2 轮那项修复，`/tmp/fub02-review-recheck-3.log`）：阻断无。
+
+### 2026-10-12 实施
+
+**改了什么**
+- `src/pring_cycle/worker.py`：`submit_schedule_if_crossed(paths, previous, observed, deferred)` 改为 `submit_schedule_if_due(paths, observed_at, check)`；`DeferredSchedule` 改为 `ScheduleCheck`（`day`、`retry_at`、`settled`）；`run_worker` 不再记上次检查时刻。当天 9:00（含）至 21:00（含）之间首次判断即提交上一交易日，幂等键 `scheduled-<目标交易日>-v<计划版本>` 不变；21:00 后不提交（与执行入口 `_scheduled_p0_deadline_elapsed` 的 `>` 一致，封住同日 08:59→21:01 先提交再判过期的漏洞）；当天已判定（已提交、休市、无生效模型、已过截止）记在内存，之后的检查不再读日历；日历不足暂缓、每 10 分钟重试到截止，跨日后重新判断新的一天。
+- `tests/integration/test_worker_execution.py`：改写原 843 行用例（`missed_on_startup is None` 即原现状）为 9:00 后补交与重启返回原运行；新增调度端 9:00／21:00／21:00 后一微秒边界、执行入口 21:00 边界（TuShare 出口替身）、当天缓存＋08:59→21:01＋跨日醒来（`SseCalendar` 计数替身）三组；休市、暂缓重试、跨截止与跨日用例改到新接口并只断言提交与请求。
+- 文档：ADR-0041 新增“补写：P0 截止与错过 9:00 的补交（2026-10-12）”一节（首次提交日北京时间 21:00、取不可变初始提交时点、不随冻结截止或恢复顺延、只在进入主体执行前检查、补交规则、已知边界）；`docs/development/local-runtime.md` 计划一段、`.scratch/model-rules-validation-20261011/spec.md` 自动盘后运行与接缝 2 同步。
+
+**测试与耗时**（rebase 到含票 03 的 main `5ee16cb` 后重装 `dev-venv-fub` 复跑）
+- 受影响测试 `test_worker_execution.py`、`test_run_orchestration.py`＋冒烟 `test_manual_run_cannot_backdate_daily_core_availability`：56 通过，79 秒（`/tmp/fub02-affected-4.log`）。另一例冒烟 `test_worker_completes_a_valid_noncanonical_projection_and_report` 在 `test_worker_execution.py` 内。
+- 重型两例（`flock`）：`test_worker_registered_catalog.py`、`test_core_carry_forward.py` 4 通过，323 秒（`/tmp/fub02-heavy-2.log`；审查修复前一次 376 秒）。
+- `ruff check`、`ruff format --check`（改动文件）通过；`mypy`：`worker.py` 无错，测试文件 18 条均在未改动的既有行。
+
+**审查**
+- 第 1 轮：标准轴阻断 1（测试打桩私有 `_scheduled_target`、断言 `ScheduleCheck` 字段）→ 改为日历来源替身与对外行为断言；非阻断 1（重复判断与重启表述不准）→ 采纳。规格轴阻断无；非阻断 2（无生效模型边界未写、执行入口 21:00 边界无测试）→ 均采纳。
+- 第 2 轮定向复审：上述修复确认到位；新阻断 1（新加执行入口用例打桩私有 `_refresh_core_sources`）→ 改为 TuShare 出口替身。
+- 第 3 轮定向复审（经用户批准，只限该修复）：阻断无。
+
+**遗留**（已写入 ADR-0041 已知边界，不改行为）
+- 同一天停用再启用计划会产生新计划版本，此后重启的 Worker 在截止前为同一目标日再提交一次。
+- 判定时尚无生效模型、当天稍后才激活的，运行中的 Worker 当天不再提交，重启后才补交（与改动前一致）。
+- 调度仍无真实样本，留待收尾验收票 09 让 Worker 在 9:00 前常驻取首个样本。
+- 2026-10-12 再次 rebase 到含票 01 的 main（`f7b1129`，`worker.py` 自动合并、两边改动均在；README 票表冲突按两行 done 解决）后重装复跑：受影响测试＋冒烟 56 通过 51 秒（`/tmp/fub02-affected-5.log`），重型两例（`flock`）4 通过 298 秒（`/tmp/fub02-heavy-3.log`）。
