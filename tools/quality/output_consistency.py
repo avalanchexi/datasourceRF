@@ -15,6 +15,7 @@ import json
 import math
 from collections import Counter
 from dataclasses import dataclass
+from datetime import date
 
 from common import Run, table
 
@@ -156,32 +157,35 @@ def _stage_checks(run: Run, overview: dict, core: dict, p0: dict, macro: dict) -
             p0.get("core_assets"),
         ),
     ]
-    for field in ("current_stage", "stage_reason", "last_confirmed_stage"):
+    for field in ("current_stage", "stage_reason"):
         checks.append(
             Check(group, f"p0_assessment.{field} 与总览相同", overview.get(field), p0.get(field))
         )
-    events = run.datasets.get("stage_history", {}).get("events", [])
+    history = run.datasets.get("stage_history", {})
+    events = history.get("events", [])
     own = [e for e in events if e.get("projection_set_id") == run.projection_set_id]
     checks.append(Check(group, "阶段史中本投影的事件", 1, len(own)))
     if own:
         checks.append(Check(group, "阶段史中本投影的事件与 p0_assessment 相同", p0, own[0]))
-    # The last confirmed stage: the current one, else the newest formal assessment on or
-    # before the target date in the stage history.
+    # The assessed last confirmed stage: the current one, else the newest formal assessment
+    # in the window's stage history, on or before the target date.
     formal = [
         e
         for e in events
-        if e.get("event_kind") == "formal" and e.get("business_date", "") <= run.target_date
+        if e.get("event_kind") == "formal"
+        and run.window[0] <= str(e.get("business_date", "")) <= run.target_date
     ]
     formal.sort(key=lambda e: (e["business_date"], e.get("system_as_of", ""), e["assessment_id"]))
     last = stage or (formal[-1].get("current_stage") if formal else None)
     checks.append(
         Check(
             group,
-            "上一确认阶段（当前阶段，否则阶段史中最近的正式评估）",
+            "评估的上一确认阶段（当前阶段，否则窗口内阶段史中最近的正式评估）",
             last,
-            overview.get("last_confirmed_stage"),
+            p0.get("last_confirmed_stage"),
         )
     )
+    checks += _lookback_checks(run, overview, history, last)
     conf = macro.get("confirmation", {})
     checks.append(
         Check(
@@ -205,6 +209,98 @@ def _stage_checks(run: Run, overview: dict, core: dict, p0: dict, macro: dict) -
         )
     )
     return checks
+
+
+LOOKBACK_STATUSES = ("found", "not_found", "failed")
+
+
+def _lookback_checks(run: Run, overview: dict, history: dict, assessed) -> list[Check]:
+    """The shown last confirmed stage and the lookback that may stand behind it (ADR-0040).
+
+    The assessment keeps what the window's stage history says (``assessed``); the overview
+    shows that, else the stage a lookback found. The lookback is published with both the
+    overview and the stage history, and one that found nothing or failed gives no stage.
+    """
+    group = "核心状态→正式阶段"
+    lookback = overview.get("last_confirmed_lookback")
+    found = isinstance(lookback, dict) and lookback.get("status") == "found"
+    checks = [
+        Check(
+            group,
+            "回溯文档：总览与阶段史相同（或都没有）",
+            lookback,
+            history.get("last_confirmed_lookback"),
+        ),
+        Check(
+            group,
+            "展示的上一确认阶段（评估值，否则回溯找到的阶段）",
+            assessed or (lookback.get("stage") if found else None),
+            overview.get("last_confirmed_stage"),
+        ),
+    ]
+    if lookback is None:
+        return checks
+    if not isinstance(lookback, dict):
+        return [*checks, Check(group, "回溯文档是对象", "dict", type(lookback).__name__)]
+    status = lookback.get("status")
+    shape = []
+    if lookback.get("source") != "lookback":
+        shape.append(f"source={lookback.get('source')}")
+    if status not in LOOKBACK_STATUSES:
+        shape.append(f"status={status}")
+    checks.append(Check(group, "回溯文档的来源为 lookback、状态为三种之一", [], shape))
+    stage, day = lookback.get("stage"), lookback.get("stage_date")
+    if found:
+        start = run.window[0]
+        low, high = lookback.get("searched_from"), lookback.get("searched_through")
+        wrong = []
+        stages = {v for v in run.manifest.get("stage_mapping", {}).values() if isinstance(v, str)}
+        if not isinstance(stage, str) or stage not in stages:
+            wrong.append(f"阶段 {stage} 不在 stage_mapping 中")
+        if lookback.get("failure") is not None:
+            wrong.append(f"failure={lookback.get('failure')}")
+        if not all(_iso_date(d) for d in (day, low, high, start)):
+            wrong.append(f"日期缺失或无效（阶段日 {day}、范围 {low}～{high}、窗口首日 {start}）")
+        else:
+            if not low <= day <= high:
+                wrong.append(f"阶段日 {day} 不在搜索范围 {low}～{high} 内")
+            if not day < start:
+                wrong.append(f"阶段日 {day} 不早于窗口首日 {start}")
+        checks.append(
+            Check(group, "回溯找到的阶段：属于冻结映射、阶段日在搜索范围内且早于窗口", [], wrong)
+        )
+    elif status in LOOKBACK_STATUSES:
+        given = [
+            f"{k}={lookback.get(k)}" for k in ("stage", "stage_date") if lookback.get(k) is not None
+        ]
+        if status == "failed" and not lookback.get("failure"):
+            given.append("failed 却没有 failure")
+        checks.append(Check(group, f"回溯 {status} 时不给阶段（失败须注明原因）", [], given))
+    return checks
+
+
+def _iso_date(value) -> bool:
+    """A calendar date written ``YYYY-MM-DD``, so such dates compare as text."""
+    if not isinstance(value, str):
+        return False
+    try:
+        return date.fromisoformat(value).isoformat() == value
+    except ValueError:
+        return False
+
+
+def _lookback_note(overview: dict) -> str:
+    lookback = overview.get("last_confirmed_lookback")
+    if not isinstance(lookback, dict):
+        return "本投影没有上一确认阶段的回溯文档（未触发回溯）。"
+    g = lookback.get
+    return (
+        f"上一确认阶段回溯：{g('status')}，阶段 {g('stage') or '为空'}"
+        f"（阶段日 {g('stage_date') or '—'}），搜索 {g('searched_from')}～{g('searched_through')}，"
+        f"{g('years')} 年，核心请求 {g('core_requests')} 次、日历请求 {g('calendar_requests')} 次"
+        + (f"，失败原因 {g('failure')}" if g("failure") else "")
+        + "；年数与请求次数只列出，不核对。"
+    )
 
 
 # --- confirmation -------------------------------------------------------------------------
@@ -937,6 +1033,7 @@ def section(run: Run) -> str:
         f"- 投影 {run.projection_set_id}：{states}；当前阶段"
         f" {overview.get('current_stage') or '为空'}（{overview.get('stage_reason')}），"
         f"上一确认阶段 {overview.get('last_confirmed_stage') or '为空'}。",
+        f"- {_lookback_note(overview)}",
         f"- 共 {len(checks)} 项检查，一致 {len(checks) - len(failed)}，不一致 {len(failed)}"
         + ("：" + "；".join(f"{c.group}／{c.name}" for c in failed) if failed else "")
         + "。",

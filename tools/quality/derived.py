@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
-from common import Run, iso_day, parse_time, table
+from common import Run, compress_days, iso_day, parse_time, table
 
 # The formulas are exact arithmetic on decimal inputs: recomputing from the same inputs
 # differs only by float noise (below 1e-13 relative). The tolerance leaves ample room for that
@@ -1054,7 +1054,8 @@ def _judge(formula, spec, held, sessions, day, member, record: Record | None):
     return status, newest, row
 
 
-PRESENT_OR_NOT_DUE = ("存在", "原料不齐，无派生值", PRUNED)
+NOT_RECOMPUTED = "未重算（按设计）"
+PRESENT_OR_NOT_DUE = ("存在", "原料不齐，无派生值", PRUNED, NOT_RECOMPUTED)
 EXPLAINED = ("存在", "原料不齐，无派生值")
 
 
@@ -1140,6 +1141,39 @@ def _day_projections(run: Run) -> dict[str, tuple[str, dict]]:
     return best
 
 
+CONTEXTS = ("macro", "inventory")
+
+
+def _core_only(run: Run, projection: str, contexts: dict, found: dict) -> tuple[bool, str]:
+    """Is a day projection a core-only correction (``CONTEXT.md``, day summary)? Only when
+    its assessment ``corrects`` with scope ``core_only``, both contexts are
+    ``not_recomputed`` and they hold no derived value. Returns that and the marks seen: for
+    a recognized day its reasons, for a day with only some of the marks those it has, else
+    empty."""
+    row = run.db.execute(
+        "SELECT document_json FROM p0_assessment WHERE projection_set_id = ?", (projection,)
+    ).fetchone()
+    assessment = json.loads(row[0]) if row else None
+    corrects = assessment.get("corrects") if isinstance(assessment, dict) else None
+    corrects = corrects if isinstance(corrects, dict) else {}
+    scope = corrects.get("scope")
+    documents = {name: contexts.get(name) for name in CONTEXTS}
+    status = {
+        name: d.get("context_status") if isinstance(d, dict) else None
+        for name, d in documents.items()
+    }
+    flagged = [name for name in CONTEXTS if status[name] == "not_recomputed"]
+    if scope == "core_only" and len(flagged) == len(CONTEXTS) and not found:
+        reasons = sorted({str(d.get("not_recomputed_reason")) for d in documents.values()})
+        return True, (
+            f"corrects.reason={corrects.get('reason')}；not_recomputed_reason={'、'.join(reasons)}"
+        )
+    if scope == "core_only" or flagged:
+        shown = "、".join(f"{name} {status[name]}" for name in CONTEXTS)
+        return False, f"corrects.scope={scope}，{shown}，派生值 {len(found)} 个"
+    return False, ""
+
+
 class DailyTally:
     """Per formula, what the day-by-day check found."""
 
@@ -1152,7 +1186,7 @@ class DailyTally:
     def add(self, formula: str, day: str, status: str, row: Compared, fixed=False) -> None:
         """``fixed``: the status is a problem of a fixed defect kept in history."""
         self.counts[formula]["天×成员"] += 1
-        label = status.split("（")[0]
+        label = status if status == NOT_RECOMPUTED else status.split("（")[0]
         self.counts[formula][f"{label}（{FIXED_HISTORY}）" if fixed else label] += 1
         if row.verdict in (AGREE, DIFFER, NO_INPUT):
             self.counts[formula][f"重算{row.verdict}"] += 1
@@ -1192,6 +1226,8 @@ def daily_checks(
     manifests = {run.model_version_id: run.manifest}
     tally = DailyTally()
     absent = [day for day in run.window if day not in projections]
+    not_recomputed: dict[str, list[str]] = {}  # core-only correction days, by their marks
+    mixed: list[str] = []  # days with only part of the core-only marks
     for day, (projection, envelope) in sorted(projections.items()):
         model = envelope.get("model_version_id")
         if model not in manifests:
@@ -1213,18 +1249,37 @@ def daily_checks(
         strict = Held(claims, as_of, day_end(day), catalog) if catalog and before_fix else None
         strict = None if own else strict
         found: dict[str, dict] = {}
-        documents = run.db.execute(
-            "SELECT document_json FROM analytical_dataset WHERE projection_set_id = ?"
-            " AND dataset_name IN ('macro', 'inventory')",
-            (projection,),
-        )
-        for (document,) in documents:
-            _derived_records(json.loads(document), found)
+        contexts = {
+            name: json.loads(document)
+            for name, document in run.db.execute(
+                "SELECT dataset_name, document_json FROM analytical_dataset"
+                " WHERE projection_set_id = ? AND dataset_name IN ('macro', 'inventory')",
+                (projection,),
+            )
+        }
+        for document in contexts.values():
+            _derived_records(document, found)
+        core_only, marks = _core_only(run, projection, contexts, found)
+        if core_only:
+            not_recomputed.setdefault(marks, []).append(day)
+        elif marks:
+            mixed.append(f"{day}（{marks}）")
         held = Held(claims, as_of, day_end(day))
         for formula in manifests[model].get("derived_formula_versions", {}).values():
             spec = STORED.get(formula)
             if spec is None:
                 tally.counts[formula]["该日模型的公式无独立实现"] += 1
+                continue
+            if core_only:
+                # A core-only correction recomputes no context, so no derived value is due.
+                for member in _members(held, spec):
+                    reading = "／".join(str(v) for v in member.values()) or "—"
+                    tally.add(
+                        formula,
+                        day,
+                        NOT_RECOMPUTED,
+                        Compared(formula, reading, "—", None, None, "—"),
+                    )
                 continue
             records = {}
             for node in found.values():
@@ -1269,6 +1324,12 @@ def daily_checks(
     models = Counter(e.get("model_version_id") for _, e in projections.values())
     sources = "、".join(f"{m} {n} 天" for m, n in sorted(models.items()))
     rows.append(["（各日投影的模型）", sources, f"无投影 {len(absent)} 天" if absent else "—"])
+    for marks, days in not_recomputed.items():
+        shown = f"{len(days)} 天：{compress_days(days, run.window)}"
+        rows.append([f"（只更正核心的日子：{NOT_RECOMPUTED}）", shown, marks])
+    if mixed:
+        shown = "、".join(mixed[:3])
+        extra.append(f"窗口内 {len(mixed)} 天只更正核心的标记不一致（{shown}）")
     if absent:
         extra.append(f"窗口内 {len(absent)} 个交易日没有汇总投影（{'、'.join(absent[:6])}）")
     return rows
