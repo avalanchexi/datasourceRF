@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent
 Category: task
 Type: task
 
@@ -12,4 +12,31 @@ Type: task
 
 [残余 03](../residual-triage-20261011/issues/03-core-pre-window-inputs-untraceable.md)、[体检 17](../data-quality-audit-20261010/issues/17-audit-multi-source-note-lists-excluded-claims.md) 遗留（模型规则补全批次，2026-10-12 收尾汇总）。
 
+## 做法（分流决定）
+
+- **(a) 做**：体检公共读取链改为解析时刻后再比较和排序。位置是 `tools/quality/common.py:306`（`Run.receipts` 的发起时间过滤与排序）、`:313`、`:317`（应答与校验截止判断）、`:342`（日历回执排序），复用 `common.py:33` 的解析函数；缺时区或解析失败记为不可用，不猜时区。`core_recompute._raw_rows`（`:134` 比的是 ISO 业务日期）不用改。
+- **(a) 旧运行 56 个编号无法恢复**：已写在文档已知局限（`data-quality-audit.md:372`、`:388`），不另作处理。
+- **(b) wontfix**：“原话按现行规则是否仍给出该值”的排除，需要各族抽取契约（族规则、期次定位、正负号与单位、地方主语、同成员多值冲突），这些没有书面规则，只能复制生产解析器，违反独立性约束。在体检文档“已知局限”写明，并列出本样本漏判的 2 条工业增加值。空串网址：体检按 `NULLIF(url,'')` 处理，与文档 `:295` 一致；生产 `news_rules.py:1262`、`:1374` 用 `COALESCE(url, body_hash)`，与书面规则不一致（本样本 0 条）。体检不迁就生产，差异记入已知局限，生产侧偏差转入下一批积压。
+
+## 主要模块
+
+`tools/quality/common.py`、`docs/development/data-quality-audit.md`（已知局限）。
+
+## 验收
+
+- [ ] (a) 时间过滤、排序、截止判断都按解析后的时刻进行；混合时区写法有最小自测（标准库，脚本内或一次性片段，记入票面）
+- [ ] `run-b7d59b63…` 上报告数字不变（本样本时间格式统一）
+- [ ] (b) 已知局限写明“原话复核未独立实现”与 2 条漏判，以及空串网址的体检与生产差异
+- [ ] 对 `run-b7d59b63bedca39d9d2e` 改动前后各实跑一次体检：除改动节与耗时外逐字相同，差异逐项解释，记入票面
+- [ ] 改动文件通过 `ruff check`、`ruff format --check`；只用标准库、不导入生产代码；Codex 两轴审查无阻断
+
 ## Comments
+
+### 2026-10-12 分流
+
+Codex 只读取证全文：[triage-codex-03-04-05-07.md](../triage-codex-03-04-05-07.md) 第 07.1–07.8 条。
+
+- (a) 订正：文本比较的位置在公共读取链 `common.py:306-342`，不在 `_raw_rows` 本身。快照中 9476／9219／8165 个时间戳都是统一 UTC 格式，文本与时刻比较差异为 0；混用时区或写法时会误判。
+- 旧运行 `run-dc0bb2d9…` 断链 191 条，恢复 135 条，剩 56 条，已写在文档局限。
+- (b) 体检文档 `:267`、`:297` 明确不做原话重抽取；漏判的 2 条是 `CN_INDUSTRIAL_VA` 的 `ytd_real_yoy`：2026-07 的 −1.0%（“全市…”）和 2026-08 的 6.1%（“全省…”）。空串网址本样本 0 条。
+- 决定：(a) `ready-for-agent`；(b) wontfix，写进已知局限（标准库能实现，但缺书面规则，不能独立实现）。体检线 C 第四票。
