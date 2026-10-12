@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import calendar
+import sqlite3
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -28,6 +29,7 @@ from pring_cycle.models import (
     certified_model_v0001_manifest,
 )
 from pring_cycle.official_lpr import ingest_lpr_document
+from pring_cycle.projections import _validate_visible_context_window
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 
 OFFICIAL_URL = "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html"
@@ -1939,3 +1941,68 @@ def test_the_period_before_the_window_is_compared_only_when_known_and_alike(
 
     assert rows and {row["period"] for row in rows} == {current_end}
     assert {row["direction"] for row in rows} == {direction}
+
+
+@pytest.mark.parametrize("persist_derived", [True, False], ids=["target_day", "summarized_day"])
+def test_a_loan_change_whose_months_ended_before_the_window_is_not_shown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, persist_derived: bool
+) -> None:
+    # Ticket 08: the latest loan months held are a pair kept for a year-on-year base, ended
+    # before the day's window. Their change is no row of the day, on the target day as on
+    # a summarized one: the window has no pair, so the loan shows its gap, as other rows do.
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    repository = EvidenceRepository(paths.database)
+
+    def certified_definition(  # type: ignore[no-untyped-def]
+        metric_id: str,
+        *,
+        definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
+    ):
+        definition = metric_definition(
+            metric_id, definition_version=definition_version, database_path=database_path
+        )
+        return (
+            replace(definition, certification_status="certified")
+            if metric_id == "CN_LOAN_STRUCTURE"
+            else definition
+        )
+
+    monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
+    for period_start, period_end, value in (
+        ("2025-07-01", "2025-07-31", 100.0),
+        ("2025-08-01", "2025-08-31", 110.0),
+    ):
+        repository.append_source_claim(
+            _certified_claim(
+                metric_id="CN_LOAN_STRUCTURE",
+                period_start=period_start,
+                period_end=period_end,
+                dimensions={"borrower": "enterprise", "tenor": "long_term", "measure": "stock_end"},
+                value=value,
+                unit="hundred_million_cny",
+            )
+        )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 14, tzinfo=UTC),
+        target_business_date="2026-08-13",
+        visible_evidence_start="2026-02-24",
+        model_manifest=_v2_manifest("CN_LOAN_STRUCTURE"),
+        persist_derived=persist_derived,
+    )
+
+    loan = [
+        row
+        for row in context.macro["credit"]["evidence"]  # type: ignore[index]
+        if row["metric_id"] == "CN_LOAN_STRUCTURE"
+    ]
+    assert loan
+    assert all(str(row["observation_id"]).startswith("gap:") for row in loan)
+    _validate_visible_context_window(
+        (context.macro, context.inventory), window_start="2026-02-24", window_end="2026-08-13"
+    )
+    with sqlite3.connect(paths.database) as connection:
+        assert connection.execute("SELECT count(*) FROM derived_observation").fetchone() == (0,)

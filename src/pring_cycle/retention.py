@@ -151,6 +151,7 @@ def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> Rete
             start,
         )
         delete("p0_assessment", "target_business_date < ?", start)
+        delete("uncorrectable_day", "target_business_date < ?", start)
         delete("analytical_dataset", retired_projection)
         delete("publication_impact", retired_projection)
         delete(

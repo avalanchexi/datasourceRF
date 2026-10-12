@@ -47,6 +47,13 @@ class CoreAssetReadiness:
     closes: tuple[tuple[str, float], ...] = ()
 
 
+# What a correction recomputed: the whole day, or its cores and formal stage only, when
+# the context details the day would show have left retention (ticket 08).
+WHOLE_DAY = "whole_day"
+CORE_ONLY = "core_only"
+DETAILS_PAST_RETENTION = "details_past_retention"
+
+
 @dataclass(frozen=True)
 class SummaryCorrection:
     """The summary a day's new one corrects, and why; the corrected one stays (ticket 07)."""
@@ -54,13 +61,25 @@ class SummaryCorrection:
     assessment_id: str
     projection_set_id: str | None
     reason: str
+    scope: str = WHOLE_DAY
 
     def document(self) -> dict[str, object]:
         return {
             "assessment_id": self.assessment_id,
             "projection_set_id": self.projection_set_id,
             "reason": self.reason,
+            "scope": self.scope,
         }
+
+
+def context_not_recomputed() -> tuple[dict[str, object], dict[str, object]]:
+    """The macro and inventory documents of a day corrected on its cores only: shown as not
+    recomputed, with no evidence and no confirmation (ticket 08)."""
+    marker = {"context_status": "not_recomputed", "not_recomputed_reason": DETAILS_PAST_RETENTION}
+    return (
+        {**_default_macro_document(), **marker},
+        {**_default_inventory_document(), **marker},
+    )
 
 
 @dataclass(frozen=True)

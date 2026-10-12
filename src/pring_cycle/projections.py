@@ -21,6 +21,7 @@ from pring_cycle.publication_corrections import (
     publication_corrections,
     record_publication_corrections,
 )
+from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.source_contract_review import require_stored_model_source_contract
 from pring_cycle.storage import database_connection, ensure_wal
 
@@ -88,6 +89,7 @@ class ProjectionSetRepository:
             connection.executescript(_PROJECTION_SCHEMA)
             connection.executescript(_P0_ASSESSMENT_SCHEMA)
             connection.executescript(PUBLICATION_CORRECTION_SCHEMA)
+            connection.executescript(UNCORRECTABLE_DAY_SCHEMA)
             add_batch_columns(connection)
         return repository
 
@@ -234,19 +236,102 @@ class ProjectionSetRepository:
             for row in rows
         )
 
-    def corrected_days(self, batch_id: str, reason: str) -> tuple[str, ...]:
+    def corrected_days(
+        self, batch_id: str, reason: str, *, scope: str | None = None
+    ) -> tuple[str, ...]:
         """The days the batch summarized again as corrections for ``reason`` (ticket 07),
-        read from what it stored, so a resumed run counts those its first attempt made."""
+        read from what it stored, so a resumed run counts those its first attempt made.
+
+        ``scope`` keeps those corrected whole or on their cores only (ticket 08); a
+        correction stating none was made whole.
+        """
         with self._connect() as connection:
             rows = connection.execute(
                 """
                 SELECT DISTINCT target_business_date FROM p0_assessment
                 WHERE batch_id = ? AND json_extract(document_json, '$.corrects.reason') = ?
+                    AND (? IS NULL OR coalesce(
+                        json_extract(document_json, '$.corrects.scope'), 'whole_day'
+                    ) = ?)
                 ORDER BY target_business_date
                 """,
-                (batch_id, reason),
+                (batch_id, reason, scope, scope),
             ).fetchall()
         return tuple(str(row[0]) for row in rows)
+
+    def context_details_held(self, projection_set_id: str) -> bool:
+        """Whether every source claim the set's context cites is still held: those its rows
+        show, are derived from or compare with, and those its confirmation read. One gone
+        has left retention, and the context cannot be summarized again as it was (ticket
+        08). A derived row's own identity is no claim, and the cores' own prices are no
+        context detail: retention keeps none for being cited."""
+        with self._connect() as connection:
+            documents = [
+                json.loads(row[0])
+                for row in connection.execute(
+                    "SELECT document_json FROM analytical_dataset "
+                    "WHERE projection_set_id = ? AND dataset_name IN ('macro', 'inventory')",
+                    (projection_set_id,),
+                )
+            ]
+            context, cores = _citations(documents)
+            # The model's inputs gather every row's, the cores' own among them; those named
+            # only there, as the price consistency's, are cited all the same.
+            inputs = {
+                str(item)
+                for document in documents
+                for item in document.get("model_input_observation_version_ids") or ()
+            }
+            claims = sorted((context | (inputs - cores)) - _derived_identities(documents))
+            for start in range(0, len(claims), 500):
+                chunk = claims[start : start + 500]
+                (held,) = connection.execute(
+                    "SELECT count(*) FROM source_claim "
+                    f"WHERE claim_id IN ({','.join('?' * len(chunk))})",
+                    chunk,
+                ).fetchone()
+                if held < len(chunk):
+                    return False
+        return True
+
+    def record_uncorrectable(
+        self, day: str, *, basis: str, corrected_assessment_id: str, reason: str
+    ) -> None:
+        """Record that ``day``'s summary cannot be corrected on ``basis``, and why: no later
+        run on the same basis tries it again (ticket 08). Recorded once."""
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO uncorrectable_day(
+                    target_business_date, core_history_basis, corrected_assessment_id,
+                    reason, recorded_at, batch_id
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    day,
+                    basis,
+                    corrected_assessment_id,
+                    reason,
+                    datetime.now(UTC).isoformat(),
+                    current_batch_id(),
+                ),
+            )
+
+    def uncorrectable_days(
+        self, *, basis: str | None = None, batch_id: str | None = None
+    ) -> tuple[tuple[str, str], ...]:
+        """Each day recorded as uncorrectable, with why, in day order: on ``basis``, or by
+        the batch ``batch_id``, when given."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT target_business_date, reason FROM uncorrectable_day
+                WHERE (? IS NULL OR core_history_basis = ?) AND (? IS NULL OR batch_id = ?)
+                ORDER BY target_business_date
+                """,
+                (basis, basis, batch_id, batch_id),
+            ).fetchall()
+        return tuple((str(row[0]), str(row[1])) for row in rows)
 
     def last_confirmed_stage(self, *, on_or_before: str) -> str | None:
         """The stage of the latest day on or before ``on_or_before`` that had one.
@@ -762,5 +847,80 @@ END;
 CREATE TRIGGER IF NOT EXISTS data_gap_notice_no_delete
 BEFORE DELETE ON data_gap_notice BEGIN
     SELECT RAISE(ABORT, 'data_gap_notice_is_immutable');
+END;
+"""
+
+# Where a context document's rows name the source claims they show, are derived from or
+# are compared with, and those its confirmation read; a derived row's own identity is
+# named there too, as the row's selected one (ticket 08).
+_CITING_KEYS = frozenset(
+    {
+        "claim_id",
+        "claim_ids",
+        "selected_claim_id",
+        "input_observation_version_ids",
+        "direction_input_observation_version_ids",
+        "trading_calendar_observation_version_ids",
+        "observation_version_ids",
+    }
+)
+
+
+def _citations(value: object, metric_id: object = None) -> tuple[set[str], set[str]]:
+    """The source claims a context document's rows cite: those of the context, and those
+    of the rows of the cores' own prices."""
+    if isinstance(value, dict):
+        metric_id = value.get("metric_id", metric_id)
+        cited = {
+            item
+            for key in _CITING_KEYS & value.keys()
+            for item in (value[key] if isinstance(value[key], list) else [value[key]])
+            if isinstance(item, str)
+        }
+        children = [_citations(child, metric_id) for child in value.values()]
+        context = set().union(*(child[0] for child in children))
+        cores = set().union(*(child[1] for child in children))
+        if metric_id in CORE_API_IDENTITIES:
+            return context, cores | cited
+        return context | cited, cores
+    if isinstance(value, list):
+        children = [_citations(child, metric_id) for child in value]
+        return (
+            set().union(*(child[0] for child in children)),
+            set().union(*(child[1] for child in children)),
+        )
+    return set(), set()
+
+
+def _derived_identities(value: object) -> set[str]:
+    """The identities of the derived rows a context document shows."""
+    if isinstance(value, dict):
+        own = value.get("derived_observation_id")
+        found = {own} if isinstance(own, str) else set()
+        return found.union(*(_derived_identities(child) for child in value.values()))
+    if isinstance(value, list):
+        return set().union(*(_derived_identities(child) for child in value))
+    return set()
+
+
+# A window day whose summary cannot be corrected on a core history basis, and why (ticket
+# 08); it goes with the day at retention.
+UNCORRECTABLE_DAY_SCHEMA = """
+CREATE TABLE IF NOT EXISTS uncorrectable_day (
+    target_business_date TEXT NOT NULL,
+    core_history_basis TEXT NOT NULL,
+    corrected_assessment_id TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    recorded_at TEXT NOT NULL,
+    batch_id TEXT,
+    PRIMARY KEY (target_business_date, core_history_basis)
+);
+CREATE TRIGGER IF NOT EXISTS uncorrectable_day_no_update
+BEFORE UPDATE ON uncorrectable_day BEGIN
+    SELECT RAISE(ABORT, 'uncorrectable_day_is_append_only');
+END;
+CREATE TRIGGER IF NOT EXISTS uncorrectable_day_no_delete
+BEFORE DELETE ON uncorrectable_day BEGIN
+    SELECT RAISE(ABORT, 'uncorrectable_day_is_append_only');
 END;
 """

@@ -74,6 +74,7 @@ from pring_cycle.metric_contracts import (
 )
 from pring_cycle.models import ModelRepository
 from pring_cycle.news_rules import rules_cover, rules_for
+from pring_cycle.p0 import CORE_ONLY, WHOLE_DAY
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.read_scope import shared_read_scope
 from pring_cycle.release_schedule import (
@@ -619,10 +620,15 @@ def _execute_run(
     from pring_cycle.full_retrieval import record_first_outcome
 
     # The window days summarized again on the cores' current history (ticket 07), those of
-    # an interrupted attempt too.
-    corrected = ProjectionSetRepository(paths.database).corrected_days(
-        run.run_id, CORE_HISTORY_CORRECTION
-    )
+    # an interrupted attempt too: whole, on their cores only, or recorded as uncorrectable
+    # (ticket 08).
+    projections = ProjectionSetRepository(paths.database)
+    corrected = projections.corrected_days(run.run_id, CORE_HISTORY_CORRECTION)
+    scoped = {
+        scope: projections.corrected_days(run.run_id, CORE_HISTORY_CORRECTION, scope=scope)
+        for scope in (WHOLE_DAY, CORE_ONLY)
+    }
+    uncorrectable = projections.uncorrectable_days(batch_id=run.run_id)
     record_first_outcome(
         paths.database,
         run.run_id,
@@ -631,6 +637,11 @@ def _execute_run(
             "reason": CORE_HISTORY_CORRECTION,
             "corrected_days": list(corrected),
             "count": len(corrected),
+            **{scope: {"days": list(days), "count": len(days)} for scope, days in scoped.items()},
+            "uncorrectable": {
+                "days": [{"day": day, "reason": reason} for day, reason in uncorrectable],
+                "count": len(uncorrectable),
+            },
         },
     )
     result = summary.result

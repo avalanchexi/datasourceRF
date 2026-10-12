@@ -436,6 +436,7 @@ def test_a_day_summarized_on_an_older_core_history_is_corrected_as_of_its_end(
             "assessment_id": old[day]["assessment_id"],
             "projection_set_id": old[day]["projection_set_id"],
             "reason": "core_history_basis_changed",
+            "scope": "whole_day",
         }
         assert repository.p0_assessment(str(old[day]["assessment_id"])) == old[day]
         projection = repository.get(str(latest[day]["projection_set_id"]))

@@ -111,6 +111,18 @@ def _old_reach(refresh: Any, *args: Any, **kwargs: Any) -> None:
     refresh(*args, **{**kwargs, "core_sessions": 160})
 
 
+def corrections(whole: list[str]) -> dict[str, Any]:
+    """A run's ``summary_corrections`` whose corrections were all made whole."""
+    return {
+        "reason": REASON,
+        "corrected_days": whole,
+        "count": len(whole),
+        "whole_day": {"days": whole, "count": len(whole)},
+        "core_only": {"days": [], "count": 0},
+        "uncorrectable": {"days": [], "count": 0},
+    }
+
+
 def short_of_history(event: dict[str, Any]) -> bool:
     return any(asset["reason"] == "insufficient_history" for asset in event["core_assets"])
 
@@ -148,6 +160,7 @@ def test_a_run_appends_a_correction_for_each_window_day_on_the_old_core_history(
             "assessment_id": old[day]["assessment_id"],
             "projection_set_id": old[day]["projection_set_id"],
             "reason": REASON,
+            "scope": "whole_day",
         }
     assert not short_of_history(latest[SECOND.isoformat()])
     assert "corrects" not in latest[SECOND.isoformat()]
@@ -166,11 +179,7 @@ def test_a_run_appends_a_correction_for_each_window_day_on_the_old_core_history(
         SECOND.isoformat()
     ]
     # The run states what it corrected; the cores are one range request each, as ever.
-    assert runtime.runs.full_retrieval_plan(second)["summary_corrections"] == {
-        "reason": REASON,
-        "corrected_days": corrected,
-        "count": len(corrected),
-    }
+    assert runtime.runs.full_retrieval_plan(second)["summary_corrections"] == corrections(corrected)
     reach = weekdays_back(SECOND, 260)[0].strftime("%Y%m%d")
     core_requests = sorted(
         json.loads(params)["ts_code"]
@@ -195,11 +204,7 @@ def test_a_run_appends_a_correction_for_each_window_day_on_the_old_core_history(
     third = runtime.run(THIRD)
 
     # A day already on the new reach is not summarized again; no call is added for any.
-    assert runtime.runs.full_retrieval_plan(third)["summary_corrections"] == {
-        "reason": REASON,
-        "corrected_days": [],
-        "count": 0,
-    }
+    assert runtime.runs.full_retrieval_plan(third)["summary_corrections"] == corrections([])
     again = runtime.latest()
     assert {day: again[day] for day in latest if day in again} == {
         day: event for day, event in latest.items() if day in again
@@ -218,11 +223,7 @@ def test_a_run_short_of_the_core_history_corrects_nothing(
 
     second = runtime.run(SECOND, old_reach=True)
 
-    assert runtime.runs.full_retrieval_plan(second)["summary_corrections"] == {
-        "reason": REASON,
-        "corrected_days": [],
-        "count": 0,
-    }
+    assert runtime.runs.full_retrieval_plan(second)["summary_corrections"] == corrections([])
     latest = runtime.latest()
     assert {day: latest[day] for day in old if day in latest} == {
         day: event for day, event in old.items() if day in latest

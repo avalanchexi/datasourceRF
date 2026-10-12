@@ -1849,9 +1849,15 @@ def _stage_event_row(item: dict[str, object]) -> html.Li:
     )
     last_confirmed = item.get("last_confirmed_stage")
     corrects = item.get("corrects")
-    # A day summarized again on the cores' current history says so (ticket 07).
+    # A day summarized again on the cores' current history says so (ticket 07), and that
+    # its context was not, when its details had left retention (ticket 08).
     correction = (
-        " · 更正版本（核心历史口径变更）"
+        (
+            " · 更正版本（核心历史口径变更；只更正核心与正式阶段，"
+            "上下文与确认度未重算：明细已超出留存）"
+            if corrects.get("scope") == "core_only"
+            else " · 更正版本（核心历史口径变更）"
+        )
         if isinstance(corrects, dict) and corrects.get("reason") == "core_history_basis_changed"
         else ""
     )

@@ -21,14 +21,19 @@ backfilled day follow the run's time rather than the day's; they are not display
 The one exception is the core history a summary read (ticket 07, 2026-10-11 user
 decision): a window day whose latest summary was made on an older basis is summarized
 again, the same way, by a run whose cores reach as far as the current basis has them, and
-the new summary is appended as its correction. Nothing earlier is rewritten.
+the new summary is appended as its correction. Nothing earlier is rewritten. When a source
+claim the day's summary cites in its context is no longer held -- it has left retention --
+only its three cores and formal stage are corrected, its context and confirmation marked
+not recomputed; a day that cannot be corrected even so is recorded, with why, and no run on
+the same basis tries it again (ticket 08, 2026-10-12 user decision). Any other error fails
+the day as a missed one does.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -47,10 +52,13 @@ from pring_cycle.freshness import add_projection_gaps, release_schedule_scope, u
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import (
     CARRIED_FORWARD,
+    CORE_ONLY,
+    DETAILS_PAST_RETENTION,
     CoreAssetReadiness,
     P0ProjectionService,
     P0PublishResult,
     SummaryCorrection,
+    context_not_recomputed,
     formal_stage,
 )
 from pring_cycle.price_consistency import CorePrices
@@ -102,6 +110,26 @@ class FailedDay:
 
     day: str
     error: str
+
+
+class _Uncorrectable(Exception):
+    """A correction day whose cores and formal stage cannot be published either."""
+
+
+# What a core read from its closes is: a state, or a trend still pending one. Any other
+# reason is a core the closes could not be read for (ticket 08).
+_CORE_COMPUTED = frozenset({"validated", CARRIED_FORWARD, "transition_pending"})
+
+
+def _computed(readiness: CoreReadiness) -> CoreReadiness:
+    """A correction day's cores, each read from its closes; otherwise the day is
+    ``_Uncorrectable``: its cores are not corrected either, and it keeps its summary."""
+    uncomputed = [
+        f"{item.asset}:{item.reason}" for item in readiness if item.reason not in _CORE_COMPUTED
+    ]
+    if uncomputed:
+        raise _Uncorrectable(f"core_uncomputable:{','.join(uncomputed)}")
+    return readiness
 
 
 @dataclass(frozen=True)
@@ -319,11 +347,20 @@ class DaySummaries:
         # share one copy of the claims, since summarizing a day stores none (ticket 29).
         with self._evidence.series_snapshot():
             basis = self._core_history_basis(min((*window, target)), system_as_of=system_as_of)
+            uncorrectable = (
+                {day for day, _reason in self._projections.uncorrectable_days(basis=basis)}
+                if basis is not None
+                else set()
+            )
             for day in (day for day in window if day < target):
                 held = latest.get(day)
                 if held is None:
                     corrects = None
-                elif basis is not None and held.get("core_history_basis") != basis:
+                elif (
+                    basis is not None
+                    and held.get("core_history_basis") != basis
+                    and day not in uncorrectable
+                ):
                     corrects = SummaryCorrection(
                         str(held["assessment_id"]),
                         _text_or_none(held.get("projection_set_id")),
@@ -334,6 +371,15 @@ class DaySummaries:
                 try:
                     self._summarize_day(
                         day, system_as_of=system_as_of, basis=basis, corrects=corrects
+                    )
+                except _Uncorrectable as error:
+                    # Only a correction is uncorrectable, and only a run on a basis corrects.
+                    assert basis is not None and corrects is not None
+                    self._projections.record_uncorrectable(
+                        day,
+                        basis=basis,
+                        corrected_assessment_id=corrects.assessment_id,
+                        reason=str(error),
                     )
                 except (KeyError, LookupError, TypeError, ValueError) as error:
                     failed.append(FailedDay(day, type(error).__name__))
@@ -369,13 +415,67 @@ class DaySummaries:
         basis: str | None,
         corrects: SummaryCorrection | None,
     ) -> None:
-        """Publish one earlier day's summary from what was public by that day's end."""
+        """Publish one earlier day's summary from what was public by that day's end.
+
+        A correction whose summary cites a context detail no longer held is published on its
+        cores only; one whose cores cannot be read from their closes, or that fails on its
+        cores only, is ``_Uncorrectable``.
+        """
         public_end = datetime.combine(date.fromisoformat(day), time.max, tzinfo=SHANGHAI)
+        if (
+            corrects is not None
+            and corrects.projection_set_id is not None
+            and not self._projections.context_details_held(corrects.projection_set_id)
+        ):
+            # Its context cannot be summarized again as it was: nothing of it is shown, nor
+            # another day's details borrowed for it, and no confirmation is read.
+            macro, inventory = context_not_recomputed()
+            try:
+                readiness = _computed(
+                    self._core_readiness(day, system_as_of=system_as_of, public_as_of=public_end)
+                )
+                self._publish_day(
+                    day,
+                    readiness,
+                    formal_stage(readiness),
+                    ContextProjection(
+                        macro, inventory, (), (f"context_not_recomputed:{DETAILS_PAST_RETENTION}",)
+                    ),
+                    system_as_of=system_as_of,
+                    basis=basis,
+                    corrects=replace(corrects, scope=CORE_ONLY),
+                )
+            except (KeyError, LookupError, TypeError, ValueError) as error:
+                raise _Uncorrectable(f"{type(error).__name__}:{error}") from error
+            return
         readiness = self._core_readiness(day, system_as_of=system_as_of, public_as_of=public_end)
+        if corrects is not None:
+            readiness = _computed(readiness)
         decided = formal_stage(readiness)
         context = self._context(
             day, readiness, decided, system_as_of=system_as_of, persist_derived=False
         )
+        self._publish_day(
+            day,
+            readiness,
+            decided,
+            context,
+            system_as_of=system_as_of,
+            basis=basis,
+            corrects=corrects,
+        )
+
+    def _publish_day(
+        self,
+        day: str,
+        readiness: CoreReadiness,
+        decided: StageResult,
+        context: ContextProjection,
+        *,
+        system_as_of: datetime,
+        basis: str | None,
+        corrects: SummaryCorrection | None,
+    ) -> None:
         P0ProjectionService(self._projections).publish(
             target_business_date=day,
             system_as_of=system_as_of,

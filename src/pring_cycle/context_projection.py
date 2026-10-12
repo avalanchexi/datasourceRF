@@ -314,6 +314,7 @@ def build_context_projection(
     repository.validate_model_catalog(model_manifest)
     definitions = {item.metric_id: item for item in rules.metric_definitions}
     visible_repository: Any = repository
+    visible_start: date | None = None
     if target_business_date is not None:
         try:
             target_date = date.fromisoformat(target_business_date)
@@ -446,6 +447,7 @@ def build_context_projection(
         trading_calendar_metric_id = None
     market_derived_rows, market_derived_ids = _derived_market_context_rows(
         repository,
+        visible_start=visible_start,
         as_of=as_of,
         formula_versions=formula_versions,
         definition_version=rules.metric_catalog_version,
@@ -1976,6 +1978,7 @@ def _selected_among(
 def _derived_market_context_rows(
     repository: EvidenceRepository,
     *,
+    visible_start: date | None,
     as_of: datetime,
     formula_versions: Mapping[str, str],
     definition_version: str,
@@ -1983,6 +1986,13 @@ def _derived_market_context_rows(
     as_of_mode: AsOfMode,
     persist_derived: bool,
 ) -> tuple[dict[str, tuple[dict[str, object], ...]], tuple[str, ...]]:
+    """Each derived row of the day; its inputs may precede the window, as a formula's
+    lookback does, but a row whose period ended before ``visible_start`` is none of the
+    window's: its metric shows the window's own rows, its gap when it has none (ticket 08)."""
+
+    def in_window(period_end: str) -> bool:
+        return visible_start is None or date.fromisoformat(period_end) >= visible_start
+
     rows: dict[str, tuple[dict[str, object], ...]] = {}
     version_ids: list[str] = []
     reported_amount_points = repository.metric_series(
@@ -2029,7 +2039,11 @@ def _derived_market_context_rows(
         for period, measures in amount_by_period.items()
         if set(measures) == {"injection", "maturity"}
     ]
-    if complete_periods and omo_formula == REPO_SAME_DAY_FORMULA:
+    if (
+        complete_periods
+        and omo_formula == REPO_SAME_DAY_FORMULA
+        and in_window(max(complete_periods))
+    ):
         period = max(complete_periods)
         measures = amount_by_period[period]
         derived_row, derived_versions = _difference_row(
@@ -2126,6 +2140,7 @@ def _derived_market_context_rows(
             and target_period not in invalid_amount_periods
             and not invalid_maturity_inputs
             and calendar_valid
+            and in_window(target_period)
         ):
             derived_row, derived_versions = _repo_net_injection_row(
                 repository,
@@ -2182,7 +2197,12 @@ def _derived_market_context_rows(
     ):
         policy_rate = None
     dr007_formula = formula_versions.get("dr007_policy_spread")
-    if dr007 is not None and policy_rate is not None and dr007_formula is not None:
+    if (
+        dr007 is not None
+        and policy_rate is not None
+        and dr007_formula is not None
+        and in_window(dr007.period_end)
+    ):
         derived_row, derived_versions = _difference_row(
             repository,
             metric_id="CN_DR007_POLICY_SPREAD",
@@ -2215,7 +2235,7 @@ def _derived_market_context_rows(
     )
     common_periods = set(ust2) & set(ust10)
     ust_formula = formula_versions.get("ust_2s10s_spread")
-    if common_periods and ust_formula is not None:
+    if common_periods and ust_formula is not None and in_window(max(common_periods)):
         period = max(common_periods)
         derived_row, derived_versions = _difference_row(
             repository,
@@ -2259,7 +2279,11 @@ def _derived_market_context_rows(
     )
     order_inventory_periods = set(pmi_new_orders) & set(pmi_finished_goods)
     order_formula = formula_versions.get("order_inventory_spread")
-    if order_inventory_periods and order_formula == "pmi-order-inventory-spread-v0001":
+    if (
+        order_inventory_periods
+        and order_formula == "pmi-order-inventory-spread-v0001"
+        and in_window(max(order_inventory_periods))
+    ):
         period = max(order_inventory_periods)
         derived_row, derived_versions = _difference_row(
             repository,
@@ -2278,7 +2302,11 @@ def _derived_market_context_rows(
         version_ids.extend(derived_versions)
     production_order_periods = set(pmi_production) & set(pmi_new_orders)
     production_formula = formula_versions.get("production_order_spread")
-    if production_order_periods and production_formula is not None:
+    if (
+        production_order_periods
+        and production_formula is not None
+        and in_window(max(production_order_periods))
+    ):
         period = max(production_order_periods)
         derived_row, derived_versions = _difference_row(
             repository,
@@ -2324,6 +2352,8 @@ def _derived_market_context_rows(
             ordered = sorted(points, key=lambda point: point.period_end)
             current = ordered[-1]
             previous: MetricSeriesPoint | None
+            if not in_window(current.period_end):
+                continue
             if (
                 loan_formula == LOAN_YTD_FORMULA
                 and date.fromisoformat(current.period_end).month == 1
