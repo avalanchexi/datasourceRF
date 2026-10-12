@@ -8,7 +8,8 @@ needed only at the latest day and the value it is compared with (other days are 
 Monthly, quarterly and weekly: is the latest period due by the cutoff held, and how long after
 its official publication was each period first stored. A period published in the window with
 no claim left is told apart by the run's frozen final plan and the stored receipts: stored and
-later removed by retention, never in the plan's demand, or not fetched.
+later removed by retention, never in the plan's demand, or not fetched. Removed members are
+listed one by one, also of periods other members of which are still held.
 """
 
 from __future__ import annotations
@@ -91,6 +92,7 @@ LOW_FREQUENCIES = ("monthly", "quarterly", "weekly")
 # A low-frequency period published in the window with no claim left by the time of the audit.
 PURGED = "已入库后被清理"
 ABSENT = (PURGED, OUT_OF_DEMAND, NOT_FETCHED)
+UNKNOWN_MEMBER = "成员不明"  # a removed period nothing names a member of
 
 
 def scope_label(run: Run, metric: str) -> str:
@@ -926,6 +928,31 @@ class AbsentRow:
     evidence: str
 
 
+@dataclass
+class PurgedRow:
+    """One member of a period published in the window that was stored and is now gone."""
+
+    metric: str
+    period: str
+    member: str  # dimensions key, or UNKNOWN_MEMBER
+    published: datetime
+    evidence: str
+    whole: bool  # no member of the period has a claim left
+
+
+def _dimensions_key(dimensions) -> str:
+    """A member as sorted-key JSON of its dimensions; ``{}`` for none."""
+    if isinstance(dimensions, str):
+        dimensions = json.loads(dimensions)
+    return json.dumps(dimensions or {}, ensure_ascii=False, sort_keys=True)
+
+
+def _plan_member(metric: str, member: str) -> str:
+    """A final plan's ``METRIC:{dimensions}`` member as a dimensions key."""
+    prefix = f"{metric}:"
+    return _dimensions_key(member[len(prefix) :] if member.startswith(prefix) else member)
+
+
 class StorageHistory:
     """What the run's frozen final plan and the stored receipts say about periods that have no
     claim left: the claims retention removes leave the plan and the receipts behind."""
@@ -963,21 +990,72 @@ class StorageHistory:
             self._ingests[metric] = rows.fetchall()
         return self._ingests[metric]
 
-    def _stored_by(self, metric: str, frequency: str, period: str) -> list[tuple[str, str, str]]:
-        """``(acquisition, validated_at, runs)`` of those receipts whose accepted parse holds
-        a value of the metric for the period."""
+    def _stored_by(
+        self, metric: str, frequency: str, period: str
+    ) -> list[tuple[str, str, str, frozenset[str]]]:
+        """``(acquisition, validated_at, runs, members)`` of those receipts whose accepted parse
+        holds a value of the metric for the period, with the members it holds."""
         found = []
         for acquisition, validated, normalized, runs in self._receipts(metric):
-            scalars = self._run.scalars(normalized) or []
-            if any(
-                isinstance(s, dict)
+            members = frozenset(
+                _dimensions_key(s.get("dimensions"))
+                for s in self._run.scalars(normalized) or []
+                if isinstance(s, dict)
                 and s.get("metric_id") == metric
                 and s.get("period_kind") != "business_day"
                 and isinstance(s.get("period_end"), str)
                 and _period_label(frequency, s["period_end"]) == period
-                for s in scalars
-            ):
-                found.append((acquisition, validated, runs))
+            )
+            if members:
+                found.append((acquisition, validated, runs, members))
+        return found
+
+    def _left(self, claim_ids: list[str]) -> int:
+        """How many of the claims are still in ``source_claim``."""
+        if not claim_ids:
+            return 0
+        marks = ",".join("?" * len(claim_ids))
+        return self._run.db.execute(
+            f"SELECT COUNT(*) FROM source_claim WHERE claim_id IN ({marks})", tuple(claim_ids)
+        ).fetchone()[0]
+
+    @staticmethod
+    def _receipt_proof(receipts: list[tuple[str, str, str, frozenset[str]]], what: str) -> str:
+        runs = {r for _, _, joined, _ in receipts for r in joined.split(",")}
+        first, last = receipts[0], receipts[-1]
+        return (
+            f"截止前 {len(receipts)} 条回执（{len(runs)} 次运行）的已接受解析件含{what}，"
+            f"最早 {first[0]}（{_fmt(parse_time(first[1]))}），最近 {last[0]}"
+        )
+
+    def purged(
+        self, metric: str, frequency: str, period: str, held: set[str]
+    ) -> list[tuple[str, str]]:
+        """``(member, evidence)`` of the period's members stored once and held no longer.
+
+        Stored by the plan (it names the member and some claim it selected for the period is
+        gone) or by a receipt (an accepted parse holding the member for the period).
+        """
+        requirement = self.demand.get(metric, {}).get(period) or {}
+        selected = requirement.get("selected_claim_ids") or []
+        gone = len(selected) - self._left(selected)
+        planned: set[str] = set()
+        if gone:
+            missing = {_plan_member(metric, m) for m in requirement.get("missing_members") or []}
+            planned = {_plan_member(metric, m) for m in requirement.get("members") or []}
+            planned -= missing
+        receipts = self._stored_by(metric, frequency, period)
+        found = []
+        for member in sorted((planned | {m for *_, ms in receipts for m in ms}) - held):
+            proof = []
+            if member in planned:
+                proof.append(
+                    f"冻结计划该期列有该成员，选中的 {len(selected)} 条声明中 {gone} 条现已不在库"
+                )
+            mine = [r for r in receipts if member in r[3]]
+            if mine:
+                proof.append(self._receipt_proof(mine, "该成员该期"))
+            found.append((member, "；".join(proof) + "；现存同定义声明已无该成员该期"))
         return found
 
     def classify(
@@ -992,23 +1070,12 @@ class StorageHistory:
         wanted = self.demand.get(metric, {})
         requirement = wanted.get(period)
         selected = (requirement or {}).get("selected_claim_ids") or []
-        left = 0
-        if selected:
-            marks = ",".join("?" * len(selected))
-            left = self._run.db.execute(
-                f"SELECT COUNT(*) FROM source_claim WHERE claim_id IN ({marks})", tuple(selected)
-            ).fetchone()[0]
         receipts = self._stored_by(metric, frequency, period)
         proof = []
-        if selected and not left:
+        if selected and not self._left(selected):
             proof.append(f"冻结计划选中该期 {len(selected)} 条声明，现已不在库")
         if receipts:
-            runs = {r for _, _, joined in receipts for r in joined.split(",")}
-            first, last = receipts[0], receipts[-1]
-            proof.append(
-                f"截止前 {len(receipts)} 条回执（{len(runs)} 次运行）的已接受解析件含该期，"
-                f"最早 {first[0]}（{_fmt(parse_time(first[1]))}），最近 {last[0]}"
-            )
+            proof.append(self._receipt_proof(receipts, "该期"))
         if proof:
             stored = parse_time(receipts[0][1]) if receipts else None
             return PURGED, stored, "；".join(proof) + "；现存声明已无该期"
@@ -1047,12 +1114,13 @@ def _deadline(run: Run, published: datetime) -> tuple[datetime | None, str]:
 
 def low_frequency(
     run: Run,
-) -> tuple[list[PeriodRow], list[DelayRow], list[AbsentRow], list[str]]:
+) -> tuple[list[PeriodRow], list[DelayRow], list[AbsentRow], list[PurgedRow], list[str]]:
     cutoff = parse_time(run.cutoff)
     window_start = _beijing(run.window[0], "00:00:00")
     system_start = parse_time(run.system_start)
     history = StorageHistory(run)
     rows, delays, absent, events = [], [], [], []
+    cleared: list[PurgedRow] = []
     for metric, definition in run.catalog.items():
         frequency = definition["frequency"]
         if frequency == "event":
@@ -1097,12 +1165,19 @@ def low_frequency(
             if not (window_start <= when <= cutoff):
                 continue
             first, purged = stored.get(period), False
-            if first is None:
+            whole = first is None
+            if whole:
                 status, first, evidence = history.classify(metric, frequency, period)
                 absent.append(AbsentRow(metric, period, when, status, evidence))
                 purged = status == PURGED
-                if status == OUT_OF_DEMAND or (purged and first is None):
-                    continue  # not due; or stored at an unknown time, so no delay to judge
+            if not whole or purged:
+                held = {_dimensions_key(d) for d in members.get(period, ())}
+                gone_members = history.purged(metric, frequency, period, held)
+                if purged and not gone_members:
+                    gone_members = [(UNKNOWN_MEMBER, evidence)]
+                cleared += [PurgedRow(metric, period, m, when, e, whole) for m, e in gone_members]
+            if whole and (status == OUT_OF_DEMAND or (purged and first is None)):
+                continue  # not due; or stored at an unknown time, so no delay to judge
             limit, note = _deadline(run, when)
             if limit is None:
                 late = first is None or first > when
@@ -1115,7 +1190,7 @@ def low_frequency(
                 backfilled = when < system_start
                 row = DelayRow(metric, period, when, first, limit, basis, backfilled, purged)
                 delays.append(row)
-    return rows, delays, absent, events
+    return rows, delays, absent, cleared, events
 
 
 # --- report -------------------------------------------------------------------------------
@@ -1156,7 +1231,16 @@ def _overrun(row: DelayRow) -> str:
     return f"{hours / 24:.1f} 天" if hours >= 24 else f"{hours:.1f} 小时"
 
 
-def _conclusion(run: Run, result: DailyResult, periods, delays, absent) -> list[str]:
+def _cleared_counts(cleared: list[PurgedRow]) -> str:
+    periods = {(c.metric, c.period) for c in cleared}
+    partial = {(c.metric, c.period) for c in cleared if not c.whole}
+    return (
+        f"{len(cleared)} 个成员、{len(periods)} 个指标期次"
+        f"（其中 {len(partial)} 期仍有其他成员的声明）"
+    )
+
+
+def _conclusion(run: Run, result: DailyResult, periods, delays, absent, cleared) -> list[str]:
     out = ["### 结论", ""]
     for label, chosen in (("目录全部指标", None), ("仅模型用到的指标", run.model_used)):
 
@@ -1182,7 +1266,9 @@ def _conclusion(run: Run, result: DailyResult, periods, delays, absent) -> list[
             f" {sum(d.purged for d in late)} 个），宽限无法判定 {unknown} 个；"
             f"窗口内发布、现已无声明的期次 {sum(gone.values())} 个："
             + "，".join(f"{status} {gone[status]}" for status in ABSENT)
-            + f"（{OUT_OF_DEMAND}的不算超过宽限）。"
+            + f"（{OUT_OF_DEMAND}的不算超过宽限）；按成员计{PURGED} "
+            + _cleared_counts([c for c in cleared if keep(c.metric)])
+            + "。"
         )
     if result.rules:
         parts = []
@@ -1355,7 +1441,11 @@ def _rule_tables(run: Run, result: DailyResult) -> list[str]:
 
 
 def _low_frequency_tables(
-    run: Run, periods: list[PeriodRow], delays: list[DelayRow], absent: list[AbsentRow]
+    run: Run,
+    periods: list[PeriodRow],
+    delays: list[DelayRow],
+    absent: list[AbsentRow],
+    cleared: list[PurgedRow],
 ) -> list[str]:
     out = ["### 月频、季频、周频：最新应有期", ""]
     headers = ["指标", "模型用到", "频率", "发布依据", "最新应有期", "最新持有期", "状态", "备注"]
@@ -1407,13 +1497,29 @@ def _low_frequency_tables(
     out.append(table(headers, rows) if rows else "无。")
     out += [
         "",
-        "窗口内发布、现已无声明的期次（按本运行的最终计划与截止前回执区分）：",
+        "窗口内发布、现已无声明的期次与已被清理的成员（按本运行的最终计划与截止前回执区分）。"
+        f"{PURGED}逐成员列出，共 {_cleared_counts(cleared)}；另两类逐期列出：",
         "",
     ]
-    headers = ["指标", "模型用到", "期次", "发布", "类别", "依据"]
+    headers = ["指标", "模型用到", "期次", "成员", "发布", "类别", "依据"]
+    listed = [(a.metric, a.period, "整期", a.published, a.status, a.evidence) for a in absent]
+    listed = [row for row in listed if row[4] != PURGED]
+    listed += [
+        (
+            c.metric,
+            c.period,
+            c.member if c.member == UNKNOWN_MEMBER else _display(c.member),
+            c.published,
+            PURGED,
+            c.evidence + ("；该期已无任何声明" if c.whole else "；该期仍有其他成员的声明"),
+        )
+        for c in cleared
+    ]
     rows = [
-        [a.metric, scope_label(run, a.metric), a.period, _fmt(a.published), a.status, a.evidence]
-        for a in sorted(absent, key=lambda a: (a.metric, a.period))
+        [metric, scope_label(run, metric), period, member, _fmt(published), status, evidence]
+        for metric, period, member, published, status, evidence in sorted(
+            listed, key=lambda r: r[:3]
+        )
     ]
     out.append(table(headers, rows) if rows else "无。")
     return [*out, ""]
@@ -1421,11 +1527,15 @@ def _low_frequency_tables(
 
 def section(run: Run) -> str:
     result = daily(run)
-    periods, delays, absent, events = low_frequency(run)
+    periods, delays, absent, cleared, events = low_frequency(run)
     plan = _plan_window(run)
     judged = parse_time(run.cutoff).astimezone(BEIJING).date().isoformat()
 
-    out = ["## 第一层：取数是否完整", "", *_conclusion(run, result, periods, delays, absent)]
+    out = [
+        "## 第一层：取数是否完整",
+        "",
+        *_conclusion(run, result, periods, delays, absent, cleared),
+    ]
     out += ["### 日历与窗口", ""]
     plan_note = (
         ""
@@ -1445,7 +1555,7 @@ def section(run: Run) -> str:
     out += ["", table(["日历", "来源", "覆盖"], calendars), ""]
     out += _daily_tables(run, result)
     out += _rule_tables(run, result)
-    out += _low_frequency_tables(run, periods, delays, absent)
+    out += _low_frequency_tables(run, periods, delays, absent, cleared)
     out += [
         "### 不在本层核对范围",
         "",
