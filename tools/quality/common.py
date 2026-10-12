@@ -34,6 +34,20 @@ def parse_time(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def moment(value: str | None) -> datetime | None:
+    """A stored time as an instant; ``None`` when it is empty, unparsable or has no offset.
+
+    An offset is never guessed: a time that does not say which zone it is in is unusable.
+    """
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = parse_time(value)
+    except ValueError:
+        return None
+    return parsed if parsed.utcoffset() is not None else None
+
+
 def iso_day(value: str) -> str:
     """``20260930`` or ``2026-09-30`` to ``2026-09-30``."""
     value = value.strip()
@@ -296,26 +310,39 @@ class Run:
             cache[normalized_hash] = payload if isinstance(payload, list) else None
         return cache[normalized_hash]
 
+    @cached_property
+    def cutoff_moment(self) -> datetime:
+        found = moment(self.cutoff)
+        if found is None:
+            raise SystemExit(f"cutoff {self.cutoff!r} is not a time with an offset")
+        return found
+
+    def by_cutoff(self, value: str | None) -> bool:
+        """``value`` is a usable time no later than the cutoff, compared as instants."""
+        at = moment(value)
+        return at is not None and at <= self.cutoff_moment
+
     def receipts(self, where: str, params: tuple = ()) -> list[Receipt]:
         """Receipts started by the cutoff, newest first; ``where`` filters ``a``. Whether the
-        answer itself arrived by the cutoff is ``reached_source``'s question."""
+        answer itself arrived by the cutoff is ``reached_source``'s question. Start times are
+        compared and ordered as instants; one that is unusable keeps the receipt out."""
         rows = self.db.execute(
             "SELECT a.acquisition_id, a.provider, a.api_name, a.parameters_json, a.state,"
             " a.started_at, a.received_at, a.validated_at, a.raw_hash, a.source_record_count,"
             " a.error_type, a.rejection_reason FROM acquisition_request a"
-            f" WHERE a.started_at <= ? AND ({where}) ORDER BY a.started_at DESC",
-            (self.cutoff, *params),
+            f" WHERE ({where}) ORDER BY a.started_at DESC",
+            params,
         ).fetchall()
-        return [Receipt(r[0], r[1], r[2], json.loads(r[3]), *r[4:]) for r in rows]
+        started = [(at, r) for r in rows if (at := moment(r[5])) and at <= self.cutoff_moment]
+        started.sort(key=lambda pair: pair[0], reverse=True)  # stable: ties keep SQL order
+        return [Receipt(r[0], r[1], r[2], json.loads(r[3]), *r[4:]) for _, r in started]
 
     def reached_source(self, receipt: Receipt) -> bool:
         """The receipt holds an upstream answer received by the cutoff."""
-        return bool(receipt.raw_hash and receipt.received_at and receipt.received_at <= self.cutoff)
+        return bool(receipt.raw_hash) and self.by_cutoff(receipt.received_at)
 
     def validated_by_cutoff(self, receipt: Receipt) -> bool:
-        return receipt.state == "validated" and bool(
-            receipt.validated_at and receipt.validated_at <= self.cutoff
-        )
+        return receipt.state == "validated" and self.by_cutoff(receipt.validated_at)
 
     def run_receipts(self, api_name: str) -> list[Receipt]:
         """Receipts visible to the run, including ones it only references (``referenced``):
@@ -339,7 +366,8 @@ class Run:
             for r in self.receipts("a.api_name = ?", (api_name,))
             if r.parameters.get("exchange", "SSE") == exchange and self.reached_source(r)
         ]
-        receipts.sort(key=lambda r: (r.acquisition_id in own, r.received_at or ""))
+        # Every receipt kept here reached the source, so its answer time is a usable instant.
+        receipts.sort(key=lambda r: (r.acquisition_id in own, moment(r.received_at)))
         is_open: dict[str, bool] = {}
         used: list[str] = []
         for receipt in receipts:  # oldest and other runs' first; later ones overwrite

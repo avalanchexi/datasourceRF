@@ -138,8 +138,8 @@ def _by_cutoff(run: Run, moment: str | None) -> bool:
 
 @dataclass(frozen=True)
 class _Receipt:
-    """One stored request, read here rather than through ``Run.receipts``: that filters the
-    start time as text and parses every receipt's parameters before any check can run."""
+    """One stored request, read here rather than through ``Run.receipts``: that parses every
+    receipt's parameters before any check can run."""
 
     acquisition_id: str
     provider: str
