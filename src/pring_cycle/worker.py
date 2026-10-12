@@ -139,8 +139,7 @@ def run_worker(paths: RuntimePaths) -> None:
     write_runtime_event(paths, "worker", "worker_started")
     runs = RunRepository(paths.database)
     runs.audit_lease()
-    previous_schedule_check = started_at
-    deferred = DeferredSchedule()
+    schedule_check = ScheduleCheck()
     try:
         with keep_database_open(paths.database):
             while not stopped.is_set():
@@ -151,8 +150,7 @@ def run_worker(paths: RuntimePaths) -> None:
                     started_at=started_at,
                     heartbeat_at=observed_at,
                 )
-                submit_schedule_if_crossed(paths, previous_schedule_check, observed_at, deferred)
-                previous_schedule_check = observed_at
+                submit_schedule_if_due(paths, observed_at, schedule_check)
                 process_pending_run(paths)
                 stopped.wait(1)
     finally:
@@ -172,58 +170,65 @@ class _CalendarStatus(Enum):
 
 
 @dataclass
-class DeferredSchedule:
-    """The scheduled day a live Worker holds back while its SSE calendar cannot be fetched,
-    and when it asks again (ticket 14).
+class ScheduleCheck:
+    """What a live Worker has judged of today's scheduled run (ticket 02): whether the day
+    is settled, submitted, found closed, with no active model or past its P0 deadline, so
+    that its checks, a second apart, read no calendar again; else when a day held back while
+    its SSE calendar cannot be fetched asks again (ticket 14).
 
-    Held in memory only: a Worker started later does not make up a day it missed, deferred
-    or not, as it does not for one it was down for.
+    Held in memory only. A Worker started later the same day judges it afresh, and a run
+    already submitted comes back by its request key.
     """
 
     day: date | None = None
     retry_at: datetime | None = None
+    settled: bool = False
 
 
-def submit_schedule_if_crossed(
+def submit_schedule_if_due(
     paths: RuntimePaths,
-    previous_check: datetime,
     observed_at: datetime,
-    deferred: DeferredSchedule | None = None,
+    check: ScheduleCheck | None = None,
 ) -> str | None:
-    """Submit the scheduled run for the session before today when a live Worker crosses its
-    start time on an SSE session (ADR-0041); with ``deferred``, also when a day held back
-    for its calendar is due again."""
-    if previous_check.tzinfo is None or observed_at.tzinfo is None:
+    """Submit the scheduled run for the session before today on the first check of an SSE
+    session from its start time through its P0 deadline (ADR-0041, ticket 02), by the
+    request key a Worker started later that day submits again, so that it comes back as it
+    was.
+
+    A Worker started past 9:00 makes the day up; none is submitted past the deadline, where
+    the run entry would only expire it. ``check`` keeps the day's verdict between checks
+    (without it each check is a fresh Worker's first).
+    """
+    if observed_at.tzinfo is None:
         raise ValueError("schedule_check_times_must_be_timezone_aware")
     repository = RunRepository(paths.database)
     schedule = repository.schedule()
     if schedule["enabled"] is not True:
         return None
+    check = check if check is not None else ScheduleCheck()
     timezone = ZoneInfo(str(schedule["timezone"]))
-    previous_local = previous_check.astimezone(timezone)
     observed_local = observed_at.astimezone(timezone)
     today = observed_local.date()
     hour, minute = (int(value) for value in str(schedule["start_time"]).split(":"))
     scheduled_at = observed_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
     hour, minute = (int(value) for value in str(schedule["p0_deadline"]).split(":"))
     deadline = observed_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    if deferred is not None and (deferred.day != today or observed_local > deadline):
-        # A day held back is not made up once it has turned, nor past its P0 deadline,
-        # where its run would only expire.
-        deferred.day = deferred.retry_at = None
-    if previous_local.date() != today:
+    if check.day != today:
+        # A day held back is not made up once it has turned: the new day is judged anew.
+        check.day, check.retry_at, check.settled = today, None, False
+    if observed_local > deadline:
+        # As ``_scheduled_p0_deadline_elapsed`` judges it: 21:00 itself is still in time.
+        check.retry_at, check.settled = None, True
+    if check.settled or observed_local < scheduled_at:
         return None
-    retrying = (
-        deferred is not None and deferred.retry_at is not None and deferred.retry_at <= observed_at
-    )
-    if not (previous_local < scheduled_at <= observed_local or retrying):
+    if check.retry_at is not None and observed_at < check.retry_at:
         return None
     target = _scheduled_target(paths, today, observed_at)
-    held_back = target is _CalendarStatus.UNAVAILABLE
-    if deferred is not None:
-        deferred.day = today if held_back else None
-        deferred.retry_at = observed_at + SCHEDULE_CALENDAR_RETRY if held_back else None
-    if not isinstance(target, date):
+    if target is _CalendarStatus.UNAVAILABLE:
+        check.retry_at = observed_at + SCHEDULE_CALENDAR_RETRY
+        return None
+    check.retry_at, check.settled = None, True
+    if target is None:
         return None
     try:
         model_version_id = ModelRepository(paths.database).active().model_version_id
