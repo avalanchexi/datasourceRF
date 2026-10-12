@@ -839,6 +839,7 @@ STORED: dict[str, Stored] = {
         (LOAN, None),
         lambda c, p, m: monthly_increment(c, LOAN, m, p),
         "同成员年内累计增量差分；1 月取当月累计",
+        newest_anchor_only=True,
     ),
     "credit-impulse-12m-flow-share-v0003": Stored(
         "CN_CREDIT_IMPULSE",
