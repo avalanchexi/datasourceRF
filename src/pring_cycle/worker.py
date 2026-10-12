@@ -74,7 +74,7 @@ from pring_cycle.metric_contracts import (
 )
 from pring_cycle.models import ModelRepository
 from pring_cycle.news_rules import rules_cover, rules_for
-from pring_cycle.p0 import CORE_ONLY, WHOLE_DAY
+from pring_cycle.p0 import CORE_ONLY, STAGE_HISTORY_CHANGED, WHOLE_DAY
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.read_scope import shared_read_scope
 from pring_cycle.release_schedule import (
@@ -411,6 +411,7 @@ def _execute_run(
         if run.command_type in {"manual_full", "scheduled_full"}:
             from pring_cycle.full_retrieval import FullRunRetrieval
 
+            _record_relinks(paths, run.run_id)
             FullRunRetrieval(paths).record_adoption(run)
         runs.advance(run.run_id, "generating_report")
         generated = _generate_report(paths, runs, run, report_adapters)
@@ -656,6 +657,7 @@ def _execute_run(
         runs.mark_action_required(run.run_id, result.stage_reason)
         return
     runs.link_projection(run.run_id, result.projection_set_id)
+    _record_relinks(paths, run.run_id)
     run = runs.get(run.run_id)
     full_retrieval.record_adoption(run)
     runs.advance(run.run_id, "generating_report")
@@ -666,6 +668,21 @@ def _execute_run(
     from pring_cycle.retention import prune_to_window
 
     prune_to_window(paths)
+
+
+def _record_relinks(paths: RuntimePaths, run_id: str) -> None:
+    """State the days whose last confirmed stage alone the run corrected (follow-up ticket
+    01), read from what it stored. Once its projection is linked, a resumed run summarizes
+    nothing again, so the days stated then are all it made."""
+    from pring_cycle.full_retrieval import record_first_outcome
+
+    relinked = ProjectionSetRepository(paths.database).corrected_days(run_id, STAGE_HISTORY_CHANGED)
+    record_first_outcome(
+        paths.database,
+        run_id,
+        "last_confirmed_relinks",
+        {"reason": STAGE_HISTORY_CHANGED, "days": list(relinked), "count": len(relinked)},
+    )
 
 
 def _execute_retrieval_run(

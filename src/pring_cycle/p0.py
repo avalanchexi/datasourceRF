@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 
@@ -52,6 +53,11 @@ class CoreAssetReadiness:
 WHOLE_DAY = "whole_day"
 CORE_ONLY = "core_only"
 DETAILS_PAST_RETENTION = "details_past_retention"
+# A day without a stage of its own whose last confirmed stage the stage history before it no
+# longer gives, an earlier day having been summarized since: that stage alone is corrected
+# (follow-up ticket 01).
+STAGE_HISTORY_CHANGED = "stage_history_changed"
+LAST_CONFIRMED_ONLY = "last_confirmed_stage"
 
 
 @dataclass(frozen=True)
@@ -62,14 +68,20 @@ class SummaryCorrection:
     projection_set_id: str | None
     reason: str
     scope: str = WHOLE_DAY
+    # The correction the corrected summary stated, kept by one that corrects its last
+    # confirmed stage alone and so carries the rest of it (follow-up ticket 01).
+    carries: Mapping[str, object] | None = None
 
     def document(self) -> dict[str, object]:
-        return {
+        document: dict[str, object] = {
             "assessment_id": self.assessment_id,
             "projection_set_id": self.projection_set_id,
             "reason": self.reason,
             "scope": self.scope,
         }
+        if self.carries is not None:
+            document["carries"] = dict(self.carries)
+        return document
 
 
 def context_not_recomputed() -> tuple[dict[str, object], dict[str, object]]:
@@ -292,6 +304,84 @@ class P0ProjectionService:
             (),
             str(assessment["assessment_id"]),
         )
+
+    def relink(
+        self,
+        held: Mapping[str, object],
+        *,
+        last_confirmed_stage: str | None,
+        system_as_of: datetime,
+    ) -> str:
+        """Append a version of ``held``, its day's latest summary, that corrects the day's
+        last confirmed stage alone (follow-up ticket 01); the new assessment's id.
+
+        Its cores, context, confirmation and evidence are the summary's word for word, and
+        nothing is read again; the summary and its set stay. Its set's overview and stage
+        history state the stage, and a lookback the set showed in its place goes once the
+        history gives one.
+        """
+        day = str(held["business_date"])
+        kept = self._projections.get(str(held["projection_set_id"]))
+        # A relinked summary carries what it carried itself, so the chain stays one deep.
+        earlier = held.get("corrects")
+        if isinstance(earlier, dict) and earlier.get("reason") == STAGE_HISTORY_CHANGED:
+            earlier = earlier.get("carries")
+        corrects = SummaryCorrection(
+            str(held["assessment_id"]),
+            kept.envelope.projection_set_id,
+            STAGE_HISTORY_CHANGED,
+            scope=LAST_CONFIRMED_ONLY,
+            carries=earlier if isinstance(earlier, dict) else None,
+        )
+        history = [
+            item
+            for item in self._projections.stage_history(through=day)
+            if item.get("business_date") != day
+        ]
+        identity_document = {
+            "corrects": corrects.document(),
+            "last_confirmed_stage": last_confirmed_stage,
+            "stage_history": [item.get("assessment_id") for item in history],
+            "system_as_of": system_as_of.isoformat(),
+            "batch_id": current_batch_id(),
+        }
+        projection_set_id = (
+            "projection-"
+            + hashlib.sha256(json.dumps(identity_document, sort_keys=True).encode()).hexdigest()[
+                :20
+            ]
+        )
+        assessment = self._projections.prepare_p0_assessment(
+            {
+                **{key: value for key, value in held.items() if key != "assessment_id"},
+                "corrects": corrects.document(),
+                "last_confirmed_stage": last_confirmed_stage,
+                "projection_set_id": projection_set_id,
+                "system_as_of": system_as_of.isoformat(),
+            }
+        )
+        datasets = {
+            name: {**document, "projection_set_id": projection_set_id}
+            for name, document in kept.datasets.items()
+        }
+        overview = datasets["cycle_overview"]
+        if last_confirmed_stage is not None or "last_confirmed_lookback" not in overview:
+            overview["last_confirmed_stage"] = last_confirmed_stage
+            overview.pop("last_confirmed_lookback", None)
+            datasets["stage_history"].pop("last_confirmed_lookback", None)
+        datasets["stage_history"]["events"] = [*history, assessment]
+        self._projections.publish(
+            replace(
+                kept.envelope,
+                projection_set_id=projection_set_id,
+                system_as_of=system_as_of,
+                generated_at=system_as_of,
+            ),
+            datasets,
+            p0_assessment=assessment,
+            as_current=False,
+        )
+        return str(assessment["assessment_id"])
 
 
 def formal_stage(

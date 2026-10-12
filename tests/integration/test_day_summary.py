@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 import pring_cycle.day_summary as day_summary
+from pring_cycle.dashboard import dashboard_page
 from pring_cycle.day_summary import DaySummaries, FailedDay, ModelRules, RunMaterials
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.models import ModelRepository
@@ -24,6 +25,7 @@ from tests.integration.test_backfill import cpi_periods, query, summary
 from tests.integration.test_core_carry_forward import CUTOFF, TARGET, seed_cores, sessions
 from tests.integration.test_decertified_main_chain import claim
 from tests.integration.test_worker_execution import runtime
+from tests.web.test_dashboard_contract import _text
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
@@ -499,3 +501,142 @@ def claim_ids(value: object) -> set[str]:
     if isinstance(value, (list, tuple)):
         return set().union(*(claim_ids(item) for item in value))
     return set()
+
+
+def test_a_day_whose_last_confirmed_stage_was_formed_later_is_relinked_on_it_alone(
+    tmp_path: Path,
+) -> None:
+    # Follow-up ticket 01: a day without a stage of its own was summarized while the day
+    # before it had none yet; once that day has its stage, a run appends a version of the
+    # later day that corrects its last confirmed stage alone.
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    days = [day.isoformat() for day in sessions()]
+    staged, held = days[-3], days[-2]
+    EvidenceRepository(paths.database).append_source_claims((stock_conflict(sessions()[-2]),))
+    repository = ProjectionSetRepository(paths.database)
+    with pytest.MonkeyPatch.context() as patch:
+        summarize = DaySummaries._summarize_day
+
+        def fail(self: DaySummaries, day: str, **kwargs: Any) -> None:
+            if day == staged:
+                raise ValueError("fixture_day_unavailable")
+            summarize(self, day, **kwargs)
+
+        patch.setattr(DaySummaries, "_summarize_day", fail)
+        assert summaries(paths).backfill((staged, held), target=days[-1], system_as_of=CUTOFF) == (
+            FailedDay(staged, "ValueError"),
+        )
+    [old] = [event for event in repository.stage_history() if event["business_date"] == held]
+    assert (old["current_stage"], old["last_confirmed_stage"]) == (None, None)
+    old_set = repository.get(str(old["projection_set_id"]))
+
+    later = CUTOFF + timedelta(days=1)
+    assert summaries(paths).backfill((staged, held), target=days[-1], system_as_of=later) == ()
+
+    latest = {event["business_date"]: event for event in repository.stage_history()}
+    assert latest[staged]["current_stage"] == "stage_iii"
+    relinked = latest[held]
+    assert relinked["last_confirmed_stage"] == "stage_iii"
+    assert relinked["corrects"] == {
+        "assessment_id": old["assessment_id"],
+        "projection_set_id": old["projection_set_id"],
+        "reason": "stage_history_changed",
+        "scope": "last_confirmed_stage",
+    }
+    # Its cores, context, confirmation and evidence are the summary's it corrects, word for
+    # word; only the stage before it, and its own identity and cutoff, are new.
+    renewed = {"assessment_id", "projection_set_id", "last_confirmed_stage", "corrects"}
+    assert {key: value for key, value in relinked.items() if key not in renewed} == {
+        **{key: value for key, value in old.items() if key not in renewed},
+        "system_as_of": later.isoformat(),
+    }
+    projection = repository.get(str(relinked["projection_set_id"]))
+    assert projection.envelope.evidence_snapshot_id == old_set.envelope.evidence_snapshot_id
+
+    def kept(datasets: dict[str, dict[str, object]], name: str) -> dict[str, object]:
+        return {key: value for key, value in datasets[name].items() if key != "projection_set_id"}
+
+    for name in ("core_assets", "macro", "inventory", "release_calendar"):
+        assert kept(projection.datasets, name) == kept(old_set.datasets, name), name
+    assert kept(projection.datasets, "cycle_overview") == {
+        **kept(old_set.datasets, "cycle_overview"),
+        "last_confirmed_stage": "stage_iii",
+    }
+    # Its stage history is the record as of its day, it the latest of its day's.
+    assert projection.datasets["stage_history"]["events"] == [latest[staged], relinked]
+    # What it corrects stays; a run on the same history adds nothing more.
+    assert repository.p0_assessment(str(old["assessment_id"])) == old
+    assert repository.get(str(old["projection_set_id"])).datasets == old_set.datasets
+    assert len(query(paths, "SELECT 1 FROM p0_assessment")) == 3
+    assert (
+        summaries(paths).backfill(
+            (staged, held), target=days[-1], system_as_of=later + timedelta(days=1)
+        )
+        == ()
+    )
+    assert len(query(paths, "SELECT 1 FROM p0_assessment")) == 3
+
+
+def test_a_relink_at_the_cutoff_of_the_correction_it_corrects_is_its_day_s_latest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A resumed run keeps its cutoff: the day it corrected while an earlier day failed is
+    # relinked once that day is filled, and the relink, which corrects it, is the latest.
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    days = [day.isoformat() for day in sessions()]
+    staged, held = days[-3], days[-2]
+    EvidenceRepository(paths.database).append_source_claims((stock_conflict(sessions()[-2]),))
+    repository = ProjectionSetRepository(paths.database)
+    summarize = DaySummaries._summarize_day
+
+    def fail(self: DaySummaries, day: str, **kwargs: Any) -> None:
+        if day == staged:
+            raise ValueError("fixture_day_unavailable")
+        summarize(self, day, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(DaySummaries, "_summarize_day", fail)
+        patch.setattr(day_summary, "CORE_HISTORY_BASIS", "core-history-v0001")
+        summaries(paths).backfill((staged, held), target=days[-1], system_as_of=CUTOFF)
+        patch.setattr(day_summary, "CORE_HISTORY_BASIS", "core-history-v0002")
+        # Its stock conflict holds its stage, which a correction would not publish otherwise.
+        patch.setattr(day_summary, "_computed", lambda readiness: readiness)
+        summaries(paths).backfill((staged, held), target=days[-1], system_as_of=CUTOFF)
+    [corrected] = [event for event in repository.stage_history() if event["business_date"] == held]
+    assert corrected["corrects"]["reason"] == "core_history_basis_changed"
+    assert corrected["last_confirmed_stage"] is None
+
+    assert summaries(paths).backfill((staged, held), target=days[-1], system_as_of=CUTOFF) == ()
+
+    [relinked] = [event for event in repository.stage_history() if event["business_date"] == held]
+    assert relinked["corrects"]["assessment_id"] == corrected["assessment_id"]
+    assert relinked["corrects"]["carries"] == corrected["corrects"]
+    assert relinked["last_confirmed_stage"] == "stage_iii"
+    assert repository.last_confirmed_stage(on_or_before=held) == "stage_iii"
+
+    # The day before it is summarized again without a stage: the stage before it goes
+    # back to none, and the relink of the relink carries the correction underneath, once.
+    EvidenceRepository(paths.database).append_source_claims((stock_conflict(sessions()[-3]),))
+    again = CUTOFF + timedelta(days=1)
+    assert stage(
+        repository.get(
+            str(
+                summaries(paths)
+                .summarize_target(staged, system_as_of=again, run_materials=RunMaterials())
+                .result.projection_set_id
+            )
+        )
+    ) == (None, "core_data_pending")
+    assert summaries(paths).backfill((staged, held), target=days[-1], system_as_of=again) == ()
+
+    [unlinked] = [event for event in repository.stage_history() if event["business_date"] == held]
+    assert unlinked["last_confirmed_stage"] is None
+    assert unlinked["corrects"]["assessment_id"] == relinked["assessment_id"]
+    assert unlinked["corrects"]["carries"] == corrected["corrects"]
+    projection = repository.get(str(unlinked["projection_set_id"]))
+    assert projection.datasets["cycle_overview"]["last_confirmed_stage"] is None
+    page = _text(dashboard_page("/stage-history", None, (), (), repository.stage_history()))
+    assert page.count("只更正上一确认阶段") == 1
+    assert page.count("原汇总：核心历史口径变更") == 1

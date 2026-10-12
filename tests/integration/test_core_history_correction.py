@@ -19,6 +19,7 @@ import pytest
 
 import pring_cycle.worker as worker
 from pring_cycle.dashboard import dashboard_page
+from pring_cycle.day_summary import DaySummaries
 from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import ReportRepository
@@ -302,3 +303,150 @@ def test_the_lookback_reads_the_corrected_stage_history(
     overview = runtime.repository.current().datasets["cycle_overview"]
     assert overview["last_confirmed_stage"] == "stage_iii"
     assert "last_confirmed_lookback" not in overview
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_run_corrects_the_last_confirmed_stage_alone_of_days_the_history_changed_before(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Follow-up ticket 01: the stock turns down in the window and the days after it have no
+    # stage of their own. The first run could not summarize the days with one, so the days
+    # without were published with no stage before them; once a later run fills those, it
+    # corrects the others' last confirmed stage alone, with no call added for it.
+    turn = weekdays_back(FIRST, 100)[0]
+    runtime = Runtime(tmp_path, monkeypatch, stock=turning_down(turn))
+    publish = DaySummaries._publish_day
+
+    def fail_the_staged(self: DaySummaries, day: str, *args: Any, **kwargs: Any) -> None:
+        if args[1].current_stage is not None:
+            raise ValueError("fixture_day_unavailable")
+        publish(self, day, *args, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(DaySummaries, "_publish_day", fail_the_staged)
+        first = runtime.run(FIRST)
+    old = runtime.latest()
+    # The run's own target among them, which looked back past the window.
+    held = list(old)
+    assert held and all(old[day]["current_stage"] is None for day in held)
+    assert all(old[day]["last_confirmed_stage"] is None for day in held)
+    assert runtime.runs.full_retrieval_plan(first)["last_confirmed_relinks"]["count"] == 0
+    looked_back = runtime.repository.current().datasets["cycle_overview"]
+    assert looked_back["last_confirmed_lookback"]["status"] == "found"
+    old_sets = {day: runtime.repository.get(str(old[day]["projection_set_id"])) for day in held}
+    old_reports = ReportRepository(runtime.paths.database).history()
+    requests_before = len(runtime.requests)
+
+    second = runtime.run(SECOND)
+    second_requests = len(runtime.requests) - requests_before
+
+    latest = runtime.latest()
+    filled = [day for day in runtime.window(second) if day < SECOND.isoformat() and day not in old]
+    staged = [day for day in filled if latest[day]["current_stage"] == "stage_iii"]
+    assert staged
+    # The days before the window's first stage have none before them still.
+    relinked = [day for day in held if day > staged[0]]
+    assert relinked and all(
+        latest[day] == old[day] for day in held if day < staged[0] and day in latest
+    )
+    assert runtime.runs.full_retrieval_plan(second)["last_confirmed_relinks"] == {
+        "reason": "stage_history_changed",
+        "days": relinked,
+        "count": len(relinked),
+    }
+    renewed = {"assessment_id", "projection_set_id", "last_confirmed_stage", "corrects"}
+    for day in relinked:
+        event = latest[day]
+        assert event["last_confirmed_stage"] == "stage_iii", day
+        assert event["corrects"] == {
+            "assessment_id": old[day]["assessment_id"],
+            "projection_set_id": old[day]["projection_set_id"],
+            "reason": "stage_history_changed",
+            "scope": "last_confirmed_stage",
+        }
+        assert {key: value for key, value in event.items() if key not in renewed} == {
+            **{key: value for key, value in old[day].items() if key not in renewed},
+            "system_as_of": event["system_as_of"],
+        }
+        datasets = runtime.repository.get(str(event["projection_set_id"])).datasets
+        for name in ("core_assets", "macro", "inventory", "release_calendar"):
+            assert {**datasets[name], "projection_set_id": None} == {
+                **old_sets[day].datasets[name],
+                "projection_set_id": None,
+            }, (day, name)
+        assert datasets["cycle_overview"]["last_confirmed_stage"] == "stage_iii"
+        # A lookback stood in for the stage before it, which the history now gives.
+        assert "last_confirmed_lookback" not in datasets["cycle_overview"]
+        assert "last_confirmed_lookback" not in datasets["stage_history"]
+        # The summary it corrects, its set and the reports stay as published.
+        assert runtime.repository.p0_assessment(str(old[day]["assessment_id"])) == old[day]
+        kept = runtime.repository.get(str(old[day]["projection_set_id"])).datasets
+        assert kept == old_sets[day].datasets
+    reports = ReportRepository(runtime.paths.database).history()
+    assert [report for report in reports if report in old_reports] == list(old_reports)
+    # The target's published history and the page read the corrected days.
+    current = runtime.repository.current()
+    events = {
+        str(event["business_date"]): event for event in current.datasets["stage_history"]["events"]
+    }
+    assert all(events[day]["last_confirmed_stage"] == "stage_iii" for day in relinked)
+    assert current.datasets["cycle_overview"]["last_confirmed_stage"] == "stage_iii"
+    page = _text(
+        dashboard_page("/stage-history", current, (), (), runtime.repository.stage_history())
+    )
+    assert page.count("只更正上一确认阶段") == len(relinked)
+
+    requests_before = len(runtime.requests)
+    third = runtime.run(THIRD)
+
+    # The days already state it: nothing more is appended, nor any call added.
+    assert runtime.runs.full_retrieval_plan(third)["last_confirmed_relinks"]["count"] == 0
+    again = runtime.latest()
+    assert all(again[day] == latest[day] for day in relinked if day in again)
+    assert len(runtime.requests) - requests_before == second_requests
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_run_lost_once_its_projection_is_linked_states_the_relinks_it_made(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Once linked, a resumed run summarizes nothing again: it states what the lost attempt
+    # stored.
+    runtime = Runtime(tmp_path, monkeypatch, stock=turning_down(weekdays_back(FIRST, 100)[0]))
+    publish = DaySummaries._publish_day
+
+    def fail_the_staged(self: DaySummaries, day: str, *args: Any, **kwargs: Any) -> None:
+        if args[1].current_stage is not None:
+            raise ValueError("fixture_day_unavailable")
+        publish(self, day, *args, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(DaySummaries, "_publish_day", fail_the_staged)
+        runtime.run(FIRST)
+
+    def lost(*_args: Any) -> None:
+        raise ProcessLost
+
+    with monkeypatch.context() as patch:
+        patch.setattr(worker, "_record_relinks", lost)
+        with pytest.raises(ProcessLost):
+            runtime.run(SECOND)
+    [run] = [run for run in runtime.runs.list_runs() if run.target_business_date == "2026-08-04"]
+    assert "last_confirmed_relinks" not in runtime.runs.full_retrieval_plan(run.run_id)
+    assert runtime.runs.get(run.run_id).projection_set_id is not None
+    runtime.runs.mark_interrupted(run.run_id, "worker_process_lost")
+    runtime.runs.resume(run.run_id, client_request_id="resume-linked", confirm_external_calls=True)
+    process_pending_run(runtime.paths, report_adapters=())
+
+    assert runtime.runs.get(run.run_id).status == "completed"
+    relinked = [
+        day
+        for day, event in runtime.latest().items()
+        if event.get("corrects", {}).get("reason") == "stage_history_changed"
+    ]
+    assert relinked
+    assert runtime.runs.full_retrieval_plan(run.run_id)["last_confirmed_relinks"] == {
+        "reason": "stage_history_changed",
+        "days": relinked,
+        "count": len(relinked),
+    }

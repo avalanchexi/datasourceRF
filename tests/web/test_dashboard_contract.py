@@ -454,6 +454,40 @@ def test_stage_history_page_can_show_an_unpublished_p0_gap_from_the_read_model()
     assert "商品：来源冲突" in history
 
 
+def test_stage_history_page_says_a_relink_corrected_the_last_confirmed_stage_alone() -> None:
+    # Follow-up ticket 01: and what the summary it corrects said of itself, here a correction
+    # on the cores only.
+    core_only = {
+        "assessment_id": "p0-assessment-core-only",
+        "projection_set_id": "projection-core-only",
+        "reason": "core_history_basis_changed",
+        "scope": "core_only",
+    }
+    relinked = {
+        "business_date": "2026-08-31",
+        "current_stage": None,
+        "last_confirmed_stage": "stage_iii",
+        "event_kind": "gap",
+        "stage_reason": "noncanonical_combination",
+        "gaps": [],
+        "model_version_id": "model-v0001",
+        "corrects": {
+            "assessment_id": "p0-assessment-relinked",
+            "projection_set_id": "projection-relinked",
+            "reason": "stage_history_changed",
+            "scope": "last_confirmed_stage",
+            "carries": core_only,
+        },
+    }
+
+    history = _text(dashboard_page("/stage-history", None, (), (), (relinked,)))
+
+    assert history.count("更正版本") == 1
+    assert "只更正上一确认阶段，核心、上下文与确认度沿用原汇总" in history
+    assert "上下文与确认度未重算：明细已超出留存" in history
+    assert "上一确认 第三阶段 · Stage III" in history
+
+
 def test_release_calendar_page_shows_operational_event_fields() -> None:
     event = {
         "release_event_family": "chinamoney_lpr",

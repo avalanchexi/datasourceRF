@@ -12,11 +12,11 @@ the caller's scope. A run follows the target day's steps through ``RunMaterials`
 told as each step completes, when the evidence snapshot is frozen and when a backfilled
 day fails, at the moment each happens.
 
-Kept as they were, and so documented here: a day that fails to backfill leaves the days
-after it on the stage confirmed before it (a later run fills only that day, and nothing
-is recomputed in cascade); a degraded summary still counts as summarized and is never
-recomputed, since published history is not rewritten. Some freshness labels of a
-backfilled day follow the run's time rather than the day's; they are not displayed.
+Kept as they were, and so documented here: a day that fails to backfill is filled alone
+by a later run, and nothing is recomputed in cascade; a degraded summary still counts as
+summarized and is never recomputed, since published history is not rewritten. Some
+freshness labels of a backfilled day follow the run's time rather than the day's; they are
+not displayed.
 
 The one exception is the core history a summary read (ticket 07, 2026-10-11 user
 decision): a window day whose latest summary was made on an older basis is summarized
@@ -27,6 +27,12 @@ only its three cores and formal stage are corrected, its context and confirmatio
 not recomputed; a day that cannot be corrected even so is recorded, with why, and no run on
 the same basis tries it again (ticket 08, 2026-10-12 user decision). Any other error fails
 the day as a missed one does.
+
+The other is a day's last confirmed stage (follow-up ticket 01): a window day without a
+stage of its own whose latest summary, on the run's basis, no longer states the one the
+stage history before it gives -- an earlier day filled or corrected since -- gets a version
+that corrects that stage alone. Its cores, context, confirmation and evidence are the
+summary's word for word, nothing is read again, and the summary stays.
 """
 
 from __future__ import annotations
@@ -384,7 +390,53 @@ class DaySummaries:
                 except (KeyError, LookupError, TypeError, ValueError) as error:
                     failed.append(FailedDay(day, type(error).__name__))
                     day_failed(failed[-1])
+        for relink_failed in self._relink(
+            window, target=target, system_as_of=system_as_of, basis=basis
+        ):
+            failed.append(relink_failed)
+            day_failed(relink_failed)
         return _Backfilled(tuple(failed), basis)
+
+    def _relink(
+        self,
+        window: tuple[str, ...],
+        *,
+        target: str,
+        system_as_of: datetime,
+        basis: str | None,
+    ) -> Iterator[FailedDay]:
+        """Correct the last confirmed stage alone of each window day before ``target`` whose
+        latest summary, without a stage of its own, no longer states the one the stage
+        history before it gives (follow-up ticket 01); each day that could not be.
+
+        Only a summary on the run's ``basis`` is: one on another is corrected whole when it
+        can be, and one that cannot keeps its summary (ticket 08). Only a day's own stage
+        enters the history, so the stage each day should state is read from it once, in day
+        order; a day that states it is left alone.
+        """
+        days = {day for day in window if day < target}
+        if not days or basis is None:
+            return
+        service = P0ProjectionService(self._projections)
+        last: object = None
+        for held in self._projections.stage_history(through=max(days)):
+            day = str(held["business_date"])
+            if (
+                day in days
+                and held.get("core_history_basis") == basis
+                and held.get("current_stage") is None
+                and held.get("last_confirmed_stage") != last
+            ):
+                try:
+                    service.relink(
+                        held,
+                        last_confirmed_stage=_text_or_none(last),
+                        system_as_of=system_as_of,
+                    )
+                except (KeyError, LookupError, TypeError, ValueError) as error:
+                    yield FailedDay(day, type(error).__name__)
+            if held.get("event_kind") == "formal":
+                last = held.get("current_stage")
 
     def _core_history_basis(self, first_day: str, *, system_as_of: datetime) -> str | None:
         """The core history basis the run's summaries are on: each core's closes reach the

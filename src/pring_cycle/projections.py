@@ -77,6 +77,20 @@ class ProjectionSet:
     corrections: dict[str, Any] = field(default_factory=dict)
 
 
+# A day's summaries, latest first: by cutoff; at one cutoff (a resumed run's), one a
+# correction corrects goes after it, and a correction before a summary; then by id.
+_NEWER_FIRST = """
+    PARTITION BY target_business_date
+    ORDER BY julianday(system_as_of) DESC,
+        assessment_id IN (
+            SELECT json_extract(document_json, '$.corrects.assessment_id') FROM p0_assessment
+            WHERE json_extract(document_json, '$.corrects.assessment_id') IS NOT NULL
+        ) ASC,
+        json_extract(document_json, '$.corrects') IS NOT NULL DESC,
+        assessment_id DESC
+"""
+
+
 class ProjectionSetRepository:
     def __init__(self, database_path: Path) -> None:
         self._database_path = database_path
@@ -215,15 +229,10 @@ class ProjectionSetRepository:
         """
         with self._connect() as connection:
             rows = connection.execute(
-                """
+                f"""
                 SELECT document_json FROM (
                     SELECT target_business_date, document_json,
-                           row_number() OVER (
-                               PARTITION BY target_business_date
-                               ORDER BY julianday(system_as_of) DESC,
-                                   json_extract(document_json, '$.corrects') IS NOT NULL DESC,
-                                   assessment_id DESC
-                           ) AS newer
+                           row_number() OVER ({_NEWER_FIRST}) AS newer
                     FROM p0_assessment WHERE ? IS NULL OR target_business_date <= ?
                 )
                 WHERE newer = 1
@@ -342,15 +351,10 @@ class ProjectionSetRepository:
         date.fromisoformat(on_or_before)
         with self._connect() as connection:
             row = connection.execute(
-                """
+                f"""
                 SELECT document_json FROM (
                     SELECT event_kind, target_business_date, document_json,
-                           row_number() OVER (
-                               PARTITION BY target_business_date
-                               ORDER BY julianday(system_as_of) DESC,
-                                   json_extract(document_json, '$.corrects') IS NOT NULL DESC,
-                                   assessment_id DESC
-                           ) AS newer
+                           row_number() OVER ({_NEWER_FIRST}) AS newer
                     FROM p0_assessment WHERE target_business_date <= ?
                 )
                 WHERE newer = 1 AND event_kind='formal'

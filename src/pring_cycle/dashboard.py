@@ -1849,18 +1849,15 @@ def _stage_event_row(item: dict[str, object]) -> html.Li:
     )
     last_confirmed = item.get("last_confirmed_stage")
     corrects = item.get("corrects")
-    # A day summarized again on the cores' current history says so (ticket 07), and that
-    # its context was not, when its details had left retention (ticket 08).
-    correction = (
-        (
-            " · 更正版本（核心历史口径变更；只更正核心与正式阶段，"
-            "上下文与确认度未重算：明细已超出留存）"
-            if corrects.get("scope") == "core_only"
-            else " · 更正版本（核心历史口径变更）"
+    # A day whose last confirmed stage alone was corrected says so, and what the summary it
+    # corrects said of itself (follow-up ticket 01).
+    note = _core_history_note(corrects)
+    if isinstance(corrects, dict) and corrects.get("reason") == "stage_history_changed":
+        carried = _core_history_note(corrects.get("carries"))
+        note = "更早日的阶段历史已变，只更正上一确认阶段，核心、上下文与确认度沿用原汇总" + (
+            f"；原汇总：{carried}" if carried else ""
         )
-        if isinstance(corrects, dict) and corrects.get("reason") == "core_history_basis_changed"
-        else ""
-    )
+    correction = f" · 更正版本（{note}）" if note else ""
     return html.Li(
         [
             html.Strong(
@@ -1876,6 +1873,16 @@ def _stage_event_row(item: dict[str, object]) -> html.Li:
         ],
         className="record-row",
     )
+
+
+def _core_history_note(corrects: object) -> str:
+    """A day summarized again on the cores' current history says so (ticket 07), and that
+    its context was not, when its details had left retention (ticket 08)."""
+    if not isinstance(corrects, dict) or corrects.get("reason") != "core_history_basis_changed":
+        return ""
+    if corrects.get("scope") == "core_only":
+        return "核心历史口径变更；只更正核心与正式阶段，上下文与确认度未重算：明细已超出留存"
+    return "核心历史口径变更"
 
 
 def _gap_label(value: str) -> str:
