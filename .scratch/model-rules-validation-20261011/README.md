@@ -13,6 +13,6 @@
 | [05](issues/05-audit-inventory-quadrant.md) | 体检核对库存象限 | 04 | done |
 | [07](issues/07-correct-window-days-summarized-under-old-core-history.md) | 窗口内旧口径日汇总追加更正版本（2026-10-11 用户决定） | 01, 02 | done |
 | [08](issues/08-correct-core-only-when-day-context-left-retention.md) | 更正日的上下文明细超出留存时只更正核心（2026-10-12 用户决定，票 06 第一次真实运行发现） | 07 | done |
-| [06](issues/06-acceptance.md) | 收尾验收（[中期记录](acceptance-20261012.md)：第一次真实运行已完成；85 个更正日失败，转票 08 后重验） | 01–05、07、08 | claimed |
+| [06](issues/06-acceptance.md) | 收尾验收（[验收记录](acceptance-20261012.md)：第二次真实运行 run-b7d59b63 通过，窗口每天都有核心状态，回溯不再触发；遗留 8、9 待定） | 01–05、07、08 | done |
 
-前沿：06 的第一次真实运行已记录；08 已合入，接着做第二次真实运行（记录第八节）。
+前沿：本批全部 done；遗留 8（34 天上一确认阶段过时）、遗留 9（体检派生节）待主 agent 分流。
