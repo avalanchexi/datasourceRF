@@ -65,7 +65,12 @@ def test_the_last_session_s_value_is_awaited_through_the_holiday(paths: RuntimeP
     calendar = judging_calendar(paths, window(date(2026, 9, 30)), NATIONAL_DAY)
 
     assessed = assess("CN_DR007", date(2026, 9, 29), NATIONAL_DAY, calendar)
-    assert assessed.status == "awaiting_release"
+    # 9/29 is still the period owed: holding it is current, 9/30 only noted as out (ticket 02).
+    assert (assessed.status, assessed.due_period, assessed.released_period) == (
+        "current",
+        "2026-09-29",
+        "2026-09-30",
+    )
     assert assessed.periods_behind == 0
 
 
@@ -151,8 +156,8 @@ def test_the_run_of_2026_10_09_judges_as_if_the_calendar_reached_its_cutoff(
         held = date(2026, 9, 30)
         assessed = assess(metric_id, held, judged, short)
         assert assessed == assess(metric_id, held, judged, full), metric_id
-        # 10-08's value is still within its grace, not five sessions owed.
-        assert assessed.status == "awaiting_release", metric_id
+        # 10-08's value is still within its grace, not five sessions owed: 09-30 is current.
+        assert assessed.status == "current", metric_id
         assert assessed.periods_behind == 0, metric_id
 
 

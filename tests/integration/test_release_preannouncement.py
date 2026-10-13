@@ -119,6 +119,7 @@ def test_cn_schedule_decides_when_august_cpi_is_due(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
 ) -> None:
     # TuShare announces 15 September (due the 24th); it wins over the page's 9 September.
+    # July is still the period owed, so holding it is current (ticket 02).
     paths, run_id, calls = run(
         tmp_path,
         monkeypatch,
@@ -128,7 +129,7 @@ def test_cn_schedule_decides_when_august_cpi_is_due(
     )
 
     assert calls[0] == "cn_schedule"
-    assert cpi(paths, run_id)["status"] == "awaiting_release"
+    assert cpi(paths, run_id)["status"] == "current"
     assert "CN_CPI_HEADLINE" not in gap_metrics(paths)
     assert ("tushare:cn_schedule", "cn_cpi", "2026-09-15") in schedule_rows(paths)
 
@@ -159,7 +160,7 @@ def test_an_unparsed_announcement_is_discarded_and_inference_decides(
         page=lambda url: b"<html>moved</html>",
     )
 
-    # Inferred: released 10 September, due 21 September, after the cutoff.
-    assert cpi(paths, run_id)["status"] == "awaiting_release"
+    # Inferred: released 10 September, due 21 September, after the cutoff: July is owed.
+    assert cpi(paths, run_id)["status"] == "current"
     assert schedule_rows(paths) == []
     assert "CN_CPI_HEADLINE" not in gap_metrics(paths)

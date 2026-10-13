@@ -3,10 +3,13 @@
 The registry below is the only freshness configuration (ADR-0021). A metric's *due period*
 is the latest period whose inferred release plus grace has passed at the run's cutoff:
 
-- holding the latest released period (or newer) is ``current``;
-- holding the due period but not a newer released one is ``awaiting_release``;
+- holding the due period (or newer) is ``current``, even when a newer period is already
+  released and not yet held: ``released_period`` notes that, it no longer decides the status;
 - holding anything older is ``stale``, ``periods_behind`` counting the missing periods;
 - holding nothing is ``missing``; a metric with no registry row is ``unconfigured``.
+
+``awaiting_release`` is no longer a freshness status (batches recorded before ticket 02
+still carry it); the plan's release gate and the LPR release calendar keep their own.
 
 Release time is the ``lag``-th trading day counted from the period end (the 0th being
 the first trading day on or after it) at the registered Shanghai update time. Days are
@@ -51,7 +54,7 @@ if TYPE_CHECKING:
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 _DEFAULT_GRACE = {"daily": 1, "weekly": 7, "monthly": 7, "quarterly": 7, "event": 0}
-_ORDER = ("current", "awaiting_release", "stale", "missing", "unconfigured")
+_ORDER = ("current", "stale", "missing", "unconfigured")
 
 
 @dataclass(frozen=True)
@@ -355,11 +358,12 @@ def assess(
             due = end
             break
         if released is not None and end <= held:
+            # Held at or past a period not yet due: the due one is older still.
             break
-    if released is not None and held >= released:
+    # Holding the due period is current; a newer released period only notes the next one
+    # is out (ticket 02). Behind the due period its grace has passed by definition.
+    if due is None or held >= due:
         status = "current"
-    elif due is None or held >= due:
-        status = "awaiting_release"
     else:
         status = "stale"
         end = due

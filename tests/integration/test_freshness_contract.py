@@ -89,6 +89,8 @@ def recorded(tmp_path_factory: pytest.TempPathFactory) -> Iterator[dict[str, dic
     daily(evidence, "EIA_BRENT_RBRTE", date(2026, 9, 18), "usd_per_barrel")
     daily(evidence, "EIA_WTI_RWTC", date(2026, 9, 4), "usd_per_barrel")
     daily(evidence, "CN_USDCNH_FXCM", date(2026, 9, 22), "index_points")
+    # Fixed at 09:15: the 09-23 parity is out by the cutoff, but the 09-22 one is still owed.
+    daily(evidence, "CN_USDCNY_CENTRAL_PARITY", date(2026, 9, 22))
     monthly(
         evidence,
         "CN_CPI_HEADLINE",
@@ -146,15 +148,18 @@ def recorded(tmp_path_factory: pytest.TempPathFactory) -> Iterator[dict[str, dic
     ("metric_id", "status", "behind"),
     [
         ("CN_EQ_CSI300", "current", 0),
-        ("CN_EQ_CSI500", "awaiting_release", 0),
+        # Holding the due period is current, though the next one is already out (ticket 02).
+        ("CN_EQ_CSI500", "current", 0),
+        ("CN_USDCNY_CENTRAL_PARITY", "current", 0),
+        # Behind the due period, whose grace has passed by definition.
         ("CN_EQ_CSI1000", "stale", 1),
         ("CN_BOND_10Y_930916", "stale", 2),
         ("CN_DR007", "missing", None),
         ("EIA_BRENT_RBRTE", "current", 0),
-        ("EIA_WTI_RWTC", "awaiting_release", 0),
+        ("EIA_WTI_RWTC", "current", 0),
         ("CN_CPI_HEADLINE", "current", 0),
         ("CN_PPI", "stale", 1),
-        ("CN_LPR_1Y_5Y", "awaiting_release", 0),
+        ("CN_LPR_1Y_5Y", "current", 0),
         ("CN_GDP", "current", 0),
         ("CN_CAPACITY_UTILIZATION", "stale", 1),
         ("CN_RRR_EVENT", "current", 0),
@@ -168,6 +173,20 @@ def test_batch_records_each_frequency_boundary(
     row = recorded[metric_id]
 
     assert (row["status"], row["periods_behind"]) == (status, behind)
+
+
+def test_a_released_period_not_yet_held_is_noted_beside_a_current_status(
+    recorded: dict[str, dict[str, object]],
+) -> None:
+    # The 09-23 close is out at 17:00, the 09-22 one is the period owed at 18:00.
+    row = recorded["CN_EQ_CSI500"]
+
+    assert (row["status"], row["held_period"], row["due_period"], row["released_period"]) == (
+        "current",
+        "2026-09-22",
+        "2026-09-22",
+        "2026-09-23",
+    )
 
 
 def test_public_time_is_the_earlier_of_inferred_release_and_first_acquisition(
