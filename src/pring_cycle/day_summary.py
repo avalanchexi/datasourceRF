@@ -13,10 +13,12 @@ told as each step completes, when the evidence snapshot is frozen and when a bac
 day fails, at the moment each happens.
 
 Kept as they were, and so documented here: a day that fails to backfill is filled alone
-by a later run, and nothing is recomputed in cascade; a degraded summary still counts as
-summarized and is never recomputed, since published history is not rewritten. Some
-freshness labels of a backfilled day follow the run's time rather than the day's; they are
-not displayed.
+by a later run, and nothing is recomputed in cascade (since follow-up ticket 01,
+2026-10-12, a changed stage history carries on to the last confirmed stage label alone, as
+an appended version that changes that field only, below: the summary itself is not
+recomputed); a degraded summary still counts as summarized and is never recomputed, since
+published history is not rewritten. Some freshness labels of a backfilled day follow the
+run's time rather than the day's; they are not displayed.
 
 The one exception is the core history a summary read (ticket 07, 2026-10-11 user
 decision): a window day whose latest summary was made on an older basis is summarized

@@ -70,3 +70,7 @@ Codex 只读取证全文：[triage-codex-01-08.md](../triage-codex-01-08.md)（�
 
 - 最后一项验收（真实库 34 天变为 stage_iii、其余 86 天不变）留待收尾票 09；快照推演已对上。
 - 体检脚本 `tools/quality/derived.py` `_core_only()` 只看 `corrects.scope`：将来若有“只更正核心”的日子被补正（范围变为 `last_confirmed_stage`，原范围在 `carries`），体检会把它报为标记不全。本次真实库的 34 天均为整日更正，不受影响；建议体检线后续同时读 `corrects.carries.scope`。
+
+### 2026-10-13 文档补写
+
+- 09:47 `src/pring_cycle/day_summary.py` 模块文档“nothing is recomputed in cascade”一句后补注：票 01（2026-10-12）起，阶段历史变化只级联“上一确认阶段”标签，方式是追加一个只改该字段的版本，汇总本身不重算。只改文档字符串。随票 08 落地：在票 08 主提交 abc96b7 之后单独提交，标题 “Note in the day summary's module doc that the last confirmed stage alone now cascades (model rules follow-ups 01, landed with 08)”。
