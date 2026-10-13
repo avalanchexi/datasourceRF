@@ -40,9 +40,11 @@ pring-cycle ecb-reference-refresh \
 目录原有认证状态保持，投影复核失败时显示 `source_failed`，留存数值仅供审计。
 
 新候选模型可声明 `point_in_time_rule_version: dual-cutoff-v0003`。设运行截止为 A、目标交易日
-上海时间日末为 T：SYSTEM 要求 `available_at ≤ A`，且 `public_available_at ≤ T` 或
-`available_at ≤ T`；PUBLIC 仍要求非空的 `public_available_at ≤ min(A, T)`。这些条件在选择
-修订版本前执行。因此后来采集的未知发布时间数据不会填入较早目标日，日期精度导致 PUBLIC
+上海时间日末为 T：SYSTEM 要求 `available_at ≤ A`，且公开可用时间按目标日汇总口径已知或
+`available_at ≤ T`；PUBLIC 只认前者。目标日汇总口径（GLOSSARY“单日汇总”，ADR-0041
+2026-10-13 补写）是非空的 `public_available_at ≤ A`，晚于 T 公开的只认期次不晚于目标日的；
+补算日 A 即 T。这些条件在选择修订版本前执行：次晨才入库、公开时间又晚于 A 的修订不会遮住
+它所修订的旧声明。因此后来采集的未知发布时间数据不会填入较早目标日，日期精度导致 PUBLIC
 次日才可用的证据可在实际校验当天按 SYSTEM 使用。认证、质量及模型输入条件仍须满足。
 旧模型保留原有规则；准入后的完整模型清单须一致，不能通过临时改写规则字段切换口径。
 

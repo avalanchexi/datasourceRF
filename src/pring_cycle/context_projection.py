@@ -1888,7 +1888,7 @@ class TargetBoundEvidenceRepository:
         revises, and the revision is not the day's to know (ADR-0041 2026-10-13).
         """
         query_kwargs = self._query_at_target(kwargs)
-        use_system = query_kwargs["allow_system_at_public_cutoff"]
+        use_system = query_kwargs["system_known_by"] is not None
         points = self._repository.metric_series(*args, **query_kwargs)
         cutoff = self._cutoff
         if cutoff.public_as_of > cutoff.day_end and not isinstance(
@@ -1929,10 +1929,15 @@ class TargetBoundEvidenceRepository:
         )
 
     def _query_at_target(self, kwargs: Mapping[str, Any]) -> dict[str, Any]:
+        """The repository query, its bounds those ``_point_at_target`` reads claims by: what
+        is public by the cutoff, and with ``dual-cutoff-v0003`` what was held by the day's
+        end. Both apply before a provider's revisions are chosen among."""
         query_kwargs = dict(kwargs)
         query_kwargs["public_as_of"] = self._cutoff.public_as_of
-        query_kwargs["allow_system_at_public_cutoff"] = (
-            self._allow_system_at_target and kwargs["mode"] is AsOfMode.SYSTEM
+        query_kwargs["system_known_by"] = (
+            self._cutoff.day_end
+            if self._allow_system_at_target and kwargs["mode"] is AsOfMode.SYSTEM
+            else None
         )
         return query_kwargs
 
