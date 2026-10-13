@@ -77,7 +77,7 @@ NO_PATH = {
 
 @dataclass(frozen=True)
 class KnownGap:
-    verdict: str  # 来源缺失 / 来源缺失（二手证据） / 上游未发布
+    verdict: str  # the doc's verdict: source missing (first- or second-hand), or unpublished
     evidence: str  # a digest of the documented evidence
     leaves: str  # the first target day whose 120-day window no longer holds the day (doc)
 
