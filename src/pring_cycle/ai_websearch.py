@@ -27,7 +27,6 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
-from datetime import time as clock_time
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
@@ -37,6 +36,7 @@ from pring_cycle.retrieval_ledger import RetrievalLedger
 from pring_cycle.runs import RetrievalScope, RunRecord
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.storage import database_connection
+from pring_cycle.summary_cutoff import day_end
 
 if TYPE_CHECKING:
     from pring_cycle.acquisition import AcquisitionReceipt
@@ -473,6 +473,7 @@ def discover_event(
     since: date | None,
     until: date,
     definition_version: str,
+    public_as_of: datetime | None = None,
     adapters: tuple[str, ...] = AI_ADAPTERS,
 ) -> tuple[str, tuple[str, ...]]:
     """Ask for the latest event effective after ``since`` (or ever) and by ``until``.
@@ -480,9 +481,11 @@ def discover_event(
     An event never held is traced back (ADR-0028): the scope names its metrics and the
     backtrack's gap. Each candidate is checked as a gap's is, on the effective day it
     gives, which must lie in the window; an adopted one is public by the end of the day its
-    page was published. The outcome is ``new_event`` (claims stored), ``none_stated`` (the
-    answer has no candidate), ``rejected`` (none usable) or ``unavailable`` (no answer, or
-    AI WebSearch is off, out of time or held back by the ledger).
+    page was published, and that must be by ``public_as_of`` (the run's cutoff; ``until``'s
+    end when not given, ticket 06). The outcome is ``new_event`` (claims stored),
+    ``none_stated`` (the answer has no candidate), ``rejected`` (none usable) or
+    ``unavailable`` (no answer, or AI WebSearch is off, out of time or held back by the
+    ledger).
     """
     from pring_cycle.news_rules import rules_for
     from pring_cycle.retrieval_ledger import RetrievalBudgetBlocked
@@ -533,6 +536,7 @@ def discover_event(
         ledger.complete(request_id, outcome="failed", classification="ai_websearch_unavailable")
         return "unavailable", ()
     candidates = acquired.value or []
+    known_at = public_as_of if public_as_of is not None else day_end(until)
     claim_ids: list[str] = []
     pages = _Pages(paths, scope_run)
     with pages.settling():
@@ -546,8 +550,8 @@ def discover_event(
                 effective = None
             if effective is None or effective > until or (since is not None and effective <= since):
                 reason, stored = PERIOD_MISMATCH, ()
-            elif candidate["published_date"] > until.isoformat():
-                # Out after the target day, it is not what the target day knew.
+            elif _out_after(candidate["published_date"], known_at):
+                # Not out by the run's cutoff, it is not what the target day knew.
                 reason, stored = DATE_AFTER_CUTOFF, ()
             else:
                 on_day = replace(scope_run, retrieval_scope=replace(scope, period=day))
@@ -559,6 +563,7 @@ def discover_event(
                     adapter,
                     definition_version=definition_version,
                     public_by_published_day=True,
+                    public_as_of=known_at,
                 )
             claim_ids.extend(stored)
             _record_validation(
@@ -576,6 +581,17 @@ def discover_event(
     status = "candidate_source" if candidates else "not_found"
     ledger.complete(request_id, outcome=status, classification="candidate_validation_unresolved")
     return ("rejected" if candidates else "none_stated"), ()
+
+
+def _out_after(published: str, known_at: datetime) -> bool:
+    """Whether a page dated ``published`` was not out by ``known_at``. A date that is not one
+    is left to the candidate's adoption, which names it."""
+    try:
+        day = date.fromisoformat(published)
+    except ValueError:
+        return False
+    # Out by the end of its day, as an adopted one is dated.
+    return day_end(day) > known_at
 
 
 @dataclass(frozen=True)
@@ -709,6 +725,7 @@ def _adopt(
     definition_version: str,
     asked: Asked | None = None,
     public_by_published_day: bool = False,
+    public_as_of: datetime | None = None,
 ) -> tuple[str | None, tuple[str, ...]]:
     """Why a candidate is not adopted (None when it is), and the claims it stored.
 
@@ -780,7 +797,9 @@ def _adopt(
         published = date.fromisoformat(candidate["published_date"])
     except ValueError:
         return NO_PUBLICATION_DATE, ()
-    if published > run.system_as_of.astimezone(_SHANGHAI).date():
+    # Out by the run's cutoff: a backtrack's as its summary knows it (ticket 06).
+    cutoff = public_as_of if public_as_of is not None else run.system_as_of
+    if published > cutoff.astimezone(_SHANGHAI).date():
         return DATE_AFTER_CUTOFF, ()
     read = pages.page(url, source, scope.metric_ids, scope.period)
     if read.page is None:
@@ -804,7 +823,7 @@ def _adopt(
     if reason is None and all(why_not(item) for item in reported):
         reason = why_not(reported[0])
     page_published = parse_published_at(page.published_text)
-    if reason is None and page_published is not None and page_published > run.system_as_of:
+    if reason is None and page_published is not None and page_published > cutoff:
         reason = DATE_AFTER_CUTOFF
     if reason is not None:
         pages.decided(read, reason)
@@ -828,11 +847,7 @@ def _adopt(
                     # The page's own time when it shows one; a date alone does not say when
                     # that day, so the time stays unknown.
                     release_at=page_published,
-                    public_at=(
-                        datetime.combine(published, clock_time.max, tzinfo=_SHANGHAI)
-                        if public_by_published_day
-                        else None
-                    ),
+                    public_at=(day_end(published) if public_by_published_day else None),
                 )
                 for item in taken
             ),

@@ -18,7 +18,7 @@ import hashlib
 import json
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from functools import partial
 from typing import TYPE_CHECKING, Any
 from urllib.request import Request
@@ -29,6 +29,7 @@ from pring_cycle.runs import RunRecord
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import TushareRefused
 from pring_cycle.storage import database_connection
+from pring_cycle.summary_cutoff import SummaryCutoff, day_end
 from pring_cycle.tushare_quota import TushareCallNotAttempted
 
 if TYPE_CHECKING:
@@ -71,18 +72,22 @@ def _published(value: str) -> datetime:
 def news_window(paths: RuntimePaths, run: RunRecord, end: datetime) -> tuple[datetime, datetime]:
     """From where the last complete pull before ``end`` ended, a week back at most, to ``end``.
 
-    Runs chain by what their pulls read, not by their cutoffs: a run cut off on Monday for
-    Friday read nothing after Friday. A pull with a failed page, or held back for the day's
-    quota, read only part of its window, so it is passed over; a rerun for the same day
-    passes over its predecessor's pull.
+    A pull reads up to its run's cutoff, past its target day's end (ticket 06), but each run
+    reads only its own pull, for its own gaps: what came out after that day's end is the next
+    day's run's to read as well. So a run reads on from the end of the latest earlier day a
+    complete pull was made for, or from where that pull ended if before: a run cut off on
+    Monday for Friday leaves the weekend to Monday's run. A pull with a failed page, or held
+    back for the day's quota, read only part of its window, so it is passed over; so is a
+    pull for the same day or a later one, so a rerun reads its predecessor's window again.
     """
     # The interface takes whole seconds: a target day's end (23:59:59.999999) is 23:59:59.
     end = _published(_stamp(end))
     with database_connection(paths.database) as connection:
         rows = connection.execute(
-            "SELECT max(json_extract(a.parameters_json, '$.end_date')) "
+            "SELECT max(json_extract(a.parameters_json, '$.end_date')), r.target_business_date "
             "FROM full_run_acquisition o JOIN acquisition_request a USING(acquisition_id) "
             "JOIN parent_run r ON r.run_id=o.run_id WHERE a.api_name=? AND o.run_id<>? "
+            "AND r.target_business_date<? "
             "AND r.status='completed' AND r.command_type IN ('manual_full', 'scheduled_full') "
             "AND o.run_id NOT IN (SELECT started.run_id FROM full_run_gap_plan AS started "
             "LEFT JOIN full_run_gap_plan AS ended ON ended.run_id=started.run_id "
@@ -90,9 +95,12 @@ def news_window(paths: RuntimePaths, run: RunRecord, end: datetime) -> tuple[dat
             "AND coalesce(json_extract(ended.document_json, '$.outcome'), '') "
             "<> 'verified_candidate') "
             "GROUP BY o.run_id HAVING sum(a.state<>'validated')=0",
-            (NEWS_API, run.run_id),
+            (NEWS_API, run.run_id, run.target_business_date),
         ).fetchall()
-    read = [_published(row[0]) for row in rows]
+    read = [
+        min(_published(stop), _published(_stamp(day_end(date.fromisoformat(target)))))
+        for stop, target in rows
+    ]
     return max([end - NEWS_LOOKBACK, *(stop for stop in read if stop < end)]), end
 
 
@@ -317,11 +325,13 @@ def fill_events_from_news(
 
 
 def _readable(paths: RuntimePaths, run: RunRecord) -> Iterator[tuple[NewsItem, str]]:
-    """The run's news items published by its cutoff, with their plain text."""
+    """The run's news items published by its cutoff, with their plain text: the instant now
+    while its acquisition window is open, as its pull read up to (ticket 06)."""
     from pring_cycle.news_rules import plain_text
 
+    cutoff = SummaryCutoff.target(run, _now()).public_as_of
     for item in run_news(paths, run.run_id):
-        if item.published_at <= run.system_as_of:
+        if item.published_at <= cutoff:
             yield item, plain_text(item.content)
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Callable
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -24,6 +24,7 @@ from pring_cycle.retention import prune_to_window
 from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.storage import database_connection
+from pring_cycle.summary_cutoff import SummaryCutoff
 from pring_cycle.tushare_news import pull_news, run_news
 from pring_cycle.tushare_quota import InterfaceGrant
 from tests.conftest import install_runtime_clock
@@ -140,6 +141,24 @@ def cpi(paths: RuntimePaths, version: str) -> dict[str, float | None]:
     }
 
 
+def assert_one_week_up_to_the_cutoff(requests: list[dict[str, str]]) -> None:
+    """One request, a week back from the run's cutoff: the instant the pull was made, its
+    acquisition window open, a moment after the run was submitted at 10:00 (ticket 06)."""
+    ((start, end),) = [
+        tuple(
+            datetime.fromisoformat(r[k]).replace(tzinfo=SHANGHAI)
+            for k in ("start_date", "end_date")
+        )
+        for r in requests
+    ]
+    assert (
+        datetime(2026, 9, 11, 10, tzinfo=SHANGHAI)
+        <= end
+        < datetime(2026, 9, 11, 10, 5, tzinfo=SHANGHAI)
+    )
+    assert start == end - timedelta(days=7)
+
+
 def test_cpi_is_filled_from_the_news_and_later_channels_are_not_called(
     registered: tuple[RuntimePaths, str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -147,10 +166,8 @@ def test_cpi_is_filled_from_the_news_and_later_channels_are_not_called(
 
     run, opener, _elsewhere = full_run(paths, model_id, monkeypatch, release_day_news)
 
-    # A first run pulls a week, once for the whole run, up to the target day's end.
-    assert opener.news_requests == [
-        {"start_date": "2026-09-03 23:59:59", "end_date": "2026-09-10 23:59:59"}
-    ]
+    # A first run pulls a week, once for the whole run, up to its cutoff (ticket 06).
+    assert_one_week_up_to_the_cutoff(opener.news_requests)
     assert cpi(paths, version) == {"yoy": 0.8, "mom": 0.4, "cumulative_average_yoy": 0.9}
     with database_connection(paths.database) as connection:
         attempts = connection.execute(
@@ -173,6 +190,65 @@ def test_cpi_is_filled_from_the_news_and_later_channels_are_not_called(
     assert {row[3] for row in quotes} == {None}
     # The earliest release-day item states the headline first: Xinhua at 09:39.
     assert {(row[1], row[2]) for row in quotes} == {("新华网", "2026-09-09T09:39:18+08:00")}
+
+
+def news_moved_to(published: datetime) -> Callable[[dict[str, Any]], bytes]:
+    """The release-day news, each item out at ``published``, as the window asks for it."""
+    items = [
+        {**item, "pub_time": published.strftime("%Y-%m-%d %H:%M:%S")}
+        for item in json.loads(SAMPLE.read_text())["items"]
+    ]
+
+    def answer(payload: dict[str, Any]) -> bytes:
+        start, end = (
+            datetime.fromisoformat(payload["params"][key]).replace(tzinfo=SHANGHAI)
+            for key in ("start_date", "end_date")
+        )
+        return news_response([i for i in items if start <= _published(i["pub_time"]) <= end])
+
+    return answer
+
+
+def _published(stamp: str) -> datetime:
+    return datetime.fromisoformat(stamp).replace(tzinfo=SHANGHAI)
+
+
+@pytest.mark.parametrize(
+    ("published", "filled"),
+    [
+        # Out the next morning, before the run's cutoff (10:00): the target day reads it.
+        (datetime(2026, 9, 11, 9, 39, tzinfo=ZoneInfo("Asia/Shanghai")), True),
+        # Out after the run's cutoff: the pull does not reach it.
+        (datetime(2026, 9, 11, 10, 30, tzinfo=ZoneInfo("Asia/Shanghai")), False),
+    ],
+)
+def test_the_news_pull_reads_up_to_the_run_s_cutoff(
+    registered: tuple[RuntimePaths, str, str],
+    monkeypatch: pytest.MonkeyPatch,
+    published: datetime,
+    filled: bool,
+) -> None:
+    """Ticket 06: the target day reads what is public by the run's cutoff (ticket 01)."""
+    paths, model_id, version = registered
+
+    _run, opener, _elsewhere = full_run(paths, model_id, monkeypatch, news_moved_to(published))
+
+    assert_one_week_up_to_the_cutoff(opener.news_requests)
+    expected = {"yoy": 0.8, "mom": 0.4, "cumulative_average_yoy": 0.9} if filled else {}
+    assert cpi(paths, version) == expected
+
+
+def test_news_pulled_after_the_submission_is_read_while_the_window_is_open(
+    registered: tuple[RuntimePaths, str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Submitted at 9:00, pulled at 10:00 with its acquisition window open: what the pull
+    reads up to is what its gaps read, not the instant it was submitted at."""
+    paths, model_id, version = registered
+    answer = news_moved_to(datetime(2026, 9, 11, 9, 39, tzinfo=ZoneInfo("Asia/Shanghai")))
+
+    full_run(paths, model_id, monkeypatch, answer, now=NOW - timedelta(hours=1))
+
+    assert cpi(paths, version) == {"yoy": 0.8, "mom": 0.4, "cumulative_average_yoy": 0.9}
 
 
 def test_a_failed_pull_is_recorded_and_the_run_carries_on(
@@ -424,11 +500,10 @@ def pulled_run(
     )
     outcome = "no_pull"
     if feed is not None:
-        target_end = datetime.combine(date.fromisoformat(target), time.max, tzinfo=SHANGHAI)
+        # Up to the run's cutoff, as the full run pulls (ticket 06).
+        end = SummaryCutoff.target(run, utc_now()).public_as_of
         with own_acquisitions(paths.database, run.run_id, "tushare_news"):
-            outcome = pull_news(
-                paths, run, "fixture-token", end=min(at, target_end), transport=feed
-            )
+            outcome = pull_news(paths, run, "fixture-token", end=end, transport=feed)
     runs.advance(run.run_id, "completed")
     return run.run_id, outcome
 
@@ -494,12 +569,18 @@ def test_a_rerun_after_a_complete_pull_reads_the_same_window_again(
 def test_the_next_day_run_reads_on_from_where_the_last_pull_ended(
     registered_late: tuple[RuntimePaths, str, str],
 ) -> None:
-    """Friday's run on Monday afternoon, then Monday's on Tuesday: the weekend is read."""
+    """Friday's run on Monday afternoon, then Monday's on Tuesday: the weekend is read.
+
+    Each pulls up to its cutoff (ticket 06), and Friday's reads the weekend too; but a run
+    reads only its own pull, for its own gaps, so Monday's reads on from where Friday ended,
+    not from Friday's cutoff: Sunday's LPR fixing is Monday's period, not Friday's.
+    """
     paths, model_id, _version = registered_late
     feed = NewsFeed()
     friday, _ = pulled_run(
         paths, model_id, feed, target="2026-09-18", at=datetime(2026, 9, 21, 15, tzinfo=SHANGHAI)
     )
+    feed.requests.clear()
 
     monday, outcome = pulled_run(
         paths, model_id, feed, target="2026-09-21", at=datetime(2026, 9, 22, 15, tzinfo=SHANGHAI)
@@ -507,6 +588,8 @@ def test_the_next_day_run_reads_on_from_where_the_last_pull_ended(
 
     assert outcome == "verified_candidate"
     assert LPR_FIXED in news_times(paths, monday)
+    assert {r["start_date"] for r in feed.requests} == {"2026-09-18 23:59:59"}
+    assert feed.requests[0]["end_date"] == "2026-09-22 15:00:00"
     read = news_times(paths, friday) | news_times(paths, monday)
     first, last = min(read), max(read)
     assert [p for p in feed.published if first <= p <= last and p not in read] == []
@@ -625,7 +708,8 @@ def test_a_long_pause_reads_back_only_a_week(
         paths, model_id, feed, target="2026-09-24", at=datetime(2026, 9, 25, 15, tzinfo=SHANGHAI)
     )
 
-    assert {r["start_date"] for r in feed.requests} == {"2026-09-17 23:59:59"}
+    # A week back from the run's cutoff (ticket 06).
+    assert {r["start_date"] for r in feed.requests} == {"2026-09-18 15:00:00"}
 
 
 def test_an_omo_rate_not_held_is_read_from_the_day_s_operation(

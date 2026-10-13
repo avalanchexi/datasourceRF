@@ -7,6 +7,7 @@ import re
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -94,6 +95,53 @@ def test_an_issue_published_after_the_target_day_is_not_read(paths: RuntimePaths
     assert COLUMN + "2026081218415997958/index.html" not in site.fetched
     assert found.covered_through == date(2026, 3, 31)
     assert {end for end, _value in rrr(paths).values()} == {"2025-05-15"}
+
+
+@pytest.mark.parametrize(
+    ("public_as_of", "read"),
+    [
+        # A run for Tuesday 8/11 cut off on Thursday morning: Wednesday's issue was out.
+        (datetime(2026, 8, 13, 9, 30, tzinfo=ZoneInfo("Asia/Shanghai")), True),
+        # Cut off on Wednesday morning: an issue listed by its day alone is not taken as out
+        # by then.
+        (datetime(2026, 8, 12, 9, 30, tzinfo=ZoneInfo("Asia/Shanghai")), False),
+        # Nor by that day's last instant: a day alone is public from the next (as its
+        # claims would be dated by a page showing only its day).
+        (datetime(2026, 8, 12, 23, 59, 59, 999999, tzinfo=ZoneInfo("Asia/Shanghai")), False),
+    ],
+)
+def test_an_issue_published_after_the_target_day_is_read_when_out_by_the_run_s_cutoff(
+    paths: RuntimePaths, public_as_of: datetime, read: bool
+) -> None:
+    """Ticket 06: the cut must still take effect by the target day; the issue need only be
+    public by the run's cutoff. Wednesday's issue here states a cut on June 1."""
+    from pring_cycle.official_context import backtrack_rrr_chronicle
+
+    site = Site()
+    key = COLUMN + "2026081218415997958/index.html"
+    site.pages[key] = site.pages[key].replace(
+        "6月3日，".encode(),
+        (
+            "6月1日，中国人民银行下调金融机构存款准备金率0.25个百分点"
+            "（不含已执行5%存款准备金率的金融机构）。6月3日，"
+        ).encode(),
+        1,
+    )
+
+    found = backtrack_rrr_chronicle(
+        paths, until=date(2026, 8, 11), public_as_of=public_as_of, fetched_at=NOW, fetcher=site
+    )
+
+    assert (key in site.fetched) is read
+    if read:
+        assert found.covered_through == date(2026, 6, 30)
+        assert rrr(paths) == {"excluding_5_percent_institutions": ("2026-06-01", -0.25)}
+    else:
+        assert found.covered_through == date(2026, 3, 31)
+        assert rrr(paths) == {
+            "excluding_5_percent_institutions": ("2025-05-15", -0.5),
+            "auto_finance_and_financial_leasing_companies": ("2025-05-15", -5.0),
+        }
 
 
 def test_a_column_with_no_cut_to_its_last_page_finds_none(paths: RuntimePaths) -> None:
@@ -192,6 +240,8 @@ def backtrack_run(
     *,
     ai: list[dict[str, Any]] | None = None,
     pages: dict[str, bytes] | None = None,
+    now: datetime = NOW,
+    submitted_at: datetime | None = None,
 ) -> tuple[RuntimePaths, str, dict[str, Any], list[dict[str, Any]]]:
     """A first full run for ``TARGET``: no RRR held and no news of one."""
     from pring_cycle.full_retrieval import FullRunRetrieval
@@ -209,7 +259,7 @@ def backtrack_run(
             pages
             or {c["url"]: page_of("中国人民银行决定下调存款准备金率", c["quote"]) for c in ai},
         )
-    paths, model_id, _version = register_at(NOW, tmp_path, monkeypatch, request, capsys)
+    paths, model_id, _version = register_at(now, tmp_path, monkeypatch, request, capsys)
     opener = Opener(lambda _payload: news_response([]))
     monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: opener)
     monkeypatch.setattr("pring_cycle.official_context._fetch_official_context_document", site)
@@ -218,7 +268,7 @@ def backtrack_run(
         target_business_date=TARGET,
         client_request_id="rrr-backtrack",
         model_version_id=model_id,
-        system_as_of=NOW,
+        system_as_of=submitted_at or now,
     )
     run = runs.advance(submitted.run_id, "refreshing_evidence")
     FullRunRetrieval(paths).retrieve(run)
@@ -528,6 +578,23 @@ def test_on_a_day_the_official_notice_states_its_members_are_all_read_from_it(
     ]
 
 
+_OLDER_ISSUES = re.compile(
+    r'<table[^>]*>(?:(?!</table>).)*?title="20(?:1\d|2[0-5])年[^"]*"'
+    r"(?:(?!</table>).)*?</table>",
+    re.S,
+)
+
+
+def column_without_a_cut() -> Site:
+    """The real first page with only its 2026 issues and no pager: no cut is chronicled."""
+    site = Site()
+    listing = site.pages[COLUMN + "index.html"].decode()
+    site.pages[COLUMN + "index.html"] = (
+        _OLDER_ISSUES.sub("", listing).replace("下一页", "").encode()
+    )
+    return site
+
+
 def test_a_tail_candidate_published_after_the_target_day_leaves_the_search_unfinished(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -539,18 +606,6 @@ def test_a_tail_candidate_published_after_the_target_day_leaves_the_search_unfin
     It would not be visible on the target day, so it is not adopted; and a candidate turned
     down is not "none found": the search did not settle.
     """
-    site = Site()
-    listing = site.pages[COLUMN + "index.html"].decode()
-    site.pages[COLUMN + "index.html"] = (
-        re.sub(
-            r'<table[^>]*>(?:(?!</table>).)*?title="20(?:1\d|2[0-5])年[^"]*"(?:(?!</table>).)*?</table>',
-            "",
-            listing,
-            flags=re.S,
-        )
-        .replace("下一页", "")
-        .encode()
-    )
     late = {
         "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026092409000000000/index.html",
         "quote": TAIL_CUT,
@@ -559,7 +614,7 @@ def test_a_tail_candidate_published_after_the_target_day_leaves_the_search_unfin
         "published_date": "2026-09-24",
     }
     paths, model_id, plan, _made = backtrack_run(
-        tmp_path, monkeypatch, request, capsys, site, ai=[late]
+        tmp_path, monkeypatch, request, capsys, column_without_a_cut(), ai=[late]
     )
 
     backtrack = plan["event_backtrack"]
@@ -568,3 +623,102 @@ def test_a_tail_candidate_published_after_the_target_day_leaves_the_search_unfin
     assert selected_rrr(paths) == {}
     (gap,) = rrr_gaps(paths, model_id, run_id_of(paths))
     assert gap["category"] == "retrieval_failed"
+
+
+def tail_cut_on(effective: str) -> str:
+    month, day = (int(part) for part in effective.split("-")[1:])
+    return (
+        f"中国人民银行决定于2026年{month}月{day}日下调金融机构存款准备金率0.25个百分点"
+        "（不含已执行5%存款准备金率的金融机构）。"
+    )
+
+
+@pytest.mark.parametrize(
+    ("effective", "adopted"),
+    [
+        # In force by the target day, its page out the day after: read on Friday morning.
+        ("2026-08-15", True),
+        # Out by the cutoff too, but in force only after the target day.
+        ("2026-09-24", False),
+    ],
+)
+def test_a_tail_candidate_out_by_the_run_s_cutoff_is_adopted_when_in_force_by_the_target(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+    effective: str,
+    adopted: bool,
+) -> None:
+    """Ticket 06: Wednesday's run made on Friday at 9:30. The candidate's page, dated
+    Thursday alone, is out by Thursday's end, before the run's cutoff; the change must still
+    take effect by the target day."""
+    late = {
+        "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026092409000000000/index.html",
+        "quote": tail_cut_on(effective),
+        "value": 0.25,
+        "period": effective,
+        "published_date": "2026-09-24",
+    }
+    paths, _model_id, plan, made = backtrack_run(
+        tmp_path,
+        monkeypatch,
+        request,
+        capsys,
+        column_without_a_cut(),
+        ai=[late],
+        now=datetime(2026, 9, 25, 1, 30, tzinfo=UTC),
+    )
+
+    backtrack = plan["event_backtrack"]
+    (call,) = made
+    assert call["prompt"]["effective_by"] == TARGET
+    if adopted:
+        assert (backtrack["tail"], backtrack["metrics"]) == ("new_event", {"CN_RRR_EVENT": "found"})
+        assert selected_rrr(paths)["excluding_5_percent_institutions"] == ("2026-08-15", -0.25)
+    else:
+        assert (backtrack["tail"], backtrack["metrics"]) == (
+            "rejected",
+            {"CN_RRR_EVENT": "source_failed"},
+        )
+        assert selected_rrr(paths) == {}
+
+
+def test_a_tail_page_out_after_the_submission_is_adopted_while_the_window_is_open(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Ticket 06: submitted at 23:50 and searched at 00:10, its acquisition window open. The
+    page shows it came out at 23:55: after the submission, but by the run's cutoff, which is
+    the instant of the search until the cutoffs are frozen."""
+    from tests.integration.test_ai_websearch import page_of
+
+    url = "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026092423550000000/index.html"
+    page = page_of("中国人民银行决定下调存款准备金率", TAIL_CUT).replace(
+        b"</title>",
+        b'</title><meta property="article:published_time" content="2026-09-24T23:55:00+08:00">',
+    )
+    tail = {
+        "url": url,
+        "quote": TAIL_CUT,
+        "value": 0.25,
+        "period": "2026-08-15",
+        "published_date": "2026-09-24",
+    }
+    paths, _model_id, plan, _made = backtrack_run(
+        tmp_path,
+        monkeypatch,
+        request,
+        capsys,
+        column_without_a_cut(),
+        ai=[tail],
+        pages={url: page},
+        now=datetime(2026, 9, 24, 16, 10, tzinfo=UTC),
+        submitted_at=datetime(2026, 9, 24, 15, 50, tzinfo=UTC),
+    )
+
+    backtrack = plan["event_backtrack"]
+    assert (backtrack["tail"], backtrack["metrics"]) == ("new_event", {"CN_RRR_EVENT": "found"})
+    assert selected_rrr(paths)["excluding_5_percent_institutions"] == ("2026-08-15", -0.25)

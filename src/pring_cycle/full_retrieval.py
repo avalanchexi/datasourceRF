@@ -6,11 +6,10 @@ import sqlite3
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from dataclasses import replace
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from functools import partial
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from pring_cycle import credit_impulse, lookback
 from pring_cycle.acquisition import REFERENCED, own_acquisitions
@@ -315,13 +314,10 @@ class FullRunRetrieval:
         token = parse_data_source_secrets(self.paths.secrets).get("TUSHARE_TOKEN")
         if not token:
             return
-        end = (
-            utc_now()
-            if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen
-            else run.system_as_of
-        )
+        # Up to what the target day's summary may know of: the run's cutoff (ticket 06).
+        end = SummaryCutoff.target(run, utc_now()).public_as_of
         with own_acquisitions(self.paths.database, run.run_id, "tushare_news"):
-            pulled = pull_news(self.paths, run, token, end=min(end, _target_end(run)))
+            pulled = pull_news(self.paths, run, token, end=end)
         rules = ContextProjectionRules.from_manifest(
             ModelRepository(self.paths.database).manifest(run.model_version_id)
         )
@@ -370,7 +366,9 @@ class FullRunRetrieval:
             for point in ModelInputSelector(self.paths, run).series(definition.metric_id)
         ):
             return
-        until = date.fromisoformat(run.target_business_date)
+        # In force by the target day, and public by the run's cutoff (ticket 06).
+        cutoff = SummaryCutoff.target(run, utc_now())
+        until = cutoff.day
         version = rules.metric_catalog_version
         scope = RetrievalScope(
             f"backtrack:{definition.release_event_family}:{until.isoformat()}",
@@ -390,6 +388,7 @@ class FullRunRetrieval:
                 found = backtrack_rrr_chronicle(
                     self.paths,
                     until=until,
+                    public_as_of=cutoff.public_as_of,
                     fetched_at=utc_now(),
                     definition_version=version,
                     on_acquisition_started=started,
@@ -419,7 +418,12 @@ class FullRunRetrieval:
         ):
             if found is None:
                 _asked, stored = discover_event(
-                    self.paths, scoped, since=None, until=until, definition_version=version
+                    self.paths,
+                    scoped,
+                    since=None,
+                    until=until,
+                    public_as_of=cutoff.public_as_of,
+                    definition_version=version,
                 )
             elif found.covered_through is None or found.covered_through < until:
                 asked, stored = discover_event(
@@ -427,6 +431,7 @@ class FullRunRetrieval:
                     scoped,
                     since=found.covered_through,
                     until=until,
+                    public_as_of=cutoff.public_as_of,
                     definition_version=version,
                 )
                 tail = "unchecked" if asked == "unavailable" else asked
@@ -1232,12 +1237,6 @@ def _scope_listing(scope: RetrievalScope) -> str | None:
     except ValueError:
         return None
     return release_listing(family, scope.source_url)
-
-
-def _target_end(run: RunRecord) -> datetime:
-    return datetime.combine(
-        date.fromisoformat(run.target_business_date), time.max, tzinfo=ZoneInfo("Asia/Shanghai")
-    )
 
 
 FULL_RETRIEVAL_SCHEMA = (

@@ -64,6 +64,7 @@ from pring_cycle.release_calendar import month_bounds
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
 from pring_cycle.storage import database_connection
+from pring_cycle.summary_cutoff import day_end
 from pring_cycle.tushare_context import (
     ContextScalar,
     parse_cpi_acquisition,
@@ -1408,6 +1409,7 @@ def backtrack_rrr_chronicle(
     *,
     until: date,
     fetched_at: datetime,
+    public_as_of: datetime | None = None,
     fetcher: Callable[[str], FetchedOfficialContextDocument] | None = None,
     definition_version: str = METRIC_CATALOG_VERSION,
     on_acquisition_started: Callable[[str], None] | None = None,
@@ -1415,19 +1417,26 @@ def backtrack_rrr_chronicle(
     """The latest RRR change effective by ``until``, traced back through the chronicles.
 
     The PBC's own RRR column stopped in 2020; its monetary policy chronicle states each
-    change by the day it took effect (ADR-0028). Issues listed by ``until`` are read newest
-    first, each from its last month back, and the first cut found is the latest: an issue
-    goes no later than the ones published after it. That issue is then read again as the
-    month's release and kept. A cut the parser cannot read stops the search (an older one
-    must not stand in for it), and so does any page that cannot be read.
+    change by the day it took effect (ADR-0028). Issues out by ``public_as_of`` (the run's
+    cutoff; ``until``'s end when not given) are read newest first, each from its last month
+    back, and the first cut found is the latest: an issue goes no later than the ones
+    published after it. An issue is listed by its day alone, so it is public from the next
+    day (ticket 06). That issue is then read again as the month's release and kept. A cut the
+    parser cannot read stops the search (an older one must not stand in for it), and so
+    does any page that cannot be read.
     """
     family = "pbc_rrr_notice"
+    known_at = public_as_of if public_as_of is not None else day_end(until)
     covered_through = None
     page_url: str | None = RRR_CHRONICLE_LISTING
     while page_url is not None:
         entries, page_url = _read_chronicle_page(paths, page_url, fetcher, on_acquisition_started)
         for entry in entries:
-            if entry.published > until.isoformat() or entry.year > until.year:
+            # Listed by its day alone, an issue is public as a page showing only its day is.
+            _release, public_at = publication_times(
+                date.fromisoformat(entry.published), ZoneInfo("Asia/Shanghai")
+            )
+            if public_at is None or public_at > known_at or entry.year > until.year:
                 continue
             if covered_through is None:
                 last = calendar.monthrange(entry.year, entry.through_month)[1]
