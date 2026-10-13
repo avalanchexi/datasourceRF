@@ -1,4 +1,4 @@
-Status: blocked
+Status: ready-for-agent
 Category: task
 Type: task
 
