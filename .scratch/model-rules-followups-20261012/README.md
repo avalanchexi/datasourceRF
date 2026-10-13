@@ -9,7 +9,7 @@
 | [03](issues/03-audit-lookback-and-core-only-days.md) | 体检未覆盖“回溯得出”与“只更正核心”日 | done |
 | [04](issues/04-audit-loan-ytd-diff-false-missing.md) | 体检贷款年内差分 189 项“缺失”为误报 | done |
 | [05](issues/05-audit-purged-periods-member-level.md) | 体检第一层“已入库后被清理”按指标聚合，掩盖成员差别 | done |
-| [06](issues/06-receipt-and-calendar-residuals.md) | 残余 01／02 的未处理部分 | ready-for-agent |
+| [06](issues/06-receipt-and-calendar-residuals.md) | 残余 01／02 的未处理部分 | done |
 | [07](issues/07-audit-script-residuals.md) | 体检脚本的零散残余（时间比较、原话复核、空串网址） | done（(b) wontfix，写入体检已知局限） |
 | [08](issues/08-lookback-cost-and-test-gaps.md) | 上一确认阶段回溯的成本与测试缺口 | done（缓存 wontfix） |
 | [09](issues/09-acceptance.md) | 收尾验收：全套、v0015 真实运行（优先调度运行）与体检，与 `run-b7d59b63…` 比对 | blocked（等 06） |

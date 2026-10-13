@@ -210,7 +210,8 @@ def submit_at(
                 "--json",
             ]
         )
-        return str(json.loads(capsys.readouterr().out)["target_business_date"])
+        submit.document = json.loads(capsys.readouterr().out)  # type: ignore[attr-defined]
+        return str(submit.document["target_business_date"])  # type: ignore[attr-defined]
 
     submit.paths = paths  # type: ignore[attr-defined]
     return submit
@@ -259,6 +260,19 @@ def test_run_submit_on_a_closed_day_ending_the_calendar_targets_the_last_session
     assert submit_at(datetime(2026, 9, 25, 18, 30, tzinfo=SHANGHAI)) == "2026-09-24"
     assert submit_at(datetime(2026, 9, 25, 20, tzinfo=SHANGHAI)) == "2026-09-24"
     assert len(calls) == 1
+    assert "target_selection" not in submit_at.document  # chosen on the calendar
+
+
+def test_run_submit_without_a_calendar_or_token_says_its_target_is_a_weekday_guess(
+    submit_at: Any,
+) -> None:
+    # Ticket 06: no stored calendar covers the launch and no token fetches one; the target
+    # stays the weekday rule's, said prominently.
+    assert submit_at(datetime(2026, 9, 22, 10, tzinfo=SHANGHAI)) == "2026-09-21"
+    assert submit_at.document["target_selection"] == {
+        "basis": "weekday_inferred",
+        "note": "日历依据不足、按工作日推定，时效可能多算（目标日按工作日选定）",
+    }
 
 
 def test_a_us_holiday_is_no_session_for_the_us_metrics_on_a_china_trading_day() -> None:

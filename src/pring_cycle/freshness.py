@@ -40,6 +40,7 @@ from pring_cycle.trading_calendar import (
     TradingCalendar,
     acquire_sse_calendar,
     current_calendar,
+    judging_day,
     market_calendar,
 )
 
@@ -913,6 +914,23 @@ def freshness_statement(target_business_date: str, assessed_at: datetime) -> str
     """
     judged = assessed_at.astimezone(SHANGHAI)
     return f"目标日 {target_business_date}；时效截至 {judged:%Y-%m-%d %H:%M}（北京）"
+
+
+CALENDAR_FALLBACK_NOTE = "日历依据不足、按工作日推定，时效可能多算"
+
+
+def judging_calendar_basis(calendar: TradingCalendar, judged_at: datetime) -> dict[str, str] | None:
+    """How a run's freshness stood on its SSE calendar (ticket 06): ``None`` when the
+    calendar covers every day to the one judged on, else that the days it does not cover were
+    taken for weekdays (those it states closed aside), which may count a holiday owed.
+
+    ``calendar`` is a run's ``judging_calendar``: covered in one unbroken stretch from its
+    window on, so covering the day judged on covers every day before it.
+    """
+    judged_on = judging_day(judged_at)
+    if calendar.covers(judged_on):
+        return None
+    return {"basis": "weekday_inferred", "judged_on": judged_on.isoformat()}
 
 
 def sort_gaps(gaps: Iterable[dict[str, object]]) -> list[dict[str, object]]:

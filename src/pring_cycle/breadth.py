@@ -300,6 +300,8 @@ def breadth_scalars(
     ``sessions`` are the SSE's, from the trading calendar: the window, and before it enough
     to tell any share's age up to 250. Every figure names the calendar responses it counted
     on (``calendar_ids``). The listings are fetched only when a day is left to compute.
+    Nothing is returned only when every day is held; days fetched that give no figure raise
+    an empty delivery (``source_empty``).
     """
     sessions = sorted(day for day in sessions if day <= end_date)
     held = set(held_days)
@@ -332,4 +334,10 @@ def breadth_scalars(
                 open_days=[session for session in sessions if session <= day],
             )
         )
+    if not scalars:
+        from pring_cycle.tushare_context import ContextObservationsMissingError
+
+        # Asked for and answered with nothing to compute: an empty delivery, which is not a
+        # window all held (ticket 06).
+        raise ContextObservationsMissingError("source_empty")
     return tuple(replace(scalar, acquisition_ids=calendar_ids) for scalar in scalars)

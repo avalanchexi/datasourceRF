@@ -270,6 +270,47 @@ def calendar_calls(paths: RuntimePaths, run_id: str, phase: str) -> set[str]:
     return {str(row[0]) for row in rows}
 
 
+CALENDAR_NOTE = "日历依据不足、按工作日推定，时效可能多算"
+
+
+def calendar_notes(paths: RuntimePaths, run_id: str) -> dict[str, object]:
+    """Where the run says its freshness stood on weekdays: the projection, the report, and
+    the home and report pages (ticket 06)."""
+    from pring_cycle.dashboard import _home_page, _report_reader
+
+    stored = RunRepository(paths.database).get(run_id)
+    projection = ProjectionSetRepository(paths.database).get(stored.projection_set_id or "")
+    (report,) = [
+        item
+        for item in ReportRepository(paths.database).history()
+        if item.projection_set_id == projection.envelope.projection_set_id
+    ]
+    return {
+        "projection": projection.datasets["cycle_overview"].get("freshness_calendar"),
+        "report": report.body["freshness_basis"].get("calendar"),
+        "home_page": _prominent(str(_home_page(projection))),
+        "report_page": _prominent(str(_report_reader(report))),
+    }
+
+
+def _prominent(page: str) -> bool:
+    """The note on the page, set as a warning."""
+    return CALENDAR_NOTE in page and "warning-label calendar-fallback" in page
+
+
+NO_CALENDAR_NOTE = {"projection": None, "report": None, "home_page": False, "report_page": False}
+
+
+def weekday_note(judged_on: str) -> dict[str, object]:
+    stated = {"basis": "weekday_inferred", "judged_on": judged_on}
+    return {
+        "projection": stated,
+        "report": {**stated, "note": CALENDAR_NOTE},
+        "home_page": True,
+        "report_page": True,
+    }
+
+
 def test_a_rerun_after_a_long_holiday_fetches_the_calendar_to_the_judging_day(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
 ) -> None:
@@ -285,6 +326,7 @@ def test_a_rerun_after_a_long_holiday_fetches_the_calendar_to_the_judging_day(
     assert len(calendar_calls(paths, run_id, "judging_calendar")) == 1
     plan = RunRepository(paths.database).full_retrieval_plan(run_id)
     assert [fetch["outcome"] for fetch in plan["judging_calendar"]["fetches"]] == ["fetched"]
+    assert calendar_notes(paths, run_id) == NO_CALENDAR_NOTE
 
 
 def test_a_calendar_already_reaching_the_judging_day_is_not_fetched_again(
@@ -313,6 +355,7 @@ def test_a_calendar_already_reaching_the_judging_day_is_not_fetched_again(
     assert calls == len(tushare.calendar_ranges) + 1
     plan = RunRepository(paths.database).full_retrieval_plan(run_id)
     assert stored not in {call["acquisition_id"] for call in plan["acquisitions"]}
+    assert calendar_notes(paths, run_id) == NO_CALENDAR_NOTE
 
 
 def test_a_failed_calendar_fetch_leaves_weekdays_and_says_so(
@@ -335,6 +378,8 @@ def test_a_failed_calendar_fetch_leaves_weekdays_and_says_so(
             }
         ]
     }
+    # Ticket 06: the weekdays stand, and the gap list and the report say so prominently.
+    assert calendar_notes(paths, run_id) == weekday_note("2026-10-09")
 
 
 def test_an_answer_leaving_the_judging_day_out_is_a_failed_fetch_not_a_closure(
@@ -357,6 +402,7 @@ def test_an_answer_leaving_the_judging_day_out_is_a_failed_fetch_not_a_closure(
             }
         ]
     }
+    assert calendar_notes(paths, run_id) == weekday_note("2026-10-09")
 
 
 def test_a_judging_day_inside_the_holiday_is_fetched_with_the_target(
@@ -374,6 +420,7 @@ def test_a_judging_day_inside_the_holiday_is_fetched_with_the_target(
     assert core_gaps(paths, run_id) == set()
     plan = RunRepository(paths.database).full_retrieval_plan(run_id)
     assert [fetch["outcome"] for fetch in plan["judging_calendar"]["fetches"]] == ["fetched"]
+    assert calendar_notes(paths, run_id) == NO_CALENDAR_NOTE
 
 
 def test_a_day_turning_while_the_calendar_is_checked_is_asked_after_too(

@@ -220,8 +220,9 @@ def every_basket_day_held() -> dict[date, float]:
 
 @pytest.mark.usefixtures("runtime_clock")
 def test_the_basket_s_inputs_end_checked_when_every_day_is_held(paths: RuntimePaths) -> None:
-    # Residual 01: the contracts and calendars were answered and read; the window, all held
-    # already, added nothing. Their receipts were failed although the attempt succeeded.
+    # Residual 01: the calendars were answered and read; the window, all held already, added
+    # nothing. Their receipts were failed although the attempt succeeded. Ticket 06: the four
+    # calendars tell it alone, the contracts are not asked for.
     sent: list[str] = []
 
     def transport(payload: dict[str, Any]) -> bytes:
@@ -232,10 +233,9 @@ def test_the_basket_s_inputs_end_checked_when_every_day_is_held(paths: RuntimePa
         acquire_basket(paths, transport, every_basket_day_held())
 
     assert held.value.completeness == "nothing_new"
-    assert sorted(sent) == ["fut_basic"] * 8 + ["fut_trade_cal"] * 4  # as many as before
+    assert sent == ["fut_trade_cal"] * 4
     states = receipt_states(paths)
-    assert set(states) == {"fut_basic", "fut_trade_cal"}  # no settlement asked for
-    assert states["fut_basic"] == [("validated", "passed")] * 8
+    assert set(states) == {"fut_trade_cal"}  # no contract or settlement asked for
     assert states["fut_trade_cal"] == [("validated", "passed")] * 4
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     for receipt in acquisitions.history():
@@ -245,7 +245,7 @@ def test_the_basket_s_inputs_end_checked_when_every_day_is_held(paths: RuntimePa
     for metric_id in BASKET_METRICS:
         attempt = latest(paths, metric_id)
         assert (attempt.outcome, attempt.completeness) == ("succeeded", "nothing_new")
-        assert len(attempt.acquisition_ids) == 12
+        assert len(attempt.acquisition_ids) == 4
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -261,7 +261,7 @@ def test_storing_a_held_window_s_receipt_failing_is_this_system_s(
 
     states = [state for receipts in receipt_states(paths).values() for state in receipts]
     # The first was closed before the store failed; none of them was refused.
-    assert sorted(states) == sorted([("validated", "passed")] + [("failed", None)] * 11)
+    assert sorted(states) == sorted([("validated", "passed")] + [("failed", None)] * 3)
     attempt = latest(paths, "CN_COMMODITY_EX_HOG_BASKET")
     assert (attempt.outcome, attempt.step) == ("local_failed", "local")
 
@@ -294,8 +294,12 @@ def foreign_contract(payload: dict[str, Any]) -> bytes:
 def test_the_basket_s_inputs_still_fail_when_it_holds_no_day_or_refuses_one(
     paths: RuntimePaths, transport: Any, check: str | None, completeness: str | None, outcome: str
 ) -> None:
+    # The last day not held: a window all held is told from the calendars alone, without
+    # reading the contracts (ticket 06).
+    held = every_basket_day_held()
+    del held[BASKET_END]
     with pytest.raises(ValueError):
-        acquire_basket(paths, transport, every_basket_day_held())
+        acquire_basket(paths, transport, held)
 
     states = receipt_states(paths)
     assert {state for receipts in states.values() for state, _check in receipts} == {"failed"}
@@ -314,7 +318,7 @@ def test_breadth_s_empty_quotes_for_a_day_not_held_still_fail(paths: RuntimePath
         return rows(payload, [])
 
     adapter = TushareContextAdapter("fixture-secret", transport=transport)
-    with pytest.raises(ContextObservationsMissingError):
+    with pytest.raises(ContextObservationsMissingError) as empty:
         adapter.acquire_scalars(
             paths,
             lambda: adapter.breadth(
@@ -327,6 +331,41 @@ def test_breadth_s_empty_quotes_for_a_day_not_held_still_fail(paths: RuntimePath
     states = receipt_states(paths)
     assert set(states) == {"stock_basic", "daily", "stk_factor_pro"}
     assert {state for receipts in states.values() for state, _check in receipts} == {"failed"}
+    # Asked and answered with nothing: an empty delivery, not "all held" (ticket 06).
+    assert empty.value.completeness == "source_empty"
+    for metric_id in BREADTH_METRICS:
+        attempt = latest(paths, metric_id)
+        assert (attempt.outcome, attempt.completeness) == ("succeeded", "source_empty")
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_breadth_with_every_day_held_asks_nothing_and_has_nothing_new(
+    paths: RuntimePaths,
+) -> None:
+    sent: list[str] = []
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        sent.append(payload["api_name"])
+        return breadth_response(payload)
+
+    adapter = TushareContextAdapter("fixture-secret", transport=transport)
+    with pytest.raises(ContextObservationsMissingError) as held:
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.breadth(
+                end_date=BASKET_END,
+                held_days=(BASKET_END,),
+                sessions=(BASKET_END,),
+                calendar_ids=(),
+            ),
+            definition_version=EFFECTIVE_CATALOG_VERSION,
+            metric_ids=tuple(BREADTH_METRICS),
+        )
+
+    assert held.value.completeness == "nothing_new" and sent == []
+    for metric_id in BREADTH_METRICS:
+        attempt = latest(paths, metric_id)
+        assert (attempt.outcome, attempt.completeness) == ("succeeded", "nothing_new")
 
 
 LPR_URL = "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html"

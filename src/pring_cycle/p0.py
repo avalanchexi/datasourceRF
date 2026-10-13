@@ -124,6 +124,7 @@ class P0ProjectionService:
         inventory_document: dict[str, object] | None = None,
         release_calendar_events: tuple[dict[str, object], ...] = (),
         gap_list: tuple[dict[str, object], ...] = (),
+        freshness_calendar: Mapping[str, str] | None = None,
         as_current: bool = True,
         decided: StageResult | None = None,
         core_history_basis: str | None = None,
@@ -135,7 +136,8 @@ class P0ProjectionService:
         one, it is decided here. A ``lookback`` (ADR-0040) is published with the overview and
         the stage history, and the stage it found stands as the last confirmed one there; the
         day's assessment keeps what the window's history says. The assessment states the
-        ``core_history_basis`` the cores were read on, and the summary it ``corrects``.
+        ``core_history_basis`` the cores were read on, and the summary it ``corrects``. A
+        ``freshness_calendar`` says the gap list's freshness stood on weekdays (ticket 06).
         """
         gaps = _core_gaps(assets)
         decided = decided or formal_stage(assets)
@@ -191,6 +193,8 @@ class P0ProjectionService:
             identity_document["last_confirmed_lookback"] = lookback_document
         if core_history_basis is not None:
             identity_document["core_history_basis"] = core_history_basis
+        if freshness_calendar is not None:
+            identity_document["freshness_calendar"] = dict(freshness_calendar)
         if corrects is not None:
             # A correction is a set of its own, even computed as the one it corrects was.
             identity_document["corrects"] = corrects.document()
@@ -259,6 +263,9 @@ class P0ProjectionService:
                 "core_carry_forward": carried,
             }
         )
+        if freshness_calendar is not None:
+            # Only when weekdays stood in for the calendar; a set without it states none.
+            datasets["cycle_overview"]["freshness_calendar"] = dict(freshness_calendar)
         if lookback_document is not None:
             datasets["cycle_overview"]["last_confirmed_lookback"] = lookback_document
             datasets["stage_history"]["last_confirmed_lookback"] = lookback_document

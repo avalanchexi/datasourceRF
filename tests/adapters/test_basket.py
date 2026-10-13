@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 from pring_cycle.basket import PRODUCT_EXCHANGES, PRODUCTS, basket_scalars, select_contract
+from pring_cycle.tushare_context import TushareSourceError
 
 SUFFIX = {"SHFE": "SHF", "DCE": "DCE", "CZCE": "ZCE", "INE": "INE"}
 # Each product: a November contract expiring 2026-10-15, and a January one.
@@ -229,3 +230,192 @@ def test_nothing_computable_raises_the_first_reason() -> None:
             end_date=date(2026, 9, 24),
             held_levels={d: 1000.0 for d in weekdays(date(2026, 3, 9), date(2026, 9, 23))},
         )
+
+
+# Ticket 06: a window all held is told from the four exchanges' calendars alone.
+HELD_END = date(2026, 9, 24)
+EXCHANGES = ("CZCE", "DCE", "INE", "SHFE")
+
+
+def every_day_held() -> dict[date, float]:
+    return {d: 1000.0 for d in weekdays(date(2026, 3, 9), HELD_END)}
+
+
+def the_full_flow() -> list[str]:
+    """The calls of the flow without a shortcut: contracts, then calendars to expiry."""
+    return ["fut_basic"] * len(PRODUCTS) + ["fut_trade_cal"] * len(EXCHANGES)
+
+
+def test_a_window_all_held_asks_only_the_four_calendars() -> None:
+    calls: list[tuple[str, dict[str, str]]] = []
+
+    assert basket_scalars(fake_call(calls), end_date=HELD_END, held_levels=every_day_held()) == ()
+
+    assert [api for api, _ in calls] == ["fut_trade_cal"] * 4
+    assert sorted((p["exchange"], p["start_date"], p["end_date"]) for _, p in calls) == [
+        (exchange, "20260306", "20260924") for exchange in EXCHANGES
+    ]
+
+
+def without_day(missing: date, exchanges: tuple[str, ...] = EXCHANGES):  # type: ignore[no-untyped-def]
+    """Calendars of ``exchanges`` that leave ``missing`` out."""
+
+    def call(api: str, params: dict[str, str], fields: tuple[str, ...]) -> Any:
+        calls.append(api)
+        rows = fake_call([])(api, params, fields)
+        if api == "fut_trade_cal" and params["exchange"] in exchanges:
+            return tuple(row for row in rows if row["cal_date"] != missing.strftime("%Y%m%d"))
+        return rows
+
+    calls: list[str] = []
+    return call, calls
+
+
+def first_calendar_failing(answer: Any = None):  # type: ignore[no-untyped-def]
+    """Calls (``answer``'s) whose first calendar request fails: the full flow alone answers."""
+    answer = answer or fake_call([])
+
+    def call(api: str, params: dict[str, str], fields: tuple[str, ...]) -> Any:
+        calls.append(api)
+        if api == "fut_trade_cal" and calls.count("fut_trade_cal") == 1:
+            raise OSError("timed out")
+        return answer(api, params, fields)
+
+    calls: list[str] = []
+    return call, calls
+
+
+def outcome(call: Any, held: dict[date, float]) -> object:
+    """What the basket returns, or the reason it raised."""
+    try:
+        return basket_scalars(call, end_date=HELD_END, held_levels=held)
+    except ValueError as error:
+        return str(error)
+
+
+@pytest.mark.parametrize(
+    ("exchanges", "asked", "expected"),
+    [
+        # As before: a day no calendar lists is no basket day.
+        (EXCHANGES, 1, ()),
+        # As before: one exchange not listing a day the others trade cannot choose for it.
+        (("SHFE",), 4, "commodity_trading_day_unavailable"),
+    ],
+    ids=["all_four_leave_it_out", "one_leaves_it_out"],
+)
+def test_calendars_leaving_a_day_out_never_say_the_window_is_all_held(
+    exchanges: tuple[str, ...], asked: int, expected: object
+) -> None:
+    missing = date(2026, 9, 23)
+    held = every_day_held()
+    del held[missing]  # The day left out is the one not held.
+    call, calls = without_day(missing, exchanges)
+
+    result = outcome(call, held)
+
+    # Not taken for all held: the first calendar leaving the day out stops the shortcut, and
+    # the contracts and their calendars decide, as before.
+    assert calls[:asked] == ["fut_trade_cal"] * asked
+    assert calls[asked : asked + 12] == the_full_flow()
+    reference, _ = first_calendar_failing(without_day(missing, exchanges)[0])
+    assert result == outcome(reference, held) == expected
+
+
+@pytest.mark.parametrize(
+    "spoil",
+    [
+        lambda rows: (*rows, rows[-1]),  # a day stated twice
+        lambda rows: ({**rows[0], "is_open": "Y"}, *rows[1:]),  # a day stated otherwise
+        lambda rows: ({**rows[0], "exchange": "DCE"}, *rows[1:]),  # another exchange's day
+    ],
+    ids=["duplicated_day", "unknown_open_flag", "foreign_exchange"],
+)
+def test_a_calendar_stating_a_day_oddly_never_says_the_window_is_all_held(spoil: Any) -> None:
+    calls: list[str] = []
+
+    def call(api: str, params: dict[str, str], fields: tuple[str, ...]) -> Any:
+        calls.append(api)
+        rows = fake_call([])(api, params, fields)
+        return spoil(rows) if api == "fut_trade_cal" and calls.count(api) == 1 else rows
+
+    assert basket_scalars(call, end_date=HELD_END, held_levels=every_day_held()) == ()
+    assert calls == ["fut_trade_cal", *the_full_flow()]
+
+
+def first_calendar_raising(error: Exception):  # type: ignore[no-untyped-def]
+    """Calls whose first calendar request raises ``error``; every other answers."""
+
+    def call(api: str, params: dict[str, str], fields: tuple[str, ...]) -> Any:
+        calls.append(api)
+        if api == "fut_trade_cal" and calls.count(api) == 1:
+            raise error
+        return fake_call([])(api, params, fields)
+
+    calls: list[str] = []
+    return call, calls
+
+
+def at_step(error: Exception, step: str) -> Exception:
+    error.acquisition_step = step  # type: ignore[attr-defined]
+    return error
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        at_step(OSError("disk_full"), "store"),
+        at_step(ValueError("receipt_unreadable"), "normalize"),
+        at_step(OSError("quota_held_back"), "start"),
+    ],
+    ids=["storing_failed", "reading_back_failed", "not_sent"],
+)
+def test_this_system_failing_or_a_call_not_made_is_raised_not_fallen_back_from(
+    error: Exception,
+) -> None:
+    call, calls = first_calendar_raising(error)
+
+    with pytest.raises(type(error)) as raised:
+        basket_scalars(call, end_date=HELD_END, held_levels=every_day_held())
+
+    assert raised.value is error and calls == ["fut_trade_cal"]
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        at_step(OSError("timed out"), "request"),
+        TushareSourceError("tushare_source_failed:40001", external_code=40001),
+        at_step(ValueError("tushare_response_row_invalid"), "parse"),
+    ],
+    ids=["no_answer", "source_refused", "answer_refused"],
+)
+def test_the_source_failing_or_its_answer_refused_falls_back(error: Exception) -> None:
+    call, calls = first_calendar_raising(error)
+
+    assert basket_scalars(call, end_date=HELD_END, held_levels=every_day_held()) == ()
+    assert calls == ["fut_trade_cal", *the_full_flow()]
+
+
+def test_a_failed_calendar_falls_back_to_the_full_flow() -> None:
+    call, calls = first_calendar_failing()
+
+    assert basket_scalars(call, end_date=HELD_END, held_levels=every_day_held()) == ()
+
+    # The failed request stops the shortcut; nothing else is asked for it.
+    assert calls == ["fut_trade_cal", *the_full_flow()]
+
+
+def test_a_window_with_a_day_not_held_selects_as_the_full_flow_does() -> None:
+    held = every_day_held()
+    del held[HELD_END]
+    calls: list[tuple[str, dict[str, str]]] = []
+
+    scalars = basket_scalars(fake_call(calls), end_date=HELD_END, held_levels=held)
+
+    assert levels(scalars) == {"2026-09-24": pytest.approx(1000.0 * 1.01)}
+    sent = [api for api, _ in calls]
+    assert sent[:4] == ["fut_trade_cal"] * 4
+    assert sent[4:16] == the_full_flow()
+    assert sent[16:] == ["fut_daily"] * len(PRODUCTS)
+    reference, _ = first_calendar_failing()
+    assert scalars == basket_scalars(reference, end_date=HELD_END, held_levels=held)

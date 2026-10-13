@@ -319,12 +319,23 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             datetime.fromisoformat(namespace.as_of) if namespace.as_of else datetime.now(UTC)
         )
         target_date = namespace.target_date
+        selection: dict[str, str] = {}
         if target_date is None:
-            from pring_cycle.freshness import launch_calendar, target_business_date
+            from pring_cycle.freshness import (
+                CALENDAR_FALLBACK_NOTE,
+                launch_calendar,
+                target_business_date,
+            )
+            from pring_cycle.trading_calendar import judging_day
 
-            target_date = target_business_date(
-                launched_at, launch_calendar(paths, launched_at)
-            ).isoformat()
+            calendar = launch_calendar(paths, launched_at)
+            target_date = target_business_date(launched_at, calendar).isoformat()
+            if not calendar.covers(judging_day(launched_at)):
+                # Neither stored nor fetched: the target is the weekdays' (ticket 06).
+                selection = {
+                    "basis": "weekday_inferred",
+                    "note": f"{CALENDAR_FALLBACK_NOTE}（目标日按工作日选定）",
+                }
         submitted = RunRepository(paths.database).submit(
             command_type=namespace.type,
             target_business_date=target_date,
@@ -337,7 +348,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             period=namespace.period,
             source_url=namespace.source_url,
         )
-        return asdict(submitted)
+        return {**asdict(submitted), **({"target_selection": selection} if selection else {})}
     if namespace.command == "runs":
         return {
             "runs": [asdict(item) for item in RunRepository(paths.database).list_runs()],

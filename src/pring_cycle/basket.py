@@ -159,6 +159,8 @@ def basket_scalars(
     """
     if end_date <= BASE_DATE:
         return ()
+    if _window_held(call, end_date=end_date, held_levels=held_levels, window=window):
+        return ()
     contracts: dict[str, list[dict[str, Any]]] = {}
     for product in PRODUCTS:
         rows = call(
@@ -267,6 +269,56 @@ def basket_scalars(
         # Nothing could be computed: the first reason is what the maintainer has to see.
         raise ValueError(failures[0])
     return tuple(scalars)
+
+
+def _window_held(
+    call: Call, *, end_date: date, held_levels: Mapping[date, float], window: int
+) -> bool:
+    """Whether every basket day of the window is held, told from the four exchanges'
+    calendars to ``end_date`` alone: four requests, not the contracts' twelve (ticket 06).
+
+    Only calendars stating each day from the base to ``end_date`` once, open or closed, can
+    say so: one the source fails to answer or whose answer is refused, leaves a day out or
+    states one otherwise says nothing, and the contracts and their calendars to expiry decide
+    as before. This system failing to keep an answer, or a call not made, is raised.
+    """
+    days = {BASE_DATE + timedelta(days=n) for n in range((end_date - BASE_DATE).days + 1)}
+    calendars: list[dict[date, bool]] = []
+    for exchange in sorted(set(PRODUCT_EXCHANGES.values())):
+        try:
+            rows = call(
+                "fut_trade_cal",
+                {
+                    "exchange": exchange,
+                    "start_date": BASE_DATE.strftime("%Y%m%d"),
+                    "end_date": end_date.strftime("%Y%m%d"),
+                },
+                ("exchange", "cal_date", "is_open"),
+            )
+            stated = {
+                _day(row["cal_date"]): str(row["is_open"]) == "1"
+                for row in rows
+                if row["exchange"] == exchange and str(row["is_open"]) in ("0", "1")
+            }
+        except (OSError, ValueError) as error:
+            from pring_cycle.acquisition_outcome import (
+                SOURCE_FAILED,
+                STRUCTURE_REJECTED,
+                capture_failure,
+            )
+
+            if capture_failure(error)[0] not in {SOURCE_FAILED, STRUCTURE_REJECTED}:
+                raise
+            return False
+        if len(rows) != len(days) or set(stated) != days:
+            return False
+        calendars.append(stated)
+    chain = sorted(
+        day
+        for day in calendars[0]
+        if BASE_DATE < day <= end_date and any(c[day] for c in calendars)
+    )
+    return bool(chain) and all(day in held_levels for day in chain[-window:])
 
 
 def _scalar(

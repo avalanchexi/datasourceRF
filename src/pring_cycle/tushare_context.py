@@ -1066,7 +1066,8 @@ class TushareContextAdapter:
             calendar_ids=calendar_ids,
         )
         if not scalars:
-            # Every day of the window is held already: nothing new.
+            # Every day of the window is held already: nothing new. Days asked for that
+            # gave no figure raised an empty delivery in ``breadth_scalars`` (ticket 06).
             raise ContextObservationsMissingError("nothing_new")
         return scalars
 

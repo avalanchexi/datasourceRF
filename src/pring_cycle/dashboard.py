@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 from dash import dcc, html
 
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
-from pring_cycle.freshness import freshness_statement
+from pring_cycle.freshness import CALENDAR_FALLBACK_NOTE, freshness_statement
 from pring_cycle.navigation import DASHBOARD_NAVIGATION
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
@@ -422,7 +422,26 @@ def _freshness_basis(projection: ProjectionSet | None) -> list[html.P]:
         else projection.envelope.system_as_of
     )
     statement = freshness_statement(projection.envelope.target_business_date, judged)
-    return [html.P(statement, className="secondary-copy")]
+    return [
+        html.P(statement, className="secondary-copy"),
+        *_calendar_fallback_notice(
+            _dataset(projection, "cycle_overview").get("freshness_calendar")
+        ),
+    ]
+
+
+def _calendar_fallback_notice(value: object) -> list[html.P]:
+    """A prominent line when weekdays stood in for the calendar the gap list was judged on
+    (ticket 06): a holiday among them may be counted owed."""
+    if not isinstance(value, dict) or value.get("basis") != "weekday_inferred":
+        return []
+    return [
+        html.P(
+            f"{CALENDAR_FALLBACK_NOTE}：至判定日 {value.get('judged_on')} 有日子无交易日历应答，"
+            "按工作日计应有期。",
+            className="warning-label calendar-fallback",
+        )
+    ]
 
 
 def _gap_list(value: object) -> html.Div:
@@ -2123,7 +2142,12 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
         ],
         className="compact-facts",
     )
-    head = [*_correction_notes(report.corrections, "本报告的投影", "报告"), identity]
+    basis = report.body.get("freshness_basis") if report.body_retained else None
+    head = [
+        *_correction_notes(report.corrections, "本报告的投影", "报告"),
+        identity,
+        *_calendar_fallback_notice(basis.get("calendar") if isinstance(basis, dict) else None),
+    ]
     if not report.body_retained:
         return html.Div(
             [*head, _empty_state("正文已不在保留期", "结构化身份与报告输入仍在留存期内保留。")],

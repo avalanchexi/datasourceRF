@@ -476,8 +476,8 @@ def basket_claims(paths: RuntimePaths) -> int:
 def test_the_basket_s_inputs_end_checked_when_its_window_is_all_held(
     rerun: tuple[RuntimePaths, str, list[tuple[str, str, str, float | None]], int],
 ) -> None:
-    """Residual 01: the contracts and calendars the basket read end validated, not failed,
-    when the window it reads them for is held already; nothing is added or changed."""
+    """Residual 01: the calendars the basket read end validated, not failed, when the window
+    it reads them for is held already; nothing is added or changed."""
     paths, run_id, held, claims = rerun
 
     with sqlite3.connect(paths.database) as connection:
@@ -488,10 +488,8 @@ def test_the_basket_s_inputs_end_checked_when_its_window_is_all_held(
             "ORDER BY f.rowid",
             (run_id,),
         ).fetchall()
-    assert sorted(receipts) == sorted(
-        [("fut_basic", "validated", "passed", "accepted")] * 8
-        + [("fut_trade_cal", "validated", "passed", "accepted")] * 4
-    )
+    # Ticket 06: the four calendars alone tell the window is held; no contract is asked for.
+    assert sorted(receipts) == [("fut_trade_cal", "validated", "passed", "accepted")] * 4
     assert len(held) > 120 and basket_claims(paths) == claims
     assert basket_series(paths) == held
     outcomes = AcquisitionOutcomes(paths.database)

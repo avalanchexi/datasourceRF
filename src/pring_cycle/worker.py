@@ -59,6 +59,7 @@ from pring_cycle.evidence import (
 from pring_cycle.freshness import (
     DERIVED_INPUTS,
     gap_list,
+    judging_calendar_basis,
     period_status,
     record_run_freshness,
     release_schedule_scope,
@@ -612,6 +613,8 @@ def _execute_run(
         system_as_of=run.system_as_of,
         run_materials=RunMaterials(
             freshness_gaps=gaps,
+            # The days its calendar left to weekdays, stated beside the gap list (ticket 06).
+            freshness_calendar=judging_calendar_basis(calendar, run.system_as_of),
             plan_gaps=tuple(plan["final"]["gaps"]),
             derived_requirements=tuple(plan["final"]["derived_requirements"]),
             release_calendar_events=release_calendar_events,

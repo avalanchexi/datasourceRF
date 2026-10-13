@@ -16,7 +16,7 @@ from typing import Any, Protocol
 from pring_cycle.batches import add_batch_columns, current_batch_id
 from pring_cycle.cli_process import run_structured_cli
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
-from pring_cycle.freshness import freshness_statement
+from pring_cycle.freshness import CALENDAR_FALLBACK_NOTE, freshness_statement
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.storage import database_connection, ensure_wal
 
@@ -144,6 +144,17 @@ class ReportInput:
                 "target_business_date": self.target_business_date,
                 "assessed_at": self.report_cutoff.isoformat(),
                 "statement": freshness_statement(self.target_business_date, self.report_cutoff),
+                # Weekdays stood in for the calendar: said with the note (ticket 06).
+                **(
+                    {
+                        "calendar": {
+                            **self.results["freshness_calendar"],
+                            "note": CALENDAR_FALLBACK_NOTE,
+                        }
+                    }
+                    if isinstance(self.results.get("freshness_calendar"), dict)
+                    else {}
+                ),
             },
             "core_carry_forward": list(self.results.get("core_carry_forward", [])),
         }
@@ -268,6 +279,12 @@ def report_input_from_projection(projection: ProjectionSet) -> ReportInput:
         **outputs,
         "core_carry_forward": carried,
         "gap_summary": _gap_summary(gap_list),
+        # The gap list's freshness stood on weekdays its calendar did not cover (ticket 06).
+        **(
+            {"freshness_calendar": dict(calendar_basis)}
+            if isinstance(calendar_basis := overview.get("freshness_calendar"), dict)
+            else {}
+        ),
     }
     return ReportInput.create(
         projection_set_id=envelope.projection_set_id,

@@ -155,9 +155,13 @@ class RunMaterials:
     ``look_back`` is asked for the last confirmed stage before the window's first day when
     neither the target nor the stage history has one (ADR-0040); it is given the target's
     readiness, whose closes it reads back from.
+
+    ``freshness_calendar`` states the run's freshness stood on weekdays its calendar did not
+    cover (ticket 06); ``None`` when the calendar covered every day judged.
     """
 
     freshness_gaps: tuple[Mapping[str, object], ...] = ()
+    freshness_calendar: Mapping[str, str] | None = None
     plan_gaps: tuple[Mapping[str, object], ...] = ()
     derived_requirements: tuple[Mapping[str, object], ...] = ()
     release_calendar_events: tuple[dict[str, object], ...] = ()
@@ -314,6 +318,7 @@ class DaySummaries:
                 decided=decided,
                 core_history_basis=backfilled.basis,
                 release_calendar_events=run_materials.release_calendar_events,
+                freshness_calendar=run_materials.freshness_calendar,
                 gap_list=tuple(
                     add_projection_gaps(
                         run_materials.freshness_gaps,
