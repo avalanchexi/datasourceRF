@@ -144,16 +144,17 @@ def _member_claims(run: Run, metric: str, member: str, where: str, args: tuple) 
 
 def _latest_published(run: Run, item: MissingItem, selected: set) -> str:
     """The latest published period of the member taken instead of the item's (doc: 上游未发布
-    （已用最新已发布值）): the newest earlier period with a claim stored by the cutoff and
-    readable by the target day's summary, one of whose claims is among the run's frozen input
-    ids. "" when there is none, or it was not taken."""
+    （已用最新已发布值）): the newest earlier period with a claim stored by the cutoff, with a
+    public time, readable by the target day's summary, one of whose claims is among the run's
+    frozen input ids. "" when there is none, or it was not taken."""
     first, _ = _bounds(item.period)
     readable: dict[str, list[str]] = {}
     for claim_id, _, public, inferred, _, period_end in _member_claims(
         run, item.metric, item.member, "period_end < ?", (first,)
     ):
         effective = public or inferred
-        if effective and run.target_unread(period_end, parse_time(effective)):
+        # Without a public time a claim cannot be shown to be readable by the cutoff.
+        if not effective or run.target_unread(period_end, parse_time(effective)):
             continue
         readable.setdefault(period_end, []).append(claim_id)
     if not readable:
@@ -585,7 +586,7 @@ def section(run: Run) -> str:
     out += [
         "“不计入真正缺失”一列写类别与依据，按以下顺序归第一个符合的类别，每项只计一次："
         f"① {UNPUBLISHED_LATEST}：计划的发布判定为 {AWAITING}、截止前没有该期声明，且上一可得期"
-        "（该成员此前最近一个截止前入库、按公开截止能读到的期次）的值已入选冻结输入；"
+        "（该成员此前最近一个截止前入库、有公开时间且按公开截止能读到的期次）的值已入选冻结输入；"
         f"② {CARRIED}：该项是计划对该指标要求的最新一期，且模型实际用了上一期的值（日频为该"
         "成员在第一层里的前一开市日，该期该成员的声明在本运行的冻结输入编号中；三核心以"
         " `carried_forward` 为准），前一开市日日历未覆盖时不判。",
