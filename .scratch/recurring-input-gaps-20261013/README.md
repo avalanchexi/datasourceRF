@@ -9,4 +9,4 @@
 | [03](issues/03-audit-upstream-unpublished-category.md) | 体检对齐新口径并新增“上游未发布”分类 | 01 | done |
 | [04](issues/04-warrant-known-historical-gaps.md) | 仓单历史缺口核实并单列 | 03 | done |
 | [05](issues/05-acceptance.md) | 收尾验收 | 01–04、残余票 01 | ready-for-agent |
-| [06](issues/06-news-window-and-rrr-lookback-use-run-cutoff.md) | 新闻拉取窗口与降准回溯的公开上限改为运行截止 | 01 | needs-info（已实施待合入；请示：显式截止远晚于目标日时新闻回看锚点）（不阻塞 05） |
+| [06](issues/06-news-window-and-rrr-lookback-use-run-cutoff.md) | 新闻拉取窗口与降准回溯的公开上限改为运行截止 | 01 | done（用户决定：新闻回看一周锚定运行截止；遗留：官方回溯停止条件未复核可读性，建议另开票） |

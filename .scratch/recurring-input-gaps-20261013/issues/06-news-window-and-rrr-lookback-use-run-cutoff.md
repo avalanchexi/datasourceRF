@@ -1,4 +1,4 @@
-Status: needs-info
+Status: done
 Type: task
 Category: bug
 
@@ -41,3 +41,10 @@ Category: bug
 **显式截止远晚于目标日时，新闻回看锚在哪里？** 现实现：一周回看锚定运行截止（终点＝截止，起点＝截止前一周或上一目标日结束的较晚者）。手动重跑一个较早目标日、截止为今天时，窗口不覆盖目标日附近的新闻，该运行的缺口无法从新闻补（会走后续渠道）；定时与当日手动运行（截止为次晨）不受影响。另一选项：回看锚定目标日结束、终点仍为截止，可读到目标日附近新闻，但截止越晚窗口越长，分页增多，可能耗尽每日 40 次额度（“长停只回看一周”的初衷正是避免这种拉取）。**推荐维持现实现**（历史重跑罕见，回看长度与额度消耗保持原样）。
 
 - 2026-10-13 并入集成分支 `a6beb7d`（只含 tools/quality、文档与票面，未动 src/tests）后重装 `dev-venv-rig06`，复跑受影响集合（`test_tushare_news.py`、`test_rrr_backtrack.py`、`test_ai_websearch.py`、`test_full_run_retrieval.py`＋两例冒烟）101 过（993 秒）。待主 agent 转达请示后合入。
+
+### 2026-10-13 用户决定（主 agent 转达）
+
+新闻回看一周锚定运行截止，维持现实现。票面改 done。
+
+- 2026-10-13 并入集成分支 `f55b3c2`（含审查修复 `SummaryCutoff.decision_as_of`、`system_known_by`），无冲突。`_pull_news` 已经通过 `SummaryCutoff.target`（取 `min(decision_as_of, now)`）求终点，没有内联的采集窗口判断，不需要另改；拉取终点不得晚于当下，所以保留 `target`，不直接用 `decision_as_of`。
+- 2026-10-13 并入后重装 `dev-venv-rig06` 复跑：受影响集合＋两例冒烟 101 过（754 秒）；合并带进了选值改动（`metric_series`／`search_evidence`），所以加跑重型 `test_worker_registered_catalog.py`＋`test_core_carry_forward.py`，4 过（281 秒，`flock`）；改动文件 ruff、mypy 通过。
