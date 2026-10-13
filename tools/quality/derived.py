@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import urlsplit
 
-from common import Run, compress_days, iso_day, parse_time, table
+from common import Run, compress_days, iso_day, parse_time, table, unread_reason
 
 # The formulas are exact arithmetic on decimal inputs: recomputing from the same inputs
 # differs only by float noise (below 1e-13 relative). The tolerance leaves ample room for that
@@ -504,15 +504,24 @@ def _nbs_quarter_value(page: str, quarter: str) -> tuple[float, float] | None:
 
 
 class Held:
-    """Claims usable at one point in time: stored by ``as_of``, made public by ``until``,
-    under a catalog version with the frozen definition, not superseded by another such
-    claim. ``exact_version`` narrows the catalog versions to that one alone: how reads
+    """Claims usable at one point in time: stored by ``as_of``, readable by the summary of
+    ``day`` at the public cutoff ``until`` (the documented 公开截止: a window day reads what
+    was public by its own end, the target day what was public by the run's cutoff, past its
+    end only of periods ending by the day), under a catalog version with the frozen
+    definition, not superseded by another such claim. ``day`` defaults to the Beijing date of
+    ``until``. ``exact_version`` narrows the catalog versions to that one alone: how reads
     worked before ADR-0036."""
 
     def __init__(
-        self, claims: Claims, as_of: str, until: datetime, exact_version: str | None = None
+        self,
+        claims: Claims,
+        as_of: str,
+        until: datetime,
+        exact_version: str | None = None,
+        day: str | None = None,
     ) -> None:
         self.claims, self.run, self.as_of, self.until = claims, claims.run, as_of, until
+        self.day = day or until.astimezone(BEIJING).date().isoformat()
         self.exact_version = exact_version
         self._views: dict[str, dict[str, dict[str, Observation]]] = {}
 
@@ -521,12 +530,17 @@ class Held:
             return frozenset({self.exact_version})
         return self.run.same_definition.get(metric)
 
-    def _usable(self, metric: str, claim: Claim) -> bool:
+    def _unread(self, period: str, claim: Claim) -> str:
+        if claim.public_at is None:
+            return ""
+        return unread_reason(self.day, self.until, period, claim.public_at)
+
+    def _usable(self, metric: str, claim: Claim, period: str) -> bool:
         versions = self._versions(metric)
         return (
             claim.available_at <= self.as_of
             and (not versions or claim.version in versions)
-            and not (claim.public_at and claim.public_at > self.until)
+            and not self._unread(period, claim)
         )
 
     def _view(self, metric: str) -> dict[str, dict[str, Observation]]:
@@ -536,7 +550,7 @@ class Held:
                 for member, periods in self.claims.of(metric).items()
                 for period, claims in periods.items()
                 for c in claims
-                if self._usable(metric, c)
+                if self._usable(metric, c, period)
             ]
             superseded = {c.supersedes for _, _, c in kept if c.supersedes}
             view: dict = defaultdict(lambda: defaultdict(Observation))
@@ -573,8 +587,8 @@ class Held:
             return "截止后入库"
         if versions and claim.version not in versions:
             return "目录定义不同"
-        if claim.public_at and claim.public_at > self.until:
-            return "公开晚于当日"
+        if self._unread(period, claim):
+            return "公开晚于公开截止"
         obs = self.obs(metric, period, json.loads(dims))
         if obs is None or all(cid != claim_id for cid, _ in obs.claims):
             return "已被更新的声明取代"
@@ -1062,7 +1076,7 @@ EXPLAINED = ("存在", "原料不齐，无派生值")
 
 def stored_items(run: Run, claims: Claims, sessions: Sessions) -> tuple[list[Item], list[list]]:
     """The run's own ``derived_observation`` rows against the target day."""
-    held = Held(claims, run.cutoff, day_end(run.target_date))
+    held = Held(claims, run.cutoff, run.cutoff_moment, day=run.target_date)
     rows = run.db.execute(
         "SELECT metric_id, formula_version, input_observation_version_ids_json, value"
         " FROM derived_observation WHERE batch_id = ? ORDER BY metric_id",
@@ -1265,7 +1279,9 @@ def daily_checks(
             not_recomputed.setdefault(marks, []).append(day)
         elif marks:
             mixed.append(f"{day}（{marks}）")
-        held = Held(claims, as_of, day_end(day))
+        # The run's own target day reads by the run's cutoff (公开截止); any other window day
+        # by its own end.
+        held = Held(claims, as_of, run.cutoff_moment if own else day_end(day), day=day)
         for formula in manifests[model].get("derived_formula_versions", {}).values():
             spec = STORED.get(formula)
             if spec is None:
@@ -1743,7 +1759,7 @@ def _contribution_cells(run: Run, held: Held, metric: str, dims: dict, days: set
             continue
         claim = Claim(claim_id, value, version, parse_time(public) if public else None,
                       available, supersedes)  # fmt: skip
-        if held._usable(metric, claim):
+        if held._usable(metric, claim, period):
             kept.append((d.get("sleeve"), period, claim))
             if q == ["validated", "reported_value"] and _number(value):
                 good.add(claim_id)
@@ -2014,7 +2030,7 @@ def breadth_items(run: Run, claims: Claims) -> list[Item]:
     metrics = [m for m in BREADTH if m in run.catalog]
     if not metrics:
         return []
-    held = Held(claims, run.cutoff, day_end(run.target_date))
+    held = Held(claims, run.cutoff, run.cutoff_moment, day=run.target_date)
     items = {
         m: Item("—", f"{m}：{BREADTH[m]}", "来源声明（逐日）", m in run.model_used) for m in metrics
     }
@@ -2069,7 +2085,7 @@ def breadth_items(run: Run, claims: Claims) -> list[Item]:
 
 def _items(run: Run) -> tuple[list[Item], list[list], list[list], list[str], list[str], Claims]:
     claims, sessions = Claims(run), Sessions(run)
-    held = Held(claims, run.cutoff, day_end(run.target_date))
+    held = Held(claims, run.cutoff, run.cutoff_moment, day=run.target_date)
     items, detail = stored_items(run, claims, sessions)
     extra: list[str] = []
     history: list[str] = []
