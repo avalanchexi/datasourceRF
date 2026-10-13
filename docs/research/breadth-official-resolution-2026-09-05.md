@@ -110,7 +110,7 @@ O1/O2 的日期、代码、价格、涨跌幅与金额都在工作表单元格�
 | 四日历史名单及退市、新上市、CDR、停牌成员具体样本 | 未完成 120 日及预热覆盖、每个应交易集合或 BSE 官方股票池独立样本。 |
 | 收据记录了本次系统取得时刻；公告可提供其自身发布日期 | `bak_basic.trade_date`、`suspend_d.trade_date`、`daily.trade_date` 都不是渠道首次公开时刻；不得把 2026-09-05 账户取得时间赋成历史公开时间。 |
 
-继续遵循[CONTEXT 的公开时间定义](../../CONTEXT.md)与 [ADR-0013](../adr/0013-tushare-delivery-with-official-sampling.md)：未知公开日期保持未知，候选输入和本文件均不解除旧 v3 隔离，不构成广度认证或正式模型回放完成。
+继续遵循[CONTEXT 的公开时间定义](../../GLOSSARY.md)与 [ADR-0013](../adr/0013-tushare-delivery-with-official-sampling.md)：未知公开日期保持未知，候选输入和本文件均不解除旧 v3 隔离，不构成广度认证或正式模型回放完成。
 
 ## 7. 302132 的证券类型、换码与正式编码边界
 

@@ -10,7 +10,7 @@ Derived values live in three places, all checked:
 - derived series inside the run's own projection (``macro``): the rule-level formulas named in
   ``confirmation_rules`` (M1−M2, DR007 policy spread per block of sessions, …).
 
-Each formula is re-implemented here from its written definition (CONTEXT.md, ADRs, specs and
+Each formula is re-implemented here from its written definition (GLOSSARY.md, ADRs, specs and
 tickets, cited in ``docs/development/data-quality-audit.md``), never from production code. A
 choice a definition leaves open is named in the report; what the definitions do not allow to
 re-implement is listed as not independently checkable, with the reason.
@@ -691,7 +691,7 @@ def monthly_increment(c: Calc, metric: str, member: dict, period: str) -> float:
 
 def quarterly_flow(c: Calc, metric: str, member: dict, period: str) -> float:
     """A quarter's flow from year-to-date totals; the first quarter is its own total. The two
-    totals of a difference must come from one delivery (CONTEXT.md, credit impulse)."""
+    totals of a difference must come from one delivery (GLOSSARY.md, credit impulse)."""
     total = c.get(metric, period, member)
     if period[5:7] == "03":
         return total
@@ -1146,7 +1146,7 @@ CONTEXTS = ("macro", "inventory")
 
 
 def _core_only(run: Run, projection: str, contexts: dict, found: dict) -> tuple[bool, str]:
-    """Is a day projection a core-only correction (``CONTEXT.md``, day summary)? Only when
+    """Is a day projection a core-only correction (``GLOSSARY.md``, day summary)? Only when
     its assessment ``corrects`` with scope ``core_only``, both contexts are
     ``not_recomputed`` and they hold no derived value. Returns that and the marks seen: for
     a recognized day its reasons, for a day with only some of the marks those it has, else

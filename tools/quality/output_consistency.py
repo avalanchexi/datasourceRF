@@ -4,9 +4,9 @@ SQL checks over the published projection and its report, not a recomputation of 
 (ticket 04 does that): core states to formal stage through the frozen ``stage_mapping``, the
 confirmation counts against the key indicators and their members, and the report's structured
 conclusions against the projection. Each check states what it expects, independently derived
-from the frozen manifest and the rules in ADR-0001, ADR-0037 and ``CONTEXT.md``, and what the
+from the frozen manifest and the rules in ADR-0001, ADR-0037 and ``GLOSSARY.md``, and what the
 run stored. How by-sign members compare and how divergence caps a key indicator follow the
-user's ruling on data quality audit ticket 12 (2026-10-10), recorded in ``CONTEXT.md``.
+user's ruling on data quality audit ticket 12 (2026-10-10), recorded in ``GLOSSARY.md``.
 """
 
 from __future__ import annotations

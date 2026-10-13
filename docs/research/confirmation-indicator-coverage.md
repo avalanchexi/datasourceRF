@@ -48,7 +48,7 @@ ORDER BY metric_id, dimensions_json;
 - **充分**：主要读法所需原始数据齐全；不表示 ADR-0037 的新确认关系已经实现。
 - **需加工**：主要输入已有，需要组合、派生或修正现有读法。
 - **缺数据**：至少一个必需读法缺成员、历史或事件覆盖；仍可展示已有水平和局部读法。
-- 月度“连续两期改善”通常至少需要 **3 个水平值**；若要求“超过两期宽限后仍持续”，还需第三个信号期。不能把两个水平值产生的一次变化当成两个持续信号。依据：[CONTEXT.md:51](/mnt/d/cursor/datasourceRF/CONTEXT.md:51)、[CONTEXT.md:55](/mnt/d/cursor/datasourceRF/CONTEXT.md:55)。
+- 月度“连续两期改善”通常至少需要 **3 个水平值**；若要求“超过两期宽限后仍持续”，还需第三个信号期。不能把两个水平值产生的一次变化当成两个持续信号。依据：[GLOSSARY.md:51](/mnt/d/cursor/datasourceRF/GLOSSARY.md:51)、[GLOSSARY.md:55](/mnt/d/cursor/datasourceRF/GLOSSARY.md:55)。
 
 **逐个关键指标核对**
 
@@ -85,10 +85,10 @@ ORDER BY metric_id, dimensions_json;
 | 关键指标／模块 | 所需成员 | 1 目录是否存在 | 2 最近运行与最新期 | 3 所需读法与缺口 | 4 结论 |
 |---|---|---|---|---|---|
 | 库存象限——需求线 | PMI 新订单；辅工业营收 | `CN_PMI_ACTIVITY{series=new_orders,measure=level}`：指数点；`CN_INDUSTRIAL_FINANCE{item=revenue,measure=official_yoy/ytd_level}`：%、亿元。[metric_contracts.py:114](/mnt/d/cursor/datasourceRF/src/pring_cycle/metric_contracts.py:114)、[metric_contracts.py:175](/mnt/d/cursor/datasourceRF/src/pring_cycle/metric_contracts.py:175) | Q1：均 current；主持有／最新 **09-30**，辅 **08-31**；分别 TuShare PMI、统计局工业财务。 | 主线 **6 期，04—09 月**；辅助 **2 期，07—08 月**。主线水平、动量、斜率、两期信号有输入。新订单 7—9 月 **48.5→50.6→50.5**，最新方向已经转向，不能因“有六期”就判持续改善。 | **充分〔主线〕**；辅助持续性缺历史。 |
-| 库存象限——三线联合 | 需求新订单、生产工业增加值、库存产成品存货同比 | 三主成员均存在；生产和库存成员、单位见上表。[CONTEXT.md:411](/mnt/d/cursor/datasourceRF/CONTEXT.md:411) | Q1：三者均 current；统计期分别 **09、08、08 月**。 | **同为月频，可在 8 月对齐**；不能直接拼各自最新期。共同水平期只有 **8 月**；工业增加值缺 7 月，无法形成三线共同动量，更不能做象限持续性。辅 PMI 生产、产成品库存各有六期，不能替代缺失主线。 | **缺数据**：至少补工业增加值 7 月；完整宽限还需共同更早期。 |
+| 库存象限——三线联合 | 需求新订单、生产工业增加值、库存产成品存货同比 | 三主成员均存在；生产和库存成员、单位见上表。[GLOSSARY.md:411](/mnt/d/cursor/datasourceRF/GLOSSARY.md:411) | Q1：三者均 current；统计期分别 **09、08、08 月**。 | **同为月频，可在 8 月对齐**；不能直接拼各自最新期。共同水平期只有 **8 月**；工业增加值缺 7 月，无法形成三线共同动量，更不能做象限持续性。辅 PMI 生产、产成品库存各有六期，不能替代缺失主线。 | **缺数据**：至少补工业增加值 7 月；完整宽限还需共同更早期。 |
 | 价格内部一致性 | 三核心相对动量、个股广度、篮子分项 | 三核心：`CN_BOND_CORE_000012`、`CN_EQUITY_CORE_000985`、`CN_COMMODITY_CORE_NHII`，无维度、指数点。广度为 `CN_EQ_ADV_DEC/AD_RATIO/ADV_AMOUNT_SHARE/NEW_HIGH_LOW_90/250/ABOVE_MA90/250`，维度 `measure,universe`，单位家数／比值／%；篮子 7 分项贡献百分点。[models.py:510](/mnt/d/cursor/datasourceRF/src/pring_cycle/models.py:510)、[breadth.py:35](/mnt/d/cursor/datasourceRF/src/pring_cycle/breadth.py:35) | Q1：以上均 current，持有 **09-30**；来源 `tushare:index_daily/fut_index_daily/daily/stk_factor_pro/fut_daily`。Q2：各成员最新 09-30。 | 各核心、广度及篮子成员都有 **120 日，04-09—09-30**。相对动量公式／期限尚未冻结；若比较 h 日收益率，需 **h+1 个价格点**，20 日需 21 点，120 日需 121 点。现有 120 点支持窗口内短于 120 日的端点收益比较。**行业集中度另缺行业成员**，见后文。 | **需加工〔三核心＋个股广度〕**；“少数行业维持”缺数据。 |
-| 债券归因 | 核心债券趋势＋政策轴＋增长通胀轴 | 直接复用上表政策、GDP、工业增加值、PPI 等，不要求新指标编号。[CONTEXT.md:63](/mnt/d/cursor/datasourceRF/CONTEXT.md:63) | 核心债券 current、最新 09-30；政策与宏观时效、统计期见上表。 | 债券趋势有输出，但增长通胀多项缺动量，政策动作史不完整；不能把“部分轴未知”加工为完整归因。具备足够已知轴时可给相应附注，其余保持推动力不明。收益率曲线／信用利差用于细分，不是本版基础两轴的先决条件。 | **缺数据〔完整两轴判定〕**。 |
-| 信号成熟度 | 政策利率、LPR、降准、DR007、M1、社融、PMI 新订单；表中还使用流动性、贷款转折 | 对应成员均已有目录／派生定义。[CONTEXT.md:55](/mnt/d/cursor/datasourceRF/CONTEXT.md:55)、[expectation-table.md:9](/mnt/d/cursor/datasourceRF/.scratch/macro-semantics-20261006/expectation-table.md:9) | 各自 Q1 状态及最新期见上表；不能将重跑当新发布。 | **M1、PMI 新订单、DR007** 有足够原始期数供连续变化检查；**社融同比、LPR、贷款** 不够；**政策利率和降准** 缺完整事件覆盖。OMO 可重算后检查，但必须先冻结日／周等信号周期。“多个先行信号同向”可使用齐备子集；不能据此补造缺失主指标的“确认”。 | **缺数据**：不能给所有先行指标完整三级成熟度。 |
+| 债券归因 | 核心债券趋势＋政策轴＋增长通胀轴 | 直接复用上表政策、GDP、工业增加值、PPI 等，不要求新指标编号。[GLOSSARY.md:63](/mnt/d/cursor/datasourceRF/GLOSSARY.md:63) | 核心债券 current、最新 09-30；政策与宏观时效、统计期见上表。 | 债券趋势有输出，但增长通胀多项缺动量，政策动作史不完整；不能把“部分轴未知”加工为完整归因。具备足够已知轴时可给相应附注，其余保持推动力不明。收益率曲线／信用利差用于细分，不是本版基础两轴的先决条件。 | **缺数据〔完整两轴判定〕**。 |
+| 信号成熟度 | 政策利率、LPR、降准、DR007、M1、社融、PMI 新订单；表中还使用流动性、贷款转折 | 对应成员均已有目录／派生定义。[GLOSSARY.md:55](/mnt/d/cursor/datasourceRF/GLOSSARY.md:55)、[expectation-table.md:9](/mnt/d/cursor/datasourceRF/.scratch/macro-semantics-20261006/expectation-table.md:9) | 各自 Q1 状态及最新期见上表；不能将重跑当新发布。 | **M1、PMI 新订单、DR007** 有足够原始期数供连续变化检查；**社融同比、LPR、贷款** 不够；**政策利率和降准** 缺完整事件覆盖。OMO 可重算后检查，但必须先冻结日／周等信号周期。“多个先行信号同向”可使用齐备子集；不能据此补造缺失主指标的“确认”。 | **缺数据**：不能给所有先行指标完整三级成熟度。 |
 
 **几项特别核实的结论**
 

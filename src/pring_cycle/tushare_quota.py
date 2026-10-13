@@ -1,4 +1,4 @@
-"""TuShare's call quotas, kept before each call (ticket 31, CONTEXT.md「调用限额」).
+"""TuShare's call quotas, kept before each call (ticket 31, GLOSSARY.md「调用限额」).
 
 A quota is per interface and per account: a minute's rate and a day's total, by the account's
 point tier or an interface's own grant. Every TuShare call through the receipt store passes

@@ -1,7 +1,7 @@
 """Layer 3, second check: recompute the three core trend states and the formal stage.
 
 The rules come only from documents; ticket 04 lists each with its source (the 120-day trend
-calibration answer, ADR-0001, ADR-0035, ``CONTEXT.md``). Parameters are read from the frozen
+calibration answer, ADR-0001, ADR-0035, ``GLOSSARY.md``). Parameters are read from the frozen
 manifest (``trend_rules``, ``stage_mapping``, ``core_metrics``). Production trend code is
 neither imported nor mirrored.
 

@@ -73,7 +73,7 @@ CORES = {
 SLEEVES = ("copper", "rebar", "polypropylene", "textiles", "rubber", "pulp", "crude_oil")
 BASKET = "ex-hog-calendar-settlement-v0003"
 BREADTH = {"measure": "above_ma_share", "universe": "point_in_time_traded_a_shares"}
-# Observation interfaces, by core (CONTEXT.md 观察接口).
+# Observation interfaces, by core (GLOSSARY.md 观察接口).
 INTERFACES = {
     "bond": {"CN_BOND_10Y_930916", "CN_BOND_FULL_PRICE_CNY030"},
     "stock": {
