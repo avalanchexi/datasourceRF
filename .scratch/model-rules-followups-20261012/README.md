@@ -12,6 +12,8 @@
 | [06](issues/06-receipt-and-calendar-residuals.md) | 残余 01／02 的未处理部分 | done |
 | [07](issues/07-audit-script-residuals.md) | 体检脚本的零散残余（时间比较、原话复核、空串网址） | done（(b) wontfix，写入体检已知局限） |
 | [08](issues/08-lookback-cost-and-test-gaps.md) | 上一确认阶段回溯的成本与测试缺口 | done（缓存 wontfix） |
-| [09](issues/09-acceptance.md) | 收尾验收：全套、v0015 真实运行（优先调度运行）与体检，与 `run-b7d59b63…` 比对 | ready-for-agent |
+| [09](issues/09-acceptance.md) | 收尾验收：全套、v0015 真实运行（优先调度运行）与体检，与 `run-b7d59b63…` 比对 | done（[acceptance-20261013.md](acceptance-20261013.md)） |
+
+本批遗留已转入 [model-rules-residuals-20261013](../model-rules-residuals-20261013/README.md)（8 张，待分流）。
 
 不开票的已知局限：确认度在典型组合下尚无真实数据验证（体检报告已写明，等出现典型组合的真实运行）；体检商品广度、库存象限只核本运行投影（文档已列局限）。

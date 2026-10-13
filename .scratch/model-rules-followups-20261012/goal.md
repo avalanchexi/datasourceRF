@@ -94,9 +94,9 @@
 | 2-A | 01 → 08 | done（08 缓存 wontfix；01 模块文档补写随 08 落地） | f7b1129、abc96b7、d234533 |
 | 2-B | 02 → 06 | done（02 用户批准第 3 轮定向复审；06 于 10-13 因 API 中断换手） | 284601f、de5562e |
 | 2-C | 03 → 04 → 05 → 07 | done（07(b) wontfix 写入体检局限） | 5ee16cb、bcf2e33、8f993b6、abf65e9 |
-| 3 | 09 收尾验收（需要：01、02、06 改了 src） | 全套 1 failed／2447 passed（墙钟回拨，非本批）；调度补交样本 `run-742bf2b787a6feca48a7`（scheduled_full，10-12）被墙钟回拨污染（`acquisition_time_invalid`）。**断点（10-13 用户决定）：用户重启 WSL → 先确认墙钟不再回拨（65 秒内无 >0.2 秒跳变）→ 今天手动提交 10-12 manual_full 重验 → 体检比对、记录、审查** | bf041b8 |
+| 3 | 09 收尾验收（需要：01、02、06 改了 src） | done（10-13）：WSL 重启无效，根因是宿主时钟比 NTP 快约 3 秒，Hyper-V 同步与 timesyncd 打架，停掉 timesyncd 后墙钟稳定；全套 2448 passed（56:36）；10-12 manual_full `run-0a8dabc2e820321b84e1` 回执 160、失败 0；调度补交样本 `run-742b…` 被时钟污染，照实记录；体检差异都有原因（[acceptance-20261013.md](acceptance-20261013.md)） | bf041b8、383be65、26be177、2cf4286 |
 
-### 本批新增遗留（收尾时转入下一批积压）
+### 本批新增遗留（已于 10-13 转入 [model-rules-residuals-20261013](../model-rules-residuals-20261013/README.md)）
 
 - 生产 `news_rules.py:1262`、`:1374` 空串网址按 `COALESCE(url, body_hash)` 视为同一页面，与体检文档 `:295` 的书面规则不一致（本样本 0 条；票 07 分流）。
 - 体检对冻结清单缺 `confirmation_rules` 的旧运行（如 `run-dc0bb2d9…`）报 `KeyError`（票 07 实施）。
