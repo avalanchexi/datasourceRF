@@ -186,17 +186,13 @@ class FullRunRetrieval:
         from pring_cycle.worker import EARLIER_SESSION, _retrieval_release_status
 
         # Publication is bounded to what the target day's summary could know of.
-        known_at = (
-            utc_now()
-            if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen
-            else run.system_as_of
-        )
+        now = utc_now()
         release = _retrieval_release_status(
             self.paths,
             scope,
-            known_at,
+            SummaryCutoff.decision_as_of(run, now),
             definition_version=version,
-            public_as_of=SummaryCutoff.target(run, utc_now()),
+            public_as_of=SummaryCutoff.target(run, now),
             latest_only=True,
         )
         discover_release = release in {

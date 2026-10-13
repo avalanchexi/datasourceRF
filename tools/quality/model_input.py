@@ -14,6 +14,7 @@ import json
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date, timedelta
+from typing import NamedTuple
 
 import acquisition
 import core_trace
@@ -118,15 +119,31 @@ def _previous_period(period: str) -> str:
     return f"{year - 1}-12" if month == 0 else f"{year}-{month:02d}"
 
 
-def _claims(run: Run, metric: str, member: str, period: str) -> list[tuple]:
+class StoredClaim(NamedTuple):
+    """One stored claim of a member, as ``source_claim`` keeps it."""
+
+    claim_id: str
+    available_at: str
+    public_available_at: str | None
+    inferred_public_at: str | None
+    quality_status: str
+    period_end: str
+
+    @property
+    def public_at(self) -> str | None:
+        """The production read view's public time: the stated one, else the inferred one."""
+        return self.public_available_at or self.inferred_public_at
+
+
+def _claims(run: Run, metric: str, member: str, period: str) -> list[StoredClaim]:
     """Claims stored by the cutoff for the member in the period, newest first, only under
-    catalog versions whose definition matches the frozen one (layer 1's ``same_definition``):
-    (claim_id, available_at, public_available_at, inferred_public_at, quality_status,
-    period_end)."""
+    catalog versions whose definition matches the frozen one (layer 1's ``same_definition``)."""
     return _member_claims(run, metric, member, "period_end BETWEEN ? AND ?", _bounds(period))
 
 
-def _member_claims(run: Run, metric: str, member: str, where: str, args: tuple) -> list[tuple]:
+def _member_claims(
+    run: Run, metric: str, member: str, where: str, args: tuple
+) -> list[StoredClaim]:
     versions = sorted(run.same_definition.get(metric, {run.catalog_version}))
     if metric == WARRANTS:
         member_filter, params = "json_extract(dimensions_json, '$.symbol') = ?", [member]
@@ -140,7 +157,11 @@ def _member_claims(run: Run, metric: str, member: str, where: str, args: tuple) 
         " ORDER BY available_at DESC",
         (metric, *args, run.cutoff, *versions, *params),
     ).fetchall()
-    return [row[:6] for row in rows if metric == WARRANTS or _member_key(metric, row[6]) == member]
+    return [
+        StoredClaim(*row[:6])
+        for row in rows
+        if metric == WARRANTS or _member_key(metric, row[6]) == member
+    ]
 
 
 def _latest_published(run: Run, item: MissingItem, selected: set) -> str:
@@ -150,14 +171,11 @@ def _latest_published(run: Run, item: MissingItem, selected: set) -> str:
     frozen input ids. "" when there is none, or it was not taken."""
     first, _ = _bounds(item.period)
     readable: dict[str, list[str]] = {}
-    for claim_id, _, public, inferred, _, period_end in _member_claims(
-        run, item.metric, item.member, "period_end < ?", (first,)
-    ):
-        effective = public or inferred
+    for claim in _member_claims(run, item.metric, item.member, "period_end < ?", (first,)):
         # Without a public time a claim cannot be shown to be readable by the cutoff.
-        if not effective or run.target_unread(period_end, parse_time(effective)):
+        if not claim.public_at or run.target_unread(claim.period_end, parse_time(claim.public_at)):
             continue
-        readable.setdefault(period_end, []).append(claim_id)
+        readable.setdefault(claim.period_end, []).append(claim.claim_id)
     if not readable:
         return ""
     latest = max(readable)
@@ -189,7 +207,8 @@ def _one_behind(
         previous = before[-1].day
     else:
         previous = _previous_period(item.period)
-    taken = [c[0] for c in _claims(run, item.metric, item.member, previous) if c[0] in selected]
+    claims = _claims(run, item.metric, item.member, previous)
+    taken = [claim.claim_id for claim in claims if claim.claim_id in selected]
     if not taken:
         return ""
     return f"上一期 {previous} 的值已入选冻结输入（{taken[0][:12]}…），落后 1 期"
@@ -297,18 +316,17 @@ class Unsent:
         return notes
 
 
-def _held_reason(run: Run, claim: tuple) -> tuple[str, str]:
+def _held_reason(run: Run, claim: StoredClaim) -> tuple[str, str]:
     """Why a claim of the item stored by the cutoff did not reach the model (doc: 原因): read
     by the target day's summary under the documented 公开截止, and under the earlier rule."""
-    _, available, public, inferred, quality, period_end = claim
-    # The production read view takes the stated public time, else the inferred one.
-    effective = public or inferred
-    stamp = f"已持有（{_fmt(available)} 入库，{quality}）"
+    effective = claim.public_at
+    stamp = f"已持有（{_fmt(claim.available_at)} 入库，{claim.quality_status}）"
     if not effective:
         return HELD_NO_PUBLIC, f"{stamp}，没有声明或推定的公开时间"
     at = parse_time(effective)
-    shown = f"{stamp}，公开时间 {_fmt(effective)}{'' if public else '（推定）'}"
-    why = run.target_unread(period_end, at)
+    stated = "" if claim.public_available_at else "（推定）"
+    shown = f"{stamp}，公开时间 {_fmt(effective)}{stated}"
+    why = run.target_unread(claim.period_end, at)
     if why:
         return LATE_PUBLIC, f"{shown}，{why}（运行冻结截止 {_fmt(run.cutoff)}），按时点规则不进模型"
     if run.target_unread_before(at):

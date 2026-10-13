@@ -60,13 +60,6 @@ def required_calendar(
     return document
 
 
-def _decision_as_of(run: RunRecord, decided_at: datetime) -> datetime:
-    # The selector's instant: the decision's while the acquisition window is open.
-    if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen:
-        return decided_at
-    return run.system_as_of
-
-
 def public_cutoff(run: RunRecord, decided_at: datetime) -> SummaryCutoff:
     """What the target day's summary can know of, as decided at ``decided_at``: what is
     public by the selector's instant, of periods through the target (ADR-0041 2026-10-13).
@@ -91,7 +84,7 @@ def run_lookback(
     them. A formula turned off reads nothing.
     """
     target = date.fromisoformat(run.target_business_date)
-    sessions = SseCalendar(paths, as_of=_decision_as_of(run, decided_at))
+    sessions = SseCalendar(paths, as_of=SummaryCutoff.decision_as_of(run, decided_at))
     return lookback.resolve(
         lookback.declare(rules),
         formula_versions=rules.formula_versions,

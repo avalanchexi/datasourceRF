@@ -1227,15 +1227,24 @@ class EvidenceRepository:
         mode: AsOfMode,
         as_of: datetime,
         public_as_of: datetime | None = None,
-        allow_system_at_public_cutoff: bool = False,
+        system_known_by: datetime | None = None,
         tolerance: float | None = None,
         definition_version: str | None = None,
     ) -> tuple[MetricSeriesPoint, ...]:
+        """The series as of ``as_of``, among claims public by ``public_as_of`` when given.
+
+        ``system_known_by`` also admits a claim held by then, whatever its public time
+        (``dual-cutoff-v0003``; SYSTEM mode with a public cutoff only). Both bounds apply
+        before a provider's revisions are chosen among, so a revision neither admits never
+        hides the claim it revises.
+        """
         if as_of.tzinfo is None:
             raise ValueError("as_of_must_be_timezone_aware")
         if public_as_of is not None and public_as_of.tzinfo is None:
             raise ValueError("public_as_of_must_be_timezone_aware")
-        if allow_system_at_public_cutoff and (public_as_of is None or mode is not AsOfMode.SYSTEM):
+        if system_known_by is not None and system_known_by.tzinfo is None:
+            raise ValueError("system_known_by_must_be_timezone_aware")
+        if system_known_by is not None and (public_as_of is None or mode is not AsOfMode.SYSTEM):
             raise ValueError("system_target_cutoff_requires_system_and_public_boundary")
         time_column = {
             AsOfMode.PUBLIC: "public_available_at",
@@ -1247,7 +1256,7 @@ class EvidenceRepository:
             if public_as_of is not None
             else ""
         )
-        if allow_system_at_public_cutoff:
+        if system_known_by is not None:
             public_clause = (
                 " AND (julianday(public_available_at) <= julianday(?)"
                 " OR julianday(available_at) <= julianday(?))"
@@ -1255,8 +1264,8 @@ class EvidenceRepository:
         cutoff_parameters: tuple[object, ...] = (_iso(as_of),)
         if public_as_of is not None:
             cutoff_parameters += (_iso(public_as_of),)
-            if allow_system_at_public_cutoff:
-                cutoff_parameters += (_iso(public_as_of),)
+            if system_known_by is not None:
+                cutoff_parameters += (_iso(system_known_by),)
         # Without a version every stored observation stands alone; with one, the versions
         # sharing its definition are one observation per period and dimensions (ADR-0036).
         merged = definition_version is not None
@@ -1303,7 +1312,7 @@ class EvidenceRepository:
                 mode=mode,
                 as_of=as_of,
                 public_as_of=public_as_of,
-                allow_system_at_public_cutoff=allow_system_at_public_cutoff,
+                system_known_by=system_known_by,
                 tolerance=tolerance,
                 definition_version=definition_version,
             )
@@ -1344,8 +1353,8 @@ class EvidenceRepository:
                         or _required_datetime(row["public_available_at"]) > public_as_of
                     )
                     and not (
-                        allow_system_at_public_cutoff
-                        and _required_datetime(row["available_at"]) <= public_as_of
+                        system_known_by is not None
+                        and _required_datetime(row["available_at"]) <= system_known_by
                     )
                 ):
                     continue
@@ -1365,7 +1374,7 @@ class EvidenceRepository:
         mode: AsOfMode,
         as_of: datetime,
         public_as_of: datetime | None,
-        allow_system_at_public_cutoff: bool,
+        system_known_by: datetime | None,
         tolerance: float | None,
         definition_version: str | None,
     ) -> list[MetricSeriesPoint]:
@@ -1377,6 +1386,9 @@ class EvidenceRepository:
         as_of_day = self._snapshot_day(snapshot, as_of)
         public_day = (
             self._snapshot_day(snapshot, public_as_of) if public_as_of is not None else None
+        )
+        system_day = (
+            self._snapshot_day(snapshot, system_known_by) if system_known_by is not None else None
         )
         public_mode = mode is AsOfMode.PUBLIC
         groups: dict[str, list[_SnapshotRow]] = {}
@@ -1391,16 +1403,16 @@ class EvidenceRepository:
                     and public_day is not None
                     and item.public_day <= public_day
                 )
-                if allow_system_at_public_cutoff:
+                if system_known_by is not None:
                     public_visible = public_visible or (
                         item.available_day is not None
-                        and public_day is not None
-                        and item.available_day <= public_day
+                        and system_day is not None
+                        and item.available_day <= system_day
                     )
                 if not public_visible:
                     continue
                 if (item.public is None or item.public > public_as_of) and not (
-                    allow_system_at_public_cutoff and item.available <= public_as_of
+                    system_known_by is not None and item.available <= system_known_by
                 ):
                     continue
             groups.setdefault(item.observation, []).append(item)

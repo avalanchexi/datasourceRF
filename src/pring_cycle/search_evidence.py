@@ -87,16 +87,13 @@ class ModelInputSelector:
         require_registered_manifest(paths.database, manifest)
         self.version = str(manifest["metric_catalog_version"])
         self.database_path = paths.database
-        self.as_of = (
-            utc_now()
-            if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen
-            else run.system_as_of
-        )
+        now = utc_now()
+        self.as_of = SummaryCutoff.decision_as_of(run, now)
         self.full_run = run.command_type in {"manual_full", "scheduled_full"}
         # A full run selects what its target day's summary knows of at this instant
         # (ADR-0041 2026-10-13); a targeted refresh, what was public by the day's end.
         self.cutoff = (
-            SummaryCutoff.target(run, min(self.as_of, utc_now()))
+            SummaryCutoff.target(run, now)
             if self.full_run
             else SummaryCutoff.at_day_end(date.fromisoformat(run.target_business_date))
         )

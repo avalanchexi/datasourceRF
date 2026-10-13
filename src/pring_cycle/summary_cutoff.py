@@ -50,14 +50,20 @@ class SummaryCutoff:
         """A backfilled day's: what was public by its own end."""
         return cls(day, day_end(day))
 
+    @staticmethod
+    def decision_as_of(run: RunRecord, decided_at: datetime) -> datetime:
+        """The instant the run holds evidence at, as decided at ``decided_at``: the
+        decision's own while the acquisition window is open, the run's cutoff once frozen.
+        The selector, the release gate and the SSE sessions known all read by it."""
+        if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen:
+            return decided_at
+        return run.system_as_of
+
     @classmethod
     def target(cls, run: RunRecord, decided_at: datetime) -> SummaryCutoff:
-        """The run's target day as decided at ``decided_at``: its cutoff once frozen, the
-        decision's own instant while the acquisition window is open."""
-        if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen:
-            known = decided_at
-        else:
-            known = min(run.system_as_of, decided_at)
+        """The run's target day as decided at ``decided_at``: what is public by the run's
+        instant then, never later than the decision itself."""
+        known = min(cls.decision_as_of(run, decided_at), decided_at)
         return cls(date.fromisoformat(run.target_business_date), known)
 
     @property

@@ -139,7 +139,8 @@ def reads() -> list[dict[str, Any]]:
         public_cutoffs,
         system_cutoffs,
         (AsOfMode.SYSTEM, AsOfMode.PUBLIC),
-        (False, True),
+        # Held by: no bound, the public cutoff, or a day's end of its own (the target's).
+        (None, "public", day_end("2026-09-26")),
         (None, 0.2),
     )
     return [
@@ -149,11 +150,11 @@ def reads() -> list[dict[str, Any]]:
             "public_as_of": public,
             "as_of": as_of,
             "mode": mode,
-            "allow_system_at_public_cutoff": allow,
+            "system_known_by": public if held == "public" else held,
             "tolerance": tolerance,
         }
-        for metric_id, version, public, as_of, mode, allow, tolerance in combinations
-        if not allow or (public is not None and mode is AsOfMode.SYSTEM)
+        for metric_id, version, public, as_of, mode, held, tolerance in combinations
+        if held is None or (public is not None and mode is AsOfMode.SYSTEM)
     ]
 
 
