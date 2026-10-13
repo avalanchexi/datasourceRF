@@ -19,3 +19,7 @@ Category: acceptance
 - [ ] 规格轴审查用 `codex exec -s read-only`
 
 ## Comments
+
+### 2026-10-13 用户决定（主 agent 转达）
+
+真实运行用 10-14 09:30 的计划运行（目标日 10-13）：10-13 晚 06 合入后跑全套（`tools/clock_check.py` 退出码 0 才开跑，带 `tools/disk_guard.sh`）；通过后备份运行库、集成分支代码装入真实 dev-venv、`pring-cycle init`（迁移 0038 → 计划 09:30）、常驻 Worker；跑完停 Worker，体检与验收。验收通过后再问用户是否并入 main。
