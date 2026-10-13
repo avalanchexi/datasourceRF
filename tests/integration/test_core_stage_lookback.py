@@ -14,14 +14,19 @@ from typing import Any
 
 import pytest
 
+from pring_cycle.domain import FormalStage
+from pring_cycle.domain.trend import TrendRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSet, ProjectionSetRepository
 from pring_cycle.reports import ReportRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
-from pring_cycle.source_adapters import CORE_API_IDENTITIES
+from pring_cycle.source_adapters import CORE_API_IDENTITIES, TushareCoreAdapter
+from pring_cycle.stage_lookback import HeldCore, look_back_for_stage
+from pring_cycle.tushare_quota import INTERFACE_GRANTS, InterfaceGrant
 from pring_cycle.worker import process_pending_run
+from tests.conftest import install_runtime_clock
 from tests.integration.test_core_window_history import weekdays_back
 
 TARGET = date(2026, 8, 3)
@@ -397,3 +402,103 @@ def test_a_lookback_whose_calendar_leaves_a_day_out_fails_before_any_core_reques
     assert lookback["failure"] == "ValueError:china_trading_calendar_incomplete"
     assert sorted(run.core_requests) == sorted(run_requests())
     assert run.plan["core_lookback"] == lookback
+
+
+@pytest.mark.parametrize(
+    ("api_name", "daily", "sent", "calendar_requests"),
+    [
+        # The run's own two calendar requests, for its cores and its freshness, spend a day
+        # of three (90% kept): the lookback's first request, its calendar, is held back.
+        ("trade_cal", 3, (), 0),
+        # The run's own commodity request spends a day of two: the lookback's bond and
+        # stock requests go out, its commodity one is held back.
+        ("fut_index_daily", 2, ("000012.SH", STOCK), 1),
+    ],
+    ids=["calendar", "core"],
+)
+def test_a_lookback_request_held_back_for_the_day_is_not_counted(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    api_name: str,
+    daily: int,
+    sent: tuple[str, ...],
+    calendar_requests: int,
+) -> None:
+    # Held back before it is sent, the request fails the lookback and is none of its own.
+    # A day's quota is Beijing's: the run and its lookback stay well inside one.
+    install_runtime_clock(monkeypatch, request, datetime(2026, 8, 4, 2, tzinfo=UTC))
+    monkeypatch.setitem(INTERFACE_GRANTS, api_name, InterfaceGrant(daily=daily))
+
+    run = full_run(tmp_path, monkeypatch, stock=turning_down(date(2025, 10, 1)))
+
+    lookback = run.projection.datasets["cycle_overview"]["last_confirmed_lookback"]
+    assert isinstance(lookback, dict)
+    assert (lookback["status"], lookback["stage"], lookback["years"]) == ("failed", None, 1)
+    assert (lookback["core_requests"], lookback["calendar_requests"]) == (
+        len(sent),
+        calendar_requests,
+    )
+    assert lookback["failure"] == "TushareCallNotAttempted:tushare_daily_quota_exhausted"
+    assert run.plan["core_lookback"] == lookback
+    # The source was sent the run's own requests and the lookback's counted ones alone, and
+    # the run keeps a receipt for each of those.
+    looked_back = [request for request in lookback_requests(1) if request[0] in sent]
+    assert sorted(run.core_requests) == sorted(run_requests() + looked_back)
+    with sqlite3.connect(run.paths.database) as connection:
+        receipts = connection.execute(
+            "SELECT sum(api_name != 'trade_cal'), sum(api_name = 'trade_cal') "
+            "FROM acquisition_request JOIN full_run_acquisition USING (acquisition_id) "
+            "WHERE phase='core_lookback'"
+        ).fetchone()
+    assert tuple(value or 0 for value in receipts) == (len(sent), calendar_requests)
+    home, history, report = pages(run)
+    for page in (home, history, report):
+        assert "回溯失败" in page
+
+
+def test_cores_held_from_different_days_look_back_from_the_latest_and_keep_their_own(
+    tmp_path: Path,
+) -> None:
+    # The stock core is held from 150 sessions before the others, and its closes turned down
+    # 20 sessions in. The source states it rising throughout, a different answer: the
+    # lookback asks each core up to the latest first day held, the stock's held days again,
+    # and reads the stock by its own closes there.
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    held_from = open_days(date(2024, 1, 1), HELD[0] - timedelta(days=1))[-150:]
+    turned = turning_down(held_from[20])
+    requests: list[tuple[str, str, str]] = []
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        params = payload["params"]
+        if payload["api_name"] != "trade_cal":
+            requests.append((params["ts_code"], params["start_date"], params["end_date"]))
+        return response(payload, rising)
+
+    found = look_back_for_stage(
+        paths,
+        TushareCoreAdapter("fixture-secret", transport=transport),
+        {
+            "bond": HeldCore("CN_BOND_CORE_000012", tuple(closes(HELD, rising))),
+            "stock": HeldCore("CN_EQUITY_CORE_000985", tuple(closes([*held_from, *HELD], turned))),
+            "commodity": HeldCore("CN_COMMODITY_CORE_NHII", tuple(closes(HELD, rising))),
+        },
+        window_start=WINDOW_START,
+        rules=TrendRules(),
+    )
+
+    # Each core's request reaches as far back as a year needs and stops before the latest
+    # first day held, the stock's included.
+    assert sorted(requests) == sorted(lookback_requests(1))
+    assert (found.status, found.stage, found.years) == ("found", FormalStage.STAGE_III, 1)
+    assert (found.core_requests, found.calendar_requests) == (3, 1)
+    # Stage III last held some sessions after the stock's own closes turned down, well before
+    # the others' closes begin: had the source's answer for those days been read, the stock
+    # would have kept rising until then.
+    assert found.stage_date == "2025-05-19"
+    assert held_from[20].isoformat() < found.stage_date < HELD[0].isoformat()
+
+
+def closes(days: list[date], close: Close) -> list[tuple[str, float]]:
+    return [(day.isoformat(), round(close(day), 4)) for day in days]

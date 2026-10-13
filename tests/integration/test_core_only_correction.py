@@ -14,15 +14,15 @@ import json
 import sqlite3
 from collections.abc import Callable
 from dataclasses import replace
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
 
-import pring_cycle.context_projection as context_projection
 import pring_cycle.day_summary as day_summary
+import tests.integration.test_core_history_correction as core_history_correction
 from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.context_projection import build_context_projection
 from pring_cycle.dashboard import dashboard_page
@@ -32,6 +32,7 @@ from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.trading_calendar import TradingCalendar
+from tests.conftest import install_runtime_clock
 from tests.integration.test_confirmation_publish import (
     MODEL,
     register_confirmation_model,
@@ -309,24 +310,18 @@ def test_other_errors_of_a_correction_day_still_fail_it_for_a_later_run(
     assert runtime.runs.full_retrieval_plan(third)["summary_corrections"]["corrected_days"] == [day]
 
 
-@pytest.mark.usefixtures("runtime_clock")
 def test_a_core_s_own_claims_gone_are_no_context_detail_left_retention(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
 ) -> None:
-    # The target day shows the commodity core among its prices, current, and its model
-    # inputs gather the row's claims: those gone, as a core's claims refetched are, its
-    # context is still held all the same.
+    # Run the morning after the target day, the target day shows the commodity core among
+    # its prices, current, and its model inputs gather the row's claims: those gone, as a
+    # core's claims refetched are, its context is still held all the same.
+    morning = datetime.combine(FIRST + timedelta(days=1), time(9), SHANGHAI)
+    install_runtime_clock(monkeypatch, request, morning.astimezone(UTC))
+    # The runtime submits its run by its own module's clock: put it on the same timeline.
+    monkeypatch.setattr(core_history_correction, "datetime", datetime)
     runtime = Runtime(tmp_path, monkeypatch)
-    status: Callable[..., str] = context_projection._evidence_status
-
-    def current_core(definition: Any, *args: Any, **kwargs: Any) -> str:
-        if definition.metric_id == "CN_COMMODITY_CORE_NHII":
-            return "current"
-        return status(definition, *args, **kwargs)
-
-    with monkeypatch.context() as patch:
-        patch.setattr(context_projection, "_evidence_status", current_core)
-        runtime.run(FIRST)
+    runtime.run(FIRST)
     projection_set_id = str(runtime.latest()[FIRST.isoformat()]["projection_set_id"])
     macro = published_set(runtime, projection_set_id)["macro"]
     [row] = [

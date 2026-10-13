@@ -17,6 +17,7 @@ from pring_cycle.context_projection import (
     _role_direction,
     build_context_projection,
 )
+from pring_cycle.day_summary import DaySummaries, ModelRules, RunMaterials
 from pring_cycle.domain.macro import EvidenceSignal
 from pring_cycle.evidence import (
     AsOfMode,
@@ -25,12 +26,17 @@ from pring_cycle.evidence import (
     SourceClaimInput,
 )
 from pring_cycle.models import (
+    ModelRepository,
     analytical_model_v0002_manifest,
     certified_model_v0001_manifest,
 )
 from pring_cycle.official_lpr import ingest_lpr_document
-from pring_cycle.projections import _validate_visible_context_window
+from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
+from pring_cycle.trading_calendar import TradingCalendar
+from tests.integration.test_backfill import summary
+from tests.integration.test_core_carry_forward import CUTOFF, TARGET, seed_cores, sessions
+from tests.integration.test_worker_execution import runtime
 
 OFFICIAL_URL = "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html"
 
@@ -1943,15 +1949,16 @@ def test_the_period_before_the_window_is_compared_only_when_known_and_alike(
     assert {row["direction"] for row in rows} == {direction}
 
 
-@pytest.mark.parametrize("persist_derived", [True, False], ids=["target_day", "summarized_day"])
+@pytest.mark.parametrize("summarized", [False, True], ids=["target_day", "summarized_day"])
 def test_a_loan_change_whose_months_ended_before_the_window_is_not_shown(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, persist_derived: bool
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, summarized: bool
 ) -> None:
     # Ticket 08: the latest loan months held are a pair kept for a year-on-year base, ended
     # before the day's window. Their change is no row of the day, on the target day as on
-    # a summarized one: the window has no pair, so the loan shows its gap, as other rows do.
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
+    # a summarized one: the window has no pair, so the loan shows its gap, as other rows do,
+    # and the day is summarized rather than refused for a row outside its window.
+    paths = runtime(tmp_path)
+    seed_cores(paths)
     repository = EvidenceRepository(paths.database)
 
     def certified_definition(  # type: ignore[no-untyped-def]
@@ -1984,25 +1991,25 @@ def test_a_loan_change_whose_months_ended_before_the_window_is_not_shown(
                 unit="hundred_million_cny",
             )
         )
-
-    context = build_context_projection(
+    models = ModelRepository(paths.database)
+    models.register({**_v2_manifest("CN_LOAN_STRUCTURE"), "model_version_id": "model-loan"})
+    summaries = DaySummaries(
         repository,
-        as_of=datetime(2026, 8, 14, tzinfo=UTC),
-        target_business_date="2026-08-13",
-        visible_evidence_start="2026-02-24",
-        model_manifest=_v2_manifest("CN_LOAN_STRUCTURE"),
-        persist_derived=persist_derived,
+        ProjectionSetRepository(paths.database),
+        ModelRules.of(models, "model-loan"),
+        calendar=TradingCalendar(sessions()),
     )
+    day = sessions()[-2].isoformat() if summarized else TARGET.isoformat()
 
-    loan = [
-        row
-        for row in context.macro["credit"]["evidence"]  # type: ignore[index]
-        if row["metric_id"] == "CN_LOAN_STRUCTURE"
-    ]
+    if summarized:
+        assert summaries.backfill((day,), target=TARGET.isoformat(), system_as_of=CUTOFF) == ()
+    else:
+        summaries.summarize_target(day, system_as_of=CUTOFF, run_materials=RunMaterials())
+
+    credit = summary(paths, day).datasets["macro"]["credit"]
+    assert isinstance(credit, dict)
+    loan = [row for row in credit["evidence"] if row["metric_id"] == "CN_LOAN_STRUCTURE"]
     assert loan
     assert all(str(row["observation_id"]).startswith("gap:") for row in loan)
-    _validate_visible_context_window(
-        (context.macro, context.inventory), window_start="2026-02-24", window_end="2026-08-13"
-    )
     with sqlite3.connect(paths.database) as connection:
         assert connection.execute("SELECT count(*) FROM derived_observation").fetchone() == (0,)
