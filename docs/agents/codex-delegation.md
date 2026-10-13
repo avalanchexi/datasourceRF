@@ -44,7 +44,7 @@ stdout，调度方事后能逐项复核。多一层封装就多一层看不见�
 深度取自哪里、提示词被追加了什么——而第四节「结论要验」这一步，前提正是调用本身没有隐藏项。
 
 ```bash
-codex exec -s read-only -C /mnt/d/cursor/datasourceRF --skip-git-repo-check "<提示词>"
+codex exec -s read-only -C /mnt/d/cursor/datasourceRF --skip-git-repo-check "<提示词>" < /dev/null
 ```
 
 - `-s read-only` — **这是关键**。它让「不许改文件」成为进程级的机制保证，而不是提示词里的
@@ -53,6 +53,9 @@ codex exec -s read-only -C /mnt/d/cursor/datasourceRF --skip-git-repo-check "<�
   另外两个要交出写权限，本文档描述的用法都不需要。
 - `-C <dir>` — 工作目录。
 - `--skip-git-repo-check` — 仓库有未提交改动时不拦。
+- `< /dev/null` — 必带。stdin 不是终端时，即使给了提示词参数，Codex 也会先读 stdin 追加到提示词；
+  stdin 若接在不关闭的管道或 socket 上（后台任务、子代理的 shell），就会一直挂住，输出只有一行
+  `Reading additional input from stdin...`。
 - 输出重定向到 scratchpad 再读，长任务配 `timeout` 并放后台。
 
 模型与推理深度取自 `~/.codex/config.toml`，当前是 `model = "gpt-6-astra"`、
@@ -101,7 +104,7 @@ Codex 每次都是全新上下文，仓库惯例它一概不知道。所以提�
 - `--strict-config` 目前会因为 `~/.codex/config.toml:17` 的
   `sandbox_workspace_write.approval_policy` 是本版本（0.155.1）不识别的字段而直接报错退出。
   所以没法用它来校验其他配置项的取值是否合法。
-- `codex exec` 不带提示词参数时会读 stdin；在脚本里用要给 `< /dev/null`，否则会挂住。
+- 挂在 stdin 上：见第二节 `< /dev/null`。2026-10-13 收尾验收的规格轴审查就是这样空等了 20 分钟。
 - **`read-only` 沙箱下它写不了文件**，所以不要在提示词里要求「把结果写入某某.md」——那条指令
   会被静默地做不到，结论只会走 stdout。要么让它把完整内容输出出来、由调度方落盘（推荐，
   顺带保留了核验这一步），要么才考虑放开沙箱。
