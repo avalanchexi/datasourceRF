@@ -17,3 +17,10 @@ Windows 宿主时钟比 NTP 快约 3 秒（`w32tm` Leap 3，未同步，上次�
 ## 来源
 
 [票 09 Comments](../../model-rules-followups-20261012/issues/09-acceptance.md)、[acceptance-20261013.md](../../model-rules-followups-20261012/acceptance-20261013.md) 遗留 1。
+
+## Comments
+
+### 2026-10-13 用户决定
+
+- 选第一个候选：在 WSL 内永久禁用 `systemd-timesyncd`，只靠 Hyper-V 同步跟随宿主。执行属人工步骤，可用 `/wizard` 生成带回滚的脚本。
+- 它是 [反复出现的输入缺口](../../recurring-input-gaps-20261013/spec.md) 收尾验收真实运行的前提。
