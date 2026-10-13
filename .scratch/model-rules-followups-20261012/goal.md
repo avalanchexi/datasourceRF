@@ -102,6 +102,7 @@
 - 体检对冻结清单缺 `confirmation_rules` 的旧运行（如 `run-dc0bb2d9…`）报 `KeyError`（票 07 实施）。
 - 体检各层 SQL 里的截止比较与 `acquisition.py` `_load_announced` 一处仍按文本比较时间（票 07 实施，已写入文档）。
 - 票 06：回退时比原流程多 1–4 次日历请求且回执被链接为篮子输入；回退后原流程仍宽松接受日历；人工入口选日依据只在 CLI 输出，未写入运行记录。
+- 本机墙钟约每 30 秒回拨约 2.5 秒（WSL／Hyper-V 时钟同步，主 agent 10-13 复核：65 秒内 −2.49、−2.47 秒）。全套中 `test_tushare_call_quota.py::test_a_call_over_the_minute_waits_for_the_oldest_to_age_out` 因此报 `acquisition_time_invalid` 失败 1 次（单独复跑 3/3 通过）；生产 `_check_time` 遇到回拨同样会拒收回执（票 09）。
 - 体检 `derived.py` `_core_only()` 只读 `corrects.scope`；只更正核心的日子以后若被票 01 的“上一确认阶段更正”覆盖，原范围在 `corrects.carries` 中，会误报“标记不全”（票 01 实施；本批 34 天均为整日更正，不受影响）。
 
 ## 监控提示词（CronCreate 用）
