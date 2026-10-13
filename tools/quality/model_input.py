@@ -21,10 +21,17 @@ from acquisition import BEIJING, HELD, UNCOVERED, WARRANTS, scope_label
 from common import Run, iso_day, parse_time, table
 
 CONFIRMATION_STATUSES = ("current", "stale", "missing")
-LATE_PUBLIC = "已持有，公开时间晚于目标日"
+LATE_PUBLIC = "已持有，公开时间晚于公开截止"
+LATE_BEFORE = "已持有，旧口径下公开晚于目标日结束"
 HELD_NO_PUBLIC = "已持有，无公开时间"
 HELD_UNEXPLAINED = "已持有，原因不明"
 NO_CLAIM = "无声明"
+AWAITING = "awaiting_release"
+UNPUBLISHED_LATEST = "上游未发布（已用最新已发布值）"
+CARRIED = "落后 1 期算完整"
+# Missing items kept out of the truly missing, in the order an item is assigned to the first
+# category it fits (doc: 不计入真正缺失). A new category goes into this list.
+EXEMPT_ORDER = (UNPUBLISHED_LATEST, CARRIED)
 # Requests settled without a receipt (ticket 11): held back by the ledger, or not asked again.
 NEGATIVE_CACHE = "negative_cache_active"
 EMPTY_IN_ANSWER = "warrant_day_empty_in_run_answer"
@@ -41,6 +48,9 @@ class MissingItem:
     carried: str = ""  # why the item counts as complete: one period behind, carried forward
     reason: str = ""
     receipts: str = ""
+    latest: str = ""  # the latest published period taken instead, for UNPUBLISHED_LATEST
+    exempt: str = ""  # the EXEMPT_ORDER category keeping it out of the truly missing, or ""
+    exempt_note: str = ""
 
 
 def _member_key(metric: str, raw: str) -> str:
@@ -110,22 +120,47 @@ def _previous_period(period: str) -> str:
 def _claims(run: Run, metric: str, member: str, period: str) -> list[tuple]:
     """Claims stored by the cutoff for the member in the period, newest first, only under
     catalog versions whose definition matches the frozen one (layer 1's ``same_definition``):
-    (claim_id, available_at, public_available_at, inferred_public_at, quality_status)."""
+    (claim_id, available_at, public_available_at, inferred_public_at, quality_status,
+    period_end)."""
+    return _member_claims(run, metric, member, "period_end BETWEEN ? AND ?", _bounds(period))
+
+
+def _member_claims(run: Run, metric: str, member: str, where: str, args: tuple) -> list[tuple]:
     versions = sorted(run.same_definition.get(metric, {run.catalog_version}))
     if metric == WARRANTS:
         member_filter, params = "json_extract(dimensions_json, '$.symbol') = ?", [member]
     else:
         member_filter, params = "1", []
-    first, last = _bounds(period)
     rows = run.db.execute(
         "SELECT claim_id, available_at, public_available_at, inferred_public_at,"
-        " quality_status, dimensions_json FROM source_claim"
-        " WHERE metric_id = ? AND period_end BETWEEN ? AND ? AND available_at <= ?"
+        " quality_status, period_end, dimensions_json FROM source_claim"
+        f" WHERE metric_id = ? AND {where} AND available_at <= ?"
         f" AND definition_version IN ({','.join('?' * len(versions))}) AND {member_filter}"
         " ORDER BY available_at DESC",
-        (metric, first, last, run.cutoff, *versions, *params),
+        (metric, *args, run.cutoff, *versions, *params),
     ).fetchall()
-    return [row[:5] for row in rows if metric == WARRANTS or _member_key(metric, row[5]) == member]
+    return [row[:6] for row in rows if metric == WARRANTS or _member_key(metric, row[6]) == member]
+
+
+def _latest_published(run: Run, item: MissingItem, selected: set) -> str:
+    """The latest published period of the member taken instead of the item's (doc: 上游未发布
+    （已用最新已发布值）): the newest earlier period with a claim stored by the cutoff and
+    readable by the target day's summary, one of whose claims is among the run's frozen input
+    ids. "" when there is none, or it was not taken."""
+    first, _ = _bounds(item.period)
+    readable: dict[str, list[str]] = {}
+    for claim_id, _, public, inferred, _, period_end in _member_claims(
+        run, item.metric, item.member, "period_end < ?", (first,)
+    ):
+        effective = public or inferred
+        if effective and run.target_unread(period_end, parse_time(effective)):
+            continue
+        readable.setdefault(period_end, []).append(claim_id)
+    if not readable:
+        return ""
+    latest = max(readable)
+    taken = [c for c in readable[latest] if c in selected]
+    return f"上一可得期 {latest} 的值已入选冻结输入（{taken[0][:12]}…）" if taken else ""
 
 
 def _one_behind(
@@ -260,6 +295,36 @@ class Unsent:
         return notes
 
 
+def _held_reason(run: Run, claim: tuple) -> tuple[str, str]:
+    """Why a claim of the item stored by the cutoff did not reach the model (doc: 原因): read
+    by the target day's summary under the documented 公开截止, and under the earlier rule."""
+    _, available, public, inferred, quality, period_end = claim
+    # The production read view takes the stated public time, else the inferred one.
+    effective = public or inferred
+    stamp = f"已持有（{_fmt(available)} 入库，{quality}）"
+    if not effective:
+        return HELD_NO_PUBLIC, f"{stamp}，没有声明或推定的公开时间"
+    at = parse_time(effective)
+    shown = f"{stamp}，公开时间 {_fmt(effective)}{'' if public else '（推定）'}"
+    why = run.target_unread(period_end, at)
+    if why:
+        return LATE_PUBLIC, f"{shown}，{why}（运行冻结截止 {_fmt(run.cutoff)}），按时点规则不进模型"
+    if run.target_unread_before(at):
+        return LATE_BEFORE, (
+            f"{shown}，晚于目标日结束、不晚于运行冻结截止 {_fmt(run.cutoff)}：新口径下应进入"
+            "目标日汇总，本运行没有选用，与旧口径（运行截止与目标日结束取早者）一致；新口径"
+            "生效后的运行出现此项，说明生产没有按新口径取数，需要查明"
+        )
+    return HELD_UNEXPLAINED, f"{stamp}，公开 {_fmt(effective)}；本脚本无法解释为何未进模型"
+
+
+def _exemption(item: MissingItem) -> tuple[str, str]:
+    """The first EXEMPT_ORDER category the item fits, with its evidence; ("", "") if none."""
+    fits = {UNPUBLISHED_LATEST: item.latest if item.kind == UNPUBLISHED_LATEST else "",
+            CARRIED: item.carried}  # fmt: skip
+    return next(((c, fits[c]) for c in EXEMPT_ORDER if fits[c]), ("", ""))
+
+
 def _canonical(params: str) -> str:
     return json.dumps(json.loads(params), sort_keys=True, ensure_ascii=False)
 
@@ -278,8 +343,6 @@ def _explain(run: Run, final: dict, items: list[MissingItem], selected: set) -> 
         for a in run.datasets.get("core_assets", {}).get("assets", [])
         if a.get("carried_forward")
     }
-    target_end = f"{run.target_date}T23:59:59.999999+08:00"
-    public_cutoff = min(parse_time(run.cutoff), parse_time(target_end))
     markers = Unsent(run)
     for item in items:
         item.carried = _one_behind(run, final, item, series, carried_core, selected)
@@ -292,28 +355,24 @@ def _explain(run: Run, final: dict, items: list[MissingItem], selected: set) -> 
             item.layer1 = f"{item.layer1}（{outside[0]}）"
         held = _claims(run, item.metric, item.member, item.period)
         if held:
-            _, available, public, inferred, quality = held[0]
-            # The production read view takes the stated public time, else the inferred one.
-            effective = public or inferred
-            stamp = f"已持有（{_fmt(available)} 入库，{quality}）"
-            if effective and parse_time(effective) > public_cutoff:
-                item.kind = LATE_PUBLIC
-                item.reason = (
-                    f"{stamp}，公开时间 {_fmt(effective)}{'' if public else '（推定）'}"
-                    f"晚于公开截止 {_fmt(public_cutoff.isoformat())}"
-                    "（目标日结束与运行截止取早者），按时点规则不进模型"
-                )
-            elif not effective:
-                item.kind, item.reason = HELD_NO_PUBLIC, f"{stamp}，没有声明或推定的公开时间"
-            else:
-                item.kind = HELD_UNEXPLAINED
-                item.reason = f"{stamp}，公开 {_fmt(effective)}；本脚本无法解释为何未进模型"
-        elif outside:
-            item.kind, item.reason = outside
-        elif cell and cell.status != HELD:
-            item.kind, item.reason = cell.status, cell.evidence
+            item.kind, item.reason = _held_reason(run, held[0])
         else:
-            item.kind, item.reason = NO_CLAIM, "截止前没有该期该成员的声明"
+            if outside:
+                item.kind, item.reason = outside
+            elif cell and cell.status != HELD:
+                item.kind, item.reason = cell.status, cell.evidence
+            else:
+                item.kind, item.reason = NO_CLAIM, "截止前没有该期该成员的声明"
+            item.latest = _latest_published(run, item, selected) if item.gate == AWAITING else ""
+            if item.latest:
+                item.reason = (
+                    f"计划的发布判定 {AWAITING}，截止前没有该期该成员的声明；{item.latest}，"
+                    f"模型用了最新已发布值（第一层依据：{item.reason}）"
+                )
+                item.kind = UNPUBLISHED_LATEST
+        if item.metric in acquisition.NO_PATH:
+            item.reason += f"；{acquisition.NO_PATH[item.metric]}，永久缺口，只计入目录全部指标"
+        item.exempt, item.exempt_note = _exemption(item)
         rows = run.db.execute(
             "SELECT a.state, COALESCE(a.rejection_reason, a.error_type, '') FROM"
             " full_run_acquisition f JOIN acquisition_request a USING (acquisition_id)"
@@ -477,7 +536,8 @@ def section(run: Run) -> str:
     # -- conclusion
     missing_periods = {(i.metric, i.period) for i in items}
     reasons = Counter(i.kind for i in items)
-    carried_items = [i for i in items if i.carried]
+    exempt = Counter(i.exempt for i in items if i.exempt)
+    truly = [i for i in items if not i.exempt]
     out += ["### 结论", ""]
     whole, used = plan_rows
     out.append(
@@ -486,9 +546,10 @@ def section(run: Run) -> str:
         f" {len(final.get('derived_requirements', []))} 条。缺失展开为 {len(items)} 个"
         f"“指标 × 期次 × 成员”，涉及 {len(missing_periods)} 个指标期、"
         f"{len({i.metric for i in items})} 个指标；原因：" + (_tally(reasons) or "无") + "。"
-        f"其中落后 1 期、按沿用算完整的 {len(carried_items)} 个，真正缺失 "
-        f"{len(items) - len(carried_items)} 个（仅模型用到的指标 "
-        f"{sum(1 for i in items if not i.carried and i.metric in run.model_used)} 个）。"
+        "其中不计入真正缺失的："
+        + "、".join(f"{c} {exempt[c]}" for c in EXEMPT_ORDER)
+        + f"；真正缺失 {len(truly)} 个（仅模型用到的指标 "
+        f"{sum(1 for i in truly if i.metric in run.model_used)} 个）。"
     )
     out.append(
         f"- **冻结输入编号**：核心 {len(core.ids)}、宏观 {len(macro.ids)}，合并去重 {len(union)}"
@@ -522,9 +583,12 @@ def section(run: Run) -> str:
     # -- missing detail
     out += ["### 缺失明细（指标 × 期次 × 成员）", ""]
     out += [
-        "“算完整”一列：该项是计划对该指标要求的最新一期，且模型实际用了上一期的值（日频为该"
+        "“不计入真正缺失”一列写类别与依据，按以下顺序归第一个符合的类别，每项只计一次："
+        f"① {UNPUBLISHED_LATEST}：计划的发布判定为 {AWAITING}、截止前没有该期声明，且上一可得期"
+        "（该成员此前最近一个截止前入库、按公开截止能读到的期次）的值已入选冻结输入；"
+        f"② {CARRIED}：该项是计划对该指标要求的最新一期，且模型实际用了上一期的值（日频为该"
         "成员在第一层里的前一开市日，该期该成员的声明在本运行的冻结输入编号中；三核心以"
-        " `carried_forward` 为准），即落后 1 期，按规格算完整。前一开市日日历未覆盖时不判。",
+        " `carried_forward` 为准），前一开市日日历未覆盖时不判。",
         "",
     ]
     headers = [
@@ -536,7 +600,7 @@ def section(run: Run) -> str:
         "第一层",
         "原因",
         "本运行回执",
-        "算完整",
+        "不计入真正缺失",
     ]
     rows = [
         [
@@ -548,7 +612,7 @@ def section(run: Run) -> str:
             i.layer1,
             i.reason,
             i.receipts,
-            i.carried or "否",
+            f"{i.exempt}：{i.exempt_note}" if i.exempt else "否",
         ]
         for i in items
     ]

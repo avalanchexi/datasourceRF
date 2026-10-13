@@ -17,3 +17,7 @@ Category: enhancement
 - [ ] 不导入 `pring_cycle`，运行库只读
 
 ## Comments
+
+- 2026-10-13 领取：worktree 基于 recurring-input-gaps `e1a0d8a`；改动前对 `run-0a8dabc2e820321b84e1` 实跑，与 `audit-run-0a8dabc2.md` 除耗时外逐字一致（基线）。验收第 3 框（01 合入后的一次运行实跑）按 goal.md 移到票 05，本票不启动 Worker、不做真实运行。
+- 2026-10-13 文档阶段完成：`docs/development/data-quality-audit.md` 新增“公开截止”一节（新口径、补算日不变、旧口径运行的说明方式），第一层“公开时间晚于目标日”、派生“原料”、第二层“原因”改按新口径，新增“上游未发布（已用最新已发布值）”“不计入真正缺失”（有序类别列表，票 04 的已知历史缺口可追加）“SOX 的永久缺口”三条。
+- 2026-10-13 脚本阶段完成（按文档）：`common.unread_reason`／`Run.target_unread`，第一层表加“新口径下”一栏，派生 `Held` 目标日按新口径，第二层新分类与“不计入真正缺失”列。实跑对账见下方实施记录。

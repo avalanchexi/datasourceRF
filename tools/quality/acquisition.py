@@ -1298,6 +1298,12 @@ def _conclusion(run: Run, result: DailyResult, periods, delays, absent, cleared)
     return [*out, ""]
 
 
+def _new_rule(run: Run, day: str, public_at: datetime) -> str:
+    """Whether the target day's summary reads a held cell under the documented 公开截止."""
+    why = run.target_unread(day, public_at)
+    return f"读不到（{why}）" if why else "读得到（公开不晚于运行冻结截止）"
+
+
 def _daily_tables(run: Run, result: DailyResult) -> list[str]:
     out = ["### 日频：逐交易日 × 成员", ""]
     by_metric: dict[str, list[Cell]] = defaultdict(list)
@@ -1340,15 +1346,23 @@ def _daily_tables(run: Run, result: DailyResult) -> list[str]:
     out.append(table(headers, detail) if detail else "无。")
     out += [
         "",
-        f"已持有、但声明的公开时间晚于目标日 {run.target_date} 结束的格"
-        "（按时点规则不进模型，由第二层报告）：",
+        f"已持有、但声明的公开时间晚于目标日 {run.target_date} 结束的格（“新口径下”一栏按"
+        "体检文档“公开截止”注明目标日汇总能否读到；读不到的按时点规则不进模型；旧口径的运行"
+        "中都不进模型；实际是否入选由第二层报告）：",
         "",
     ]
     late_public = [
-        [cell.metric, _display(cell.member), cell.day, _fmt(parse_time(public_at))]
+        [
+            cell.metric,
+            _display(cell.member),
+            cell.day,
+            _fmt(parse_time(public_at)),
+            _new_rule(run, cell.day, parse_time(public_at)),
+        ]
         for cell, public_at in result.public_after_target
     ]
-    out.append(table(["指标", "成员", "日期", "公开时间"], late_public) if late_public else "无。")
+    headers = ["指标", "成员", "日期", "公开时间", "新口径下"]
+    out.append(table(headers, late_public) if late_public else "无。")
     return [*out, ""]
 
 

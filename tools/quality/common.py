@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from functools import cached_property
 from pathlib import Path
 
@@ -46,6 +46,33 @@ def moment(value: str | None) -> datetime | None:
     except ValueError:
         return None
     return parsed if parsed.utcoffset() is not None else None
+
+
+BEIJING = timezone(timedelta(hours=8))
+
+# Why a day's summary cannot read a claim (the documented 公开截止).
+AFTER_CUTOFF = "公开晚于运行冻结截止"
+RUNNING_PAST_DAY = "期次结束晚于目标日、公开晚于目标日结束"
+
+
+def day_end(day: str) -> datetime:
+    """The last instant of ``day`` in Beijing."""
+    return datetime.fromisoformat(f"{day}T23:59:59.999999").replace(tzinfo=BEIJING)
+
+
+def unread_reason(day: str, cutoff: datetime, period_end: str, public_at: datetime) -> str:
+    """Why the summary of ``day``, reading what is public by ``cutoff``, cannot read a claim of
+    the period ending ``period_end`` made public at ``public_at``; "" when it can.
+
+    The target day's cutoff is the run's frozen cutoff: past the day's end only periods ending
+    by the day are read, so a period still running on the day is read as it stood by the
+    day's end. A backfilled day's cutoff is its own end, where the second test never bites.
+    """
+    if public_at > cutoff:
+        return AFTER_CUTOFF
+    if period_end > day and public_at > day_end(day):
+        return RUNNING_PAST_DAY
+    return ""
 
 
 def iso_day(value: str) -> str:
@@ -321,6 +348,16 @@ class Run:
         """``value`` is a usable time no later than the cutoff, compared as instants."""
         at = moment(value)
         return at is not None and at <= self.cutoff_moment
+
+    def target_unread(self, period_end: str, public_at: datetime) -> str:
+        """Why the target day's summary cannot read a claim (``unread_reason`` at the run's
+        frozen cutoff); "" when it can."""
+        return unread_reason(self.target_date, self.cutoff_moment, period_end, public_at)
+
+    def target_unread_before(self, public_at: datetime) -> bool:
+        """Whether the earlier rule kept the claim out: public later than the run's cutoff or
+        the target day's end, whichever came first."""
+        return public_at > min(self.cutoff_moment, day_end(self.target_date))
 
     def receipts(self, where: str, params: tuple = ()) -> list[Receipt]:
         """Receipts started by the cutoff, newest first; ``where`` filters ``a``. Whether the
