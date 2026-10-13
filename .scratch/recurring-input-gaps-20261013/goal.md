@@ -34,7 +34,7 @@
 | 票 | 状态 | 分支／提交 |
 |---|---|---|
 | 01 目标日截止与 09:30 | 实施中（ticket-01，worktree） | |
-| 02 时效按词表 | 实施中（ticket-02，worktree） | |
+| 02 时效按词表 | done（审查无阻断；遗留：词表“应有期”不含宽限 vs 代码 due_period 含宽限，收尾交用户；LPR 行仍显示“等待发布”） | f6d238c、f434114 |
 | 04 前置：交易所核实 | done：六格均“来源缺失”（SHFE 07-21 官方原件，主 agent 抽查属实；DCE PP 09-09 仅转载二手证据）；另见 CU/SP/RU 09-09 单日请求 failed（acquisition_time_invalid，疑时钟）待 04 一并核对；报告 notes/warrant-gaps-verification.md | |
 | 03 体检新分类 | 等 01 | |
 | 04 仓单单列 | 等 03 | |
