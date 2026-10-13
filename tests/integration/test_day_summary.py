@@ -732,3 +732,67 @@ def test_a_backfilled_day_does_not_read_what_came_out_the_next_morning(tmp_path:
     projection = summary(paths, "2026-08-04")
     assert "2026-07-31" not in cpi_periods(projection)
     assert july not in frozen_inputs(paths, projection)
+
+
+def test_a_revision_held_only_after_the_day_keeps_the_value_it_revises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A model knowing claims by system time (``dual-cutoff-v0003``) knows them that way only
+    by the target day's end, before a provider's revisions are chosen among: a revision of an
+    ended period held the next morning, its date-precise public time past the run's cutoff,
+    is not the day's to know, and the value it revises is still read and frozen."""
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    july = cpi_of(paths, "2026-07", datetime(2026, 8, 5, 9, 30, tzinfo=SHANGHAI))
+    held = datetime(2026, 8, 31, 8, tzinfo=SHANGHAI)
+    revision = (
+        EvidenceRepository(paths.database)
+        .append_source_claim(
+            SourceClaimInput(
+                metric_id="CN_CPI_HEADLINE",
+                definition_version="metric-catalog-v0001",
+                period_kind="month",
+                period_start="2026-07-01",
+                period_end="2026-07-31",
+                dimensions={"measure": "yoy", "category": "headline"},
+                value=0.7,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit="percent",
+                provider="fixture",
+                source_reference="fixture:cpi:2026-07",
+                release_event_id="fixture:cpi:2026-07:revision",
+                # Date-precise: public from the day after it was held, past the cutoff.
+                release_at=datetime(2026, 9, 1, tzinfo=SHANGHAI),
+                public_available_at=datetime(2026, 9, 1, tzinfo=SHANGHAI),
+                fetched_at=held,
+                available_at=held,
+                quality_status="validated",
+            )
+        )
+        .claim_id
+    )
+    # Only a registered catalog may declare the rule; its admission is not what is tested.
+    monkeypatch.setattr(EvidenceRepository, "validate_model_catalog", lambda self, manifest: None)
+    rules = ModelRules.of(ModelRepository(paths.database), "model-v0001")
+    dual_cutoff = replace(
+        rules, manifest={**rules.manifest, "point_in_time_rule_version": "dual-cutoff-v0003"}
+    )
+    result = (
+        DaySummaries(
+            EvidenceRepository(paths.database),
+            ProjectionSetRepository(paths.database),
+            dual_cutoff,
+            calendar=TradingCalendar(sessions()),
+        )
+        .summarize_target(
+            TARGET.isoformat(), system_as_of=NEXT_MORNING, run_materials=RunMaterials()
+        )
+        .result
+    )
+    assert result.projection_set_id is not None
+    projection = ProjectionSetRepository(paths.database).get(result.projection_set_id)
+
+    assert "2026-07-31" in cpi_periods(projection)
+    inputs = frozen_inputs(paths, projection)
+    assert july in inputs
+    assert revision not in inputs

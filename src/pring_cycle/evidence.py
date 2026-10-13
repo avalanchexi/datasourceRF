@@ -1234,16 +1234,17 @@ class EvidenceRepository:
         """The series as of ``as_of``, among claims public by ``public_as_of`` when given.
 
         ``system_known_by`` also admits a claim held by then, whatever its public time
-        (``dual-cutoff-v0003``); both bounds apply before a provider's revisions are chosen
-        among, so a revision neither admits never hides the claim it revises.
+        (``dual-cutoff-v0003``; SYSTEM mode with a public cutoff only). Both bounds apply
+        before a provider's revisions are chosen among, so a revision neither admits never
+        hides the claim it revises.
         """
         if as_of.tzinfo is None:
             raise ValueError("as_of_must_be_timezone_aware")
         if public_as_of is not None and public_as_of.tzinfo is None:
             raise ValueError("public_as_of_must_be_timezone_aware")
-        if system_known_by is not None and (
-            public_as_of is None or mode is not AsOfMode.SYSTEM or system_known_by.tzinfo is None
-        ):
+        if system_known_by is not None and system_known_by.tzinfo is None:
+            raise ValueError("system_known_by_must_be_timezone_aware")
+        if system_known_by is not None and (public_as_of is None or mode is not AsOfMode.SYSTEM):
             raise ValueError("system_target_cutoff_requires_system_and_public_boundary")
         time_column = {
             AsOfMode.PUBLIC: "public_available_at",
