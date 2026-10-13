@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: in-progress
 Type: task
 Category: enhancement
 
@@ -16,3 +16,7 @@ Category: enhancement
 - [ ] 不导入 `pring_cycle`，运行库只读
 
 ## Comments
+
+- 2026-10-13 领取：worktree 基于 recurring-input-gaps `8fc1888`；交易所核实沿用 `notes/warrant-gaps-verification.md`（六格均来源缺失，PP 为二手证据），本票不再访问外网。改动前对 `run-0a8dabc2e820321b84e1` 实跑，与 `audit-run-0a8dabc2-ticket03.md` 除耗时外逐字一致（基线）。
+- 2026-10-13 文档阶段完成：`docs/development/data-quality-audit.md` 新增“日频：已知历史缺口”一节（内置表 `KNOWN_GAPS` 六格：成员、日期、来源判定、证据网址与取得时间、预计移出窗口的目标日 07-21→2027-01-14、09-09→2027-03-12，推算依据与“届时以 SSE 日历为准”），第一层类别表加“已知历史缺口”，第二层“不计入真正缺失”追加第 ③ 类。
+- 2026-10-13 脚本阶段完成（按文档）：`acquisition.KNOWN_GAPS`／`KNOWN_GAP` 类、第一层专表与 `leaves_window`；`model_input` 的 `EXEMPT_ORDER` 追加 `KNOWN_GAP`。对 `run-0a8dabc2…` 实跑：仓单 6 格单列为已知历史缺口，真正缺失 7→1（仅模型用到 6→0），余下 1 项为 SOX（只计目录全部）。报告存 `audit-run-0a8dabc2-ticket04.md`。

@@ -17,7 +17,7 @@ from datetime import date, timedelta
 
 import acquisition
 import core_trace
-from acquisition import BEIJING, HELD, UNCOVERED, WARRANTS, scope_label
+from acquisition import BEIJING, HELD, KNOWN_GAP, KNOWN_GAPS, UNCOVERED, WARRANTS, scope_label
 from common import Run, iso_day, parse_time, table
 
 CONFIRMATION_STATUSES = ("current", "stale", "missing")
@@ -31,7 +31,7 @@ UNPUBLISHED_LATEST = "上游未发布（已用最新已发布值）"
 CARRIED = "落后 1 期算完整"
 # Missing items kept out of the truly missing, in the order an item is assigned to the first
 # category it fits (doc: 不计入真正缺失). A new category goes into this list.
-EXEMPT_ORDER = (UNPUBLISHED_LATEST, CARRIED)
+EXEMPT_ORDER = (UNPUBLISHED_LATEST, CARRIED, KNOWN_GAP)
 # Requests settled without a receipt (ticket 11): held back by the ledger, or not asked again.
 NEGATIVE_CACHE = "negative_cache_active"
 EMPTY_IN_ANSWER = "warrant_day_empty_in_run_answer"
@@ -49,6 +49,7 @@ class MissingItem:
     reason: str = ""
     receipts: str = ""
     latest: str = ""  # the latest published period taken instead, for UNPUBLISHED_LATEST
+    known: str = ""  # the documented verdict when layer 1 put the cell among KNOWN_GAPS
     exempt: str = ""  # the EXEMPT_ORDER category keeping it out of the truly missing, or ""
     exempt_note: str = ""
 
@@ -322,7 +323,8 @@ def _held_reason(run: Run, claim: tuple) -> tuple[str, str]:
 def _exemption(item: MissingItem) -> tuple[str, str]:
     """The first EXEMPT_ORDER category the item fits, with its evidence; ("", "") if none."""
     fits = {UNPUBLISHED_LATEST: item.latest if item.kind == UNPUBLISHED_LATEST else "",
-            CARRIED: item.carried}  # fmt: skip
+            CARRIED: item.carried,
+            KNOWN_GAP: item.known if item.kind == KNOWN_GAP else ""}  # fmt: skip
     return next(((c, fits[c]) for c in EXEMPT_ORDER if fits[c]), ("", ""))
 
 
@@ -349,6 +351,13 @@ def _explain(run: Run, final: dict, items: list[MissingItem], selected: set) -> 
         item.carried = _one_behind(run, final, item, series, carried_core, selected)
         cell = cells.get((item.metric, item.member, item.period))
         item.layer1 = cell.status if cell else "（第一层未逐格核对）"
+        if cell and cell.status == KNOWN_GAP:
+            known = KNOWN_GAPS[(item.metric, item.member, item.period)]
+            item.layer1 = f"{KNOWN_GAP}（{known.verdict}）"
+            item.known = (
+                f"{known.verdict}（内置表 `KNOWN_GAPS`），预计 {known.leaves} 起移出 120 日窗口"
+                "（届时以 SSE 日历为准）"
+            )
         # Outside a latest-only metric's demand layer 1 does not count the day, but the plan
         # still asks for it: explain it by the class the gap would have had.
         outside = result.outside.get((item.metric, item.member, item.period))
@@ -589,7 +598,9 @@ def section(run: Run) -> str:
         "（该成员此前最近一个截止前入库、有公开时间且按公开截止能读到的期次）的值已入选冻结输入；"
         f"② {CARRIED}：该项是计划对该指标要求的最新一期，且模型实际用了上一期的值（日频为该"
         "成员在第一层里的前一开市日，该期该成员的声明在本运行的冻结输入编号中；三核心以"
-        " `carried_forward` 为准），前一开市日日历未覆盖时不判。",
+        " `carried_forward` 为准），前一开市日日历未覆盖时不判；"
+        f"③ {KNOWN_GAP}：截止前没有该期声明，且第一层把这一格归为{KNOWN_GAP}（内置表"
+        " `KNOWN_GAPS`，见第一层专表）。",
         "",
     ]
     headers = [

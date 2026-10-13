@@ -23,7 +23,10 @@ from datetime import date, datetime, timedelta, timezone
 from common import Calendar, Receipt, Run, compress_days, iso_day, parse_time, table
 
 HELD, NOT_FETCHED, NOT_PUBLISHED, UNCOVERED = "已持有", "未取到", "上游未发布", "日历未覆盖"
-CLASSES = (HELD, NOT_FETCHED, NOT_PUBLISHED, UNCOVERED)
+# A gap already looked into and listed in KNOWN_GAPS (recurring-gaps ticket 04): shown apart.
+KNOWN_GAP = "已知历史缺口"
+CLASSES = (HELD, NOT_FETCHED, NOT_PUBLISHED, KNOWN_GAP, UNCOVERED)
+MISSING_CLASSES = (NOT_FETCHED, NOT_PUBLISHED, KNOWN_GAP)  # cells that count as gaps
 # Cells that are not due under the metric's own requirement: not counted among due cells.
 NO_NEW_VALUE, OUT_OF_DEMAND = "公告无新值", "不在需求内"
 NOT_DUE = (NO_NEW_VALUE, OUT_OF_DEMAND)
@@ -69,6 +72,41 @@ LATEST_ONLY = {
 # says so, so a narrower requirement does not hide the gap.
 NO_PATH = {
     "NASDAQ_SOX_INDEX": "受限授权缺口（ADR-0029）：无取数路径、不检索，应有格照记未取到",
+}
+
+
+@dataclass(frozen=True)
+class KnownGap:
+    verdict: str  # 来源缺失 / 来源缺失（二手证据） / 上游未发布
+    evidence: str  # a digest of the documented evidence
+    leaves: str  # the first target day whose 120-day window no longer holds the day (doc)
+
+
+# Gaps already looked into, one cell each: (metric, member, day). Only the audit doc's table
+# "日频：已知历史缺口" may change this; it was checked once by hand, read-only.
+_SHFE_0721 = "上期所仓单日报 dailystock_20260721 原件（2026-10-13 15:09 取得）"
+KNOWN_GAPS = {
+    (WARRANTS, "CU", "2026-07-21"): KnownGap(
+        "来源缺失", f"{_SHFE_0721}：铜总计 33415 吨", "2027-01-14"
+    ),
+    (WARRANTS, "RB", "2026-07-21"): KnownGap(
+        "来源缺失", f"{_SHFE_0721}：螺纹钢仓库总计 28960 吨、厂库合计 61200 吨", "2027-01-14"
+    ),
+    (WARRANTS, "RU", "2026-07-21"): KnownGap(
+        "来源缺失", f"{_SHFE_0721}：天然橡胶总计 149370 吨", "2027-01-14"
+    ),
+    (WARRANTS, "SC", "2026-07-21"): KnownGap(
+        "来源缺失", f"{_SHFE_0721}：中质含硫原油总计 2961000 桶", "2027-01-14"
+    ),
+    (WARRANTS, "SP", "2026-07-21"): KnownGap(
+        "来源缺失", f"{_SHFE_0721}：纸浆仓库总计 313529 吨、厂库总计 20000 吨", "2027-01-14"
+    ),
+    (WARRANTS, "PP", "2026-09-09"): KnownGap(
+        "来源缺失（二手证据）",
+        "大商所原件未取得；99期货转载的大商所 2026-09-09 聚丙烯仓单日报（fx168news 1089976，"
+        "2026-10-13 15:24 取得）：聚丙烯小计 27069 手",
+        "2027-03-12",
+    ),
 }
 
 # Official NBS release items (``release_schedule`` origin ``nbs:schedule_page``) and how far the
@@ -820,6 +858,13 @@ def daily(run: Run) -> DailyResult:
                 if versions:
                     listed = "、".join(sorted(versions))
                     evidence = f"仅有定义不同的目录版本 {listed} 的声明；{evidence}"
+                known = KNOWN_GAPS.get((metric, member, day))
+                if known and not outside and status in (NOT_FETCHED, NOT_PUBLISHED):
+                    # Shown apart, the evidence-based class kept in the evidence: not muted.
+                    evidence = (
+                        f"{known.verdict}：{known.evidence}；第一层判据：{status}：{evidence}"
+                    )
+                    status = KNOWN_GAP
                 if outside:
                     # Not due; what the gap would have been is kept apart as information.
                     result.outside[(metric, member, day)] = (status, evidence)
@@ -1249,7 +1294,7 @@ def _conclusion(run: Run, result: DailyResult, periods, delays, absent, cleared)
 
         cells = [c for c in result.cells if keep(c.metric)]
         counts = _counts(cells)
-        missing = len({c.metric for c in cells if c.status in (NOT_FETCHED, NOT_PUBLISHED)})
+        missing = len({c.metric for c in cells if c.status in MISSING_CLASSES})
         lf = [p for p in periods if keep(p.metric)]
         late = [d for d in delays if keep(d.metric) and d.deadline is not None]
         unknown = sum(1 for d in delays if keep(d.metric) and d.deadline is None)
@@ -1257,7 +1302,8 @@ def _conclusion(run: Run, result: DailyResult, periods, delays, absent, cleared)
         out.append(
             f"- **{label}**：日频应有 {sum(counts.values())} 格，已持有 {counts[HELD]}，"
             f"未取到 {counts[NOT_FETCHED]}，上游未发布 {counts[NOT_PUBLISHED]}，"
-            f"日历未覆盖 {counts[UNCOVERED]}（有缺格的指标 {missing} 项）；"
+            f"{KNOWN_GAP} {counts[KNOWN_GAP]}，日历未覆盖 {counts[UNCOVERED]}"
+            f"（有缺格的指标 {missing} 项）；"
             f"低频 {len(lf)} 项中最新应有期缺 {sum(p.status == '缺' for p in lf)} 项、"
             f"无法判定 {sum(p.status == '无法判定' for p in lf)} 项；"
             f"超过宽限的期次 {len(late)} 个（其中发布早于系统启用 {run.system_start[:10]} 的"
@@ -1344,6 +1390,7 @@ def _daily_tables(run: Run, result: DailyResult) -> list[str]:
     ]
     headers = ["指标", "模型用到", "成员", "类别", "日期", "依据"]
     out.append(table(headers, detail) if detail else "无。")
+    out += ["", *_known_gap_table(run, result)]
     out += [
         "",
         f"已持有、但声明的公开时间晚于目标日 {run.target_date} 结束的格（“新口径下”一栏按"
@@ -1364,6 +1411,63 @@ def _daily_tables(run: Run, result: DailyResult) -> list[str]:
     headers = ["指标", "成员", "日期", "公开时间", "新口径下"]
     out.append(table(headers, late_public) if late_public else "无。")
     return [*out, ""]
+
+
+def leaves_window(run: Run, day: str) -> str | None:
+    """The first target day whose window no longer holds ``day``: counting ``day`` as the
+    first, the (N + 1)th SSE open day, N the run's window length. None while the SSE calendar
+    does not reach it."""
+    sse, size = run.calendars["SSE"], len(run.window)
+    current, counted = date.fromisoformat(day), 0
+    while True:
+        kind = sse.classify(current.isoformat())
+        if kind == "uncovered":
+            return None
+        if kind == "open":
+            counted += 1
+            if counted == size + 1:
+                return current.isoformat()
+        current += timedelta(days=1)
+
+
+def _known_gap_state(run: Run, cell: Cell | None, day: str) -> str:
+    if day < run.window[0]:
+        return "不在本运行窗口内（已移出，可从表中删除）"
+    if day > run.target_date:
+        return "不在本运行窗口内（尚未进入）"
+    if cell is None:
+        return "本运行没有这一格（当日休市或不逐格核对），须复核表"
+    if cell.status == KNOWN_GAP:
+        return f"仍缺（{KNOWN_GAP}）"
+    if cell.status == HELD:
+        return "已持有（可从表中删除）"
+    return cell.status
+
+
+def _known_gap_table(run: Run, result: DailyResult) -> list[str]:
+    """Every entry of KNOWN_GAPS and where it stands in this run (doc: 已知历史缺口)."""
+    cells = {(c.metric, c.member, c.day): c for c in result.cells}
+    sse_end = max(run.calendars["SSE"].covered)
+    rows = []
+    for (metric, member, day), known in KNOWN_GAPS.items():
+        computed = leaves_window(run, day)
+        if computed is None:
+            leaves = (
+                f"{known.leaves}（上交所日历只覆盖到 {sse_end}，按文档推算，届时以 SSE 日历为准）"
+            )
+        elif computed == known.leaves:
+            leaves = f"{computed}（按上交所日历）"
+        else:
+            leaves = f"{computed}（按上交所日历；文档为 {known.leaves}，与文档不一致，须更新文档）"
+        state = _known_gap_state(run, cells.get((metric, member, day)), day)
+        rows.append([metric, member, day, known.verdict, state, leaves, known.evidence])
+    return [
+        f"{KNOWN_GAP}（内置表 `KNOWN_GAPS`，见体检文档“日频：已知历史缺口”）：表中的格没有声明时"
+        "归此类，原类别与依据照列在缺格明细里，不计入第二层的真正缺失；“预计移出”是从该日起数"
+        "第 121 个上交所开市日，即该日移出 120 日窗口的第一个目标日。",
+        "",
+        table(["指标", "成员", "日期", "来源判定", "本运行", "预计移出窗口的目标日", "证据"], rows),
+    ]
 
 
 def _all_open(run: Run) -> list[str]:
@@ -1409,7 +1513,7 @@ def _rule_tables(run: Run, result: DailyResult) -> list[str]:
                 len(cells),
                 sum(counts.values()),
                 counts[HELD],
-                counts[NOT_FETCHED] + counts[NOT_PUBLISHED],
+                sum(counts[c] for c in MISSING_CLASSES),
                 "、".join(f"{s} {n}" for s, n in sorted(skipped.items())) or "0",
                 sum(1 for c in cells if c.status == OUT_OF_DEMAND and c.evidence),
                 "、".join(f"{s} {n}" for s, n in sorted(outside.items())) or "0",
