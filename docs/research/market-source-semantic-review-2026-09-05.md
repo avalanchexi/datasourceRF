@@ -67,7 +67,7 @@ M1 把 `000012CNY030` 明确列为国债指数的全价派生系列。[中证债
 
 S5 表 1 明确 `NHCI` 当日收盘 **2754.30**、前收盘 **2734.17**，同表 `NHII` 收盘为 **3624.02**。这直接证明两个序列不能混用。现有 [NHII 成分与方法研究](nhii-historical-constituents-and-methods.md)核验的是工业品核心，其“不含生猪”结论不覆盖 NHCI。NHCI 作为宽基确认值应绑定自己的指数身份和方法版本。[南华日线代码及字段](https://tushare.pro/document/2?doc_id=468)
 
-当前 `market_indices()` 统一写 `release_at=trade_date 15:30`，但日线样本的 `tradeDate` 只代表交易日。中证日线响应没有真实首次公开时间，南华日报日期也不能自行变成 15:30 发布事实。中证细则只确认收盘指数通常逐交易日发布，没有保证这一统一时刻。应按实际发布证据给 `public_available_at`；只有可信发布日期时遵循 `CONTEXT.md` 的次日本地日边界，无可靠日期则为空。系统第一次成功校验时间仍独立记录为 `available_at`。
+当前 `market_indices()` 统一写 `release_at=trade_date 15:30`，但日线样本的 `tradeDate` 只代表交易日。中证日线响应没有真实首次公开时间，南华日报日期也不能自行变成 15:30 发布事实。中证细则只确认收盘指数通常逐交易日发布，没有保证这一统一时刻。应按实际发布证据给 `public_available_at`；只有可信发布日期时遵循 `GLOSSARY.md` 的次日本地日边界，无可靠日期则为空。系统第一次成功校验时间仍独立记录为 `available_at`。
 
 ## 5. Market breadth：认证原料与冻结规则，不能寻找虚构官方成品
 

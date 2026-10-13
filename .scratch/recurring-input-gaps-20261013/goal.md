@@ -23,20 +23,24 @@
 - 开工前确认 worktree 基于集成分支：`git merge-base --is-ancestor recurring-input-gaps HEAD`，否则 `git reset --hard recurring-input-gaps`。
 - 收尾：`git merge recurring-input-gaps`（把集成分支最新提交并入本分支）→ 重装 venv → 复跑受影响测试 → 回报分支名与提交号；主 agent `git merge --ff-only` 合入集成分支。
 - 本批除收尾验收外**不启动 Worker、不做真实运行**。票 03 验收中“对 01 合入后的一次运行实跑”移到票 05 完成。
-- 只读调查量大时用 `codex exec -s read-only`；可复用的调查笔记写入共享目录 `/tmp/claude-1000/-mnt-d-cursor-datasourceRF/3c98b852-8a48-470d-b56a-0661f8b7cfa4/scratchpad/notes/`。
+- 只读调查量大时用 `codex exec -s read-only ... < /dev/null`（main 56d9daa 起标准命令须带）；可复用的调查笔记写入共享目录 `/tmp/claude-1000/-mnt-d-cursor-datasourceRF/3c98b852-8a48-470d-b56a-0661f8b7cfa4/scratchpad/notes/`。
 
 ## 何时停下来问用户
 
-规格、CONTEXT.md、ADR-0041 补写都未覆盖的领域选择（票面 `needs-info`，先按推荐实现、不合入，回报主 agent）；两轮审查仍阻断；与本批无关又无法判断来源的测试失败；C 盘余量低于 20G。
+规格、GLOSSARY.md、ADR-0041 补写都未覆盖的领域选择（票面 `needs-info`，先按推荐实现、不合入，回报主 agent）；两轮审查仍阻断；与本批无关又无法判断来源的测试失败；C 盘余量低于 20G。
 
 ## 进度
 
 | 票 | 状态 | 分支／提交 |
 |---|---|---|
-| 01 目标日截止与 09:30 | 待派 | |
-| 02 时效按词表 | 待派 | |
-| 04 前置：交易所核实 | 待派 | |
+| 01 目标日截止与 09:30 | 实施中（ticket-01，worktree） | |
+| 02 时效按词表 | 实施中（ticket-02，worktree） | |
+| 04 前置：交易所核实 | done：六格均“来源缺失”（SHFE 07-21 官方原件，主 agent 抽查属实；DCE PP 09-09 仅转载二手证据）；另见 CU/SP/RU 09-09 单日请求 failed（acquisition_time_invalid，疑时钟）待 04 一并核对；报告 notes/warrant-gaps-verification.md | |
 | 03 体检新分类 | 等 01 | |
 | 04 仓单单列 | 等 03 | |
-| 05 收尾验收 | 等 01–04、残余 01 | |
+| 05 收尾验收 | 等 01–04（残余 01 时钟已于 10-13 永久禁用 timesyncd，65 秒检查无回拨） | |
 | 代码审查与修复 | 等 05 前 | |
+
+## 2026-10-13 15:50 并入 main 56d9daa
+
+CONTEXT.md 已改名 GLOSSARY.md（.scratch 内历史引用不改）；新增 `tools/clock_check.py`（全套与真实运行前跑，退出码 0 才开跑）、`tools/disk_guard.sh`、`tools/progress.py`；codex 标准命令末尾须带 `< /dev/null`。

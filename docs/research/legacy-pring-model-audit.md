@@ -282,7 +282,7 @@ pring_result.json → Stage4 Markdown报告
 ### 2.5 放到新项目规则下会怎样
 
 新项目严格按债、股、商品三个核心价格状态映射；核心不可用或组合非典型时 `current_stage=None`，宏观证据不能投票。  
-出处：新 `CONTEXT.md:7–40`；`domain/stage.py:16–43`。
+出处：新 `GLOSSARY.md:7–40`；`domain/stage.py:16–43`。
 
 因此：
 
@@ -438,7 +438,7 @@ pring_result.json → Stage4 Markdown报告
 | 旧120自然日/年内/单日混用、无持续性状态 | **替代**为新120交易日、噪声带和持续确认；保留模型版本 |
 | 旧固定百分比置信度 | **放弃**，不能改名后继续作为“新确认度” |
 
-依据：新 `CONTEXT.md:7–40`、`domain/stage.py:16–43`、`domain/trend.py:18–28,73–126`；旧D01—D15、D22。
+依据：新 `GLOSSARY.md:7–40`、`domain/stage.py:16–43`、`domain/trend.py:18–28,73–126`；旧D01—D15、D22。
 
 #### 影响五维确认
 
@@ -525,7 +525,7 @@ pring_result.json → Stage4 Markdown报告
 3. **相对阶段的确认关系**：这项结论支持、反驳，还是尚不能确认某阶段叙事。
 
 当前代码实现了第二层的若干规则，**不能把其`support`字段直接当第三层**。五维不是五个独立概率，也没有实现一个经校准的总确认百分比。领域对象的 `score`明确为None。  
-出处：新 `domain/macro.py:26–46,49–189`；`CONTEXT.md:39–41`。
+出处：新 `domain/macro.py:26–46,49–189`；`GLOSSARY.md:39–41`。
 
 #### 各维度现有取值、证据与局限
 
@@ -542,7 +542,7 @@ pring_result.json → Stage4 Markdown报告
 #### 六阶段访谈底稿：典型环境，不是已批准的确认规则
 
 下面把新研究文档中的典型环境转成访谈起点。**每格都应允许时滞、冲突和暂不可判；不能作为正式阶段必要条件。**库存和信贷对应关系在研究文档中明确属于中国市场待验证假说。  
-出处：新 `docs/research/pring-six-stage-meanings.md:19–27`及各阶段章节；`CONTEXT.md:7–40`。
+出处：新 `docs/research/pring-six-stage-meanings.md:19–27`及各阶段章节；`GLOSSARY.md:7–40`。
 
 | 正式阶段：债/股/商品 | 政策访谈起点 | 信用访谈起点 | 过热访谈起点 | 物价访谈起点 | 库存访谈起点 |
 |---|---|---|---|---|---|
@@ -620,7 +620,7 @@ pring_result.json → Stage4 Markdown报告
 
 | 文件 | 本文引用位置与用途 |
 |---|---|
-| [领域上下文](/mnt/d/cursor/datasourceRF/CONTEXT.md:7) | 7–40：正式阶段、未知、非典型、转折及确认；45–65：投影和版本；71–98：窗口、时间与交易日 |
+| [领域上下文](/mnt/d/cursor/datasourceRF/GLOSSARY.md:7) | 7–40：正式阶段、未知、非典型、转折及确认；45–65：投影和版本；71–98：窗口、时间与交易日 |
 | [模型清单](/mnt/d/cursor/datasourceRF/src/pring_cycle/models.py:483) | 483–507：v0014；510–549：广度替换；553–616：目录迁移与库存公式 |
 | [指标目录](/mnt/d/cursor/datasourceRF/src/pring_cycle/catalog.py:43) | 43–111：基础成员与核心；223–272：市场身份/单位/维度；716–750：黄金、汇率、两融、CNY030迁移；821–835：ECB交叉 |
 | [指标成员合同](/mnt/d/cursor/datasourceRF/src/pring_cycle/metric_contracts.py:67) | 67–128：成员；144–267：官方宏观、库存、社融、贷款和工具；276–312：必需成员细则 |
