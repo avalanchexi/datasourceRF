@@ -15,7 +15,7 @@ from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 if TYPE_CHECKING:
     from alembic.config import Config
 
-SCHEMA_HEAD = "0037_uncorrectable_day"
+SCHEMA_HEAD = "0038_scheduled_run_at_0930"
 
 
 @contextmanager

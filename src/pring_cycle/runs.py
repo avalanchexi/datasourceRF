@@ -99,9 +99,10 @@ def member_keys(metric_id: str, members: Iterable[Mapping[str, str]] | None) -> 
     return tuple(member_key(metric_id, member) for member in members or ())
 
 
-# The scheduled run's fixed times in Shanghai: it starts at 9:00 on an SSE session, for the
-# session before (ADR-0041), and expires past 21:00 of that day.
-SCHEDULE_START_TIME = "09:00"
+# The scheduled run's fixed times in Shanghai: it starts at 9:30 on an SSE session, for the
+# session before, once its margin totals are out at 9:05 (ADR-0041, 2026-10-13), and expires
+# past 21:00 of that day.
+SCHEDULE_START_TIME = "09:30"
 SCHEDULE_P0_DEADLINE = "21:00"
 
 

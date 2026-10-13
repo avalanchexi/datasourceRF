@@ -148,12 +148,12 @@ def test_after_close_schedule_is_versioned_and_disabled_by_default(tmp_path: Pat
     assert default == {
         "enabled": False,
         "timezone": "Asia/Shanghai",
-        "start_time": "09:00",
+        "start_time": "09:30",
         "p0_deadline": "21:00",
         "version": 1,
     }
     assert enabled["enabled"] is True
-    assert enabled["start_time"] == "09:00"
+    assert enabled["start_time"] == "09:30"
     assert enabled["version"] == 2
     assert runs.startup_actions() == {"automatic_runs": 0, "external_requests": 0}
 
@@ -186,7 +186,7 @@ def test_an_upgraded_schedule_moves_to_the_next_morning_and_keeps_its_switch(
     connection.close()
 
     for upgraded in (database, empty, current):
-        migrate_database(upgraded)
+        _upgrade(upgraded, "0036_scheduled_run_t_plus_1")
 
     with sqlite3.connect(database) as connection:
         rows = connection.execute(
@@ -199,7 +199,6 @@ def test_an_upgraded_schedule_moves_to_the_next_morning_and_keeps_its_switch(
         (2, int(enabled), "18:30", "21:00"),
         (3, int(enabled), "09:00", "21:00"),
     ]
-    assert RunRepository(database).schedule()["start_time"] == "09:00"
     with sqlite3.connect(empty) as connection:
         # A new database is given its first version when the runtime is bootstrapped.
         assert connection.execute("SELECT COUNT(*) FROM schedule_configuration").fetchone() == (0,)
@@ -209,6 +208,58 @@ def test_an_upgraded_schedule_moves_to_the_next_morning_and_keeps_its_switch(
         assert connection.execute(
             "SELECT version, start_time FROM schedule_configuration ORDER BY version"
         ).fetchall() == [(1, "18:30"), (2, "09:00")]
+    connection.close()
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_an_upgraded_schedule_starts_at_0930_and_keeps_its_switch(
+    tmp_path: Path, enabled: bool
+) -> None:
+    """A database whose schedule starts at 9:00 gets a version starting at 9:30, once the
+    margin totals are out, on or off as it was (ADR-0041, 2026-10-13); its earlier versions,
+    deadline and time zone are kept. A new database is left to the runtime's bootstrap, and
+    one already at 9:30 is left as it is."""
+    database = tmp_path / "runtime.sqlite3"
+    empty = tmp_path / "empty.sqlite3"
+    current = tmp_path / "current.sqlite3"
+    for upgraded in (database, empty, current):
+        _upgrade(upgraded, "0037_uncorrectable_day")
+    with sqlite3.connect(database) as connection:
+        connection.executemany(
+            "INSERT INTO schedule_configuration VALUES (?, ?, 'Asia/Shanghai', ?, '21:00', "
+            "?, '2026-10-11T00:00:00+00:00')",
+            [(1, 0, "18:30", "system-default"), (2, int(enabled), "09:00", "local-user")],
+        )
+    connection.close()
+    with sqlite3.connect(current) as connection:
+        connection.execute(
+            "INSERT INTO schedule_configuration VALUES (1, 1, 'Asia/Shanghai', '09:30', "
+            "'21:00', 'local-user', '2026-10-14T00:00:00+00:00')"
+        )
+    connection.close()
+
+    for upgraded in (database, empty, current):
+        migrate_database(upgraded)
+
+    with sqlite3.connect(database) as connection:
+        rows = connection.execute(
+            "SELECT version, enabled, timezone, start_time, p0_deadline "
+            "FROM schedule_configuration ORDER BY version"
+        ).fetchall()
+    connection.close()
+    assert rows == [
+        (1, 0, "Asia/Shanghai", "18:30", "21:00"),
+        (2, int(enabled), "Asia/Shanghai", "09:00", "21:00"),
+        (3, int(enabled), "Asia/Shanghai", "09:30", "21:00"),
+    ]
+    assert RunRepository(database).schedule()["start_time"] == "09:30"
+    with sqlite3.connect(empty) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM schedule_configuration").fetchone() == (0,)
+    connection.close()
+    with sqlite3.connect(current) as connection:
+        assert connection.execute(
+            "SELECT version, start_time FROM schedule_configuration ORDER BY version"
+        ).fetchall() == [(1, "09:30")]
     connection.close()
 
 

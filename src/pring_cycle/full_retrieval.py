@@ -23,7 +23,7 @@ from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueStat
 from pring_cycle.freshness import (
     DERIVED_INPUTS,
     FRESHNESS_REGISTRY,
-    assess,
+    latest_due_period,
     latest_released_period,
 )
 from pring_cycle.full_run_requirements import (
@@ -61,6 +61,7 @@ from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository, member_ke
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector, select_retrieval_input
 from pring_cycle.storage import database_connection
+from pring_cycle.summary_cutoff import SummaryCutoff
 from pring_cycle.trading_calendar import (
     SseCalendar,
     current_calendar,
@@ -185,7 +186,7 @@ class FullRunRetrieval:
         it: an earlier session is not searched, but its listing is still read."""
         from pring_cycle.worker import EARLIER_SESSION, _retrieval_release_status
 
-        # Publication is bounded to what the target market could have known.
+        # Publication is bounded to what the target day's summary could know of.
         known_at = (
             utc_now()
             if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen
@@ -196,7 +197,7 @@ class FullRunRetrieval:
             scope,
             known_at,
             definition_version=version,
-            public_as_of=min(known_at, utc_now(), _target_end(run)),
+            public_as_of=SummaryCutoff.target(run, utc_now()),
             latest_only=True,
         )
         discover_release = release in {
@@ -714,7 +715,7 @@ class FullRunRetrieval:
                 _scope(document),
                 selector.as_of,
                 definition_version=rules.metric_catalog_version,
-                public_as_of=min(selector.as_of, utc_now(), _target_end(run)),
+                public_as_of=selector.cutoff,
                 latest_only=True,
                 reads=reads,
             )
@@ -794,9 +795,11 @@ class FullRunRetrieval:
         self, run: RunRecord, definition: MetricDefinition, selector: ModelInputSelector
     ) -> date | None:
         """The newest period due at the release gate's cutoff: out and past its grace."""
-        cutoff = min(selector.as_of, utc_now(), _target_end(run))
-        due = assess(definition.metric_id, None, cutoff, current_calendar()).due_period
-        return date.fromisoformat(due) if due is not None else None
+        rule = FRESHNESS_REGISTRY.get(definition.metric_id)
+        if rule is None or rule.frequency == "event":
+            return None
+        # Through the target: a period after it is never due, though due by the cutoff.
+        return latest_due_period(rule, selector.cutoff, current_calendar())
 
     def _latest_released(
         self, run: RunRecord, definition: MetricDefinition, selector: ModelInputSelector
@@ -805,8 +808,7 @@ class FullRunRetrieval:
         rule = FRESHNESS_REGISTRY.get(definition.metric_id)
         if rule is None or rule.frequency not in {"daily", "monthly", "quarterly"}:
             return None
-        cutoff = min(selector.as_of, utc_now(), _target_end(run))
-        return latest_released_period(rule, cutoff, current_calendar())
+        return latest_released_period(rule, selector.cutoff, current_calendar())
 
     def recover_legacy_plan(self, run: RunRecord) -> None:
         if not run.cutoffs_frozen:

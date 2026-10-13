@@ -211,9 +211,11 @@ def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
     metric_id = "CN_GDP" if case == "gdp_no_levels" else "UST2Y_NOMINAL_YIELD"
     row = next(row for row in rows if row["metric_id"] == metric_id)
     # A schema refused, or only refused fields, is a structure rejection (ticket 18). A
-    # tenor the refresh's answer left out is delivered empty; the gap day's refetch that
-    # followed, recorded since, was refused and is the latest the row shows.
-    assert row["acquisition_status"] == "structure_rejected"
+    # tenor the answer left out is delivered empty: the run, past the target's next morning,
+    # asks the target day itself again, and that answer leaves it out as well (ADR-0041
+    # 2026-10-13; asked for the day before, the answer's off-period row was refused).
+    expected = "source_empty" if case == "treasury_partial" else "structure_rejected"
+    assert row["acquisition_status"] == expected
     if case == "treasury_partial":
         refresh = AcquisitionOutcomes(paths.database).latest(
             metric_id, as_of=datetime.now(UTC), period="2026-08-28"
@@ -1089,6 +1091,9 @@ def test_full_run_core_selection_preserves_explicit_as_of_mode(
 
     paths, runs = prepare(tmp_path)
     known = datetime(2026, 8, 29, tzinfo=UTC)
+    # Held since the next morning, public only after the run's cutoff: the SYSTEM path reads
+    # it, the PUBLIC one does not (public before the cutoff, the target day would read it,
+    # ADR-0041 2026-10-13).
     EvidenceRepository(paths.database).append_source_claim(
         SourceClaimInput(
             metric_id="CN_EQUITY_CORE_000985",
@@ -1104,7 +1109,7 @@ def test_full_run_core_selection_preserves_explicit_as_of_mode(
             source_reference="tushare:index_daily:000985.CSI:2026-08-28",
             release_event_id="fixture:late-core-publication",
             release_at=known,
-            public_available_at=known,
+            public_available_at=datetime(2026, 9, 8, tzinfo=UTC),
             fetched_at=known,
             available_at=known,
             certification_status="certified",
@@ -1127,8 +1132,10 @@ def test_full_run_core_selection_preserves_explicit_as_of_mode(
 def test_full_run_plans_the_latest_released_period_of_a_metric_not_held(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The real run of 2026-09-24: August's industrial finance comes out on 9/27 and 9/23's
-    VIX at 06:00 the next morning, so what a run for 9/23 can fetch is July and 9/22."""
+    """A run for 9/23 frozen at 9:40 on 9/24: August's industrial finance comes out on 9/27,
+    so it plans July; 9/23's VIX (06:00) and margin totals (09:05) are out the next morning
+    before the cutoff, so it plans 9/23 for them, the target day's own (ADR-0041 2026-10-13).
+    Nothing after the target is planned, though the next session's notices are out by then."""
     # Cboe's file as it stood on 9/25, ending on 9/22. Unserved, VIX would rest on whether
     # the real host answered, and a missing VIX is planned like any other gap.
     url = "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
@@ -1154,26 +1161,42 @@ def test_full_run_plans_the_latest_released_period_of_a_metric_not_held(
         target_business_date="2026-09-23",
         client_request_id="latest-released-period",
         model_version_id=CURRENT_MODEL,
-        system_as_of=datetime.now(UTC),
+        system_as_of=datetime(2026, 9, 24, 1, 40, tzinfo=UTC),
+        cutoff_mode="explicit",
     )
     process_pending_run(paths, report_adapters=())
     plan = runs.full_retrieval_plan(run.run_id)
+    requirements = plan["initial"]["requirements"]
     periods = {
         r["metric_id"]: r["period"]
-        for r in plan["initial"]["requirements"]
+        for r in requirements
         if r["metric_id"]
-        in {"CN_INDUSTRIAL_FINANCE", "CN_INVENTORY_TURNOVER", "CBOE_VIX_INDEX", "NASDAQ_SOX_INDEX"}
+        in {
+            "CN_INDUSTRIAL_FINANCE",
+            "CN_INVENTORY_TURNOVER",
+            "CBOE_VIX_INDEX",
+            "NASDAQ_SOX_INDEX",
+            "CN_MARGIN_BALANCE_SSE_SZSE",
+            "CN_DR007",
+        }
     }
     assert periods == {
         "CN_INDUSTRIAL_FINANCE": "2026-07",
         "CN_INVENTORY_TURNOVER": "2026-07",
-        "CBOE_VIX_INDEX": "2026-09-22",
-        "NASDAQ_SOX_INDEX": "2026-09-22",
+        "CBOE_VIX_INDEX": "2026-09-23",
+        "NASDAQ_SOX_INDEX": "2026-09-23",
+        "CN_MARGIN_BALANCE_SSE_SZSE": "2026-09-23",
+        "CN_DR007": "2026-09-23",
     }
+    # No session after the target, though the next session's own notices are out by 9:40.
+    sessions = {str(r["period"]) for r in requirements if len(str(r.get("period"))) == 10}
+    assert max(sessions) == "2026-09-23"
     scopes = {s["release_event_id"]: s["release_status"] for s in plan["initial"]["scopes"]}
     assert scopes["full:nbs_industrial_finance:2026-07"] == "released"
-    # VIX is read from Cboe's file and never searched (ADR-0029): no retrieval scope.
-    assert "full:cboe_vix_index:2026-09-22" not in scopes
+    # The target day's margin totals are out by the cutoff: let through, not held back. EIA's
+    # week is not out until 23:00 two sessions on.
+    assert scopes["full:cn_margin_balance_sse_szse:2026-09-23"] == "released"
+    assert scopes["full:eia_petroleum_spot_prices:2026-09-23"] == "awaiting_release"
 
 
 def test_full_run_before_the_fixing_day_plans_the_lpr_in_force(tmp_path: Path) -> None:

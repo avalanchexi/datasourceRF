@@ -769,7 +769,7 @@ def test_a_next_morning_scheduled_run_is_not_expired_by_its_target_days_deadline
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A run scheduled at 9:00 for the session before falls due by 21:00 of the day it was
+    """A run scheduled at 9:30 for the session before falls due by 21:00 of the day it was
     scheduled on, not of its target, which has passed by then (ADR-0041)."""
     paths = runtime(tmp_path)
     runs = RunRepository(paths.database)
@@ -777,7 +777,7 @@ def test_a_next_morning_scheduled_run_is_not_expired_by_its_target_days_deadline
         target_business_date="2026-08-27",
         client_request_id="scheduled-next-morning-fixture",
         model_version_id="model-v0001",
-        system_as_of=datetime(2026, 8, 28, 1, 0, tzinfo=UTC),
+        system_as_of=datetime(2026, 8, 28, 1, 30, tzinfo=UTC),
     )
     refreshed: list[str] = []
 
@@ -819,7 +819,7 @@ def test_a_next_morning_scheduled_run_expires_past_the_deadline_of_its_scheduled
         target_business_date="2026-08-27",
         client_request_id="scheduled-next-morning-fixture",
         model_version_id="model-v0001",
-        system_as_of=datetime(2026, 8, 28, 1, 0, tzinfo=UTC),
+        system_as_of=datetime(2026, 8, 28, 1, 30, tzinfo=UTC),
     )
     if frozen_at is not None:
         runs.freeze_cutoffs(submitted.run_id, system_as_of=frozen_at)
@@ -841,18 +841,18 @@ def test_a_next_morning_scheduled_run_expires_past_the_deadline_of_its_scheduled
     assert stored.error_classification == "scheduled_p0_deadline_elapsed"
 
 
-def test_enabled_schedule_submits_on_the_first_check_from_0900_to_its_p0_deadline(
+def test_enabled_schedule_submits_on_the_first_check_from_0930_to_its_p0_deadline(
     tmp_path: Path,
 ) -> None:
-    """A Worker started past 9:00 on a session submits the run for the session before it on
-    its first check, as one that crossed 9:00 does; a restart that day returns that run, by
-    the same request key. Before 9:00 nothing is submitted (ADR-0041, ticket 02)."""
+    """A Worker started past 9:30 on a session submits the run for the session before it on
+    its first check, as one that crossed 9:30 does; a restart that day returns that run, by
+    the same request key. Before 9:30 nothing is submitted (ADR-0041, ticket 02)."""
     paths = runtime(tmp_path)
     runs = RunRepository(paths.database)
     runs.configure_schedule(enabled=True, requested_by="test")
     record_sse_calendar(paths, [date(2026, 8, 27), date(2026, 8, 28)])
 
-    early = submit_schedule_if_due(paths, datetime(2026, 8, 28, 0, 59, 59, tzinfo=UTC))
+    early = submit_schedule_if_due(paths, datetime(2026, 8, 28, 1, 29, 59, tzinfo=UTC))
     started_late = submit_schedule_if_due(paths, datetime(2026, 8, 28, 3, tzinfo=UTC))
     restarted = submit_schedule_if_due(paths, datetime(2026, 8, 28, 10, 30, tzinfo=UTC))
 
@@ -866,7 +866,8 @@ def test_enabled_schedule_submits_on_the_first_check_from_0900_to_its_p0_deadlin
 @pytest.mark.parametrize(
     ("observed", "submits"),
     [
-        pytest.param(datetime(2026, 8, 28, 1, tzinfo=UTC), True, id="at-0900"),
+        pytest.param(datetime(2026, 8, 28, 1, 29, 59, tzinfo=UTC), False, id="at-0929"),
+        pytest.param(datetime(2026, 8, 28, 1, 30, tzinfo=UTC), True, id="at-0930"),
         pytest.param(datetime(2026, 8, 28, 13, tzinfo=UTC), True, id="at-the-deadline"),
         pytest.param(datetime(2026, 8, 28, 13, 0, 0, 1, tzinfo=UTC), False, id="past-it"),
     ],
@@ -874,9 +875,10 @@ def test_enabled_schedule_submits_on_the_first_check_from_0900_to_its_p0_deadlin
 def test_the_schedule_submits_through_its_p0_deadline_as_the_run_entry_judges_it(
     tmp_path: Path, observed: datetime, *, submits: bool
 ) -> None:
-    """9:00 and 21:00 themselves are inside the window: the run entry expires a run only
-    once 21:00 of the day it was submitted on has passed (``_scheduled_p0_deadline_elapsed``),
-    so the schedule submits nothing past that, where its run would only expire."""
+    """9:30 and 21:00 themselves are inside the window, 9:29 is not: margin totals are out
+    at 9:05 (ADR-0041, 2026-10-13). The run entry expires a run only once 21:00 of the day it
+    was submitted on has passed (``_scheduled_p0_deadline_elapsed``), so the schedule submits
+    nothing past that, where its run would only expire."""
     paths = runtime(tmp_path)
     RunRepository(paths.database).configure_schedule(enabled=True, requested_by="test")
     record_sse_calendar(paths, [date(2026, 8, 27), date(2026, 8, 28)])
@@ -936,7 +938,7 @@ def test_a_live_worker_judges_each_day_once_and_submits_nothing_past_its_deadlin
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The day's verdict is kept: checks after it, a second apart, read no calendar. A
-    Worker whose checks jump from 8:59 to 21:01 submits nothing, where it once submitted a
+    Worker whose checks jump from 9:29 to 21:01 submits nothing, where it once submitted a
     run the run entry then expired. A Worker that slept across midnight judges the new day
     on waking (ticket 02)."""
     paths = runtime(tmp_path)
@@ -955,15 +957,15 @@ def test_a_live_worker_judges_each_day_once_and_submits_nothing_past_its_deadlin
     skipped = worker_module.ScheduleCheck()
     live = worker_module.ScheduleCheck()
 
-    before = submit_schedule_if_due(paths, datetime(2026, 8, 27, 0, 59, tzinfo=UTC), skipped)
+    before = submit_schedule_if_due(paths, datetime(2026, 8, 27, 1, 29, tzinfo=UTC), skipped)
     past_deadline = submit_schedule_if_due(paths, datetime(2026, 8, 27, 13, 1, tzinfo=UTC), skipped)
     judged_by_skipped = list(judged)
-    first = submit_schedule_if_due(paths, datetime(2026, 8, 27, 1, 0, 1, tzinfo=UTC), live)
+    first = submit_schedule_if_due(paths, datetime(2026, 8, 27, 1, 30, 1, tzinfo=UTC), live)
     then = [
-        submit_schedule_if_due(paths, datetime(2026, 8, 27, 1, 0, 1 + n, tzinfo=UTC), live)
+        submit_schedule_if_due(paths, datetime(2026, 8, 27, 1, 30, 1 + n, tzinfo=UTC), live)
         for n in range(1, 4)
     ]
-    # Asleep from 8-27 9:00:04 to 8-28 9:30.
+    # Asleep from 8-27 9:30:04 to 8-28 9:30.
     woken = submit_schedule_if_due(paths, datetime(2026, 8, 28, 1, 30, tzinfo=UTC), live)
 
     assert (before, past_deadline, judged_by_skipped) == (None, None, [])
@@ -973,15 +975,15 @@ def test_a_live_worker_judges_each_day_once_and_submits_nothing_past_its_deadlin
     assert woken is not None
     assert RunRepository(paths.database).get(woken).target_business_date == "2026-08-27"
     assert judged == [
-        datetime(2026, 8, 27, 1, 0, 1, tzinfo=UTC),
+        datetime(2026, 8, 27, 1, 30, 1, tzinfo=UTC),
         datetime(2026, 8, 28, 1, 30, tzinfo=UTC),
     ]
     assert scheduled_runs(paths) == sorted([first, woken])
 
 
-def checking_after_0900_shanghai(paths: RuntimePaths, day: date) -> str | None:
-    """A Worker's first check of ``day``, at 9:01 in Shanghai."""
-    return submit_schedule_if_due(paths, datetime.combine(day, time(1, 1), tzinfo=UTC))
+def checking_after_0930_shanghai(paths: RuntimePaths, day: date) -> str | None:
+    """A Worker's first check of ``day``, at 9:31 in Shanghai."""
+    return submit_schedule_if_due(paths, datetime.combine(day, time(1, 31), tzinfo=UTC))
 
 
 def scheduled_runs(paths: RuntimePaths) -> list[str]:
@@ -1022,16 +1024,16 @@ def test_enabled_schedule_skips_a_stated_sse_holiday_and_submits_the_session_bef
     runs = RunRepository(paths.database)
     # 9/29, 9/30 and 10/8 open; National Day 10/1–10/7 stated closed, weekdays included.
     record_sse_calendar(paths, [date(2026, 9, 29), date(2026, 9, 30), date(2026, 10, 8)])
-    assert checking_after_0900_shanghai(paths, date(2026, 9, 30)) is None
+    assert checking_after_0930_shanghai(paths, date(2026, 9, 30)) is None
     runs.configure_schedule(enabled=True, requested_by="test")
     requests = calendar_requests(paths)
 
-    holidays = [checking_after_0900_shanghai(paths, date(2026, 10, day)) for day in (1, 2, 5, 6, 7)]
-    before_holiday = checking_after_0900_shanghai(paths, date(2026, 9, 30))
-    after_holiday = checking_after_0900_shanghai(paths, date(2026, 10, 8))
+    holidays = [checking_after_0930_shanghai(paths, date(2026, 10, day)) for day in (1, 2, 5, 6, 7)]
+    before_holiday = checking_after_0930_shanghai(paths, date(2026, 9, 30))
+    after_holiday = checking_after_0930_shanghai(paths, date(2026, 10, 8))
     # Checked again by Workers started later that day: the same run, by the same key.
     later = submit_schedule_if_due(paths, datetime(2026, 10, 8, 6, tzinfo=UTC))
-    again = checking_after_0900_shanghai(paths, date(2026, 10, 8))
+    again = checking_after_0930_shanghai(paths, date(2026, 10, 8))
 
     assert holidays == [None] * 5
     assert before_holiday is not None
@@ -1114,17 +1116,17 @@ def test_an_unstated_day_fetches_its_sse_calendar_before_the_schedule_submits(
     paths, tushare = scheduled_sse
     runs = RunRepository(paths.database)
 
-    stated_session = checking_after_0900_shanghai(paths, date(2026, 9, 30))
-    stated_weekend = checking_after_0900_shanghai(paths, date(2026, 9, 26))
+    stated_session = checking_after_0930_shanghai(paths, date(2026, 9, 30))
+    stated_weekend = checking_after_0930_shanghai(paths, date(2026, 9, 26))
     asked_when_stated = list(tushare.ranges)
-    holiday = checking_after_0900_shanghai(paths, date(2026, 10, 1))
-    after_holiday = checking_after_0900_shanghai(paths, date(2026, 10, 8))
-    session = checking_after_0900_shanghai(paths, date(2026, 10, 9))
-    again = checking_after_0900_shanghai(paths, date(2026, 10, 9))
-    weekend = checking_after_0900_shanghai(paths, date(2026, 10, 10))
+    holiday = checking_after_0930_shanghai(paths, date(2026, 10, 1))
+    after_holiday = checking_after_0930_shanghai(paths, date(2026, 10, 8))
+    session = checking_after_0930_shanghai(paths, date(2026, 10, 9))
+    again = checking_after_0930_shanghai(paths, date(2026, 10, 9))
+    weekend = checking_after_0930_shanghai(paths, date(2026, 10, 10))
     # Monday stated open by a response of its own, the weekend before it not.
     record_sse_calendar(paths, [date(2026, 10, 12)])
-    monday = checking_after_0900_shanghai(paths, date(2026, 10, 12))
+    monday = checking_after_0930_shanghai(paths, date(2026, 10, 12))
 
     assert stated_session is not None
     assert runs.get(stated_session).target_business_date == "2026-09-29"
@@ -1172,12 +1174,12 @@ def test_a_failed_calendar_fetch_defers_the_schedule_and_retries_it(
     def check(observed: datetime) -> str | None:
         return submit_schedule_if_due(paths, observed, deferred)
 
-    crossed = check(utc(9, 1, 1))
-    waiting = check(utc(9, 1, 2))
+    crossed = check(utc(9, 1, 31))
+    waiting = check(utc(9, 1, 32))
     asked_while_waiting = len(tushare.ranges)
     tushare.failure = None
-    retried = check(utc(9, 1, 11))
-    after = check(utc(9, 1, 22))
+    retried = check(utc(9, 1, 41))
+    after = check(utc(9, 1, 52))
 
     assert crossed is None
     assert waiting is None
@@ -1199,9 +1201,9 @@ def test_a_response_without_the_session_before_today_defers_the_schedule(
     deferred = worker_module.ScheduleCheck()
     tushare.closed = frozenset(date(2026, 9, 25) + timedelta(days=n) for n in range(14))
 
-    crossed = submit_schedule_if_due(paths, utc(9, 1, 1), deferred)
+    crossed = submit_schedule_if_due(paths, utc(9, 1, 31), deferred)
     tushare.closed = frozenset()
-    retried = submit_schedule_if_due(paths, utc(9, 1, 11), deferred)
+    retried = submit_schedule_if_due(paths, utc(9, 1, 41), deferred)
 
     assert crossed is None
     assert deferrals(paths) == [
@@ -1231,9 +1233,9 @@ def test_a_day_the_fetched_calendar_leaves_out_defers_the_schedule_not_closes_it
     deferred = worker_module.ScheduleCheck()
     tushare.left_out = frozenset({left_out})
 
-    crossed = submit_schedule_if_due(paths, utc(9, 1, 1), deferred)
+    crossed = submit_schedule_if_due(paths, utc(9, 1, 31), deferred)
     tushare.left_out = frozenset()
-    retried = submit_schedule_if_due(paths, utc(9, 1, 11), deferred)
+    retried = submit_schedule_if_due(paths, utc(9, 1, 41), deferred)
 
     assert crossed is None
     assert deferrals(paths) == [
@@ -1256,7 +1258,7 @@ def test_a_stored_calendar_leaving_today_out_is_fetched_again_not_read_as_closed
         paths, date(2026, 10, 8), date(2026, 10, 9), left_out={date(2026, 10, 9)}
     )
 
-    submitted = checking_after_0900_shanghai(paths, date(2026, 10, 9))
+    submitted = checking_after_0930_shanghai(paths, date(2026, 10, 9))
 
     assert submitted is not None
     assert runs.get(submitted).target_business_date == "2026-10-08"
@@ -1275,7 +1277,7 @@ def test_a_deferred_schedule_is_not_retried_past_its_p0_deadline_or_the_next_day
     tushare.failure = OSError("fixture_calendar_unavailable")
     late = worker_module.ScheduleCheck()
     turned = worker_module.ScheduleCheck()
-    crossed = submit_schedule_if_due(paths, utc(9, 1, 1), late)
+    crossed = submit_schedule_if_due(paths, utc(9, 1, 31), late)
     # 20:55 in Shanghai: held back, due again at 21:05, past the deadline.
     near_deadline = submit_schedule_if_due(paths, utc(9, 12, 55), turned)
     tushare.failure = None

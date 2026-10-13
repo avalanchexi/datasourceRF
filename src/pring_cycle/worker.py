@@ -8,7 +8,7 @@ import sqlite3
 import threading
 from collections import Counter
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from enum import Enum
 from functools import partial
@@ -105,6 +105,7 @@ from pring_cycle.source_adapters import TushareCoreAdapter
 from pring_cycle.source_contract_review import require_model_source_contract
 from pring_cycle.stage_lookback import FAILED, HeldCore, StageLookback, look_back_for_stage
 from pring_cycle.storage import database_health, keep_database_open, record_worker_heartbeat
+from pring_cycle.summary_cutoff import SummaryCutoff
 from pring_cycle.trading_calendar import (
     Sessions,
     SseCalendar,
@@ -869,44 +870,49 @@ def _retrieval_release_status(
     now: datetime,
     *,
     definition_version: str,
-    public_as_of: datetime | None = None,
+    public_as_of: datetime | SummaryCutoff | None = None,
     latest_only: bool = False,
     reads: SeriesReads | None = None,
 ) -> str:
-    """Whether the scope's period is published by ``now``; ``reads`` shares series reads."""
+    """Whether the scope's period is published by ``now``; ``reads`` shares series reads.
+
+    A summary's cutoff (``public_as_of``) knows what is public by it of periods through its
+    day, never past ``now`` (ADR-0041 2026-10-13).
+    """
     series = reads or SeriesReads(EvidenceRepository(paths.database))
-    public_cutoff = min(now, public_as_of) if public_as_of is not None else now
+    cutoff = SummaryCutoff.of(public_as_of if public_as_of is not None else now)
+    if cutoff.public_as_of > now:
+        cutoff = replace(cutoff, public_as_of=now)
     states: list[str] = []
     for metric_id in scope.metric_ids:
         points = series(
             metric_id,
             as_of=now,
-            public_as_of=public_cutoff,
+            public_as_of=cutoff.public_as_of,
             definition_version=definition_version,
         )
         if any(
             matches_retrieval_period(point.period_end, scope.period)
             and any(
                 claim.quality_status == "validated"
-                and claim.public_available_at is not None
-                and claim.public_available_at <= public_cutoff
+                and cutoff.knows(date.fromisoformat(point.period_end), claim.public_available_at)
                 for claim in point.claims
             )
             for point in points
         ):
             states.append("released")
         elif metric_id == "CN_LPR_1Y_5Y":
+            from pring_cycle.official_listing import period_last_day
             from pring_cycle.release_calendar import lpr_release_expectation
 
             expectation = lpr_release_expectation(scope.period)
-            states.append(
-                "released" if public_cutoff >= expectation.window_start else "awaiting_release"
+            fixed = cutoff.knows(
+                date.fromisoformat(period_last_day(scope.period)), expectation.window_start
             )
+            states.append("released" if fixed else "awaiting_release")
         else:
             states.append(
-                _registered_release_state(
-                    metric_id, scope.period, public_cutoff, latest_only=latest_only
-                )
+                _registered_release_state(metric_id, scope.period, cutoff, latest_only=latest_only)
             )
     for state in ("awaiting_release", "unknown_release_configuration", EARLIER_SESSION):
         if state in states:
@@ -919,7 +925,7 @@ EARLIER_SESSION = "earlier_session_not_searched"
 
 
 def _registered_release_state(
-    metric_id: str, period: str, cutoff: datetime, *, latest_only: bool = False
+    metric_id: str, period: str, cutoff: SummaryCutoff, *, latest_only: bool = False
 ) -> str:
     """Whether the freshness registry says ``period`` has been published by ``cutoff``.
 
@@ -949,7 +955,7 @@ def _registered_release_state(
         first = date.fromisoformat(period)
     calendar = current_calendar()
     end = period_end(rule.frequency, first, calendar)
-    if release_at(rule, end, calendar) > cutoff:
+    if not cutoff.knows(end, release_at(rule, end, calendar)):
         return "awaiting_release"
     if (
         not latest_only
@@ -1238,10 +1244,13 @@ def _explanatory_evidence_warnings(
 ) -> tuple[str, ...]:
     evidence = EvidenceRepository(paths.database)
     context_statuses = _context_metric_statuses(context)
+    # What the target day's summary read, by the run's cutoff (ADR-0041 2026-10-13).
+    cutoff = SummaryCutoff.target(run, run.system_as_of)
     target_trading_days = _target_trading_days(
         evidence,
         run,
         definition_version=(definitions[0].definition_version if definitions else ""),
+        cutoff=cutoff,
     )
     warnings: list[str] = []
     for priority in ("P1", "P2"):
@@ -1271,15 +1280,13 @@ def _explanatory_evidence_warnings(
                 definition.metric_id,
                 mode=AsOfMode.SYSTEM,
                 as_of=run.system_as_of,
-                public_as_of=datetime.combine(
-                    date.fromisoformat(run.target_business_date),
-                    time.max,
-                    tzinfo=ZoneInfo("Asia/Shanghai"),
-                ),
+                public_as_of=cutoff.public_as_of,
                 definition_version=definition.definition_version,
             )
             series = tuple(
-                point for point in series if _point_known_by_target(point, run.target_business_date)
+                point
+                for point in series
+                if _point_known_by_target(point, run.target_business_date, cutoff=cutoff)
             )
             if _direct_metric_is_ready(
                 series,
@@ -1315,6 +1322,7 @@ def _target_trading_days(
     run: RunRecord,
     *,
     definition_version: str,
+    cutoff: SummaryCutoff,
 ) -> tuple[str, ...]:
     if not definition_version:
         return ()
@@ -1322,11 +1330,7 @@ def _target_trading_days(
         CORE_METRICS["stock"],
         mode=AsOfMode.SYSTEM,
         as_of=run.system_as_of,
-        public_as_of=datetime.combine(
-            date.fromisoformat(run.target_business_date),
-            time.max,
-            tzinfo=ZoneInfo("Asia/Shanghai"),
-        ),
+        public_as_of=cutoff.public_as_of,
         definition_version=definition_version,
     )
     days = sorted(
@@ -1487,18 +1491,21 @@ def _point_is_current_for_target(
     )
 
 
-def _point_known_by_target(point: MetricSeriesPoint, target_business_date: str) -> bool:
+def _point_known_by_target(
+    point: MetricSeriesPoint, target_business_date: str, *, cutoff: SummaryCutoff | None = None
+) -> bool:
+    """Whether the point's selected claim is known to the target day's summary: by
+    ``cutoff``, the day's end unless given."""
     target = date.fromisoformat(target_business_date)
+    known = cutoff or SummaryCutoff.at_day_end(target)
     if date.fromisoformat(point.period_start) > target:
         return False
     selected = next(
         (claim for claim in point.claims if claim.claim_id == point.selected_claim_id),
         None,
     )
-    return (
-        selected is not None
-        and selected.public_available_at is not None
-        and selected.public_available_at.astimezone(ZoneInfo("Asia/Shanghai")).date() <= target
+    return selected is not None and known.knows(
+        date.fromisoformat(point.period_end), selected.public_available_at
     )
 
 

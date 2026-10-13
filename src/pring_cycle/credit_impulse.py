@@ -33,7 +33,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Collection, Iterable, Mapping
 from dataclasses import dataclass, field
-from datetime import date, datetime, time
+from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
@@ -47,6 +47,7 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.official_context import official_gdp_quarters_matching_baselines, official_member
 from pring_cycle.retrieval import preceding_periods
+from pring_cycle.summary_cutoff import SummaryCutoff
 
 if TYPE_CHECKING:
     from pring_cycle.trading_calendar import Sessions
@@ -136,7 +137,7 @@ class InputPeriods:
         return {metric_id: len(periods) for metric_id, periods in self.periods.items()}
 
 
-def latest_released(public_cutoff: datetime, calendar: Sessions) -> dict[str, str]:
+def latest_released(public_cutoff: datetime | SummaryCutoff, calendar: Sessions) -> dict[str, str]:
     """The newest social financing month and GDP quarter out at ``public_cutoff``."""
     from pring_cycle.freshness import FRESHNESS_REGISTRY, latest_released_period
 
@@ -151,7 +152,7 @@ def latest_released(public_cutoff: datetime, calendar: Sessions) -> dict[str, st
 def minimum_requirements(
     formula_version: str | None,
     *,
-    public_cutoff: datetime,
+    public_cutoff: datetime | SummaryCutoff,
     calendar: Sessions,
     direct_held: Mapping[str, Collection[str]] | None = None,
 ) -> InputPeriods:
@@ -187,7 +188,7 @@ def fetch_coverage(
     formula_version: str | None,
     *,
     window: Collection[date],
-    public_cutoff: datetime,
+    public_cutoff: datetime | SummaryCutoff,
     calendar: Sessions,
 ) -> InputPeriods:
     """The periods to hold so each day of ``window`` can be derived as it stood that day.
@@ -198,12 +199,10 @@ def fetch_coverage(
     a day may difference from is kept.
     """
     union: dict[str, set[str]] = {}
+    cutoff = SummaryCutoff.of(public_cutoff)
     for day in window:
-        day_end = datetime.combine(day, time.max, tzinfo=_SHANGHAI)
         needs = minimum_requirements(
-            formula_version,
-            public_cutoff=min(public_cutoff, day_end),
-            calendar=calendar,
+            formula_version, public_cutoff=cutoff.on(day), calendar=calendar
         )
         for metric_id, periods in needs.periods.items():
             union.setdefault(metric_id, set()).update(periods)

@@ -69,6 +69,7 @@ from pring_cycle.price_consistency import (
 from pring_cycle.registered_warrants import WarrantRules, registered_warrant_change
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
+from pring_cycle.summary_cutoff import SummaryCutoff
 from pring_cycle.trading_calendar import TradingCalendar, current_calendar
 from pring_cycle.treasury_context import TREASURY_METRICS
 from pring_cycle.warrant_inputs import WarrantHistoryCoverage
@@ -296,8 +297,13 @@ def build_context_projection(
     formal_stage: StageResult | None = None,
     calendar: TradingCalendar | None = None,
     core_prices: Mapping[str, CorePrices] | None = None,
+    public_as_of: datetime | None = None,
 ) -> ContextProjection:
     """The day's context; a model with confirmation rules reads it against ``formal_stage``.
+
+    The target day's summary reads what is public by the run's cutoff (``public_as_of``),
+    of periods through the day; without it, what was public by the day's end, as a
+    backfilled day does (``SummaryCutoff``, ADR-0041 2026-10-13).
 
     The formal stage is decided from the three cores before, and only shared here: a
     model reading the four labels needs none. Its daily key indicators count sessions on
@@ -320,6 +326,11 @@ def build_context_projection(
             target_date = date.fromisoformat(target_business_date)
         except ValueError as error:
             raise ValueError("context_projection_target_date_invalid") from error
+        cutoff = (
+            SummaryCutoff(target_date, public_as_of)
+            if public_as_of is not None
+            else SummaryCutoff.at_day_end(target_date)
+        )
         target_repository = TargetBoundEvidenceRepository(
             repository,
             target_date,
@@ -327,6 +338,7 @@ def build_context_projection(
             allow_system_at_target=(
                 model_manifest.get("point_in_time_rule_version") == SYSTEM_TARGET_CUTOFF_VERSION
             ),
+            cutoff=cutoff,
         )
         repository = target_repository  # type: ignore[assignment]
         if visible_evidence_start is not None:
@@ -344,6 +356,7 @@ def build_context_projection(
                 allow_system_at_target=(
                     model_manifest.get("point_in_time_rule_version") == SYSTEM_TARGET_CUTOFF_VERSION
                 ),
+                cutoff=cutoff,
             )
         else:
             visible_repository = target_repository
@@ -1795,7 +1808,11 @@ def _adoptable_claims(
 
 
 class TargetBoundEvidenceRepository:
-    """Delegate evidence access while enforcing one historical period boundary."""
+    """Delegate evidence access while enforcing one historical period boundary.
+
+    What the day knows of is ``cutoff``'s rule, the day's end by default (a backfilled
+    day's); a target day's summary passes the run's cutoff.
+    """
 
     def __init__(
         self,
@@ -1805,30 +1822,20 @@ class TargetBoundEvidenceRepository:
         *,
         visible_start: date | None = None,
         allow_system_at_target: bool = False,
+        cutoff: SummaryCutoff | None = None,
     ) -> None:
         self._repository = repository
         self._target_date = target_date
         self._frequencies = frequencies
         self._visible_start = visible_start
         self._allow_system_at_target = allow_system_at_target
+        self._cutoff = cutoff or SummaryCutoff.at_day_end(target_date)
+        if self._cutoff.day != target_date:
+            raise ValueError("target_bound_cutoff_day_mismatch")
 
     def metric_series(self, *args: Any, **kwargs: Any) -> tuple[MetricSeriesPoint, ...]:
         tolerance = kwargs.get("tolerance")
-        query_kwargs = self._query_at_target(kwargs)
-        use_system = query_kwargs["allow_system_at_public_cutoff"]
-        points = tuple(
-            bounded
-            for point in self._repository.metric_series(*args, **query_kwargs)
-            if (
-                bounded := _point_at_target(
-                    point,
-                    self._target_date,
-                    tolerance=tolerance,
-                    allow_system_at_target=use_system,
-                )
-            )
-            is not None
-        )
+        points = self._known(args, kwargs)
         metric_id = args[0] if args else kwargs.get("metric_id")
         if metric_id == "CN_RRR_EVENT":
             points = _official_days_whole(points, tolerance=tolerance)
@@ -1858,17 +1865,9 @@ class TargetBoundEvidenceRepository:
         """
         if self._visible_start is None:
             return {}
-        query_kwargs = self._query_at_target(kwargs)
-        use_system = query_kwargs["allow_system_at_public_cutoff"]
         before: dict[str, MetricSeriesPoint] = {}
-        for point in self._repository.metric_series(*args, **query_kwargs):
-            bounded = _point_at_target(
-                point,
-                self._target_date,
-                tolerance=kwargs.get("tolerance"),
-                allow_system_at_target=use_system,
-            )
-            if bounded is not None and date.fromisoformat(bounded.period_end) < self._visible_start:
+        for bounded in self._known(args, kwargs):
+            if date.fromisoformat(bounded.period_end) < self._visible_start:
                 before[json.dumps(bounded.dimensions, sort_keys=True)] = bounded
         return before
 
@@ -1877,19 +1876,61 @@ class TargetBoundEvidenceRepository:
         return self._target_date
 
     def has_target_history(self, *args: Any, **kwargs: Any) -> bool:
+        return any(_usable_point(point) for point in self._known(args, kwargs))
+
+    def _known(
+        self, args: tuple[Any, ...], kwargs: Mapping[str, Any]
+    ) -> tuple[MetricSeriesPoint, ...]:
+        """The series as the cutoff knows it, each point among its claims known by then.
+
+        Past the day's end, a period still running on the day is read as it stood by the
+        day's end: the repository folds a provider's later revision over the claim it
+        revises, and the revision is not the day's to know (ADR-0041 2026-10-13).
+        """
         query_kwargs = self._query_at_target(kwargs)
-        return any(
-            _usable_point(point) and date.fromisoformat(point.period_start) <= self._target_date
-            for point in self._repository.metric_series(*args, **query_kwargs)
+        use_system = query_kwargs["allow_system_at_public_cutoff"]
+        points = self._repository.metric_series(*args, **query_kwargs)
+        cutoff = self._cutoff
+        if cutoff.public_as_of > cutoff.day_end and not isinstance(
+            self._repository, TargetBoundEvidenceRepository
+        ):
+            day = cutoff.day.isoformat()
+
+            def key(point: MetricSeriesPoint) -> tuple[str, str, str]:
+                return (
+                    point.period_start,
+                    point.period_end,
+                    json.dumps(point.dimensions, sort_keys=True),
+                )
+
+            at_day_end = {
+                key(point): point
+                for point in self._repository.metric_series(
+                    *args, **{**query_kwargs, "public_as_of": cutoff.day_end}
+                )
+                if point.period_end > day
+            }
+            points = tuple(
+                point if point.period_end <= day else at_day_end.get(key(point)) for point in points
+            )
+        return tuple(
+            bounded
+            for point in points
+            if point is not None
+            and (
+                bounded := _point_at_target(
+                    point,
+                    cutoff,
+                    tolerance=kwargs.get("tolerance"),
+                    allow_system_at_target=use_system,
+                )
+            )
+            is not None
         )
 
     def _query_at_target(self, kwargs: Mapping[str, Any]) -> dict[str, Any]:
         query_kwargs = dict(kwargs)
-        query_kwargs["public_as_of"] = datetime.combine(
-            self._target_date,
-            time.max,
-            tzinfo=ZoneInfo("Asia/Shanghai"),
-        )
+        query_kwargs["public_as_of"] = self._cutoff.public_as_of
         query_kwargs["allow_system_at_public_cutoff"] = (
             self._allow_system_at_target and kwargs["mode"] is AsOfMode.SYSTEM
         )
@@ -1929,25 +1970,24 @@ def _official_days_whole(
 
 def _point_at_target(
     point: MetricSeriesPoint,
-    target_date: date,
+    cutoff: SummaryCutoff,
     *,
     tolerance: float | None,
     allow_system_at_target: bool = False,
 ) -> MetricSeriesPoint | None:
-    if date.fromisoformat(point.period_start) > target_date:
+    """``point`` as ``cutoff`` knows it: among its claims public by then, of its period.
+
+    A model that allows it (``dual-cutoff-v0003``) may know a claim by its system time
+    instead, and only by the day's end.
+    """
+    if date.fromisoformat(point.period_start) > cutoff.day:
         return None
+    period_end = date.fromisoformat(point.period_end)
     claims = tuple(
         claim
         for claim in point.claims
-        if (
-            claim.public_available_at is not None
-            and claim.public_available_at.astimezone(ZoneInfo("Asia/Shanghai")).date()
-            <= target_date
-        )
-        or (
-            allow_system_at_target
-            and claim.available_at.astimezone(ZoneInfo("Asia/Shanghai")).date() <= target_date
-        )
+        if cutoff.knows(period_end, claim.public_available_at)
+        or (allow_system_at_target and claim.available_at <= cutoff.day_end)
     )
     if not claims:
         return None

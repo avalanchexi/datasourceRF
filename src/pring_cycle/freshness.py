@@ -34,6 +34,7 @@ from pring_cycle.metric_contracts import (
     EFFECTIVE_UNTIL_CHANGED_METRICS,
     REQUIRED_DIMENSION_MEMBERS,
 )
+from pring_cycle.summary_cutoff import SummaryCutoff
 from pring_cycle.trading_calendar import (
     Sessions,
     SseCalendar,
@@ -310,12 +311,37 @@ def _periods_back(rule: FreshnessRule, cutoff: datetime, calendar: Sessions) -> 
         end = _previous_period(rule.frequency, end, calendar)
 
 
-def latest_released_period(rule: FreshnessRule, cutoff: datetime, calendar: Sessions) -> date:
-    """The end of the newest period whose registered release time has passed at ``cutoff``."""
-    for end in _periods_back(rule, cutoff, calendar):
-        if release_at(rule, end, calendar) <= cutoff:
+def latest_released_period(
+    rule: FreshnessRule, cutoff: datetime | SummaryCutoff, calendar: Sessions
+) -> date:
+    """The end of the newest period whose registered release time has passed at ``cutoff``.
+
+    A summary's cutoff knows a period out past its day's end only when the period ends by
+    the day: a run for the target frozen the next morning finds the target's margin totals,
+    never the next session's notices (ADR-0041 2026-10-13).
+    """
+    known = SummaryCutoff.of(cutoff)
+    for end in _periods_back(rule, known.public_as_of, calendar):
+        if known.knows(end, release_at(rule, end, calendar)):
             return end
     raise AssertionError("unreachable: release times fall behind any cutoff")
+
+
+def latest_due_period(
+    rule: FreshnessRule, cutoff: datetime | SummaryCutoff, calendar: Sessions
+) -> date:
+    """The end of the newest period out and past its grace at ``cutoff``, of those it knows.
+
+    A historical target run frozen months later finds the newest period due through the
+    target, not none because a later one is due by then (ADR-0041 2026-10-13).
+    """
+    known = SummaryCutoff.of(cutoff)
+    for end in _periods_back(rule, known.public_as_of, calendar):
+        if _due_at(rule, end, calendar) <= known.public_as_of and known.knows(
+            end, release_at(rule, end, calendar)
+        ):
+            return end
+    raise AssertionError("unreachable: due times fall behind any cutoff")
 
 
 def assess(

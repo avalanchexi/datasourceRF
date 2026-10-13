@@ -283,7 +283,10 @@ class DaySummaries:
             run_materials.step_done("core_readiness")
             # Decided once: the context's confirmation reads it, and the set publishes it.
             decided = formal_stage(readiness)
-            context = self._context(day, readiness, decided, system_as_of=system_as_of)
+            # The target day reads what is public by the run's cutoff (ADR-0041 2026-10-13).
+            context = self._context(
+                day, readiness, decided, system_as_of=system_as_of, public_as_of=system_as_of
+            )
             run_materials.step_done("context")
             backfilled = self._backfill(
                 backfill_window,
@@ -582,7 +585,10 @@ class DaySummaries:
         *,
         system_as_of: datetime,
         persist_derived: bool = True,
+        public_as_of: datetime | None = None,
     ) -> ContextProjection:
+        """The day's context: of the target day with ``public_as_of`` the run's cutoff, else
+        of a backfilled day, as public by its end."""
         return build_context_projection(
             self._evidence,
             formal_stage=decided,
@@ -601,6 +607,7 @@ class DaySummaries:
             # A daily key indicator counts its sessions back past the run's window.
             calendar=self._window_calendar,
             core_prices={item.asset: _core_prices(item) for item in readiness},
+            public_as_of=public_as_of,
         )
 
     def _last_confirmed_stage(self, day: str) -> FormalStage | None:

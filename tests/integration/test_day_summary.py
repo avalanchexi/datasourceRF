@@ -640,3 +640,95 @@ def test_a_relink_at_the_cutoff_of_the_correction_it_corrects_is_its_day_s_lates
     page = _text(dashboard_page("/stage-history", None, (), (), repository.stage_history()))
     assert page.count("只更正上一确认阶段") == 1
     assert page.count("原汇总：核心历史口径变更") == 1
+
+
+# The Monday after the Friday target, past 9:05 when the margin totals of the session before
+# are out: a scheduled run's frozen cutoff (ADR-0041, 2026-10-13).
+NEXT_MORNING = datetime(2026, 8, 31, 9, 40, tzinfo=SHANGHAI)
+
+
+def cpi_of(paths: RuntimePaths, month: str, public: datetime) -> str:
+    """The headline CPI of ``month`` (``YYYY-MM``), public at ``public``."""
+    first = date.fromisoformat(f"{month}-01")
+    last = (first + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    return (
+        EvidenceRepository(paths.database)
+        .append_source_claim(
+            SourceClaimInput(
+                metric_id="CN_CPI_HEADLINE",
+                definition_version="metric-catalog-v0001",
+                period_kind="month",
+                period_start=first.isoformat(),
+                period_end=last.isoformat(),
+                dimensions={"measure": "yoy", "category": "headline"},
+                value=0.5,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit="percent",
+                provider="fixture",
+                source_reference=f"fixture:cpi:{month}",
+                release_event_id=f"fixture:cpi:{month}",
+                release_at=public,
+                public_available_at=public,
+                fetched_at=public,
+                available_at=public,
+                quality_status="validated",
+            )
+        )
+        .claim_id
+    )
+
+
+def frozen_inputs(paths: RuntimePaths, projection: ProjectionSet) -> set[str]:
+    [(members,)] = query(
+        paths,
+        "SELECT observation_version_ids_json FROM evidence_snapshot WHERE evidence_snapshot_id=?",
+        projection.envelope.evidence_snapshot_id,
+    )
+    return set(json.loads(members))
+
+
+def test_the_target_day_reads_what_is_public_by_the_runs_cutoff_of_periods_through_it(
+    tmp_path: Path,
+) -> None:
+    """The target day's summary reads what is public by the run's frozen cutoff, of periods
+    through the target: a value out the next morning before the cutoff, as the margin totals
+    are at 9:05, is read and frozen into its inputs (GLOSSARY 单日汇总, ADR-0041 2026-10-13).
+    A period ending after the target is not read, though public by then."""
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    next_morning = datetime(2026, 8, 31, 9, 5, tzinfo=SHANGHAI)
+    july = cpi_of(paths, "2026-07", next_morning)
+    august = cpi_of(paths, "2026-08", next_morning)
+
+    result = (
+        summaries(paths)
+        .summarize_target(
+            TARGET.isoformat(), system_as_of=NEXT_MORNING, run_materials=RunMaterials()
+        )
+        .result
+    )
+    assert result.projection_set_id is not None
+    projection = ProjectionSetRepository(paths.database).get(result.projection_set_id)
+
+    assert "2026-07-31" in cpi_periods(projection)
+    assert "2026-08-31" not in cpi_periods(projection)
+    inputs = frozen_inputs(paths, projection)
+    assert july in inputs
+    assert august not in inputs
+
+
+def test_a_backfilled_day_does_not_read_what_came_out_the_next_morning(tmp_path: Path) -> None:
+    """A backfilled day reads only what was public by its own end, whatever the run's
+    cutoff: a value of its own out the next morning is not among its inputs."""
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    july = cpi_of(paths, "2026-07", datetime(2026, 8, 5, 9, 5, tzinfo=SHANGHAI))
+
+    failed = summaries(paths).backfill(
+        ("2026-08-04",), target=TARGET.isoformat(), system_as_of=NEXT_MORNING
+    )
+
+    assert failed == ()
+    projection = summary(paths, "2026-08-04")
+    assert "2026-07-31" not in cpi_periods(projection)
+    assert july not in frozen_inputs(paths, projection)

@@ -759,6 +759,86 @@ def test_historical_context_reselects_same_provider_revision_visible_at_target(
     assert selected["source_reference"] == "fixture:official-publisher"
 
 
+def test_a_period_running_past_the_target_is_read_as_it_stood_by_the_targets_end(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The target day's summary, cut off the next morning, reads a period still running on
+    the day as it stood by the day's end: the publisher's revision out the next morning is
+    not the day's to know, and the value it revised is still read (ADR-0041 2026-10-13)."""
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    repository = EvidenceRepository(paths.database)
+    metric_id = "CN_CPI_HEADLINE"
+
+    def certified_definition(  # type: ignore[no-untyped-def]
+        requested_metric_id: str,
+        *,
+        definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
+    ):
+        definition = metric_definition(
+            requested_metric_id, definition_version=definition_version, database_path=database_path
+        )
+        return (
+            replace(definition, certification_status="certified")
+            if requested_metric_id == metric_id
+            else definition
+        )
+
+    monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
+    base = replace(
+        _certified_claim(
+            metric_id=metric_id,
+            period_start="2026-08-01",
+            period_end="2026-08-31",
+            dimensions={"measure": "yoy", "category": "headline"},
+            value=100.0,
+            unit="percent",
+        ),
+        provider="official-publisher",
+        source_reference="fixture:official-publisher",
+    )
+    on_the_day = datetime(2026, 8, 20, tzinfo=UTC)
+    next_morning = datetime(2026, 8, 29, 1, tzinfo=UTC)
+    repository.append_source_claims(
+        (
+            replace(
+                base,
+                release_event_id="release:official-publisher",
+                release_at=on_the_day,
+                public_available_at=on_the_day,
+                fetched_at=on_the_day,
+                available_at=on_the_day,
+            ),
+            replace(
+                base,
+                release_event_id="release:official-publisher:revision",
+                release_at=next_morning,
+                public_available_at=next_morning,
+                fetched_at=next_morning,
+                available_at=next_morning,
+                value=101.0,
+            ),
+        )
+    )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 29, 2, tzinfo=UTC),
+        target_business_date="2026-08-28",
+        model_manifest=_v2_manifest(metric_id),
+        public_as_of=datetime(2026, 8, 29, 2, tzinfo=UTC),
+    )
+    rows = [
+        row
+        for row in context.macro["price_chain"]["evidence"]  # type: ignore[index]
+        if row["metric_id"] == metric_id and row.get("period") == "2026-08-31"
+    ]
+
+    assert [row["value"] for row in rows] == [100.0]
+
+
 # Unknown publication is now inferred from the registered cadence (ADR-0021), so only the
 # future-month case is still rejected.
 @pytest.mark.parametrize("public_available", (True,))

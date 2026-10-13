@@ -28,22 +28,21 @@ from __future__ import annotations
 
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING
-from zoneinfo import ZoneInfo
 
 from pring_cycle import credit_impulse
 from pring_cycle.confirmation import DERIVED_FORMULAS, SESSION_FORMULAS, KeyIndicator
 from pring_cycle.credit_impulse import InputPeriods
 from pring_cycle.metric_contracts import evidence_frequency
 from pring_cycle.retrieval import preceding_periods
+from pring_cycle.summary_cutoff import SummaryCutoff
 from pring_cycle.trading_calendar import TradingCalendar
 
 if TYPE_CHECKING:
     from pring_cycle.context_projection import ContextProjectionRules
     from pring_cycle.trading_calendar import Sessions
 
-_SHANGHAI = ZoneInfo("Asia/Shanghai")
 _UNITS = {"monthly": "month", "quarterly": "quarter", "daily": "session", "event": "event"}
 
 
@@ -519,25 +518,27 @@ def resolve(
     *,
     formula_versions: Mapping[str, str],
     window: Collection[date],
-    public_cutoff: datetime,
+    public_cutoff: datetime | SummaryCutoff,
     calendar: Sessions,
     direct_held: Mapping[str, Collection[str]] | None = None,
 ) -> Lookback:
     """``readings`` for the target day at ``public_cutoff`` and each day of ``window``.
 
-    Each day reads back from the newest period out by its own end, never after
-    ``public_cutoff``. The credit impulse's inputs are its module's answer (ticket 24).
+    Each earlier day reads back from the newest period out by its own end, never after
+    ``public_cutoff``; the target day from the newest its cutoff knows of (ADR-0041
+    2026-10-13). The credit impulse's inputs are its module's answer (ticket 24).
     A daily reading of the newest session and the one before is read off the window's
     sessions and the fetch's fixed margin; one of more is covered back from each day of
     the window, counted on ``calendar`` (macro semantics ticket 06). A daily reading of
     more on every day is refused: the plan does not require it day by day.
     """
     version = formula_versions.get("credit_impulse")
+    cutoff = SummaryCutoff.of(public_cutoff)
     minimum = credit_impulse.minimum_requirements(
-        version, public_cutoff=public_cutoff, calendar=calendar, direct_held=direct_held
+        version, public_cutoff=cutoff, calendar=calendar, direct_held=direct_held
     )
     coverage = credit_impulse.fetch_coverage(
-        version, window=window, public_cutoff=public_cutoff, calendar=calendar
+        version, window=window, public_cutoff=cutoff, calendar=calendar
     )
     collected: dict[str, dict[str, dict[str, set[str]]]] = {}
 
@@ -573,10 +574,9 @@ def resolve(
         frequency = "quarterly" if item.periods.unit == "quarter" else "monthly"
         # Each day's newest, the target day's last: the window ends at the target day.
         newest = [
-            newest_released(item.metric_id, min(public_cutoff, _day_end(day)), calendar, frequency)
-            for day in days
+            newest_released(item.metric_id, cutoff.on(day), calendar, frequency) for day in days
         ]
-        target = newest_released(item.metric_id, public_cutoff, calendar, frequency)
+        target = newest_released(item.metric_id, cutoff, calendar, frequency)
         if target is None:
             continue  # dated otherwise by its release rule: fetched by its own range
         for day_newest in (each for each in newest if each is not None):
@@ -637,12 +637,15 @@ def _sessions_back(calendar: Sessions, day: date, periods: Periods) -> tuple[str
 
 
 def newest_released(
-    metric_id: str, cutoff: datetime, calendar: Sessions, frequency: str = "monthly"
+    metric_id: str,
+    cutoff: datetime | SummaryCutoff,
+    calendar: Sessions,
+    frequency: str = "monthly",
 ) -> str | None:
     """The newest ``frequency`` period out at ``cutoff``: ``YYYY-MM`` or ``YYYY-Qn``.
 
     By the metric's release rule; without a monthly or quarterly one, the period before
-    the cutoff's own. None when the rule dates the metric by another frequency.
+    the cutoff's own day. None when the rule dates the metric by another frequency.
     """
     from pring_cycle.freshness import FRESHNESS_REGISTRY, latest_released_period
 
@@ -651,7 +654,7 @@ def newest_released(
         if rule.frequency != frequency:
             return None
         return period_label(latest_released_period(rule, cutoff, calendar), frequency)
-    own = period_label(cutoff.astimezone(_SHANGHAI).date(), frequency)
+    own = period_label(SummaryCutoff.of(cutoff).day, frequency)
     return preceding_periods(own, 2)[0]
 
 
@@ -660,7 +663,3 @@ def period_label(day: date, frequency: str) -> str:
     if frequency == "quarterly":
         return f"{day.year}-Q{(day.month - 1) // 3 + 1}"
     return f"{day:%Y-%m}"
-
-
-def _day_end(day: date) -> datetime:
-    return datetime.combine(day, time.max, tzinfo=_SHANGHAI)

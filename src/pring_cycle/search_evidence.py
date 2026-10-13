@@ -47,6 +47,7 @@ from pring_cycle.source_adapters import (
     CORE_API_IDENTITIES,
 )
 from pring_cycle.storage import database_connection
+from pring_cycle.summary_cutoff import SummaryCutoff
 
 
 @dataclass(frozen=True)
@@ -86,6 +87,19 @@ class ModelInputSelector:
         require_registered_manifest(paths.database, manifest)
         self.version = str(manifest["metric_catalog_version"])
         self.database_path = paths.database
+        self.as_of = (
+            utc_now()
+            if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen
+            else run.system_as_of
+        )
+        self.full_run = run.command_type in {"manual_full", "scheduled_full"}
+        # A full run selects what its target day's summary knows of at this instant
+        # (ADR-0041 2026-10-13); a targeted refresh, what was public by the day's end.
+        self.cutoff = (
+            SummaryCutoff.target(run, min(self.as_of, utc_now()))
+            if self.full_run
+            else SummaryCutoff.at_day_end(date.fromisoformat(run.target_business_date))
+        )
         self.evidence = TargetBoundEvidenceRepository(
             EvidenceRepository(paths.database),
             date.fromisoformat(run.target_business_date),
@@ -93,15 +107,10 @@ class ModelInputSelector:
             allow_system_at_target=(
                 manifest.get("point_in_time_rule_version") == SYSTEM_TARGET_CUTOFF_VERSION
             ),
+            cutoff=self.cutoff,
         )
         self.core_evidence = EvidenceRepository(paths.database)
         self.target_business_date = run.target_business_date
-        self.full_run = run.command_type in {"manual_full", "scheduled_full"}
-        self.as_of = (
-            utc_now()
-            if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen
-            else run.system_as_of
-        )
         self.mode = mode
         self._points: dict[str, tuple[MetricSeriesPoint, ...]] = {}
         self._adoptable: dict[tuple[str, str], tuple[MetricSeriesPoint, ...]] = {}

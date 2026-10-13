@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Collection, Mapping, Sequence
-from datetime import date, datetime, time
+from datetime import date, datetime
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from pring_cycle import credit_impulse, lookback
 from pring_cycle.context_projection import (
@@ -15,6 +14,7 @@ from pring_cycle.context_projection import (
 from pring_cycle.runs import RunRecord, member_key, member_keys
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector
+from pring_cycle.summary_cutoff import SummaryCutoff
 from pring_cycle.trading_calendar import CalendarMaterialError, SseCalendar, current_calendar
 
 
@@ -67,15 +67,11 @@ def _decision_as_of(run: RunRecord, decided_at: datetime) -> datetime:
     return run.system_as_of
 
 
-def public_cutoff(run: RunRecord, decided_at: datetime) -> datetime:
-    """What the target day's analysis can know of, as decided at ``decided_at``.
-
-    The selector's instant, never past the target day's end.
+def public_cutoff(run: RunRecord, decided_at: datetime) -> SummaryCutoff:
+    """What the target day's summary can know of, as decided at ``decided_at``: what is
+    public by the selector's instant, of periods through the target (ADR-0041 2026-10-13).
     """
-    target_end = datetime.combine(
-        date.fromisoformat(run.target_business_date), time.max, tzinfo=ZoneInfo("Asia/Shanghai")
-    )
-    return min(_decision_as_of(run, decided_at), decided_at, target_end)
+    return SummaryCutoff.target(run, decided_at)
 
 
 def run_lookback(
