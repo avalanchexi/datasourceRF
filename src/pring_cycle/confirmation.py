@@ -99,7 +99,7 @@ _READINGS = {
     ),
 }
 # The inventory quadrant's lines: demand and inventory name the quadrant, production
-# verifies it (CONTEXT.md, 库存象限).
+# verifies it (GLOSSARY.md, 库存象限).
 QUADRANT_LINES = ("demand", "production", "inventory")
 
 
@@ -3117,7 +3117,7 @@ _INVENTORY_PROPOSITIONS = {
 # Demand (the PMI's new orders; industrial revenue), production (industrial value added;
 # the PMI's production) and inventory (finished goods' nominal growth; the PMI's finished
 # goods, finished goods' turnover days): each line's direction its main member's momentum
-# (CONTEXT.md, 库存象限). Industrial value added's February is its January-February
+# (GLOSSARY.md, 库存象限). Industrial value added's February is its January-February
 # cumulative growth, as its key indicator's is; no January of it, nor of the industrial
 # finance figures.
 _QUADRANT_LINES = {
@@ -3186,7 +3186,7 @@ _QUADRANT_LINES = {
     },
 }
 # The quadrant demand and inventory name, production moving with demand to verify it; any
-# other set of directions, a line flat among them, is unclassified (CONTEXT.md, 库存象限).
+# other set of directions, a line flat among them, is unclassified (GLOSSARY.md, 库存象限).
 _QUADRANTS = {
     "active_destocking": {"demand": "down", "production": "down", "inventory": "down"},
     "passive_destocking": {"demand": "up", "production": "up", "inventory": "down"},
@@ -3480,7 +3480,7 @@ _KEY_INDICATORS: list[dict[str, Any]] = [
 
 
 _PRICE_BLOCKS = ("observation_interfaces", "price_consistency", "supply_demand")
-# Prices of each core's own kind, shown under it and never counted (CONTEXT.md 观察接口;
+# Prices of each core's own kind, shown under it and never counted (GLOSSARY.md 观察接口;
 # expectation-table.md E1/D2): NHII is the commodity core, no evidence of prices (N06).
 _OBSERVATION_INTERFACES = [
     {

@@ -31,6 +31,8 @@ python tools/check.py full
 
 全套包含全部耗时测试，只看通过与否并记录实际耗时，不产出或复用收据；其余时候不跑。
 
+全套与真实完整运行开跑前，先跑 `python3 tools/clock_check.py`（约 65 秒），退出码 0 才开跑：墙钟回拨会让 `test_tushare_call_quota.py` 失败，并让真实运行拒收回执（`acquisition_time_invalid`）。两者都在 `flock /tmp/pring-heavy.lock` 下运行，并用 `tools/disk_guard.sh <pytest PID> <log> <GB下限> &` 守 C 盘（全套 12G、真实运行 20G）。
+
 ## 被删门禁的测试
 
 随对应模块在同一切片删除或改写：模块整删时整删其专属测试文件；部分耦合的测试在修改其模块的切片内去掉认证、准入、回放、PUBLIC 发布时间断言与前置。两轴审查不再强制，用户需要时再跑。本 effort 不引入 pytest-xdist。
@@ -38,6 +40,7 @@ python tools/check.py full
 ## 时间与磁盘
 
 - 同一时刻只跑一个重型测试，性能测量排除竞争负载；保留机器日常使用余量。
+- C 盘保护用 `tools/disk_guard.sh`（脚本头部写了守哪个进程）；放在会话临时目录的副本会随 WSL 重启丢失。
 - 每个用例使用独立可变运行库。
 - 计时随必跑验证采集，分别记录冷/热材料、准备/复制、测试和清理成本；同范围同身份才比较收益。
 - `check.py` 每次运行把每个用例的 setup／call／teardown 写入计时文件（`-p tools.timings`，默认在系统临时目录，`--timings <路径>` 可指定），结束时打印前 30 用例、前 15 文件、前 50 与前 10% 占比，并给出计时文件路径。全套记录耗时时一并保留这份摘要，不必为排名另跑一轮。module 夹具的 setup 记在首个用例名下，看共享运行的成本以文件合计为准。

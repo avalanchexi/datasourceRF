@@ -459,6 +459,32 @@ WSL 内删除不会让 Windows 侧的 C 盘立刻变大——虚拟磁盘只增�
 报"字符串缺少终止符"和"系统找不到指定的路径"。脚本正文写成纯 ASCII，路径由
 `$env:LOCALAPPDATA` 拼出，diskpart 脚本用 `[Text.Encoding]::Default` 写入。
 
+## 墙钟回拨
+
+现象：墙钟每约 32 秒回拨 2.0–2.5 秒。真实运行因此拒收回执（`acquisition_time_invalid`），
+全套里 `test_tushare_call_quota.py` 的限频时间线用例失败。用 `python3 tools/clock_check.py`
+检测，退出码 1 即为回拨。
+
+根因（2026-10-13 查明）：两套校时互相拉扯。Windows 宿主时钟不同步，比 NTP 快约 3 秒
+（`w32tm /query /status` 显示 Leap 3）。内核的 Hyper-V 同步（`hv_utils.timesync_implicit=1`）
+按 ±8.33% 调 `tick`，把客户机往宿主时钟拉；WSL 内的 `systemd-timesyncd` 又按 NTP 每 32 秒
+往回拨。所以重启 WSL、切换时钟源、手动改 `tick` 都无效，`tick` 1.4 秒内就会被改回去。
+
+处置：停掉 timesyncd（`systemctl stop systemd-timesyncd`，需要 root，见下节），只让客户机
+跟随宿主。停掉后墙钟比真实时间快约 3 秒，但不再回拨；生产只要求时刻不倒退，T+1 不受影响。
+`stop` 只管到这次 WSL 重启为止。持久处置（disable timesyncd，或修复宿主校时）待定，
+见 `.scratch/model-rules-residuals-20261013/issues/01-clock-two-time-syncs-fight.md`。
+验收期间不要对宿主执行 `w32tm /resync`：宿主时钟一跳，客户机会跟着调整。
+
+## 需要 root 时
+
+开发账号的 sudo 需要密码，而 Claude Code 的 `!` 前缀没有终端，sudo 读不到密码。可以走两条路：
+
+- 在 WSL 内执行 `wsl.exe -u root <命令>`，不需要密码，以 root 身份进入同一个发行版（用户 2026-10-13
+  确认可用）。代理使用前先向用户说明命令和影响，只用于环境处置（如上节停 timesyncd），
+  不用于绕过仓库的权限设置。
+- 请用户在 Windows PowerShell 执行 `wsl -u root <命令>`，或另开一个 WSL 终端执行 `sudo`。
+
 ## 统一离线验收
 
 以下命令在临时 SQLite 和制品目录中重复初始化，执行原子制品写入/登记/读回，启动正式

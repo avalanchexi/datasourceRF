@@ -210,7 +210,7 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 
 **已修复、历史保留**（票 08）：窗口内其他日子的投影，若生成它的运行（`projection_set.batch_id` 对应的 `parent_run.accepted_at`）受理早于 ADR-0036 实施（提交 `6fa8941`，2026-10-02 16:05Z），推断当时系统只读本目录版本下的声明（库中的 `code_version` 是安装哈希，无法对应提交，只能以受理时间推断）。这类投影的存在性问题（缺失、期次落后等），改按该日模型的目录版本严格读取再判断一次；若独立判断与投影相符（“存在”或“原料不齐，无派生值”），就归为“已修复、历史保留”：逐日表照样计数，标“（已修复、历史保留）”，分流中单列，不开票。依据是 ADR-0036 最后一条“已发布历史不重算”。被审运行自己的投影、找不到生成运行或运行受理在 ADR-0036 之后的投影不做此归因；严格读取解释不了的问题，包括严格读取下只能记“原料已被留存删除，无法核对”的，照常报。
 
-**只更正核心的日子**（模型规则后续批次票 03）：核心历史口径变化后，窗口内按旧口径汇总的日子会追加更正版本。若某日原汇总的上下文所引用的声明已超出留存，该日只更正三核心状态与正式阶段，宏观与库存上下文不重算，因而这一天没有派生值。依据是 `CONTEXT.md` 的“单日汇总”条（2026-10-12 用户决定），见 `.scratch/model-rules-validation-20261011/issues/08-correct-core-only-when-day-context-left-retention.md`。窗口内某日的投影须同时满足以下三条，才认定为只更正核心的日子：
+**只更正核心的日子**（模型规则后续批次票 03）：核心历史口径变化后，窗口内按旧口径汇总的日子会追加更正版本。若某日原汇总的上下文所引用的声明已超出留存，该日只更正三核心状态与正式阶段，宏观与库存上下文不重算，因而这一天没有派生值。依据是 `GLOSSARY.md` 的“单日汇总”条（2026-10-12 用户决定），见 `.scratch/model-rules-validation-20261011/issues/08-correct-core-only-when-day-context-left-retention.md`。窗口内某日的投影须同时满足以下三条，才认定为只更正核心的日子：
 
 1. 该投影的 P0 评估（`p0_assessment`，按 `projection_set_id` 取）中 `corrects.scope = core_only`；
 2. 同一投影的 `macro`、`inventory` 两份数据集都是 `context_status = not_recomputed`；
@@ -230,7 +230,7 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 | `dr007-policy-spread-v0001` | 100 ×（DR007 − 当日现行的七天逆回购利率），单位为基点 | `research-13.md:174` | 现行利率取当日或之前最近一次公告的利率 |
 | `inventory-ppi-common-month-v0002` | 最新月名义产成品存货 ÷（1 + 同月 PPI 同比 / 100） | `docs/research/legacy-pring-model-audit.md:509`、`.scratch/pring-data-acquisition-repair/implementation-19-isolated-lifecycle.md:71` | PPI 取总指数同比 |
 | `loan-ytd-monthly-change-v0002` | 同一成员年内累计值差分，1 月直接取累计值 | `research-13.md:178` | — |
-| `credit-impulse-12m-flow-share-v0003` | 100 × 近 12 个月社融增量之和 ÷ 近 4 季名义 GDP 之和；月度和季度增量都由年初至今累计值差分得到，1 月和一季度直接取累计值。GDP 季度差分的两个累计值须出自同一次交付，或与统计局直接公布的名义当季值一致 | `CONTEXT.md` “信用脉冲”条、`.scratch/architecture-review-20260929/issues/25-model-v0014-twelve-month-horizon.md:15`、`:38` | “本月可得的近 4 季”理解为当时可用、四季都齐全的最新一季。“同一次交付”按回执判断：有一条 TuShare 回执同时交付了差分两端的累计值，数值相同，且当时已到手；只认 TuShare 交付，统计局公告页等其他来源仍走公告核对（用户决定，`.scratch/run-findings-20260928/issues/13-gdp-vintage-check-rejects-tushare.md:19`）。先查声明与回执的关联（`source_claim_acquisition`），要求目录定义相同、回执的应答和声明都在当时已到手；查不到时，再读同一 API 的 TuShare 回执的规范化制品（`normalized_hash`，对象包装或顶层数组均可），要求回执在当时已通过校验。留存会删掉不再被引用的声明及其回执关联，回执和制品却留着，所以只查关联会把真实的共同交付漏掉（票 07）。制品不带目录版本，单位须是冻结定义允许的单位；有几条命中时取校验最早的一条，目标日明细的备注写明是哪条回执（逐日表不列备注）。两者都查不到时，再找当时已取得的统计局 GDP 公告原件（`official_http_get`，`family=nbs_gdp`），读第一张表中 GDP 行的当季绝对额，差分值在公告精度的半个单位内即算一致。两条都不满足时，值照样重算，同时列为“定义条件未满足”问题 |
+| `credit-impulse-12m-flow-share-v0003` | 100 × 近 12 个月社融增量之和 ÷ 近 4 季名义 GDP 之和；月度和季度增量都由年初至今累计值差分得到，1 月和一季度直接取累计值。GDP 季度差分的两个累计值须出自同一次交付，或与统计局直接公布的名义当季值一致 | `GLOSSARY.md` “信用脉冲”条、`.scratch/architecture-review-20260929/issues/25-model-v0014-twelve-month-horizon.md:15`、`:38` | “本月可得的近 4 季”理解为当时可用、四季都齐全的最新一季。“同一次交付”按回执判断：有一条 TuShare 回执同时交付了差分两端的累计值，数值相同，且当时已到手；只认 TuShare 交付，统计局公告页等其他来源仍走公告核对（用户决定，`.scratch/run-findings-20260928/issues/13-gdp-vintage-check-rejects-tushare.md:19`）。先查声明与回执的关联（`source_claim_acquisition`），要求目录定义相同、回执的应答和声明都在当时已到手；查不到时，再读同一 API 的 TuShare 回执的规范化制品（`normalized_hash`，对象包装或顶层数组均可），要求回执在当时已通过校验。留存会删掉不再被引用的声明及其回执关联，回执和制品却留着，所以只查关联会把真实的共同交付漏掉（票 07）。制品不带目录版本，单位须是冻结定义允许的单位；有几条命中时取校验最早的一条，目标日明细的备注写明是哪条回执（逐日表不列备注）。两者都查不到时，再找当时已取得的统计局 GDP 公告原件（`official_http_get`，`family=nbs_gdp`），读第一张表中 GDP 行的当季绝对额，差分值在公告精度的半个单位内即算一致。两条都不满足时，值照样重算，同时列为“定义条件未满足”问题 |
 | `repo-net-injection-trading-calendar-v0002` | 自上一个开市日之后到当天的投放 − 当天到期量。到期日为投放日加 7 个自然日，遇休市顺延到下一个上交所开市日，所以当天到期的是到期日落在“上一个开市日之后、当天及以前”的投放。开市日必须有公告，显式零按零计 | `.scratch/lookback-fetch-gaps-20261008/issues/16-derived-coverage-flag-counts-whole-family.md:64`、`.scratch/macro-semantics-20261006/issues/06-policy-dimension.md:52` | 库中没有到期量声明，一律按日历推算 |
 | `sf-monthly-increment-yoy-change-v0001` | 社融当月增量 − 去年同月增量 | `.scratch/macro-semantics-20261006/issues/04-monthly-official-key-indicators.md:33` | — |
 | `loan-monthly-increment-yoy-change-v0001` | 贷款成员当月增量 − 去年同月增量 | `.scratch/macro-semantics-20261006/issues/07-cumulative-and-quarterly-indicators.md:10` | 1 月沿用贷款差分的定义，直接取累计值 |
@@ -424,7 +424,7 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 
 ## 第三层（一）：输出内部一致性
 
-`tools/quality/output_consistency.py`。只做 SQL 复查，不重算趋势（重算归票 04）。每项检查列出“期望”和“实际”：期望由冻结清单（`stage_mapping`、`core_metrics`、`confirmation_rules.key_indicators`）和 ADR-0001、ADR-0037、`CONTEXT.md` 的规则推出，实际取自投影与报告。
+`tools/quality/output_consistency.py`。只做 SQL 复查，不重算趋势（重算归票 04）。每项检查列出“期望”和“实际”：期望由冻结清单（`stage_mapping`、`core_metrics`、`confirmation_rules.key_indicators`）和 ADR-0001、ADR-0037、`GLOSSARY.md` 的规则推出，实际取自投影与报告。
 
 **核心状态 → 正式阶段**
 
@@ -444,7 +444,7 @@ python tools/quality/audit.py --run <run_id> [--database <path>] [--out <md>]
 - `applicable` 等于“当前阶段非空”；不适用时每个关键指标都是 not_applicable。
 - 每个已连接维度的 `counts` 等于其关键指标关系的逐项统计；未连接维度的 `counts` 为空。
 - 成员读法：冻结规则列出的主要与辅助成员（库存象限按三条线）都必须展开，主要成员标为 `main`；按动量比较（`agrees_by = momentum`）、状态为 current 且未标 `not_compared` 的成员，动量与主要成员（按冻结规则认定）相反（up 对 down）当且仅当标为 `opposes`；冻结主要成员以外不得有标为 `main` 的成员。库存象限每条线各有一个主要成员，不做这两项，改按下文“库存象限三条线”核对。有成员与主要成员相反（`opposes`）的关键指标不能标为 `consistent`；计入的关键指标（support／counterevidence）不能有指标级缺失。
-- **按符号比较**（票 12，口径依据数据质量体检票 12 用户裁决（2026-10-10），已写入 `CONTEXT.md` 的“关键指标”）：
+- **按符号比较**（票 12，口径依据数据质量体检票 12 用户裁决（2026-10-10），已写入 `GLOSSARY.md` 的“关键指标”）：
   - 范围：冻结规则中公式为当月增量同比差（`loan-monthly-increment-yoy-change-v0001`、`sf-monthly-increment-yoy-change-v0001`）的成员，即贷款九个成员（含主要成员企业中长期）和社融当月增量。投影中 `agrees_by = sign` 的成员应恰好是这些。社融政府债及七个非政府分项按动量比较，不在此列。
   - 读法：成员的 `value`（目标期的同比差）为正记 up、为负记 down、为零记 flat，应等于成员的 `direction`；`value` 不是有限数值时，`direction` 不得是 up／down／flat。冻结规则有水平线（贷款为 0）时，`level` 应与同比差在线上下一致（等于水平线时不判）。
   - 比较（只核辅助成员的标注：主要成员保留 `main`，冻结规则标 `compared: false` 的不核）：成员不是 current 或同比差未知的，应标 `not_compared`；否则与主要成员方向比较（主要成员按动量的取 `momentum`，按符号的取同比差正负；主要成员不是 current 或不在成员中时方向未知），相反（up 对 down）当且仅当标 `opposes`，且不得标 `not_compared`；主要成员方向未知时只要求不标 `opposes`。持平（flat）与任何方向都不算相反。
