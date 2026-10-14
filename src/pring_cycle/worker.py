@@ -155,7 +155,8 @@ def run_worker(paths: RuntimePaths) -> None:
                     heartbeat_at=observed_at,
                 )
                 submit_schedule_if_due(paths, observed_at, schedule_check)
-                fetch_close_if_due(paths, observed_at, close_check)
+                # Read again: the schedule's check may have spent time fetching a calendar.
+                fetch_close_if_due(paths, datetime.now(UTC), close_check)
                 process_pending_run(paths)
                 stopped.wait(1)
     finally:
@@ -306,7 +307,8 @@ CLOSE_FETCH_RETRY = timedelta(minutes=10)
 class CloseCheck:
     """What a live Worker has judged of today's CFETS 16:30 close: whether the day is
     settled (the close held, or nothing to fetch), else when it asks again. Held in memory
-    only: a Worker started later that day asks once more, which adds nothing already held.
+    only: a Worker started later that day judges afresh, and asks nothing once the day's
+    close is held.
     """
 
     day: date | None = None
@@ -360,46 +362,65 @@ def fetch_close_if_due(
     check.settled = True
     if not session:
         return False
+    asked = False
     try:
-        models = ModelRepository(paths.database)
-        definition_version = ContextProjectionRules.from_manifest(
-            models.manifest(models.active().model_version_id)
-        ).metric_catalog_version
-    except LookupError:
-        return False
-    if definition_version in BUILTIN_CATALOG_VERSIONS or not _in_catalog(
-        paths, source.metric_id, definition_version
-    ):
-        return False
-    try:
+        definition_version = _close_catalog_version(paths, source.metric_id)
+        if definition_version is None:
+            return False
+
+        def holds_today() -> bool:
+            return any(
+                point.period_end == today.isoformat()
+                for point in EvidenceRepository(paths.database).metric_series(
+                    source.metric_id,
+                    mode=AsOfMode.SYSTEM,
+                    as_of=datetime.now(UTC),
+                    definition_version=definition_version,
+                )
+            )
+
+        if holds_today():
+            # A Worker restarted that day: the close is already held, nothing to ask.
+            return False
+        asked = True
         # The source records its own outcome, the failure's reason code included.
-        refresh_quote_source(
-            paths,
-            source,
-            start_date=today,
-            end_date=today,
-            definition_version=definition_version,
-        )
+        with contextlib.suppress(OSError, ValueError):
+            refresh_quote_source(
+                paths,
+                source,
+                start_date=today,
+                end_date=today,
+                definition_version=definition_version,
+            )
+        held = holds_today()
     except Exception as error:
-        # Whatever the failure, the day asks again: this runs in the Worker's loop.
+        # Whatever else failed, the day asks again: this runs in the Worker's loop.
         write_runtime_event(
             paths,
             "worker",
             f"close_fetch_failed:{type(error).__name__}:{error}"[:300],
             "warning",
         )
-    held = {
-        point.period_end
-        for point in EvidenceRepository(paths.database).metric_series(
-            source.metric_id,
-            mode=AsOfMode.SYSTEM,
-            as_of=datetime.now(UTC),
-            definition_version=definition_version,
-        )
-    }
-    if today.isoformat() not in held:
+        held = False
+    if not held:
         check.settled, check.retry_at = False, observed_at + CLOSE_FETCH_RETRY
-    return True
+    return asked
+
+
+def _close_catalog_version(paths: RuntimePaths, metric_id: str) -> str | None:
+    """The active model's catalog version when it registers ``metric_id`` as a run does
+    (no builtin catalog does), else None."""
+    models = ModelRepository(paths.database)
+    try:
+        model_version_id = models.active().model_version_id
+    except LookupError:
+        return None
+    version = ContextProjectionRules.from_manifest(
+        models.manifest(model_version_id)
+    ).metric_catalog_version
+    if version in BUILTIN_CATALOG_VERSIONS or not _in_catalog(paths, metric_id, version):
+        return None
+    return version
 
 
 def process_pending_run(

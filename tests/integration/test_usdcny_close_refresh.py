@@ -22,6 +22,7 @@ from pring_cycle.quote_sources import CHINAMONEY_USDCNY_1630, refresh_quote_sour
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.worker import CloseCheck, fetch_close_if_due
+from tests.conftest import install_runtime_clock
 from tests.integration.test_trading_calendar import record_sse_calendar
 
 METRIC = "CN_USDCNY_CLOSE_1630"
@@ -105,17 +106,36 @@ def last_attempt(paths: RuntimePaths) -> Any:
 
 
 def test_a_run_past_0930_holds_the_close_fetched_the_evening_before(
-    paths: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
 ) -> None:
+    # Tuesday 17:10 in Shanghai: the evening fetch.
+    install_runtime_clock(monkeypatch, request, datetime(2026, 10, 13, 9, 10, tzinfo=UTC))
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
     serve(monkeypatch, EVENING)
     refresh(paths, date(2026, 10, 13), date(2026, 10, 13))
+    # Wednesday 9:40 in Shanghai: the scheduled run for Tuesday fetches the file again.
+    morning = datetime(2026, 10, 14, 1, 40, tzinfo=UTC)
+    install_runtime_clock(monkeypatch, request, morning)
     serve(monkeypatch, MORNING)
 
     added = refresh(paths, date(2026, 9, 1), date(2026, 10, 13))
 
+    by_cutoff = {
+        point.period_end: point.selected_value
+        for point in EvidenceRepository(paths.database).metric_series(
+            METRIC,
+            mode=AsOfMode.SYSTEM,
+            as_of=morning + timedelta(minutes=5),
+            definition_version=VERSION,
+        )
+    }
     assert added == 0
-    assert held(paths) == {"2026-10-13": 7.1250}
-    attempt = last_attempt(paths)
+    assert by_cutoff == {"2026-10-13": 7.1250}
+    attempt = AcquisitionOutcomes(paths.database).latest(
+        METRIC, as_of=morning + timedelta(minutes=5)
+    )
+    assert attempt is not None
     assert (attempt.outcome, attempt.metadata["completeness"]) == (SUCCEEDED, "source_empty")
 
 
@@ -209,6 +229,17 @@ def test_the_worker_fetches_the_days_close_once_from_its_update_time(
     assert held_effective(scheduled) == {"2026-10-13": 7.1250}
 
 
+def test_a_worker_restarted_after_the_close_is_held_does_not_ask_again(
+    scheduled: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    asked = serve(monkeypatch, EVENING)
+    fetch_close_if_due(scheduled, at(16, 35), CloseCheck())
+
+    restarted = fetch_close_if_due(scheduled, at(18, 0), CloseCheck())
+
+    assert (restarted, len(asked)) == (False, 1)
+
+
 def test_a_file_without_the_close_yet_is_asked_again_ten_minutes_later_until_2100(
     scheduled: RuntimePaths, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -243,6 +274,26 @@ def test_a_failed_fetch_is_recorded_and_asked_again_but_not_past_2100(
         SOURCE_FAILED,
         "chinamoney_close_document_invalid",
     )
+
+
+def test_an_unforeseen_failure_does_not_stop_the_worker_and_is_asked_again(
+    scheduled: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def broken(request: Any, *, timeout: float) -> OfficialFile:
+        raise RuntimeError("fixture_transport_broken")
+
+    monkeypatch.setattr("pring_cycle.quote_sources.open_no_redirects", broken)
+    check = CloseCheck()
+
+    failed = fetch_close_if_due(scheduled, at(17, 0), check)
+    asked = serve(monkeypatch, EVENING)
+    waiting = fetch_close_if_due(scheduled, at(17, 9, 59), check)
+    retried = fetch_close_if_due(scheduled, at(17, 10), check)
+
+    assert (failed, waiting, retried, len(asked)) == (True, False, True, 1)
+    events = (scheduled.logs / "worker.jsonl").read_text(encoding="utf-8")
+    assert "close_fetch_failed:RuntimeError:fixture_transport_broken" in events
+    assert held_effective(scheduled) == {"2026-10-13": 7.1250}
 
 
 @pytest.mark.parametrize(
