@@ -8,11 +8,80 @@ from pathlib import Path
 
 import pytest
 
-from pring_cycle.quote_sources import parse_cboe_vix_history, parse_chinamoney_close
+from pring_cycle.quote_sources import (
+    parse_cboe_vix_history,
+    parse_chinamoney_close,
+    parse_nasdaq_index_history,
+)
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "quote_sources"
 VIX = (FIXTURES / "VIX_History-20260925.csv").read_bytes()
 CFETS = (FIXTURES / "rfx-sp-iday-chrt-20260925.json").read_bytes()
+# Nasdaq Global Indexes' history of SOX for 2026-10-01..10-13 as it answered on 10-14.
+SOX = (FIXTURES / "nasdaq-sox-history-20261013.json").read_bytes()
+
+
+def test_sox_history_gives_each_us_session_index_value() -> None:
+    rows = parse_nasdaq_index_history(
+        SOX, start_date=date(2026, 10, 8), end_date=date(2026, 10, 13)
+    )
+
+    # Values as the history page shows them (2026-10-14): 10/13 12,208.79 … 10/8 12,623.71.
+    assert [(row.business_date, round(row.value, 2)) for row in rows] == [
+        ("2026-10-08", 12623.71),
+        ("2026-10-09", 12572.42),
+        ("2026-10-12", 12236.79),
+        ("2026-10-13", 12208.79),
+    ]
+    assert rows[-1].value == 12208.79468690783
+
+
+def _sox_with(**changes: object) -> bytes:
+    document = json.loads(SOX)
+    document["aaData"][0].update(changes)
+    return json.dumps(document).encode()
+
+
+@pytest.mark.parametrize(
+    ("content", "reason"),
+    [
+        (b"<html>Incapsula incident</html>", "document_invalid"),
+        (json.dumps({"sEcho": 1}).encode(), "document_invalid"),
+        (_sox_with(Value=None), "value_invalid"),
+        (_sox_with(Value=-1.0), "value_invalid"),
+        (_sox_with(Value="12208.79"), "value_invalid"),
+        (_sox_with(TimeStamp="2026-10-13"), "date_invalid"),
+        # Not New York's midnight: the value is not a session's end-of-day row.
+        (_sox_with(TimeStamp="/Date(1791900000000)/"), "date_invalid"),
+        (_sox_with(TimeStamp="/Date(999999999999999)/"), "date_invalid"),  # no such year
+        (_sox_with(TimeStamp="/Date(1791777600000)/"), "duplicate_date"),
+    ],
+    ids=[
+        "anti_bot_page",
+        "no_table",
+        "value_missing",
+        "value_negative",
+        "value_as_text",
+        "date_as_text",
+        "date_not_midnight",
+        "date_out_of_range",
+        "date_repeated",
+    ],
+)
+def test_a_changed_sox_history_is_refused_rather_than_read(content: bytes, reason: str) -> None:
+    with pytest.raises(ValueError, match=f"nasdaq_index_{reason}"):
+        parse_nasdaq_index_history(
+            content, start_date=date(2026, 10, 1), end_date=date(2026, 10, 13)
+        )
+
+
+def test_a_sox_history_without_sessions_in_the_window_is_empty() -> None:
+    empty = json.dumps({"sEcho": 1, "iTotalRecords": 0, "aaData": []}).encode()
+
+    assert (
+        parse_nasdaq_index_history(empty, start_date=date(2026, 10, 1), end_date=date(2026, 10, 13))
+        == ()
+    )
 
 
 def test_vix_history_gives_each_session_close() -> None:

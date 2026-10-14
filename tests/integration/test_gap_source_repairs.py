@@ -13,6 +13,8 @@ from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from typing import Any
+from urllib.parse import parse_qs
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -95,6 +97,26 @@ CFETS_JSON = json.dumps(
 ).encode()
 
 
+def _sox_session(day: date, value: float) -> dict[str, object]:
+    midnight = datetime(day.year, day.month, day.day, tzinfo=ZoneInfo("America/New_York"))
+    stamp = f"/Date({int(midnight.timestamp() * 1000)})/"
+    return {"TimeStamp": stamp, "TradeDate": stamp, "Close": None, "Value": value}
+
+
+# Nasdaq Global Indexes' SOX history table, newest session first as the site answers.
+SOX_JSON = json.dumps(
+    {
+        "sEcho": 1,
+        "iTotalRecords": 3,
+        "aaData": [
+            _sox_session(date(2026, 8, 3), 5321.123456),
+            _sox_session(date(2026, 7, 31), 5288.5),
+            _sox_session(date(2026, 7, 30), 5301.25),
+        ],
+    }
+).encode()
+
+
 class OfficialFile(BytesIO):
     status = 200
 
@@ -112,6 +134,16 @@ def official_quote(request: Any, *, timeout: float) -> OfficialFile:
         return OfficialFile(url, VIX_CSV)
     if url.startswith("https://www.chinamoney.com.cn/"):
         return OfficialFile(url, CFETS_JSON)
+    if url == "https://indexes.nasdaqomx.com/Index/HistoryData":
+        form = parse_qs(request.data.decode())
+        # The index itself, never an ETF tracking it, over the run's window to its target.
+        if (
+            request.get_method() == "POST"
+            and form["id"] == ["SOX"]
+            and form["endDate"] == [f"{TARGET.isoformat()}T00:00:00.000"]
+            and form["timeOfDay"] == ["EOD"]
+        ):
+            return OfficialFile(url, SOX_JSON)
     raise OSError("offline")
 
 
@@ -380,18 +412,18 @@ def test_the_basket_is_chained_from_its_base_on_settlements(
     )
 
 
-def test_sox_is_a_license_gap_that_is_never_searched(
+def test_sox_is_held_from_the_nasdaq_index_history_and_never_searched(
     completed: tuple[RuntimePaths, str],
 ) -> None:
+    """ADR-0042: Nasdaq's own history of the index, read as published; no ETF stands in."""
     paths, _run_id = completed
 
-    sox = gaps(paths)["NASDAQ_SOX_INDEX"]
-
-    assert (sox["category"], sox["reason"]) == ("license_missing", "restricted_license")
+    assert latest_values(paths, "NASDAQ_SOX_INDEX") == {"{}": 5321.123456}
+    assert "NASDAQ_SOX_INDEX" not in gaps(paths)
     with sqlite3.connect(paths.database) as connection:
         searched = connection.execute(
             "SELECT count(*) FROM retrieval_attempt WHERE metric_id='NASDAQ_SOX_INDEX' "
-            "AND outcome <> 'not_attempted'"
+            "AND channel IN ('tavily', 'exa', 'ai_websearch') AND outcome <> 'not_attempted'"
         ).fetchone()[0]
     assert searched == 0
 
