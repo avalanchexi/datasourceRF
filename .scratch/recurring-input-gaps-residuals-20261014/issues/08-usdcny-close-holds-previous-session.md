@@ -1,4 +1,4 @@
-Status: claimed
+Status: done
 Category: bug
 Type: task
 
@@ -8,13 +8,13 @@ Type: task
 
 **Blocked by:** None (can start immediately)
 
-**Status:** claimed
+**Status:** done
 
-- [ ] 调查结论（接口、是否按日期可查、样本应答）写入本票 Comments，选定做法
-- [ ] `refresh_quote_source` 接缝上的测试：09:30 之后的运行持有上一交易日收盘价
-- [ ] 只有当前交易时段时记“来源为空”，不报错；夜盘收盘不被取；解析失败记来源失败与原因码
-- [ ] （历史接口做法）窗口内缺的上一交易日能补回
-- [ ] 时效规则不变（滞后一个交易日即现行）；受影响测试通过
+- [x] 调查结论（接口、是否按日期可查、样本应答）写入本票 Comments，选定做法
+- [x] `refresh_quote_source` 接缝上的测试：09:30 之后的运行持有上一交易日收盘价
+- [x] 只有当前交易时段时记“来源为空”，不报错；夜盘收盘不被取；解析失败记来源失败与原因码
+- [ ] （历史接口做法）窗口内缺的上一交易日能补回——不适用：中国货币网无历史接口，采用退路，见 Comments
+- [x] 时效规则不变（滞后一个交易日即现行）；受影响测试通过
 
 ## Comments
 
@@ -45,3 +45,10 @@ Type: task
 
 - 阶段一（`refresh_quote_source` 接缝）：新增 `tests/integration/test_usdcny_close_refresh.py` 前 4 例——前一晚取到的收盘价在次晨只有当前时段的文件下仍被持有（次晨记 `source_empty`）；只有当前时段记“来源为空”不报错；03:00 夜盘收盘与结构不符的文件记 `source_failed` 并附原因码。现行解析器已具备这些行为，4 例首跑即绿（特征测试，钉住退路所依赖的行为）。
 - 阶段二（Worker 晚间取数）：先写 7 例（红：`CloseCheck`／`fetch_close_if_due` 不存在），再在 `worker.py` 实现并接入 Worker 循环，转绿。接缝与 `submit_schedule_if_due` 同形：计划开启、已存上交所日历写明开市、生效目录登记该指标时，16:35（时效登记的更新时刻）至 P0 截止 21:00（含）首次检查取一次；当天值入库即当天不再取；来源为空或失败 10 分钟后再试；计划关闭、休市、日历未写明、内置目录均不取。
+
+### 2026-10-14 实施收尾
+
+- 改动：`src/pring_cycle/worker.py` 新增 `CloseCheck`、`fetch_close_if_due`、`_close_catalog_version`，接入 `run_worker` 循环（调度检查之后重新读时钟再判断）；`refresh_quote_source`、解析器与时效登记（`chinamoney:usdcny_1630`，16:35，滞后 1 个交易日）均未改。`docs/development/local-runtime.md` “P2 行情官方文件”一段补写晚间取数与已知局限。新增 `tests/integration/test_usdcny_close_refresh.py` 13 例。
+- 测试：`tools/check.py quick` 本票文件＋`tests/adapters/test_quote_sources.py`＋`tests/integration/test_worker_execution.py`＋冒烟 `test_manual_run_cannot_backdate_daily_core_availability`：68 通过，72 秒；另一冒烟 `test_worker_completes_a_valid_noncanonical_projection_and_report` 与 `test_gap_source_repairs.py`、`test_retrieval_p2_lenient.py`：17 通过，126 秒；重型 `test_worker_registered_catalog.py`＋`test_core_carry_forward.py`（`flock /tmp/pring-heavy.lock`）：4 通过，294 秒（在 e274ca1 上跑；之后只改了新函数内部与循环一行，重型用例不经 Worker 循环，未重跑）。`ruff check`、`ruff format --check` 通过；`mypy` 对改动文件无新错误（仅 `tests/conftest.py:21` 既有一条）。
+- 审查（Codex 两轴）：首轮规格轴阻断 2 条、标准轴阻断 4 条（重合 2 条），全部采纳——请求前先查当天是否已持有（防重启重复取、防重启后失败覆盖成功记录）；循环在调度检查后重新读时钟；模型清单解析、刷新与持有检查全部纳入异常隔离，记 `close_fetch_failed` 事件并 10 分钟后重试；“次晨持有”测试改用 `install_runtime_clock` 跨日并按次晨截止读取。定向复审：阻断无。
+- 遗留：当晚 16:35–21:00 Worker 未运行或机器休眠，当天收盘价无法补回（来源不能按日期取）；如需次晨 03:00–09:30 补取（文件此时仍含前一时段收盘价），需用户另行决定。真实效果待票 13 收尾验收（需当晚 Worker 在线）。
