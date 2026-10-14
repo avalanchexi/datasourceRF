@@ -185,7 +185,8 @@ TUESDAY = date(2026, 10, 13)
 
 def at(hour: int, minute: int, second: int = 0, *, day: date = TUESDAY) -> datetime:
     """``hour:minute`` in Shanghai on ``day``."""
-    return datetime(day.year, day.month, day.day, hour - 8, minute, second, tzinfo=UTC)
+    local = datetime(day.year, day.month, day.day, hour, minute, second, tzinfo=UTC)
+    return local - timedelta(hours=8)
 
 
 @pytest.fixture
@@ -320,3 +321,167 @@ def test_no_close_is_fetched_off_schedule_or_off_an_sse_session(
     fetched = fetch_close_if_due(scheduled, at(17, 0, day=day), CloseCheck())
 
     assert (fetched, asked) == (False, [])
+
+
+# The next morning's make-up (user's decision 2026-10-14): before 9:30 the file still
+# covers the session before, so a close missed that evening is fetched then.
+
+WEDNESDAY = date(2026, 10, 14)
+# Wednesday before 9:30: the file still stands at the close of Tuesday's night session.
+NEXT_MORNING = cfets_file(
+    "2026-10-14 3:00", "7.1250", [("09:30", 7.1302), (" ", 7.1250), ("03:00", 7.1231)]
+)
+
+
+def test_a_close_missed_in_the_evening_is_fetched_the_next_morning_before_0930(
+    scheduled: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    asked = serve(monkeypatch, NEXT_MORNING)
+    check = CloseCheck()
+
+    first = fetch_close_if_due(scheduled, at(8, 0, day=WEDNESDAY), check)
+    later = fetch_close_if_due(scheduled, at(8, 30, day=WEDNESDAY), check)
+
+    assert (first, later, len(asked)) == (True, False, 1)
+    assert held_effective(scheduled) == {"2026-10-13": 7.1250}
+
+
+def test_the_next_morning_asks_nothing_when_the_evening_held_the_close(
+    scheduled: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    asked = serve(monkeypatch, EVENING)
+    check = CloseCheck()
+    fetch_close_if_due(scheduled, at(16, 35), check)
+
+    morning = fetch_close_if_due(scheduled, at(8, 0, day=WEDNESDAY), check)
+
+    assert (morning, len(asked)) == (False, 1)
+
+
+@pytest.mark.parametrize(
+    ("observed", "asks"),
+    [
+        pytest.param(at(21, 0, 1), False, id="past-the-deadline"),
+        pytest.param(at(0, 0, day=WEDNESDAY), True, id="at-midnight"),
+        pytest.param(at(9, 29, 59, day=WEDNESDAY), True, id="at-0929"),
+        pytest.param(at(9, 30, day=WEDNESDAY), False, id="at-0930"),
+        pytest.param(at(16, 34, 59, day=WEDNESDAY), False, id="before-the-evening"),
+    ],
+)
+def test_the_morning_make_up_ends_when_the_session_opens_at_0930(
+    scheduled: RuntimePaths, monkeypatch: pytest.MonkeyPatch, observed: datetime, *, asks: bool
+) -> None:
+    """From 9:30 the file covers the new session: the session before has left it."""
+    asked = serve(monkeypatch, NEXT_MORNING)
+
+    fetched = fetch_close_if_due(scheduled, observed, CloseCheck())
+
+    assert (fetched, len(asked)) == (asks, int(asks))
+
+
+@pytest.mark.parametrize(
+    "sessions",
+    [
+        pytest.param([date(2026, 10, 9), date(2026, 10, 12)], id="weekend-stated-closed"),
+        pytest.param([date(2026, 10, 8), date(2026, 10, 9)], id="weekend-left-unstated"),
+    ],
+)
+def test_the_monday_morning_makes_up_the_friday_close_across_the_weekend(
+    paths: RuntimePaths, monkeypatch: pytest.MonkeyPatch, sessions: list[date]
+) -> None:
+    """The session before is the latest the stored SSE calendar states open before today; a
+    Worker asleep over the weekend has left Saturday and Sunday unstated."""
+    models = ModelRepository(paths.database)
+    models.register(effective_model_manifest())
+    models.activate(str(effective_model_manifest()["model_version_id"]), explicitly_approved=True)
+    RunRepository(paths.database).configure_schedule(enabled=True, requested_by="test")
+    record_sse_calendar(paths, sessions)
+    # The file has stood at the close of Friday's night session since Saturday 03:00.
+    asked = serve(monkeypatch, FRIDAYS_CLOSE)
+
+    fetched = fetch_close_if_due(paths, at(8, 0, day=date(2026, 10, 12)), CloseCheck())
+
+    assert (fetched, len(asked)) == (True, 1)
+    assert held_effective(paths) == {"2026-10-09": 7.1310}
+
+
+FRIDAYS_CLOSE = cfets_file(
+    "2026-10-10 3:00", "7.1310", [("09:30", 7.1355), (" ", 7.1310), ("03:00", 7.1302)]
+)
+
+
+def test_an_older_held_close_does_not_stand_for_a_session_the_calendar_leaves_unstated(
+    scheduled: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The calendar is stored through Tuesday, whose close is held; the Worker slept through
+    Wednesday. On Thursday morning the file holds Wednesday's close, which is fetched."""
+    serve(monkeypatch, EVENING)
+    fetch_close_if_due(scheduled, at(16, 35), CloseCheck())
+    asked = serve(
+        monkeypatch,
+        cfets_file(
+            "2026-10-15 3:00", "7.1200", [("09:30", 7.1250), (" ", 7.1200), ("03:00", 7.1190)]
+        ),
+    )
+
+    fetched = fetch_close_if_due(scheduled, at(8, 0, day=date(2026, 10, 15)), CloseCheck())
+
+    assert (fetched, len(asked)) == (True, 1)
+    assert held_effective(scheduled) == {"2026-10-13": 7.1250, "2026-10-14": 7.1200}
+
+
+def test_a_morning_without_a_stated_session_before_reads_the_calendar_again_later(
+    scheduled: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Monday 12 October is the first day the stored calendar states: no session before it
+    is known yet. Ten minutes on, a calendar stored meanwhile (a manual run's) is read."""
+    asked = serve(monkeypatch, FRIDAYS_CLOSE)
+    check = CloseCheck()
+    monday = date(2026, 10, 12)
+
+    unknown = fetch_close_if_due(scheduled, at(8, 0, day=monday), check)
+    record_sse_calendar(scheduled, [date(2026, 10, 9), monday])
+    later = fetch_close_if_due(scheduled, at(8, 10, day=monday), check)
+
+    assert (unknown, later, len(asked)) == (False, True, 1)
+    assert held_effective(scheduled) == {"2026-10-09": 7.1310}
+
+
+def test_a_morning_make_up_leaves_that_evenings_fetch_to_its_own_window(
+    scheduled: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    record_sse_calendar(scheduled, [TUESDAY, WEDNESDAY])
+    asked = serve(monkeypatch, NEXT_MORNING)
+    check = CloseCheck()
+    morning = fetch_close_if_due(scheduled, at(8, 0, day=WEDNESDAY), check)
+    serve(
+        monkeypatch,
+        cfets_file(
+            "2026-10-14 17:00", "7.1200", [("09:30", 7.1238), (" ", 7.1200), ("17:00", 7.1195)]
+        ),
+    )
+
+    evening = fetch_close_if_due(scheduled, at(16, 35, day=WEDNESDAY), check)
+
+    assert (morning, evening, len(asked)) == (True, True, 1)
+    assert held_effective(scheduled) == {"2026-10-13": 7.1250, "2026-10-14": 7.1200}
+
+
+def test_a_failed_morning_make_up_is_asked_again_ten_minutes_later_but_not_from_0930(
+    scheduled: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    asked = serve(monkeypatch, b"<html>maintenance</html>")
+    check = CloseCheck()
+
+    failed = fetch_close_if_due(scheduled, at(9, 15, day=WEDNESDAY), check)
+    waiting = fetch_close_if_due(scheduled, at(9, 24, 59, day=WEDNESDAY), check)
+    retried = fetch_close_if_due(scheduled, at(9, 25, day=WEDNESDAY), check)
+    opened = fetch_close_if_due(scheduled, at(9, 35, day=WEDNESDAY), check)
+
+    assert (failed, waiting, retried, opened, len(asked)) == (True, False, True, False, 2)
+    attempt = last_attempt(scheduled)
+    assert (attempt.outcome, attempt.metadata["reason"]) == (
+        SOURCE_FAILED,
+        "chinamoney_close_document_invalid",
+    )
+    assert held_effective(scheduled) == {}

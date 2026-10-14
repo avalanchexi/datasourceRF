@@ -15,6 +15,9 @@ Type: task
 - [x] 只有当前交易时段时记“来源为空”，不报错；夜盘收盘不被取；解析失败记来源失败与原因码
 - [ ] （历史接口做法）窗口内缺的上一交易日能补回——不适用：中国货币网无历史接口，采用退路，见 Comments
 - [x] 时效规则不变（滞后一个交易日即现行）；受影响测试通过
+- [x] （用户 2026-10-14 追加）当晚未持有当天收盘价时，Worker 在次晨 09:30 之前再取一次前一交易日收盘价；已持有不取
+- [x] 次晨补取的时间窗边界（09:30 起不再取）与跨休市日的“前一交易日”（按已存上交所日历）有测试
+- [x] 次晨补取失败照现有方式记事件、10 分钟后重试，不让 Worker 停掉；受影响测试（含 Worker 相关重型）通过
 
 ## Comments
 
@@ -52,3 +55,24 @@ Type: task
 - 测试：`tools/check.py quick` 本票文件＋`tests/adapters/test_quote_sources.py`＋`tests/integration/test_worker_execution.py`＋冒烟 `test_manual_run_cannot_backdate_daily_core_availability`：68 通过，72 秒；另一冒烟 `test_worker_completes_a_valid_noncanonical_projection_and_report` 与 `test_gap_source_repairs.py`、`test_retrieval_p2_lenient.py`：17 通过，126 秒；重型 `test_worker_registered_catalog.py`＋`test_core_carry_forward.py`（`flock /tmp/pring-heavy.lock`）：4 通过，294 秒（在 e274ca1 上跑；之后只改了新函数内部与循环一行，重型用例不经 Worker 循环，未重跑）。`ruff check`、`ruff format --check` 通过；`mypy` 对改动文件无新错误（仅 `tests/conftest.py:21` 既有一条）。
 - 审查（Codex 两轴）：首轮规格轴阻断 2 条、标准轴阻断 4 条（重合 2 条），全部采纳——请求前先查当天是否已持有（防重启重复取、防重启后失败覆盖成功记录）；循环在调度检查后重新读时钟；模型清单解析、刷新与持有检查全部纳入异常隔离，记 `close_fetch_failed` 事件并 10 分钟后重试；“次晨持有”测试改用 `install_runtime_clock` 跨日并按次晨截止读取。定向复审：阻断无。
 - 遗留：当晚 16:35–21:00 Worker 未运行或机器休眠，当天收盘价无法补回（来源不能按日期取）；如需次晨 03:00–09:30 补取（文件此时仍含前一时段收盘价），需用户另行决定。真实效果待票 13 收尾验收（需当晚 Worker 在线）。
+
+### 2026-10-14 用户决定：加次晨补取（经主 agent 转达）
+
+当晚 16:35–21:00 没持有当天 16:30 收盘价时，Worker 在次晨（文件仍属前一交易时段、09:30 之前）再取一次前一交易日收盘价；已持有就不取；失败照现有方式记事件、10 分钟后重试，不让 Worker 停掉。“前一交易日”跨休市日时按已存上交所日历。票面 Status 改回进行中（`claimed`），续做。
+
+### 2026-10-14 续做进展（次晨补取）
+
+- 红：`test_a_close_missed_in_the_evening_is_fetched_the_next_morning_before_0930`（周三 08:00，文件仍停在周二夜盘收盘）先失败（未取）。
+- 绿：`fetch_close_if_due` 按时间窗分为次晨（当天 09:30 前，`CFETS_SESSION_OPENS`，与解析器“09:30 前属前一交易时段”同一口径）与当晚（16:35–21:00）；`CloseCheck` 改按（日期，时间窗）记判定，两窗互不影响。次晨的“前一交易日”取已存上交所日历中今天之前 14 天内最近的开市日 P，请求区间为 P 至昨天：已持有其中任一日即不取；周末未写明（Worker 周末休眠）时文件给出的时段不早于 P，一并入库。失败、来源为空或意外异常同当晚：记事件、10 分钟后重试，09:30 起不再取。
+- 其余 4 组用例（当晚已持有则次晨不取；0:00、09:29:59 取，09:30、21:00:01、次日 16:34:59 不取；周一补周五——周末写明休市与周末未写明两种；次晨失败 10 分钟后重试、09:30 起不取）因上一步实现已覆盖，首跑即绿；用变异检查确认非空转：把开盘改 10:00、把 P 改成“须昨天开市”，4 例随之失败，复原后全绿。
+- 说明文档 `docs/development/local-runtime.md` 同步补写。
+
+### 2026-10-14 续做收尾（次晨补取）
+
+- 审查：Codex 定向审查次晨补取，提出阻断 2 条，均采纳：
+  1. 日历其后有未写明的日子时，区间内较旧的已持有值不再算“已持有”。此时只有昨天已持有才不取；取数成功即算完成，因为文件给的是哪个时段无法预知。
+  2. 找不到已写明的前一交易日时，不再记为本晨已完成，而是 10 分钟后重读已存日历。
+
+  补 3 例：周四补未写明的周三、日历稍后补齐再取、早晚两窗互不影响；前 2 例先红后绿。定向复审：阻断无。复审提到的两处未单独断言的分支（“其后全部写明休市且旧值已持有时免取”“十分钟内不重试”）实现已核对，未另加用例。
+- 测试：本票文件 26 例与 `test_quote_sources.py`、`test_worker_execution.py`、冒烟 `test_manual_run_cannot_backdate_daily_core_availability`：81 通过，102 秒。另一冒烟 `test_worker_completes_a_valid_noncanonical_projection_and_report` 与 `test_gap_source_repairs.py`：10 通过，89 秒（在 3c1dbd2 上跑）。重型 `test_worker_registered_catalog.py` 与 `test_core_carry_forward.py`（`flock /tmp/pring-heavy.lock`）：4 通过，311 秒（在 1f31dfc 上跑）。ruff 通过；mypy 仅有 `tests/conftest.py:21` 原有的一条。
+- 已知局限：周末等日子未写明时，周一早晨即使周五已持有也会多取一次；这次取数没有新值，只记“无新增”。当晚与次晨 09:30 前 Worker 都未运行的那天无法补回。
