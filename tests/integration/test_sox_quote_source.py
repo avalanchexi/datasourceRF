@@ -22,23 +22,13 @@ from pring_cycle.acquisition_outcome import SOURCE_FAILED, SUCCEEDED, Acquisitio
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.quote_sources import NASDAQ_SOX, refresh_quote_source
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
+from tests.conftest import OfficialFile
 
 METRIC = "NASDAQ_SOX_INDEX"
 VERSION = "metric-catalog-v0001"
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "quote_sources"
 # The site's answer for 2026-10-01..10-13 as taken on 2026-10-14.
 HISTORY = (FIXTURES / "nasdaq-sox-history-20261013.json").read_bytes()
-
-
-class OfficialFile(BytesIO):
-    status = 200
-
-    def __init__(self, url: str, content: bytes) -> None:
-        super().__init__(content)
-        self.url = url
-
-    def geturl(self) -> str:
-        return self.url
 
 
 @pytest.fixture

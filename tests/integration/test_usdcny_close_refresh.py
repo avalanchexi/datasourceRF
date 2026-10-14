@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, date, datetime, timedelta
-from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +21,7 @@ from pring_cycle.quote_sources import CHINAMONEY_USDCNY_1630, refresh_quote_sour
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.worker import CloseCheck, fetch_close_if_due
-from tests.conftest import install_runtime_clock
+from tests.conftest import OfficialFile, install_runtime_clock
 from tests.integration.test_trading_calendar import record_sse_calendar
 
 METRIC = "CN_USDCNY_CLOSE_1630"
@@ -50,17 +49,6 @@ EVENING = cfets_file(
 )
 # Wednesday 14 October at 09:40: the new session has no close yet.
 MORNING = cfets_file("2026-10-14 9:40", "---", [("09:30", 7.1238), ("09:40", 7.1236)])
-
-
-class OfficialFile(BytesIO):
-    status = 200
-
-    def __init__(self, url: str, content: bytes) -> None:
-        super().__init__(content)
-        self.url = url
-
-    def geturl(self) -> str:
-        return self.url
 
 
 @pytest.fixture

@@ -191,6 +191,12 @@ class ScheduleCheck:
     settled: bool = False
 
 
+def _p0_deadline(schedule: dict[str, object], day: date) -> datetime:
+    """The schedule's P0 deadline on ``day``, in the schedule's time zone (ADR-0041)."""
+    hour, minute = (int(value) for value in str(schedule["p0_deadline"]).split(":"))
+    return datetime.combine(day, time(hour, minute), ZoneInfo(str(schedule["timezone"])))
+
+
 def submit_schedule_if_due(
     paths: RuntimePaths,
     observed_at: datetime,
@@ -217,8 +223,7 @@ def submit_schedule_if_due(
     today = observed_local.date()
     hour, minute = (int(value) for value in str(schedule["start_time"]).split(":"))
     scheduled_at = observed_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
-    hour, minute = (int(value) for value in str(schedule["p0_deadline"]).split(":"))
-    deadline = observed_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    deadline = _p0_deadline(schedule, today)
     if check.day != today:
         # A day held back is not made up once it has turned: the new day is judged anew.
         check.day, check.retry_at, check.settled = today, None, False
@@ -355,8 +360,7 @@ def fetch_close_if_due(
     opens = observed_local.replace(
         hour=update_time.hour, minute=update_time.minute, second=0, microsecond=0
     )
-    hour, minute = (int(value) for value in str(schedule["p0_deadline"]).split(":"))
-    deadline = observed_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    deadline = _p0_deadline(schedule, today)
     if observed_local.time() < CFETS_SESSION_OPENS:
         window = "morning"
     elif opens <= observed_local <= deadline:
@@ -2283,12 +2287,7 @@ def _scheduled_p0_deadline_elapsed(
     """
     schedule = runs.schedule()
     timezone = ZoneInfo(str(schedule["timezone"]))
-    hour, minute = (int(value) for value in str(schedule["p0_deadline"]).split(":"))
-    deadline = datetime.combine(
-        runs.submitted_as_of(run.run_id).astimezone(timezone).date(),
-        time(hour, minute),
-        timezone,
-    )
+    deadline = _p0_deadline(schedule, runs.submitted_as_of(run.run_id).astimezone(timezone).date())
     return observed_at.astimezone(timezone) > deadline
 
 

@@ -27,7 +27,7 @@ from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_PARSER_VERSION
 from pring_cycle.worker import process_pending_run
-from tests.conftest import install_runtime_clock
+from tests.conftest import OfficialFile, install_runtime_clock
 from tests.fixtures.czce_report import czce_exchange
 from tests.integration.test_core_history_refresh import historical_response
 
@@ -115,17 +115,6 @@ SOX_JSON = json.dumps(
         ],
     }
 ).encode()
-
-
-class OfficialFile(BytesIO):
-    status = 200
-
-    def __init__(self, url: str, content: bytes) -> None:
-        super().__init__(content)
-        self.url = url
-
-    def geturl(self) -> str:
-        return self.url
 
 
 def official_quote(request: Any, *, timeout: float) -> OfficialFile:
