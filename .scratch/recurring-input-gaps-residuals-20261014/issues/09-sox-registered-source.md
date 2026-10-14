@@ -1,4 +1,4 @@
-Status: needs-info
+Status: claimed
 Category: enhancement
 Type: task
 
@@ -8,10 +8,10 @@ Type: task
 
 **Blocked by:** None (can start immediately)；实施段需用户确认来源
 
-**Status:** needs-info
+**Status:** claimed
 
 - [x] TuShare 覆盖结论与可信网站候选（来源、按日期可取性、可信依据、样本应答）写入本票 Comments
-- [ ] 用户确认来源（主 agent 转达）
+- [x] 用户确认来源（主 agent 转达）
 - [ ] ADR 写明来源、可信依据与用户 2026-10-14 决定
 - [ ] 对应接缝（`refresh_quote_source` 或 TuShare 行情适配器）上的测试：按日期持有收盘值；解析失败记来源失败与原因码
 - [ ] SOX 期次按美股交易日；不进模型；目录不检索；受影响测试通过
