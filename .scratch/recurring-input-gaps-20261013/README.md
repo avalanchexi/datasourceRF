@@ -8,5 +8,5 @@
 | [02](issues/02-freshness-current-when-due-period-held.md) | 证据时效按词表判定 | — | done |
 | [03](issues/03-audit-upstream-unpublished-category.md) | 体检对齐新口径并新增“上游未发布”分类 | 01 | done |
 | [04](issues/04-warrant-known-historical-gaps.md) | 仓单历史缺口核实并单列 | 03 | done |
-| [05](issues/05-acceptance.md) | 收尾验收 | 01–04、残余票 01 | ready-for-agent |
+| [05](issues/05-acceptance.md) | 收尾验收 | 01–04、残余票 01 | done（10-14 计划运行 `run-25ac18e4…` 补交路径；真正缺失（仅模型用到）0；记录 [acceptance-20261014.md](acceptance-20261014.md)） |
 | [06](issues/06-news-window-and-rrr-lookback-use-run-cutoff.md) | 新闻拉取窗口与降准回溯的公开上限改为运行截止 | 01 | done（用户决定：新闻回看一周锚定运行截止；遗留：官方回溯停止条件未复核可读性，建议另开票） |
