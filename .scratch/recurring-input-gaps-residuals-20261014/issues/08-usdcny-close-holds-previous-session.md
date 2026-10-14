@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: claimed
 Category: bug
 Type: task
 
@@ -8,10 +8,35 @@ Type: task
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] 调查结论（接口、是否按日期可查、样本应答）写入本票 Comments，选定做法
 - [ ] `refresh_quote_source` 接缝上的测试：09:30 之后的运行持有上一交易日收盘价
 - [ ] 只有当前交易时段时记“来源为空”，不报错；夜盘收盘不被取；解析失败记来源失败与原因码
 - [ ] （历史接口做法）窗口内缺的上一交易日能补回
 - [ ] 时效规则不变（滞后一个交易日即现行）；受影响测试通过
+
+## Comments
+
+### 2026-10-14 调查（中国外汇交易中心按日期查询的历史 16:30 收盘价）
+
+结论：**中国货币网没有公开的、可按日期查询历史 16:30 收盘价的接口**，首选做法不成立，选定**退路**（Worker 当天收盘后单独取一次）。
+
+外部请求均在 `flock /tmp/pring-external.lock` 下逐个发出，取到即停（共 10 次，全部 200，除英文 `/english/mkdatapfx/` 为 404）：
+
+| 请求 | 所见 |
+|---|---|
+| `/chinese/mkdatapfx/`（外汇市场行情） | 片段仅 `cpair-quot-cn`、`dollar-ask-day-chart`、`fcl-we-av-rate-inner-cn`、`rfx-sp-quot-cn`、`rfx-sw-quot-cn`，都是当前行情 |
+| `html/fx/dollar-ask-day-chart.html`（日内走势图片段） | 只请求 `fx/rfx-sp-iday-chrt.json`，无日期参数、无历史链接 |
+| `html/fx/rfx-sp-quot-cn.html`（即期报价片段） | 当前买卖报价（`fx/rfx-sp-quot.json`）；外链只有“中间价”和“人民币外汇即期月报” |
+| `/chinese/bkccpr/` 侧栏（基准） | 外汇类只有中间价、参考汇率、汇率指数、USDCIROR 与各曲线，无“收盘价” |
+| `/chinese/mtdexdaily/`（每日速递） | 只有拆借、回购、现券、债券远期、利率互换、债券借贷，无外汇 |
+| `/chinese/mtmoncjgl/`（统计月报） | 有“人民币外汇即期月报”，为月度统计，不是逐日 16:30 收盘价 |
+| `/english/`、`/english/mdtrptdbl/`（英文 Daily Bulletin） | 只有本币产品，无外汇收盘价 |
+| `assets/js/cm-basic.js` | 只出现 `ags/ms/`、`dqs/rest/` 等通用前缀，无外汇收盘价历史接口名 |
+
+另据 2026-09-25 的调查（gap-sources 票 07）：参考汇率历史 `/ags/ms/cm-u-bk-fx/RefRateHis` 只有整点参考汇率（16 时），不是 16:30 收盘价；SDDS 汇率的“即期”是中间价。两者都不可替代。
+
+**选定做法（规格“退路”）**：保留盘中图表文件 `rfx-sp-iday-chrt.json` 与现行解析规则（只认 16:30 收盘点，不取 03:00 夜盘，`closeSpotPrice` 须与快照 16:30 点一致）。Worker 在计划开启时，于已存上交所日历写明开市的日子，从时效登记的更新时刻 16:35 起至 P0 截止 21:00（含）止，用现有 `refresh_quote_source` 单独取一次当天收盘价：只取这一个来源，不建运行、不生成评估或报告。取到当天值即当天不再取；文件尚无收盘价（来源为空）或取数失败时，10 分钟后再试，到截止为止（同日历暂缓的重试间隔）。次晨 09:30 的计划运行照常取文件（当前时段无收盘价，记“来源为空”），持有上一交易日由前一晚的取数提供。
+
+理由：首选不成立；退路是规格明列的做法，单来源取数不新增完整运行（ADR-0041 否决“当晚和次晨各跑一次”的理由不涉及）。只在计划开启时取，因为它服务于次晨的计划运行，且 ADR-0010 计划关闭时 Worker 不主动发外部请求。已知局限：当晚 16:35–21:00 机器休眠或 Worker 未运行，那一天的收盘价就取不到，也无法补回（来源不能按日期取）；03:00–09:30 之间文件仍含前一时段收盘价，若日后要加次晨补取需另行决定（规格只写了“16:30 之后、当天 P0 截止前”）。
