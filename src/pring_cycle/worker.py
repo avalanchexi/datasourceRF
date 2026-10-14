@@ -58,6 +58,7 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.freshness import (
     DERIVED_INPUTS,
+    FRESHNESS_REGISTRY,
     gap_list,
     judging_calendar_basis,
     period_status,
@@ -142,6 +143,7 @@ def run_worker(paths: RuntimePaths) -> None:
     runs = RunRepository(paths.database)
     runs.audit_lease()
     schedule_check = ScheduleCheck()
+    close_check = CloseCheck()
     try:
         with keep_database_open(paths.database):
             while not stopped.is_set():
@@ -153,6 +155,8 @@ def run_worker(paths: RuntimePaths) -> None:
                     heartbeat_at=observed_at,
                 )
                 submit_schedule_if_due(paths, observed_at, schedule_check)
+                # Read again: the schedule's check may have spent time fetching a calendar.
+                fetch_close_if_due(paths, datetime.now(UTC), close_check)
                 process_pending_run(paths)
                 stopped.wait(1)
     finally:
@@ -293,6 +297,130 @@ def _fetch_sse_calendar(paths: RuntimePaths, first: date, last: date) -> tuple[d
     if token is None:
         raise LookupError("tushare_token_missing")
     return acquire_sse_calendar(paths, TushareCoreAdapter(token), first, last)
+
+
+# How long a day whose CFETS file had no 16:30 close yet, or failed, waits to ask again.
+CLOSE_FETCH_RETRY = timedelta(minutes=10)
+
+
+@dataclass
+class CloseCheck:
+    """What a live Worker has judged of today's CFETS 16:30 close: whether the day is
+    settled (the close held, or nothing to fetch), else when it asks again. Held in memory
+    only: a Worker started later that day judges afresh, and asks nothing once the day's
+    close is held.
+    """
+
+    day: date | None = None
+    retry_at: datetime | None = None
+    settled: bool = False
+
+
+def fetch_close_if_due(
+    paths: RuntimePaths,
+    observed_at: datetime,
+    check: CloseCheck | None = None,
+) -> bool:
+    """Fetch the day's CFETS 16:30 USD/CNY close once it is out, for the next morning's run.
+
+    CFETS gives no dated history of the close, and its intraday file covers the current
+    session only: by the scheduled run at 9:30 the session it is for has left the file
+    (ticket 08). So, while the schedule is on, on a day the stored SSE calendar states open,
+    the first check from the close's registered update time through the P0 deadline fetches
+    that one source, as a run does: no run, no evaluation, no report. A file without the
+    day's close yet, or a failure, is asked again ``CLOSE_FETCH_RETRY`` later. Returns
+    whether it asked.
+    """
+    if observed_at.tzinfo is None:
+        raise ValueError("close_check_times_must_be_timezone_aware")
+    from pring_cycle.quote_sources import CHINAMONEY_USDCNY_1630, refresh_quote_source
+
+    source = CHINAMONEY_USDCNY_1630
+    schedule = RunRepository(paths.database).schedule()
+    if schedule["enabled"] is not True:
+        return False
+    check = check if check is not None else CloseCheck()
+    observed_local = observed_at.astimezone(ZoneInfo(str(schedule["timezone"])))
+    today = observed_local.date()
+    if check.day != today:
+        check.day, check.retry_at, check.settled = today, None, False
+    update_time = FRESHNESS_REGISTRY[source.metric_id].update_time
+    opens = observed_local.replace(
+        hour=update_time.hour, minute=update_time.minute, second=0, microsecond=0
+    )
+    hour, minute = (int(value) for value in str(schedule["p0_deadline"]).split(":"))
+    deadline = observed_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if check.settled or not opens <= observed_local <= deadline:
+        return False
+    if check.retry_at is not None and observed_at < check.retry_at:
+        return False
+    session = SseCalendar(paths, as_of=observed_at).stated_between(today, today).get(today)
+    if session is None:
+        # The schedule's own check fetches a day's calendar; until it is stated, wait.
+        check.retry_at = observed_at + CLOSE_FETCH_RETRY
+        return False
+    check.settled = True
+    if not session:
+        return False
+    asked = False
+    try:
+        definition_version = _close_catalog_version(paths, source.metric_id)
+        if definition_version is None:
+            return False
+
+        def holds_today() -> bool:
+            return any(
+                point.period_end == today.isoformat()
+                for point in EvidenceRepository(paths.database).metric_series(
+                    source.metric_id,
+                    mode=AsOfMode.SYSTEM,
+                    as_of=datetime.now(UTC),
+                    definition_version=definition_version,
+                )
+            )
+
+        if holds_today():
+            # A Worker restarted that day: the close is already held, nothing to ask.
+            return False
+        asked = True
+        # The source records its own outcome, the failure's reason code included.
+        with contextlib.suppress(OSError, ValueError):
+            refresh_quote_source(
+                paths,
+                source,
+                start_date=today,
+                end_date=today,
+                definition_version=definition_version,
+            )
+        held = holds_today()
+    except Exception as error:
+        # Whatever else failed, the day asks again: this runs in the Worker's loop.
+        write_runtime_event(
+            paths,
+            "worker",
+            f"close_fetch_failed:{type(error).__name__}:{error}"[:300],
+            "warning",
+        )
+        held = False
+    if not held:
+        check.settled, check.retry_at = False, observed_at + CLOSE_FETCH_RETRY
+    return asked
+
+
+def _close_catalog_version(paths: RuntimePaths, metric_id: str) -> str | None:
+    """The active model's catalog version when it registers ``metric_id`` as a run does
+    (no builtin catalog does), else None."""
+    models = ModelRepository(paths.database)
+    try:
+        model_version_id = models.active().model_version_id
+    except LookupError:
+        return None
+    version = ContextProjectionRules.from_manifest(
+        models.manifest(model_version_id)
+    ).metric_catalog_version
+    if version in BUILTIN_CATALOG_VERSIONS or not _in_catalog(paths, metric_id, version):
+        return None
+    return version
 
 
 def process_pending_run(
