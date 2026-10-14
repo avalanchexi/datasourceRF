@@ -342,7 +342,7 @@ def fetch_close_if_due(
     """
     if observed_at.tzinfo is None:
         raise ValueError("close_check_times_must_be_timezone_aware")
-    from pring_cycle.quote_sources import CHINAMONEY_USDCNY_1630, refresh_quote_source
+    from pring_cycle.quote_sources import CHINAMONEY_USDCNY_1630, QuoteRow, refresh_quote_source
 
     source = CHINAMONEY_USDCNY_1630
     schedule = RunRepository(paths.database).schedule()
@@ -418,20 +418,27 @@ def fetch_close_if_due(
             # Held already (that evening, or before a restart): nothing to ask.
             return False
         asked = True
-        failed = False
+        gave: list[QuoteRow] = []
+
+        def parse(raw: bytes, start: date, end: date) -> tuple[QuoteRow, ...]:
+            rows = source.parse(raw, start, end)
+            gave.extend(rows)
+            return rows
+
         try:
             # The source records its own outcome, the failure's reason code included.
             refresh_quote_source(
                 paths,
-                source,
+                replace(source, parse=parse),
                 start_date=first,
                 end_date=last,
                 definition_version=definition_version,
             )
         except (OSError, ValueError):
-            failed = True
-        # Unknown which session the file gives, its reading is the most there is to hold.
-        held = holds(target) if known else not failed
+            gave.clear()
+        # Unknown which session the file gives, a close it gave is the most there is to
+        # hold; a file without one (the source empty) is asked again, as a failure is.
+        held = holds(target) if known else bool(gave)
     except Exception as error:
         # Whatever else failed, the window asks again: this runs in the Worker's loop.
         write_runtime_event(

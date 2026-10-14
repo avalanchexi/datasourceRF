@@ -430,6 +430,35 @@ def test_an_older_held_close_does_not_stand_for_a_session_the_calendar_leaves_un
     assert held_effective(scheduled) == {"2026-10-13": 7.1250, "2026-10-14": 7.1200}
 
 
+def test_an_empty_morning_answer_is_asked_again_while_the_calendar_leaves_a_day_unstated(
+    scheduled: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Thursday morning, the calendar stored through Tuesday: a file that has not reached
+    Wednesday's 16:30 is the source empty, not the close made up. Ten minutes on, the file
+    gives Wednesday's close."""
+    serve(monkeypatch, EVENING)
+    fetch_close_if_due(scheduled, at(16, 35), CloseCheck())
+    thursday = date(2026, 10, 15)
+    asked_empty = serve(
+        monkeypatch, cfets_file("2026-10-14 16:00", "---", [("09:30", 7.1250), ("16:00", 7.1220)])
+    )
+    check = CloseCheck()
+
+    empty = fetch_close_if_due(scheduled, at(8, 0, day=thursday), check)
+    attempt = last_attempt(scheduled)
+    asked = serve(
+        monkeypatch,
+        cfets_file(
+            "2026-10-15 3:00", "7.1200", [("09:30", 7.1250), (" ", 7.1200), ("03:00", 7.1190)]
+        ),
+    )
+    retried = fetch_close_if_due(scheduled, at(8, 10, day=thursday), check)
+
+    assert (attempt.outcome, attempt.metadata["completeness"]) == (SUCCEEDED, "source_empty")
+    assert (empty, retried, len(asked_empty), len(asked)) == (True, True, 1, 1)
+    assert held_effective(scheduled) == {"2026-10-13": 7.1250, "2026-10-14": 7.1200}
+
+
 def test_a_morning_without_a_stated_session_before_reads_the_calendar_again_later(
     scheduled: RuntimePaths, monkeypatch: pytest.MonkeyPatch
 ) -> None:
