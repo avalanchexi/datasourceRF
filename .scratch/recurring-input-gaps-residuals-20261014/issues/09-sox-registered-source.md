@@ -95,3 +95,45 @@ A 的风险：
 **待用户确认**：选 A（FRED API，需注册 key）还是 B（Nasdaq 官网）；若选 A，key 到位前是否允许先用 FRED 网页下载 CSV 过渡。确认后按 `tdd` 在 `refresh_quote_source` 接缝实施并补 ADR。
 
 调查段的探测脚本与原始应答只保存在会话临时目录，没有入库。
+
+### 2026-10-14 用户决定（主 agent 转达）
+
+选 B：Nasdaq 指数官网 `HistoryData`，不用 FRED。ADR 写明接口无公开文档、站点有反爬、`nasdaq.com/legal` 禁止自动抓取；用户接受这一风险，前提为本机个人研究、不对外分发（同 USDCNY 先例），前提变化时回到受限授权。
+
+### 2026-10-14 实施
+
+**改动**
+
+- `src/pring_cycle/quote_sources.py`：
+  - 新增 `parse_nasdaq_index_history`：读 `aaData` 每行的 `Value`，以 `TimeStamp`（纽约零点）定美股交易日，全精度保存；
+  - 整份拒收的情形：结构不符、日期不是纽约零点或越界、日期重复、值不是正数，原因码 `nasdaq_index_*`；
+  - 新增注册来源 `NASDAQ_SOX`（POST 表单 `id=SOX`、窗口起止日、`timeOfDay=EOD`；提供方 Nasdaq Global Indexes；渠道 `nasdaq_index_official`；回执接口名 `official_http_post`），加入 `QUOTE_SOURCES`，Worker 每轮照 VIX 一样取一次；
+  - `QuoteSource` 加可选 `form`（带表单即 POST）。
+- 审查修复：HTTP 失败不再在 `_fetch` 里转换，而是交给回执层保存应答页（如反爬 403 页）作为原件，再在 `refresh_quote_source` 转为原有的 `quote_source_http_<码>` 记录并抛出。三个行情来源都改为这样，对外的原因码、异常类型和结果不变。
+- `freshness.py`：SOX 规则改为 `nasdaq:index_history`，去掉 `restricted_license`；美股日历、滞后 1、06:00 不变。缺口清单不再列“授权缺失”。
+- 目录定义未变（单位、频率、维度、来源代码），不升目录版本；不检索、不进模型。
+- 文档：
+  - 新增 [ADR-0042](../../../docs/adr/0042-sox-from-nasdaq-index-site.md)，ADR-0029 末尾加指向；
+  - `GLOSSARY.md`“受限授权 P2”改写为“目前无指标，USDCNY、SOX 为用户接受风险后的例外”；
+  - `docs/development/local-runtime.md` 的 SOX 段同步改写，合并集成分支时与票 08 的同段冲突，已合并两边内容。
+- 测试：
+  - `tests/adapters/test_quote_sources.py` 用真实应答夹具（`tests/fixtures/quote_sources/nasdaq-sox-history-20261013.json`）测解析与 9 种拒收；
+  - 新增 `tests/integration/test_sox_quote_source.py`，在 `refresh_quote_source` 接缝测四件事：按日期持有、表单只请求 SOX 本身、解析失败记来源失败与原因码、403 保留状态码与应答原件；
+  - `tests/integration/test_gap_source_repairs.py` 原“SOX 为授权缺口”改为“完整运行从 Nasdaq 持有 SOX、不在缺口清单、不检索”。
+
+**验证**（venv `dev-venv-rig09`）
+
+- 合入集成分支 `0dc7269` 后：受影响测试与两例冒烟 174 passed（424s）；重型 `test_worker_registered_catalog.py`＋`test_core_carry_forward.py` 在 heavy 锁下 4 passed（305s）；
+- `ruff check`、`ruff format --check` 通过；`mypy` 改动的源文件无问题，测试文件只有改动前就有的报错；
+- 真实请求一次（外部锁下）：用实装的 `_fetch`＋解析器取 10-05..10-13，得 7 个交易日全精度值，与调查样本一致。
+
+**审查**（Codex 两轴，只读）
+
+- 标准轴：无阻断，3 条非阻断全部采纳——越界时间戳归入 `nasdaq_index_date_invalid`；POST 来源回执记 `official_http_post`；GLOSSARY 写明例外。
+- 规格轴：1 条阻断（HTTP 失败未保存应答原件），已修复并补测试。
+- 定向复审：通过，阻断：无。复审建议在正例里断言回执接口名，已补上。
+
+**已知残余**
+
+- Nasdaq 的实际发布时刻未测。现按北京 06:00 视为发布，09:30 的计划运行离美股收盘已有 5 小时以上；收尾验收（票 13）会看 SOX 持有的期次。
+- 体检的 SOX 口径（`tools/quality` 的 `NO_PATH` 等）属于票 12，本票未改。
