@@ -144,6 +144,67 @@ def test_an_issue_published_after_the_target_day_is_read_when_out_by_the_run_s_c
         }
 
 
+@pytest.mark.parametrize(
+    ("public_as_of", "adopted", "covered_through"),
+    [
+        # Listed on Wednesday, so taken as out by Thursday; its page says it went out at
+        # 10:00 on Thursday, after a 9:30 cutoff: the June cut was not readable by then, and
+        # the latest one readable is 2025's.
+        (
+            datetime(2026, 8, 13, 9, 30, tzinfo=ZoneInfo("Asia/Shanghai")),
+            "2025-05-15",
+            date(2026, 3, 31),
+        ),
+        # Cut off after the page went out: the June cut is the latest.
+        (
+            datetime(2026, 8, 13, 10, 30, tzinfo=ZoneInfo("Asia/Shanghai")),
+            "2026-06-01",
+            date(2026, 6, 30),
+        ),
+    ],
+)
+def test_a_cut_not_readable_by_the_run_s_cutoff_gives_way_to_an_older_one(
+    paths: RuntimePaths, public_as_of: datetime, adopted: str, covered_through: date
+) -> None:
+    """Ticket 11: a cut stops the search only when its claims are public by the cutoff; an
+    issue whose own page went out later is passed over, as not yet read."""
+    from pring_cycle.official_context import backtrack_rrr_chronicle
+
+    site = Site()
+    key = COLUMN + "2026081218415997958/index.html"
+    site.pages[key] = (
+        site.pages[key]
+        .replace(
+            "6月3日，".encode(),
+            (
+                "6月1日，中国人民银行下调金融机构存款准备金率0.25个百分点"
+                "（不含已执行5%存款准备金率的金融机构）。6月3日，"
+            ).encode(),
+            1,
+        )
+        .replace(
+            b'<span id="shijian">2026-08-12 18:25:21</span>',
+            b'<span id="shijian">2026-08-13 10:00:00</span>',
+        )
+    )
+
+    found = backtrack_rrr_chronicle(
+        paths, until=date(2026, 8, 11), public_as_of=public_as_of, fetched_at=NOW, fetcher=site
+    )
+
+    assert key in site.fetched
+    periods = {
+        claim.claim_id: point.period_end
+        for point in EvidenceRepository(paths.database).metric_series(
+            "CN_RRR_EVENT", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC)
+        )
+        for claim in point.claims
+    }
+    assert found.claim_ids
+    assert {periods[claim_id] for claim_id in found.claim_ids} == {adopted}
+    assert found.covered_through == covered_through
+
+
 def test_a_column_with_no_cut_to_its_last_page_finds_none(paths: RuntimePaths) -> None:
     """A synthetic column: the real first page with only its 2026 issues and no pager."""
     from pring_cycle.official_context import backtrack_rrr_chronicle
