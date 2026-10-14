@@ -379,31 +379,33 @@ def fetch_close_if_due(
         check.settled = True
         if not session:
             return False
-        first = last = today
+        first = last = target = today
+        known = True
     else:
-        check.settled = True
         last = today - timedelta(days=1)
-        before = [
-            day
-            for day, is_open in calendar.stated_between(
-                today - SCHEDULE_CALENDAR_REACH, last
-            ).items()
-            if is_open
-        ]
+        stated = calendar.stated_between(today - SCHEDULE_CALENDAR_REACH, last)
+        before = [day for day, is_open in stated.items() if is_open]
         if not before:
+            # No session before today is stated yet; a calendar stored meanwhile (by a
+            # manual run) is read on the next try.
+            check.retry_at = observed_at + CLOSE_FETCH_RETRY
             return False
-        # Days after it left unstated (a Worker asleep over a weekend) may hide a session:
-        # the file then gives that one, which is no older and is taken as well.
+        check.settled = True
         first = max(before)
+        # Each day after it stated closed: the session before is known. A day left
+        # unstated (a Worker asleep over it) may hide a later session, whose close the file
+        # then gives: only yesterday's held close is surely the latest.
+        known = all(first + timedelta(days=n) in stated for n in range(1, (last - first).days + 1))
+        target = first if known else last
     asked = False
     try:
         definition_version = _close_catalog_version(paths, source.metric_id)
         if definition_version is None:
             return False
 
-        def holds_close() -> bool:
+        def holds(day: date) -> bool:
             return any(
-                first.isoformat() <= point.period_end <= last.isoformat()
+                point.period_end == day.isoformat()
                 for point in EvidenceRepository(paths.database).metric_series(
                     source.metric_id,
                     mode=AsOfMode.SYSTEM,
@@ -412,12 +414,13 @@ def fetch_close_if_due(
                 )
             )
 
-        if holds_close():
+        if holds(target):
             # Held already (that evening, or before a restart): nothing to ask.
             return False
         asked = True
-        # The source records its own outcome, the failure's reason code included.
-        with contextlib.suppress(OSError, ValueError):
+        failed = False
+        try:
+            # The source records its own outcome, the failure's reason code included.
             refresh_quote_source(
                 paths,
                 source,
@@ -425,7 +428,10 @@ def fetch_close_if_due(
                 end_date=last,
                 definition_version=definition_version,
             )
-        held = holds_close()
+        except (OSError, ValueError):
+            failed = True
+        # Unknown which session the file gives, its reading is the most there is to hold.
+        held = holds(target) if known else not failed
     except Exception as error:
         # Whatever else failed, the window asks again: this runs in the Worker's loop.
         write_runtime_event(
