@@ -47,6 +47,12 @@ PRUNED = "原料已被留存删除，无法核对"
 # fixed defect kept in history: published projections are not recomputed (ADR-0036, last
 # point).
 ADR_0036_IN_EFFECT = "2026-10-02T16:05:46+00:00"
+# The new public cutoff (ADR-0041, 2026-10-13 addendum: a run's own target day reads what is
+# public by the run's frozen cutoff, so next-morning data can enter it) first applied to
+# run-25ac18e4…, accepted at this time (recurring-input-gaps residuals, ticket 10). A window
+# day's projection published as its run's own target day by a run accepted at or after it is
+# read as that run read it; any other window day by its own end.
+NEW_CUTOFF_IN_EFFECT = "2026-10-14T03:40:33+00:00"
 FIXED_HISTORY = "已修复、历史保留"
 FIXED_HISTORY_WHY = (
     "生成该日投影的运行受理早于 ADR-0036 实施（6fa8941，2026-10-02 16:05Z），当时只读本目录版本下的"
@@ -507,7 +513,8 @@ class Held:
     """Claims usable at one point in time: stored by ``as_of``, readable by the summary of
     ``day`` at the public cutoff ``until`` (the documented 公开截止: a window day reads what
     was public by its own end, the target day what was public by the run's cutoff, past its
-    end only of periods ending by the day), under a catalog version with the frozen
+    end only of periods ending by the day; a window day published as the target day of a run
+    under the new public cutoff, by that run's cutoff), under a catalog version with the frozen
     definition, not superseded by another such claim. ``day`` defaults to the Beijing date of
     ``until``. ``exact_version`` narrows the catalog versions to that one alone: how reads
     worked before ADR-0036."""
@@ -1234,7 +1241,8 @@ def daily_checks(
 ) -> list[list]:
     """Every day of the window: does that day's projection hold each stored-formula value
     whose inputs were complete that day (point in time: stored by the projection's
-    ``system_as_of``, public by the end of the day), and does it recompute? Gaps of
+    ``system_as_of``, public by the end of the day, or by the frozen cutoff of the run that
+    published the day as its target day under the new public cutoff), and does it recompute? Gaps of
     projections made before ADR-0036 that its fix explains go to ``history``, not to
     ``extra``."""
     projections = _day_projections(run)
@@ -1252,13 +1260,24 @@ def daily_checks(
             manifests[model] = json.loads(row[0]) if row else {}
         as_of = envelope.get("system_as_of") or run.cutoff
         catalog = manifests[model].get("metric_catalog_version")
-        accepted = run.db.execute(
-            "SELECT r.accepted_at FROM projection_set s JOIN parent_run r ON r.run_id = s.batch_id"
+        maker = run.db.execute(
+            "SELECT r.accepted_at, r.target_business_date, COALESCE(f.system_as_of, r.system_as_of)"
+            " FROM projection_set s JOIN parent_run r ON r.run_id = s.batch_id"
+            " LEFT JOIN run_cutoff_freeze f ON f.run_id = r.run_id"
             " WHERE s.projection_set_id = ?",
             (projection,),
         ).fetchone()
-        before_fix = bool(accepted) and parse_time(accepted[0]) < parse_time(ADR_0036_IN_EFFECT)
+        accepted = maker and parse_time(maker[0])
+        before_fix = bool(maker) and accepted < parse_time(ADR_0036_IN_EFFECT)
         own = projection == run.projection_set_id
+        # The day was its run's own target day under the new public cutoff: read it by that
+        # run's frozen cutoff, as production did.
+        new_cutoff = (
+            bool(maker)
+            and maker[1] == day
+            and accepted >= parse_time(NEW_CUTOFF_IN_EFFECT)
+            and bool(maker[2])
+        )
         # A projection made by a run accepted before ADR-0036 read only its own catalog
         # version: a problem that reading that way explains is the fixed defect, kept in history.
         strict = Held(claims, as_of, day_end(day), catalog) if catalog and before_fix else None
@@ -1279,9 +1298,16 @@ def daily_checks(
             not_recomputed.setdefault(marks, []).append(day)
         elif marks:
             mixed.append(f"{day}（{marks}）")
-        # The run's own target day reads by the run's cutoff (公开截止); any other window day
-        # by its own end.
-        held = Held(claims, as_of, run.cutoff_moment if own else day_end(day), day=day)
+        # The run's own target day reads by the run's cutoff (公开截止); a window day published
+        # as the target day of a run under the new public cutoff by that run's frozen cutoff;
+        # any other window day by its own end.
+        if own:
+            until = run.cutoff_moment
+        elif new_cutoff:
+            until = parse_time(maker[2])
+        else:
+            until = day_end(day)
+        held = Held(claims, as_of, until, day=day)
         for formula in manifests[model].get("derived_formula_versions", {}).values():
             spec = STORED.get(formula)
             if spec is None:
