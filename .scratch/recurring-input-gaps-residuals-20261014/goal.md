@@ -42,4 +42,4 @@
 | 11 降准回溯截止可读性 | done（读不到的期刊跳过并不计 covered_through；两轴无阻断；遗留：无声明期刊仍只按栏目日期） | 727b509、15e021c |
 | 12 体检 SOX 口径 | done（新口径判据：本运行有 ADR-0042 提供方的 SOX 回执，或 batch_freshness 来源为 `nasdaq:index_history`；旧运行重跑与票 10 逐字一致；新口径以内存视图叠夹具验证；规格轴 1 阻断已修；实证待 13） | 36dd4bb |
 | 代码审查与修复 | done：规格轴 1 阻断属实（次晨补取在日历不完整时把空应答当已持有），复现用例先红后修；标准轴两条重复（P0 截止时刻三处、`OfficialFile` 响应桩三份）已收拢；定向复审无阻断；记录 review-fixes.md | da92eac、9b7f6d0、4fb02dc |
-| 13 收尾验收 | 第一段 done（全套 2510 passed 72 分；备份 backups/pring-cycle-before-acc13-20261014-2329.sqlite3；无新迁移，计划 v4 09:30；Worker PID 489556 23:31 常驻，未新建运行）；第二段待 10-15 次晨补取与 09:30 计划运行（目标日 10-14） | e83e8af |
+| 13 收尾验收 | done（第一段全套 2510 passed；第二段 10-15 补交运行 `run-0eb95531…` completed，仅模型用到真正缺失 0、目录全部 1 已定性；准点未达成，用户 10-15 决定接受补交；遗留 3 转新批次 report-reading-20261015；记录 acceptance-20261015.md） | e83e8af、90dde05 |
