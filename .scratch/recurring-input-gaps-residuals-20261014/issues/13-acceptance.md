@@ -63,3 +63,11 @@ Type: task
   - Worker 持有 `/tmp/pring-heavy.lock`，停 Worker 前其他重型测试会排队等锁。
   - 停止用 `kill -TERM 489556`，不要 `kill -9`；flock 与脚本随后退出，`.meta` 记退出码。
   - 明早 09:30 前先确认 489556 仍在、心跳是新的。另外查保护日志有没有断档，以确认机器没有休眠。
+
+### 2026-10-15 补交（主 agent）
+
+- 10-15 00:00:00 Worker 按票 08 次晨补取 10-14 的 16:30 收盘价：回执 `acquisition-5b9f2fe5…` validated，入库 1 条（6.6925）。
+- 02:27:48 WSL 停止：Windows 更新（KB5127648、KB5127690）约 02:28 自动重启，系统事件 02:30 开机、02:33 记安装成功；WSL 到 09:22:54 才随用户登录重启。Worker 489556 随之终止，`.meta` 无退出码行，09:30 计划运行未提交，**准点样本再次落空**（原因是更新重启，不是休眠）。
+- 09:4x 时钟检查退出码 0、timesyncd disabled／inactive；dev-venv 安装副本与集成分支 `src/` 逐文件一致。用户同意后 09:49:22 用同一脚本重启 Worker（PID 11056，flock 11055），C 盘保护 `guard-worker-acc13-20261015.log`（下限 20G）。
+- 首次判断即补交：`run_command` 40，`scheduled_full`，幂等键 `scheduled-2026-10-14-v4`，`run-0eb9553118ba92a183b9`，受理 01:49:24Z。
+- 第一段过程目录（scratchpad `acc13/`）随 WSL 重启丢失；第一段要点已记在上文。
