@@ -1,0 +1,35 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________ test_live_chain_refreshes_requests_without_a_run_step_change _________
+
+tmp_path = PosixPath('/tmp/pytest-of-tywin/pytest-52/test_live_chain_refreshes_requ0')
+
+    def test_live_chain_refreshes_requests_without_a_run_step_change(tmp_path: Path) -> None:
+        paths = runtime(tmp_path)
+        with serving(paths) as base:
+            _, accepted = post(base, {
+                "command": "manual_full", "client_request_id": "live-flow",
+                "target_business_date": TARGET.isoformat(),
+            })
+            run_id = accepted["run_id"]
+            search = f"?run={run_id}"
+            initial = rendered_page(base, "/data-chain", search)
+            assert "取数流向 · 0 次真实请求" in json.dumps(initial, ensure_ascii=False)
+            with own_acquisitions(paths.database, run_id, "direct_core_refresh"):
+                AcquisitionRepository(paths.database, paths.artifacts).capture(
+                    provider="fixture", api_name="price", parameters={}, fields="value",
+                    parser_version="fixture", fetch=lambda: b"100", parse=float,
+                    normalize=lambda value: {"value": value},
+                )
+            updated = rendered_page(
+                base, "/data-chain", search, initial["view-fingerprint"]["data"], poll=1
+            )
+>           assert "取数流向 · 1 次真实请求" in json.dumps(updated, ensure_ascii=False)
+E           assert '取数流向 · 1 次真实请求' in '{"runtime-poll": {"interval": 30000}, "projection-strip": {"children": [{"props": {"children": "等待首次完整运行"}, "type": "Span", "namespace": "dash_html_components"}]}, "refresh-notice": {"children": ""}}'
+E            +  where '{"runtime-poll": {"interval": 30000}, "projection-strip": {"children": [{"props": {"children": "等待首次完整运行"}, "type": "Span", "namespace": "dash_html_components"}]}, "refresh-notice": {"children": ""}}' = <function dumps at 0x7afe75107240>({'projection-strip': {'children': [{'namespace': 'dash_html_components', 'props': {'children': '等待首次完整运行'}, 'type': 'Span'}]}, 'refresh-notice': {'children': ''}, 'runtime-poll': {'interval': 30000}}, ensure_ascii=False)
+E            +    where <function dumps at 0x7afe75107240> = json.dumps
+
+tests/web/test_cockpit_http.py:155: AssertionError
+=========================== short test summary info ============================
+FAILED tests/web/test_cockpit_http.py::test_live_chain_refreshes_requests_without_a_run_step_change
+1 failed in 5.43s

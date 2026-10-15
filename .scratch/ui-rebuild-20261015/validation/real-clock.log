@@ -1,0 +1,2 @@
+systemd-timesyncd: inactive
+clock: steady, no step over 0.2s in 65s

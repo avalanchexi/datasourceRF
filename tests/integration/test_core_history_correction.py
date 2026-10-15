@@ -198,8 +198,11 @@ def test_a_run_appends_a_correction_for_each_window_day_on_the_old_core_history(
     page = _text(
         dashboard_page("/stage-history", current, (), (), runtime.repository.stage_history())
     )
-    assert all(page.count(f"{day} · ") == 1 for day in window)
-    assert page.count("更正版本") == len(corrected)
+    # The old bookmark now opens the complete report. Count history rows inside its
+    # named reading section; the same target date also appears in the other sections.
+    history = page[page.rindex("06 周期说明与阶段史") : page.rindex("07 数据说明与解读")]
+    assert all(history.count(f"{day} · ") == 1 for day in window)
+    assert history.count("更正版本") == len(corrected)
 
     requests_before = len(runtime.requests)
     third = runtime.run(THIRD)

@@ -1,0 +1,240 @@
+### Page
+- Page URL: http://127.0.0.1:8065/runs
+- Page Title: Pring 本机运行状态
+### Snapshot
+```yaml
+- generic [active] [ref=f5e1]:
+  - generic [ref=f5e24]:
+    - link "跳至主要内容" [ref=f5e25] [cursor=pointer]:
+      - /url: "#page-content"
+    - banner [ref=f5e26]:
+      - generic [ref=f5e27]:
+        - generic [ref=f5e28]: PRING CYCLE
+        - generic [ref=f5e29]: 周期驾驶舱
+      - generic [ref=f5e30]:
+        - generic [ref=f5e839]:
+          - generic [ref=f5e840]: 目标交易日
+          - generic [ref=f5e841]: 2026-08-28
+        - generic [ref=f5e842]:
+          - generic [ref=f5e843]: 分析截止
+          - generic [ref=f5e844]: 2026-08-28 21:00:00 北京时间
+        - group [ref=f5e845]:
+          - generic "projection-b3e186f673ff3adc7b95" [ref=f5e846] [cursor=pointer]
+      - button "切换明暗主题" [ref=f5e39] [cursor=pointer]
+    - status
+    - generic [ref=f5e40]:
+      - navigation "一级导航" [ref=f5e41]:
+        - link "数据看板" [ref=f5e42] [cursor=pointer]:
+          - /url: /
+        - link "数据链路" [ref=f5e43] [cursor=pointer]:
+          - /url: /data-chain
+        - link "运行状态" [ref=f5e44] [cursor=pointer]:
+          - /url: /runs
+      - main [ref=f5e45]:
+        - generic [ref=f5e847]:
+          - heading "运行状态" [level=1] [ref=f5e848]
+          - paragraph [ref=f5e849]: 运行中约 30 秒刷新，空闲约 300 秒刷新。报告任务与完整取数分开比较。
+          - generic [ref=f5e850]:
+            - generic [ref=f5e851]:
+              - text: 类型
+              - combobox "类型" [ref=f5e852]:
+                - option "全部" [selected]
+                - option "手动完整运行"
+                - option "报告生成"
+            - generic [ref=f5e853]:
+              - text: 状态
+              - combobox "状态" [ref=f5e854]:
+                - option "全部" [selected]
+                - option "需要处理"
+                - option "已取消"
+                - option "已完成"
+            - button "应用筛选" [ref=f5e855] [cursor=pointer]
+            - link "清空" [ref=f5e856] [cursor=pointer]:
+              - /url: /runs?
+          - generic [ref=f5e857]:
+            - generic [ref=f5e858]:
+              - text: 运行
+              - combobox "运行" [ref=f5e859]:
+                - option "全部" [selected]
+                - option "run-5d5a93232d63b96c1cb2"
+                - option "run-c1641ef95182c9d00ad7"
+                - option "run-cb21a66676b2c71c7e26"
+                - option "run-f85f81831749a08a8572"
+                - option "run-74079e07623f257b3563"
+                - option "run-c61de8f0150c67a0bf0a"
+                - option "run-adcd01d010f06db2fc4b"
+            - button "应用筛选" [ref=f5e860] [cursor=pointer]
+            - link "清空" [ref=f5e861] [cursor=pointer]:
+              - /url: /runs?
+          - paragraph [ref=f5e862]: 运行 run-5d5a93232d63b96c1cb2 · 第 3 次尝试 · 需要处理
+          - paragraph [ref=f5e863]: 本次投影：尚未发布新投影
+          - paragraph [ref=f5e864]: 下一步：补齐三核心或记录缺口说明
+          - paragraph [ref=f5e865]: 该版本未提供最终需求计划的两种完整度口径。
+          - generic [ref=f5e866]:
+            - generic [ref=f5e867]:
+              - generic [ref=f5e868]: 本次尝试耗时（秒，含排队）
+              - strong [ref=f5e869]: "1.44"
+            - generic [ref=f5e870]:
+              - generic [ref=f5e871]: 整次运行外部请求
+              - strong [ref=f5e872]: "0"
+            - generic [ref=f5e873]:
+              - generic [ref=f5e874]: 运行状态
+              - strong [ref=f5e875]: 需要处理
+            - generic [ref=f5e876]:
+              - generic [ref=f5e877]: 投影完整度
+              - strong [ref=f5e878]: 未发布
+            - generic [ref=f5e879]:
+              - generic [ref=f5e880]: 报告状态
+              - strong [ref=f5e881]: 未生成
+            - generic [ref=f5e882]:
+              - generic [ref=f5e883]: 未完成期
+              - strong [ref=f5e884]: 未形成最终计划
+          - paragraph [ref=f5e885]: 对比 run-c61de8f0150c67a0bf0a：耗时变化 -251.01 秒；请求变化 0.00
+          - table [ref=f5e887]:
+            - rowgroup [ref=f5e888]:
+              - row [ref=f5e889]:
+                - columnheader "步骤" [ref=f5e890]
+                - columnheader "开始" [ref=f5e891]
+                - columnheader "结束" [ref=f5e892]
+                - columnheader "秒" [ref=f5e893]
+            - rowgroup [ref=f5e894]:
+              - row [ref=f5e895]:
+                - cell "排队" [ref=f5e896]
+                - cell "2026-10-15 21:23:19 北京时间" [ref=f5e897]
+                - cell "2026-10-15 21:23:20 北京时间" [ref=f5e898]
+                - cell "1.44" [ref=f5e899]
+          - paragraph [ref=f5e900]: 预算消耗：ai_websearch 0 · exa 0 · tavily 0
+          - paragraph [ref=f5e901]: 时效分布（指标数）：本次未记录
+          - link "查看这次运行的取数流向 →" [ref=f5e902] [cursor=pointer]:
+            - /url: /data-chain?run=run-5d5a93232d63b96c1cb2
+          - heading "留存期趋势" [level=2] [ref=f5e903]
+          - generic [ref=f5e907]:
+            - img:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: 19:45Oct 15, 2026
+                    - generic: 20:00
+                    - generic: 20:15
+                    - generic: 20:30
+                    - generic: 20:45
+                    - generic: 21:00
+                    - generic: 21:15
+                  - generic:
+                    - generic: "0"
+                    - generic: "200"
+                    - generic: "400"
+                    - generic: "600"
+                  - generic:
+                    - generic:
+                      - generic: "0"
+                      - generic: "1"
+            - img:
+              - generic [ref=f5e928]:
+                - generic [ref=f5e929]:
+                  - generic [ref=f5e930]: 尝试耗时（秒，含排队）
+                  - generic [ref=f5e935] [cursor=pointer]
+                - generic [ref=f5e936]:
+                  - generic [ref=f5e937]: 运行累计请求
+                  - generic [ref=f5e942] [cursor=pointer]
+          - table [ref=f5e944]:
+            - rowgroup [ref=f5e945]:
+              - row [ref=f5e946]:
+                - columnheader "运行 / 类型" [ref=f5e947]
+                - columnheader "状态" [ref=f5e948]
+                - columnheader "耗时（秒）" [ref=f5e949]
+                - columnheader "外部请求" [ref=f5e950]
+                - columnheader "模型 / 目录" [ref=f5e951]
+            - rowgroup [ref=f5e952]:
+              - row [ref=f5e953]:
+                - cell [ref=f5e954]:
+                  - link "run-5d5a93232d63b96c1cb2 · 手动完整运行" [ref=f5e955] [cursor=pointer]:
+                    - /url: /runs?run=run-5d5a93232d63b96c1cb2
+                - cell "需要处理" [ref=f5e956]
+                - cell "1.44" [ref=f5e957]
+                - cell "0" [ref=f5e958]
+                - cell "model-v0002 / metric-catalog-v0002" [ref=f5e959]
+              - row [ref=f5e960]:
+                - cell [ref=f5e961]:
+                  - link "run-c1641ef95182c9d00ad7 · 报告生成" [ref=f5e962] [cursor=pointer]:
+                    - /url: /runs?run=run-c1641ef95182c9d00ad7
+                - cell "已完成" [ref=f5e963]
+                - cell "638.11" [ref=f5e964]
+                - cell "0" [ref=f5e965]
+                - cell "model-confirmation-fixture / metric-catalog-v0001" [ref=f5e966]
+              - row [ref=f5e967]:
+                - cell [ref=f5e968]:
+                  - link "run-cb21a66676b2c71c7e26 · 手动完整运行" [ref=f5e969] [cursor=pointer]:
+                    - /url: /runs?run=run-cb21a66676b2c71c7e26
+                - cell "已取消" [ref=f5e970]
+                - cell "49.32" [ref=f5e971]
+                - cell "0" [ref=f5e972]
+                - cell "model-v0001 / metric-catalog-v0001" [ref=f5e973]
+              - row [ref=f5e974]:
+                - cell [ref=f5e975]:
+                  - link "run-f85f81831749a08a8572 · 手动完整运行" [ref=f5e976] [cursor=pointer]:
+                    - /url: /runs?run=run-f85f81831749a08a8572
+                - cell "已取消" [ref=f5e977]
+                - cell "134.84" [ref=f5e978]
+                - cell "0" [ref=f5e979]
+                - cell "model-v0001 / metric-catalog-v0001" [ref=f5e980]
+              - row [ref=f5e981]:
+                - cell [ref=f5e982]:
+                  - link "run-c61de8f0150c67a0bf0a · 手动完整运行" [ref=f5e983] [cursor=pointer]:
+                    - /url: /runs?run=run-c61de8f0150c67a0bf0a
+                - cell "已取消" [ref=f5e984]
+                - cell "252.45" [ref=f5e985]
+                - cell "0" [ref=f5e986]
+                - cell "model-v0002 / metric-catalog-v0002" [ref=f5e987]
+              - row [ref=f5e988]:
+                - cell [ref=f5e989]:
+                  - link "run-74079e07623f257b3563 · 报告生成" [ref=f5e990] [cursor=pointer]:
+                    - /url: /runs?run=run-74079e07623f257b3563
+                - cell "已完成" [ref=f5e991]
+                - cell "0.04" [ref=f5e992]
+                - cell "0" [ref=f5e993]
+                - cell "model-confirmation-fixture / metric-catalog-v0001" [ref=f5e994]
+              - row [ref=f5e995]:
+                - cell [ref=f5e996]:
+                  - link "run-adcd01d010f06db2fc4b · 手动完整运行" [ref=f5e997] [cursor=pointer]:
+                    - /url: /runs?run=run-adcd01d010f06db2fc4b
+                - cell "已取消" [ref=f5e998]
+                - cell "0.01" [ref=f5e999]
+                - cell "0" [ref=f5e1000]
+                - cell "model-v0002 / metric-catalog-v0002" [ref=f5e1001]
+          - heading "操作与运行记录" [level=2] [ref=f5e1002]
+          - generic [ref=f5e1003]:
+            - paragraph [ref=f5e1004]: 持久运行记录
+            - generic [ref=f5e1005]:
+              - button "发起手动完整运行" [ref=f5e1006] [cursor=pointer]
+              - textbox "Select Date" [ref=f5e1010]: 2026-08-28
+              - paragraph [ref=f5e1013]: 命令仅在显式操作后联网；重复提交复用同一权威运行。
+            - list [ref=f5e1014]:
+              - listitem [ref=f5e1015]:
+                - strong [ref=f5e1016]: 2026-08-28 · 需要处理
+                - generic [ref=f5e1017]: 排队 · 尝试 3 · 预算 Tavily 0/16、Exa 0/8、AI 0 · 下一动作 补齐三核心或记录缺口说明
+                - group [ref=f5e1018]:
+                  - generic "确认并继续" [ref=f5e1019] [cursor=pointer]
+                  - paragraph [ref=f5e1020]: 继续会恢复该运行，并允许尚未完成的外部调用。收起此处可放弃操作。
+                  - button "允许外部调用并继续" [ref=f5e1021] [cursor=pointer]
+              - listitem [ref=f5e1022]:
+                - strong [ref=f5e1023]: 2026-08-28 · 已完成
+                - generic [ref=f5e1024]: 已完成 · 尝试 1 · 预算 Tavily 0/16、Exa 0/8、AI 0 · 下一动作 无需操作
+              - listitem [ref=f5e1025]:
+                - strong [ref=f5e1026]: 2026-08-28 · 已取消
+                - generic [ref=f5e1027]: 排队 · 尝试 1 · 预算 Tavily 0/16、Exa 0/8、AI 0 · 下一动作 无需操作
+              - listitem [ref=f5e1028]:
+                - strong [ref=f5e1029]: 2026-08-28 · 已取消
+                - generic [ref=f5e1030]: 排队 · 尝试 1 · 预算 Tavily 0/16、Exa 0/8、AI 0 · 下一动作 无需操作
+              - listitem [ref=f5e1031]:
+                - strong [ref=f5e1032]: 2026-08-28 · 已完成
+                - generic [ref=f5e1033]: 已完成 · 尝试 1 · 预算 Tavily 0/16、Exa 0/8、AI 0 · 下一动作 无需操作
+              - listitem [ref=f5e1034]:
+                - strong [ref=f5e1035]: 2026-08-28 · 已取消
+                - generic [ref=f5e1036]: 排队 · 尝试 2 · 预算 Tavily 0/16、Exa 0/8、AI 0 · 下一动作 无需操作
+              - listitem [ref=f5e1037]:
+                - strong [ref=f5e1038]: 2026-08-28 · 已取消
+                - generic [ref=f5e1039]: 排队 · 尝试 1 · 预算 Tavily 0/16、Exa 0/8、AI 0 · 下一动作 无需操作
+      - status [ref=f5e237]: 命令已受理：run-5d5a93232d63b96c1cb2 · queued · 幂等键 b1167f8d-e6c0-4170-a352-73395aa1ed97
+  - contentinfo
+```

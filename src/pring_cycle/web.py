@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import threading
 from collections.abc import AsyncIterator
@@ -9,6 +10,7 @@ from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
 from typing import Any, cast
+from urllib.parse import parse_qs
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -29,10 +31,11 @@ from pring_cycle.health_types import RuntimeHealthDocument
 from pring_cycle.logging import write_runtime_event
 from pring_cycle.maintenance import mutation_rejection
 from pring_cycle.models import ModelRepository
-from pring_cycle.navigation import DASHBOARD_NAVIGATION
+from pring_cycle.navigation import DASHBOARD_NAVIGATION, LEGACY_ROUTES
 from pring_cycle.projections import ProjectionSet, ProjectionSetRepository
 from pring_cycle.release_calendar import current_lpr_period, lpr_release_calendar
 from pring_cycle.reports import ReportRepository, ReportSnapshot
+from pring_cycle.run_health import RunHealth, comparison, filtered_flow
 from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import (
     RuntimeNotInitializedError,
@@ -44,16 +47,18 @@ from pring_cycle.source_contract_review import (
     require_model_source_contract,
 )
 from pring_cycle.storage import database_health
+from pring_cycle.web_config import HostBoundary, WebConfig
 
 COMMAND_BODY_LIMIT = 4096
 
 
 def create_web_application(
     paths: RuntimePaths,
-    port: int,
+    port: int | None = None,
     *,
     eager_dashboard: bool = True,
 ) -> FastAPI:
+    config = WebConfig.read(paths, port)
     dashboard_state: dict[str, object] = {}
 
     @asynccontextmanager
@@ -79,9 +84,11 @@ def create_web_application(
         title="Pring local runtime",
     )
 
+    server.add_middleware(HostBoundary, config=config)
+
     @server.get("/api/v1/health", name="runtime_health")
     def health() -> RuntimeHealthDocument:
-        return runtime_health(paths, port)
+        return runtime_health(paths, config=config)
 
     @server.get("/api/v1/projections/current", name="current_projection")
     def current_projection() -> JSONResponse:
@@ -115,6 +122,61 @@ def create_web_application(
             "data": projection.datasets[dataset_name],
         }
         return JSONResponse(content=jsonable_encoder(document))
+
+    @server.get("/api/v1/projections/{projection_id}", name="pinned_projection")
+    def pinned_projection(projection_id: str) -> JSONResponse:
+        try:
+            projection = ProjectionSetRepository(paths.database).get(projection_id)
+        except LookupError:
+            return JSONResponse(status_code=404, content={"error": "projection_not_found"})
+        return JSONResponse(content=jsonable_encoder(_projection_document(projection)))
+
+    @server.get("/api/v1/projections/{projection_id}/{dataset_name}", name="pinned_dataset")
+    def pinned_dataset(projection_id: str, dataset_name: str) -> JSONResponse:
+        try:
+            projection = ProjectionSetRepository(paths.database).get(projection_id)
+        except LookupError:
+            return JSONResponse(status_code=404, content={"error": "projection_not_found"})
+        if dataset_name not in projection.datasets:
+            return JSONResponse(status_code=404, content={"error": "projection_dataset_not_found"})
+        return JSONResponse(
+            content=jsonable_encoder(
+                {
+                    "envelope": _projection_document(projection)["envelope"],
+                    "dataset_name": dataset_name,
+                    "data": projection.datasets[dataset_name],
+                }
+            )
+        )
+
+    @server.get("/api/v1/projection-evidence/{projection_id}/{version_id}")
+    def projection_evidence(projection_id: str, version_id: str, trail: str = "") -> JSONResponse:
+        try:
+            projection = ProjectionSetRepository(paths.database).get(projection_id)
+            document = _frozen_evidence(paths, projection, version_id, trail=trail)
+        except LookupError as error:
+            return JSONResponse(status_code=404, content={"error": str(error)})
+        return JSONResponse(content=jsonable_encoder(document))
+
+    @server.get("/api/v1/projection-evidence/{projection_id}")
+    def projection_evidence_search(projection_id: str, q: str = "") -> JSONResponse:
+        try:
+            projection = ProjectionSetRepository(paths.database).get(projection_id)
+            rows = EvidenceRepository(paths.database).search_frozen(
+                projection.envelope.evidence_snapshot_id, q
+            )
+        except LookupError as error:
+            return JSONResponse(status_code=404, content={"error": str(error)})
+        return JSONResponse(
+            content=jsonable_encoder(
+                {
+                    "projection_set_id": projection_id,
+                    "system_as_of": projection.envelope.system_as_of,
+                    "results": rows,
+                    "limit": 100,
+                }
+            )
+        )
 
     @server.get("/api/v1/evidence/{observation_id}", name="evidence_trace")
     def evidence_trace(
@@ -151,16 +213,32 @@ def create_web_application(
         "/api/v1/acquisitions/{acquisition_id}/artifacts/{kind}",
         name="acquisition_artifact",
     )
-    def acquisition_artifact(acquisition_id: str, kind: str) -> Response:
+    def acquisition_artifact(acquisition_id: str, kind: str, view: bool = False) -> Response:
         try:
             content = AcquisitionRepository(paths.database, paths.artifacts).read_content(
                 acquisition_id, kind
             )
-        except (LookupError, FileNotFoundError) as error:
-            return JSONResponse(status_code=404, content={"error": type(error).__name__})
+        except FileNotFoundError:
+            return JSONResponse(status_code=404, content={"error": "artifact_file_missing"})
+        except LookupError as error:
+            return JSONResponse(
+                status_code=410 if str(error) == "search_response_expired" else 404,
+                content={"error": str(error)},
+            )
         except ValueError as error:
-            return JSONResponse(status_code=400, content={"error": str(error)})
-        return Response(content=content, media_type="application/octet-stream")
+            return JSONResponse(
+                status_code=409 if str(error) == "artifact_hash_mismatch" else 400,
+                content={"error": str(error)},
+            )
+        return Response(
+            content=content,
+            media_type="text/plain" if view else "application/octet-stream",
+            headers={
+                "X-Content-Type-Options": "nosniff",
+                "Content-Security-Policy": "default-src 'none'; sandbox",
+                "Content-Disposition": "inline" if view else f'attachment; filename="{kind}.txt"',
+            },
+        )
 
     @server.get("/api/v1/catalog", name="metric_catalog")
     def catalog() -> dict[str, object]:
@@ -186,7 +264,7 @@ def create_web_application(
 
     @server.get("/api/v1/runs", name="run_index")
     def run_index() -> list[dict[str, object]]:
-        return [asdict(item) for item in _runs(paths)]
+        return [asdict(item) for item in RunRepository(paths.database).list_runs()]
 
     @server.get("/api/v1/runs/{run_id}/audit", name="run_audit")
     def run_audit(run_id: str) -> JSONResponse:
@@ -200,6 +278,34 @@ def create_web_application(
                 {
                     "run": asdict(run),
                     "full_retrieval": runs.full_retrieval_plan(run_id),
+                }
+            )
+        )
+
+    @server.get("/api/v1/run-health", name="run_health_history")
+    def run_health_history() -> list[dict[str, Any]]:
+        return RunHealth(paths.database).history()
+
+    @server.get("/api/v1/runs/{run_id}/health", name="run_health_detail")
+    def run_health_detail(run_id: str, request: Request) -> JSONResponse:
+        try:
+            run = RunRepository(paths.database).get(run_id)
+            reader = RunHealth(paths.database)
+            summary = (
+                reader.observe(run_id)
+                if run.status in {"queued", "running"}
+                else reader.latest(run_id)
+            )
+        except LookupError:
+            return JSONResponse(status_code=404, content={"error": "run_not_found"})
+        if summary is None:
+            return JSONResponse(status_code=404, content={"error": "legacy_summary_unavailable"})
+        return JSONResponse(
+            content=jsonable_encoder(
+                {
+                    "summary": summary,
+                    "comparison": comparison(summary, reader.history()),
+                    "flow": filtered_flow(summary, dict(request.query_params)),
                 }
             )
         )
@@ -254,7 +360,7 @@ def create_web_application(
 
     @server.post("/api/v1/commands", response_model=None, name="append_command")
     async def append_command(request: Request) -> JSONResponse:
-        rejection = _command_origin_rejection(request, port)
+        rejection = _command_origin_rejection(request, config)
         if rejection is not None:
             return rejection
         payload, parse_rejection = await _command_payload(request)
@@ -271,7 +377,11 @@ def create_web_application(
         return JSONResponse(status_code=202, content=jsonable_encoder(document))
 
     if eager_dashboard:
-        _load_dashboard(server, paths, dashboard_state)
+        # Dash consumes JSON for its callbacks. Keep that middleware on its own app,
+        # so commands retain their streaming size limit and receive their request body.
+        dashboard_server = FastAPI()
+        _load_dashboard(dashboard_server, paths, dashboard_state)
+        server.router.routes.append(Mount("/", app=dashboard_server, name="dashboard"))
     else:
         loading_server = FastAPI()
 
@@ -308,6 +418,10 @@ def _meaningful_dashboard_shell(paths: RuntimePaths, *, status: str) -> str:
     )
     notice = _source_contract_notice(paths)
     notice_html = f"<aside role='alert'>{escape(notice)}</aside>" if notice is not None else ""
+    overview = projection.datasets.get("cycle_overview", {}) if projection else {}
+    conclusion = str(
+        overview.get("current_stage") or overview.get("stage_reason") or "等待首次完整运行"
+    )
     return (
         "<header><p>PRING CYCLE</p><h1>周期驾驶舱</h1>"
         f"<dl><dt>SYSTEM AS OF</dt><dd>{escape(system_as_of)}</dd>"
@@ -315,7 +429,8 @@ def _meaningful_dashboard_shell(paths: RuntimePaths, *, status: str) -> str:
         f"<dt>完整度</dt><dd>{escape(completeness)}</dd></dl></header>"
         f"{notice_html}"
         f"<nav aria-label='一级导航'>{navigation}</nav>"
-        "<main id='page-content' data-pring-meaningful-content='true'>"
+        "<main id='initial-page-content' data-pring-meaningful-content='true'>"
+        f"<h2>三核心资产与周期结论</h2><p>{escape(conclusion)}</p>"
         f"<h2>本机运行状态</h2><p>{escape(status)}</p></main>"
     )
 
@@ -350,10 +465,39 @@ def _dashboard_index_document(
         "<script>(function(){var fallback=document.getElementById('pring-initial-shell');"
         "var root=document.getElementById('react-entry-point');"
         "if(!fallback||!root||!window.MutationObserver){return;}"
-        "var hide=function(){if(root.querySelector('#page-content')){fallback.hidden=true;}};"
-        "new MutationObserver(hide).observe(root,{childList:true,subtree:true});hide();"
+        "var hide=function(){if(root.querySelector('#page-content > *')){"
+        "fallback.remove();observer.disconnect();}};"
+        "var observer=new MutationObserver(hide);"
+        "observer.observe(root,{childList:true,subtree:true});hide();"
         "})();</script></body></html>"
     )
+
+
+def _frozen_evidence(
+    paths: RuntimePaths,
+    projection: ProjectionSet,
+    version_id: str,
+    *,
+    trail: str = "",
+) -> dict[str, Any]:
+    evidence = EvidenceRepository(paths.database)
+    chain = [item for item in trail.split(",") if item] + [version_id]
+    if len(chain) > 30:
+        raise LookupError("lineage_depth_limit")
+    if len(set(chain)) != len(chain):
+        raise LookupError("lineage_cycle")
+    if chain[0] not in evidence.frozen_versions(projection.envelope.evidence_snapshot_id):
+        raise LookupError("version_not_in_snapshot")
+    for parent, child in zip(chain, chain[1:], strict=False):
+        node = evidence.trace_version(parent, as_of=projection.envelope.system_as_of)
+        if child not in node["trace"].get("input_observation_version_ids", []):
+            raise LookupError("version_not_in_parent_inputs")
+    return {
+        "projection_set_id": projection.envelope.projection_set_id,
+        "system_as_of": projection.envelope.system_as_of.isoformat(),
+        "lineage_path": chain,
+        **evidence.trace_version(version_id, as_of=projection.envelope.system_as_of),
+    }
 
 
 def _load_deferred_dashboard(
@@ -373,8 +517,9 @@ def _load_dashboard(
     state: dict[str, object],
 ) -> None:
     try:
-        from dash import Dash, Input, Output
+        from dash import Dash, Input, Output, State, no_update
 
+        from pring_cycle.cockpit import evidence_workspace, identity_strip
         from pring_cycle.dashboard import dashboard_page, dashboard_shell
 
         class MeaningfulDash(Dash):
@@ -421,7 +566,7 @@ def _load_dashboard(
             for route in server.routes
             if getattr(route, "path", None) == "/"
         )
-        for path, _label in DASHBOARD_NAVIGATION:
+        for path in (*[item[0] for item in DASHBOARD_NAVIGATION], *LEGACY_ROUTES):
             if path == "/":
                 continue
             route_name = "dashboard_" + path.strip("/").replace("-", "_")
@@ -436,23 +581,166 @@ def _load_dashboard(
         @dashboard.callback(
             Output("page-content", "children"),
             Output("runtime-poll", "interval"),
+            Output("projection-strip", "children"),
+            Output("view-fingerprint", "data"),
+            Output("refresh-notice", "children"),
             Input("dashboard-location", "pathname"),
+            Input("dashboard-location", "search"),
             Input("runtime-poll", "n_intervals"),
+            Input("command-refresh", "data"),
+            State("view-fingerprint", "data"),
         )
-        def route_dashboard(pathname: str | None, _n_intervals: int) -> tuple[object, int]:
+        def route_dashboard(
+            pathname: str | None,
+            search: str | None,
+            _n_intervals: int,
+            _command_refresh: str | None,
+            previous: str | None,
+        ) -> tuple[Any, ...]:
             runs = _runs(paths)
-            page = dashboard_page(
-                pathname,
-                _current_projection(paths),
-                runs,
-                _reports(paths),
-                _stage_history(paths),
-                _release_calendar_events(paths),
-            )
             interval = (
                 30_000 if any(item.status in {"queued", "running"} for item in runs) else 300_000
             )
-            return page, interval
+            query = {
+                key: values[-1] for key, values in parse_qs((search or "").lstrip("?")).items()
+            }
+            try:
+                projection = (
+                    ProjectionSetRepository(paths.database).get(query["projection"])
+                    if query.get("projection")
+                    else _current_projection(paths)
+                )
+                reports = _reports(paths)
+                identity = projection.envelope.projection_set_id if projection else None
+                signature = [pathname, search, identity]
+                signature.append(repr(reports))
+                signature.append(
+                    repr(
+                        [
+                            run
+                            for run in runs
+                            if run.projection_set_id == identity
+                            and (
+                                run.command_type == "report_generation"
+                                or run.current_step == "generating_report"
+                            )
+                        ]
+                    )
+                )
+                if pathname in {"/runs", "/data-chain", "/reports"}:
+                    signature.extend([repr(runs), repr(reports)])
+                if pathname in {"/runs", "/data-chain"}:
+                    signature.append(repr(RunHealth(paths.database).history()))
+                fingerprint = hashlib.sha256(repr(signature).encode()).hexdigest()
+                if previous == fingerprint and pathname not in {"/runs", "/data-chain"}:
+                    return no_update, interval, identity_strip(projection), no_update, ""
+                if pathname in {"/runs", "/data-chain"}:
+                    from pring_cycle.cockpit_operations import data_chain, runs_workspace
+
+                    candidates = [
+                        run
+                        for run in runs
+                        if pathname != "/runs"
+                        or (
+                            (not query.get("type") or run.command_type == query["type"])
+                            and (not query.get("status") or run.status == query["status"])
+                        )
+                    ]
+                    selected = next(
+                        (run for run in candidates if run.run_id == query.get("run")), None
+                    )
+                    if selected is None and not query.get("run"):
+                        producer_id = (
+                            ProjectionSetRepository(paths.database).producer_run_id(
+                                projection.envelope.projection_set_id
+                            )
+                            if projection
+                            else None
+                        )
+                        produced = [
+                            run
+                            for run in candidates
+                            if (pathname == "/data-chain" or query.get("projection"))
+                            and projection
+                            and (
+                                run.run_id == producer_id
+                                or run.projection_set_id == projection.envelope.projection_set_id
+                            )
+                            and run.command_type in {"manual_full", "scheduled_full"}
+                        ]
+                        selected = (
+                            produced[0]
+                            if produced
+                            else candidates[0]
+                            if candidates and not query.get("projection")
+                            else None
+                        )
+                    if selected and pathname == "/data-chain":
+                        selected = RunRepository(paths.database).get(selected.run_id)
+                    health = RunHealth(paths.database)
+                    summary = (
+                        (
+                            health.observe(selected.run_id)
+                            if selected.status in {"queued", "running"}
+                            else health.latest(selected.run_id)
+                        )
+                        if selected
+                        else None
+                    )
+                    # Request receipts can change while the run stays in one step.
+                    fingerprint = hashlib.sha256(repr((fingerprint, summary)).encode()).hexdigest()
+                    if previous == fingerprint:
+                        return no_update, interval, identity_strip(projection), no_update, ""
+                    if pathname == "/runs":
+                        page = runs_workspace(runs, summary, health.history(), query)
+                        return page, interval, identity_strip(projection), fingerprint, ""
+                    try:
+                        document = (
+                            _frozen_evidence(
+                                paths, projection, query["version"], trail=query.get("trail", "")
+                            )
+                            if projection and query.get("version")
+                            else None
+                        )
+                    except LookupError as error:
+                        document = {"error": str(error)}
+                    search_results = (
+                        EvidenceRepository(paths.database).search_frozen(
+                            projection.envelope.evidence_snapshot_id, query.get("q", "")
+                        )
+                        if projection
+                        else []
+                    )
+                    page = data_chain(
+                        runs,
+                        selected,
+                        summary,
+                        query,
+                        evidence_workspace(projection, document, query, search_results),
+                    )
+                else:
+                    page = dashboard_page(
+                        pathname,
+                        projection,
+                        runs,
+                        reports,
+                        (),
+                        _release_calendar_events(paths, projection),
+                    )
+                return page, interval, identity_strip(projection), fingerprint, ""
+            except (
+                Exception
+            ) as error:  # Preserve the last complete view; never mix partial datasets.
+                write_runtime_event(
+                    paths, "web", "dashboard_read_failed:" + type(error).__name__, level="error"
+                )
+                return (
+                    no_update,
+                    interval,
+                    no_update,
+                    no_update,
+                    "读取失败，请重试；已有完整视图继续保留。",
+                )
 
         state["dashboard"] = dashboard
     except Exception as error:  # noqa: BLE001 - preserve API availability on UI failure
@@ -460,15 +748,14 @@ def _load_dashboard(
         write_runtime_event(paths, "web", "dashboard_load_failed", level="error")
 
 
-def run_web(paths: RuntimePaths, port: int) -> None:
+def run_web(paths: RuntimePaths, port: int | None = None) -> None:
     if database_health(paths.database)["status"] != "ok":
         raise RuntimeNotInitializedError("runtime_not_initialized")
-    if not 1 <= port <= 65535:
-        raise ValueError("invalid_port")
+    config = WebConfig.read(paths, port)
     uvicorn.run(
-        create_web_application(paths, port, eager_dashboard=False),
-        host="127.0.0.1",
-        port=port,
+        create_web_application(paths, config.port, eager_dashboard=False),
+        host=config.host,
+        port=config.port,
         access_log=False,
         log_level="warning",
     )
@@ -483,7 +770,7 @@ def _current_projection(paths: RuntimePaths) -> ProjectionSet | None:
 
 def _runs(paths: RuntimePaths) -> tuple[RunRecord, ...]:
     try:
-        return RunRepository(paths.database).list_runs()
+        return RunRepository(paths.database).list_runs(limit=-1, include_details=False)
     except (OSError, ValueError):
         return ()
 
@@ -502,16 +789,26 @@ def _stage_history(paths: RuntimePaths) -> tuple[dict[str, object], ...]:
         return ()
 
 
-def _release_calendar_events(paths: RuntimePaths) -> tuple[dict[str, object], ...]:
-    now = datetime.now(UTC)
+def _release_calendar_events(
+    paths: RuntimePaths, projection: ProjectionSet | None = None
+) -> tuple[dict[str, object], ...]:
+    now = projection.envelope.system_as_of if projection else datetime.now(UTC)
     try:
         return tuple(
             asdict(item)
             for item in lpr_release_calendar(
                 EvidenceRepository(paths.database),
-                period=current_lpr_period(now),
+                period=projection.envelope.target_business_date[:7]
+                if projection
+                else current_lpr_period(now),
                 as_of=now,
-                definition_version=_current_definition_version(paths),
+                definition_version=str(
+                    ModelRepository(paths.database).manifest(projection.envelope.model_version_id)[
+                        "metric_catalog_version"
+                    ]
+                )
+                if projection
+                else _current_definition_version(paths),
             )
         )
     except (OSError, ValueError):
@@ -542,12 +839,10 @@ def _projection_document(projection: ProjectionSet) -> dict[str, object]:
     }
 
 
-def _command_origin_rejection(request: Request, port: int) -> JSONResponse | None:
-    trusted_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
-    trusted_origins = {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}
+def _command_origin_rejection(request: Request, config: WebConfig) -> JSONResponse | None:
     if (
-        request.headers.get("host") not in trusted_hosts
-        or request.headers.get("origin") not in trusted_origins
+        request.headers.get("host", "").lower() not in config.allowed_hosts
+        or request.headers.get("origin") not in config.allowed_origins
     ):
         return JSONResponse(
             status_code=403,
@@ -633,17 +928,20 @@ def _persist_command(paths: RuntimePaths, payload: dict[str, object]) -> dict[st
     elif command == "cancel":
         run = repository.cancel(str(payload["run_id"]))
     elif command == "report_generation":
-        projection = ProjectionSetRepository(paths.database).current()
+        projection = (
+            ProjectionSetRepository(paths.database).get(str(payload["projection_set_id"]))
+            if payload.get("projection_set_id")
+            else ProjectionSetRepository(paths.database).current()
+        )
         require_model_source_contract(models.manifest(projection.envelope.model_version_id))
         run = repository.submit(
             command_type=command,
             target_business_date=projection.envelope.target_business_date,
             client_request_id=str(payload["client_request_id"]),
             model_version_id=projection.envelope.model_version_id,
-            system_as_of=datetime.now(UTC),
+            system_as_of=projection.envelope.system_as_of,
+            projection_set_id=projection.envelope.projection_set_id,
         )
-        repository.link_projection(run.run_id, projection.envelope.projection_set_id)
-        run = repository.get(run.run_id)
     else:
         model_version_id = str(payload.get("model_version_id") or _default_model(paths))
         require_model_source_contract(models.manifest(model_version_id))

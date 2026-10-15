@@ -95,6 +95,15 @@ class ProjectionSetRepository:
     def __init__(self, database_path: Path) -> None:
         self._database_path = database_path
 
+    def producer_run_id(self, projection_set_id: str) -> str | None:
+        """The writing batch also owns backfilled days, not only the run's target day."""
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT batch_id FROM projection_set WHERE projection_set_id=?",
+                (projection_set_id,),
+            ).fetchone()
+        return str(row[0]) if row and row[0] is not None else None
+
     @classmethod
     def create(cls, database_path: Path) -> ProjectionSetRepository:
         database_path.parent.mkdir(parents=True, exist_ok=True)

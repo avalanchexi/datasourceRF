@@ -7,6 +7,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 
 from pring_cycle.batches import current_batch_id
+from pring_cycle.display_projection import display_days, history_display
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.domain.stage import StageResult, derive_formal_stage
 from pring_cycle.noncanonical import build_basis
@@ -48,6 +49,8 @@ class CoreAssetReadiness:
     # and never the close carried forward. Read beside the stage, never published here.
     closes: tuple[tuple[str, float], ...] = ()
     persistence_required: int | None = None
+    # Kept outside assessment/history rows: the immutable set owns the chart once.
+    display: dict[str, object] | None = None
 
 
 # What a correction recomputed: the whole day, or its cores and formal stage only, when
@@ -154,6 +157,12 @@ class P0ProjectionService:
         resolved_macro_document = macro_document or _default_macro_document()
         resolved_inventory_document = inventory_document or _default_inventory_document()
         asset_documents = [_asset_document(item) for item in assets]
+        display = {item.asset: item.display for item in assets if item.display is not None}
+        history = [
+            item
+            for item in self._projections.stage_history(through=target_business_date)
+            if item.get("business_date") != target_business_date
+        ]
         model_inputs = (
             sorted(
                 {
@@ -174,7 +183,7 @@ class P0ProjectionService:
         carried = [item.asset for item in assets if item.carried_forward]
         if carried:
             warnings = (*warnings, *(f"core_carried_forward:{asset}" for asset in carried))
-        identity_document = {
+        identity_document: dict[str, object] = {
             "assets": asset_documents,
             "current_stage": stage.current_stage.value if stage.current_stage else None,
             "last_confirmed_stage": shown_stage.value if shown_stage else None,
@@ -196,6 +205,11 @@ class P0ProjectionService:
         )
         if noncanonical_basis is not None:
             identity_document["noncanonical_basis"] = noncanonical_basis
+        if display:
+            identity_document["core_display"] = display
+            identity_document["prior_stage_history"] = [
+                item.get("assessment_id") for item in history
+            ]
         if model_inputs is not None:
             identity_document["core_model_input_observation_version_ids"] = model_inputs
         if lookback_document is not None:
@@ -281,6 +295,8 @@ class P0ProjectionService:
             datasets["cycle_overview"]["last_confirmed_lookback"] = lookback_document
             datasets["stage_history"]["last_confirmed_lookback"] = lookback_document
         datasets["core_assets"]["assets"] = asset_documents
+        if display:
+            datasets["core_assets"]["display"] = display
         if model_inputs is not None:
             datasets["core_assets"]["model_input_observation_version_ids"] = model_inputs
         datasets["macro"].update(resolved_macro_document)
@@ -288,13 +304,13 @@ class P0ProjectionService:
         datasets["release_calendar"]["events"] = list(release_calendar_events)
         # A set is the record as of its day: no later day's event, even one summarized
         # before this day was (ticket 14). The day's own is this summary, which supersedes it.
-        history = [
-            item
-            for item in self._projections.stage_history(through=target_business_date)
-            if item.get("business_date") != target_business_date
-        ]
         history.append(assessment)
         datasets["stage_history"]["events"] = history
+        if display:
+            datasets["stage_history"]["display"] = history_display(
+                history,
+                display_days(next(iter(display.values()))),
+            )
         validate_analytical_projection(envelope, datasets)
         try:
             current = self._projections.current()
@@ -393,6 +409,11 @@ class P0ProjectionService:
             overview.pop("last_confirmed_lookback", None)
             datasets["stage_history"].pop("last_confirmed_lookback", None)
         datasets["stage_history"]["events"] = [*history, assessment]
+        if isinstance(shown := datasets["stage_history"].get("display"), dict):
+            datasets["stage_history"]["display"] = history_display(
+                [*history, assessment],
+                [str(point["date"]) for point in shown["days"]],
+            )
         self._projections.publish(
             replace(
                 kept.envelope,

@@ -1,0 +1,56 @@
+{
+  "run_id": "run-34d49a71553ec24f96ac",
+  "command_type": "manual_full",
+  "status": "completed",
+  "attempt": 1,
+  "target_business_date": "2026-10-14",
+  "projection_set_id": "projection-4fcc87ba938168fd3636",
+  "model_version_id": "model-v0015",
+  "catalog_version": "metric-catalog-v0006",
+  "system_as_of": "2026-10-15T13:34:37.790653+00:00",
+  "started_at": "2026-10-15T13:21:36.543073+00:00",
+  "ended_at": "2026-10-15T13:50:29.564275+00:00",
+  "duration_seconds": 1733.021202,
+  "request_basis": "physical_dispatched_v1",
+  "request_count": 138,
+  "request_outcomes": {
+    "accepted": 76,
+    "candidate_source": 47,
+    "validated": 8,
+    "verified": 7
+  },
+  "gap_counts": {
+    "adopted": 1000,
+    "held": 2059,
+    "not_delivered": 2,
+    "not_published": 3
+  },
+  "completeness": "degraded",
+  "report_status": "completed_degraded",
+  "budget": {
+    "ai_websearch": 0,
+    "exa": 0,
+    "tavily": 0
+  },
+  "report": {
+    "report_snapshot_id": "report-fa0beb6e19272133cead",
+    "projection_set_id": "projection-4fcc87ba938168fd3636",
+    "status": "completed_degraded",
+    "adapter": "deterministic",
+    "duration_ms": 600552
+  },
+  "report_attempts": [
+    {
+      "adapter": "codex_cli",
+      "outcome": "timed_out",
+      "duration_ms": 300014,
+      "tool_events": 0
+    },
+    {
+      "adapter": "claude_code_cli",
+      "outcome": "timed_out",
+      "duration_ms": 300537,
+      "tool_events": 0
+    }
+  ]
+}

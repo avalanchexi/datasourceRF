@@ -1,0 +1,296 @@
+"""Display facts computed once beside the day summary, never by a Web reader.
+
+Chart windows and formula windows are distinct. A missing session remains missing;
+neither a short mean nor a carried close can stand in for an actual observation.
+"""
+
+from __future__ import annotations
+
+from collections import Counter
+from collections.abc import Mapping, Sequence
+from datetime import date, timedelta
+from typing import Any
+
+from pring_cycle.catalog import MetricDefinition
+from pring_cycle.evidence import MetricSeriesPoint
+from pring_cycle.trading_calendar import Sessions, TradingCalendar
+
+
+def display_days(display: Mapping[str, object]) -> tuple[str, ...]:
+    points = display.get("points")
+    return (
+        tuple(str(point["date"]) for point in points if isinstance(point, dict))
+        if isinstance(points, list)
+        else ()
+    )
+
+
+def display_versions(display: Mapping[str, object]) -> tuple[str, ...]:
+    versions = display.get("input_claim_ids")
+    return (
+        tuple(item for item in versions if isinstance(item, str))
+        if isinstance(versions, list)
+        else ()
+    )
+
+
+def coverage_display(
+    gaps: Sequence[Mapping[str, object]], model_metrics: set[str]
+) -> dict[str, Any]:
+    """Count recorded required metric-periods, retaining missing member identities."""
+
+    def coverage(rows: Sequence[Mapping[str, object]]) -> dict[str, Any]:
+        counts = Counter(
+            "held"
+            if row.get("complete")
+            else "release_gated"
+            if row.get("release_gate")
+            else "missing"
+            for row in rows
+        )
+        return {
+            "total": len(rows),
+            "counts": dict(counts),
+            "periods": [
+                {
+                    **{key: value for key, value in row.items() if key != "period"},
+                    "required_period": row.get("period"),
+                }
+                for row in rows
+            ],
+        }
+
+    return {
+        "schema_version": "coverage-v0001",
+        "available": bool(gaps),
+        "counting_unit": "required_metric_period",
+        "model_scope": "core_and_confirmation_requirements",
+        "model": coverage([row for row in gaps if row.get("metric_id") in model_metrics]),
+        "catalog": coverage(gaps),
+    }
+
+
+def history_display(events: Sequence[Mapping[str, Any]], days: Sequence[str]) -> dict[str, Any]:
+    """Events are already the repository's daily winners, including correction precedence."""
+    by_day = {str(event["business_date"]): event for event in events}
+    rows = []
+    for day in days:
+        event = by_day.get(day, {})
+        official = event.get("current_stage") or event.get("stage_reason") or "unpublished"
+        assets = {item["asset"]: item for item in event.get("core_assets", [])}
+        rows.append(
+            {
+                "date": day,
+                "official": official,
+                **{
+                    asset: assets.get(asset, {}).get("state") or "unavailable"
+                    for asset in ("bond", "stock", "commodity")
+                },
+                "projection_set_id": event.get("projection_set_id"),
+                "assessment_id": event.get("assessment_id"),
+                "corrects": event.get("corrects"),
+            }
+        )
+    return {
+        "schema_version": "history-display-v0001",
+        "days": rows,
+        "counts": dict(Counter(item["official"] for item in rows)),
+    }
+
+
+def core_display(
+    definition: MetricDefinition,
+    series: tuple[MetricSeriesPoint, ...],
+    closes: tuple[tuple[str, float], ...],
+    *,
+    target: date,
+    calendar: TradingCalendar,
+    reason: str,
+    carried: bool,
+) -> dict[str, Any]:
+    """The already selected, gate-checked core. No claims are reselected here."""
+    values = dict(closes)
+    observations = {point.period_end: point for point in series}
+    known = calendar.stated_to(target)
+    points = []
+    for day in known[-120:]:
+        key = day.isoformat()
+        observation = observations.get(key)
+        mean: float | None = None
+        mean_reason: str | None = None
+        try:
+            span = calendar.sessions_back(day, 120)
+        except LookupError:
+            span = ()
+            mean_reason = "insufficient_history"
+        if span:
+            if any(item.isoformat() not in values for item in span):
+                mean_reason = "window_session_missing"
+            else:
+                mean = sum(values[item.isoformat()] for item in span) / 120
+        points.append(
+            {
+                "date": key,
+                "value": values.get(key),
+                "reason": None if key in values else reason,
+                "ma120": mean,
+                "ma120_reason": mean_reason,
+                "observation_id": observation.observation_id if observation else None,
+                "selected_claim_id": observation.selected_claim_id if observation else None,
+            }
+        )
+
+    def change(count: int) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "value": None,
+            "kind": "return",
+            "unit": "percent",
+            "sessions": count,
+            "start_date": None,
+            "end_date": target.isoformat(),
+            "reason": None,
+            "input_claim_ids": [],
+        }
+        try:
+            span = calendar.sessions_back(target, count + 1)
+        except LookupError:
+            return {**result, "reason": "trading_calendar_incomplete"}
+        start, end = span[0].isoformat(), span[-1].isoformat()
+        result["start_date"] = start
+        if any(day.isoformat() not in values for day in span):
+            return {**result, "reason": "carried_forward" if carried else reason}
+        if values[start] == 0:
+            return {**result, "reason": "zero_baseline"}
+        return {
+            **result,
+            "value": (values[end] / values[start] - 1) * 100,
+            "input_claim_ids": [
+                observations[start].selected_claim_id,
+                observations[end].selected_claim_id,
+            ],
+        }
+
+    latest_day = closes[-1][0] if closes else None
+    return {
+        "schema_version": "display-v0001",
+        "metric_id": definition.metric_id,
+        "label": definition.name_cn,
+        "unit": definition.unit,
+        "frequency": definition.frequency,
+        "dimensions": series[-1].dimensions if series else {},
+        "target_date": target.isoformat(),
+        "latest_date": latest_day,
+        "latest_value": values.get(latest_day) if latest_day else None,
+        "carried_forward": carried,
+        "reason": reason,
+        "calendar_status": "available" if known else "unavailable",
+        "points": points,
+        "input_claim_ids": [
+            point.selected_claim_id
+            for point in series
+            if point.period_end in values and point.selected_claim_id
+        ],
+        "change_5": change(5),
+        "change_120": change(120),
+    }
+
+
+def _sessions_back(calendar: Sessions, target: date, count: int) -> tuple[date, ...]:
+    if isinstance(calendar, TradingCalendar):
+        return calendar.sessions_back(target, count)
+    days: list[date] = []
+    day = target
+    while len(days) < count:
+        if calendar.is_trading(day):
+            days.append(day)
+        day -= timedelta(days=1)
+    return tuple(reversed(days))
+
+
+def context_display(
+    definition: MetricDefinition,
+    points: Sequence[MetricSeriesPoint],
+    *,
+    target: date,
+    calendar: Sessions | None,
+    frequency: str,
+    rejected: set[str],
+) -> dict[str, Any]:
+    """Show original periods; compare daily values only on the registered market calendar."""
+    valid = {
+        point.period_end: point
+        for point in points
+        if point.selected_value is not None
+        and point.selected_claim_id
+        and point.selected_claim_id not in rejected
+        and point.selection_status == "selected"
+    }
+    latest = max(valid, default=None)
+    dates: Sequence[str] = sorted({point.period_end for point in points})[-120:]
+    calendar_status = "not_daily" if frequency != "daily" else "unavailable"
+    if frequency == "daily" and calendar:
+        try:
+            dates = [day.isoformat() for day in _sessions_back(calendar, target, 120)]
+            calendar_status = "available"
+        except LookupError:
+            calendar_status = "unavailable"
+
+    def change(count: int) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "value": None,
+            "start_date": None,
+            "end_date": latest,
+            "reason": "not_daily" if frequency != "daily" else "trading_calendar_incomplete",
+        }
+        if frequency != "daily" or calendar is None or latest is None:
+            return result
+        try:
+            span = [
+                day.isoformat()
+                for day in _sessions_back(calendar, date.fromisoformat(latest), count + 1)
+            ]
+        except LookupError:
+            return result
+        result["start_date"] = span[0]
+        if any(day not in valid for day in span):
+            return {**result, "reason": "window_session_missing"}
+        first, last = valid[span[0]], valid[span[-1]]
+        baseline, value = float(first.selected_value), float(last.selected_value)  # type: ignore[arg-type]
+        unit = next(
+            (claim.unit for claim in last.claims if claim.claim_id == last.selected_claim_id),
+            definition.unit,
+        )
+        if unit in {"percent", "percentage_points", "basis_points"}:
+            delta = (value - baseline) * (1 if unit == "basis_points" else 100)
+            kind, shown_unit = "difference", "basis_points"
+        elif unit in {"diffusion_index_points"}:
+            delta, kind, shown_unit = value - baseline, "difference", unit
+        elif baseline == 0:
+            return {**result, "reason": "zero_baseline"}
+        else:
+            delta, kind, shown_unit = (value / baseline - 1) * 100, "return", "percent"
+        return {
+            **result,
+            "value": delta,
+            "kind": kind,
+            "unit": shown_unit,
+            "reason": None,
+            "input_claim_ids": [first.selected_claim_id, last.selected_claim_id],
+        }
+
+    return {
+        "schema_version": "context-display-v0001",
+        "frequency": frequency,
+        "unit": definition.unit,
+        "calendar_status": calendar_status,
+        "points": [
+            {
+                "date": day,
+                "value": valid[day].selected_value if day in valid else None,
+                "selected_claim_id": valid[day].selected_claim_id if day in valid else None,
+            }
+            for day in dates
+        ],
+        "change_5": change(5),
+        "change_120": change(120),
+    }

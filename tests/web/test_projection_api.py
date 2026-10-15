@@ -126,23 +126,27 @@ def test_deferred_dashboard_shell_is_meaningful_before_interactive_assets_load(
 
 
 def test_dashboard_deep_links_return_the_interactive_index(tmp_path: Path) -> None:
+    from urllib.request import urlopen
+
+    from tests.web.test_cockpit_http import serving
+
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
-    application = create_web_application(paths, 8050)
-    index_endpoint = next(
-        route.endpoint for route in application.routes if getattr(route, "path", None) == "/"
-    )
-
-    for route_name in (
-        "dashboard_core_assets",
-        "dashboard_macro",
-        "dashboard_inventory",
-        "dashboard_stage_history",
-        "dashboard_release_calendar",
-        "dashboard_reports",
-        "dashboard_runs",
-    ):
-        assert _route(application, route_name).endpoint is index_endpoint
+    with serving(paths) as base:
+        for path in (
+            "/",
+            "/core-assets",
+            "/macro",
+            "/inventory",
+            "/stage-history",
+            "/release-calendar",
+            "/reports",
+            "/runs",
+            "/data-chain",
+        ):
+            with urlopen(base + path, timeout=10) as response:
+                assert response.status == 200
+                assert "react-entry-point" in response.read().decode()
 
 
 def test_stage_history_rest_includes_a_p0_gap_without_replacing_current_projection(

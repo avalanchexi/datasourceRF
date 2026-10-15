@@ -1,0 +1,197 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e24]:
+    - link "跳至主要内容" [ref=e25] [cursor=pointer]:
+      - /url: "#page-content"
+    - banner [ref=e26]:
+      - generic [ref=e27]:
+        - generic [ref=e28]: PRING CYCLE
+        - generic [ref=e29]: 周期驾驶舱
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - generic [ref=e32]: 目标交易日
+          - generic [ref=e33]: 2026-08-28
+        - generic [ref=e34]:
+          - generic [ref=e35]: 分析截止
+          - generic [ref=e36]: 2026-08-28 21:00:00 北京时间
+        - group [ref=e37]:
+          - generic "projection-b3e186f673ff3adc7b95" [ref=e38] [cursor=pointer]
+      - button "切换明暗主题" [ref=e39] [cursor=pointer]
+    - status
+    - generic [ref=e40]:
+      - navigation "一级导航" [ref=e41]:
+        - link "数据看板" [ref=e42] [cursor=pointer]:
+          - /url: /
+        - link "数据链路" [ref=e43] [cursor=pointer]:
+          - /url: /data-chain
+        - link "运行状态" [ref=e44] [cursor=pointer]:
+          - /url: /runs
+      - main [ref=e45]:
+        - generic [ref=e46]:
+          - heading "运行状态" [level=1] [ref=e47]
+          - paragraph [ref=e48]: 运行中约 30 秒刷新，空闲约 300 秒刷新。报告任务与完整取数分开比较。
+          - generic [ref=e49]:
+            - generic [ref=e50]:
+              - text: 类型
+              - combobox "类型" [ref=e51]:
+                - option "全部" [selected]
+                - option "手动完整运行"
+                - option "报告生成"
+            - generic [ref=e52]:
+              - text: 状态
+              - combobox "状态" [ref=e53]:
+                - option "全部" [selected]
+                - option "需要处理"
+                - option "已取消"
+                - option "已完成"
+            - button "应用筛选" [ref=e54] [cursor=pointer]
+            - link "清空" [ref=e55] [cursor=pointer]:
+              - /url: /runs?
+          - generic [ref=e56]:
+            - generic [ref=e57]:
+              - text: 运行
+              - combobox "运行" [ref=e58]:
+                - option "全部" [selected]
+                - option "run-74079e07623f257b3563"
+                - option "run-c61de8f0150c67a0bf0a"
+                - option "run-adcd01d010f06db2fc4b"
+            - button "应用筛选" [ref=e59] [cursor=pointer]
+            - link "清空" [ref=e60] [cursor=pointer]:
+              - /url: /runs?
+          - paragraph [ref=e61]: 运行 run-74079e07623f257b3563 · 第 1 次尝试 · 已完成
+          - paragraph [ref=e62]: 本次投影：projection-b3e186f673ff3adc7b95
+          - paragraph [ref=e63]: 下一步：无需操作
+          - paragraph [ref=e64]: 该版本未提供最终需求计划的两种完整度口径。
+          - generic [ref=e65]:
+            - generic [ref=e66]:
+              - generic [ref=e67]: 本次尝试耗时（秒，含排队）
+              - strong [ref=e68]: "0.04"
+            - generic [ref=e69]:
+              - generic [ref=e70]: 整次运行外部请求
+              - strong [ref=e71]: "0"
+            - generic [ref=e72]:
+              - generic [ref=e73]: 运行状态
+              - strong [ref=e74]: 已完成
+            - generic [ref=e75]:
+              - generic [ref=e76]: 投影完整度
+              - strong [ref=e77]: 降级可用
+            - generic [ref=e78]:
+              - generic [ref=e79]: 报告状态
+              - strong [ref=e80]: 确定性模板
+            - generic [ref=e81]:
+              - generic [ref=e82]: 未完成期
+              - strong [ref=e83]: 未形成最终计划
+          - paragraph [ref=e84]: 无可比的留存摘要：须同类型、模型、目录和计数口径。
+          - table [ref=e86]:
+            - rowgroup [ref=e87]:
+              - row [ref=e88]:
+                - columnheader "步骤" [ref=e89]
+                - columnheader "开始" [ref=e90]
+                - columnheader "结束" [ref=e91]
+                - columnheader "秒" [ref=e92]
+            - rowgroup [ref=e93]:
+              - row [ref=e94]:
+                - cell "排队" [ref=e95]
+                - cell "2026-10-15 19:39:21 北京时间" [ref=e96]
+                - cell "2026-10-15 19:39:21 北京时间" [ref=e97]
+                - cell "0.03" [ref=e98]
+              - row [ref=e99]:
+                - cell "运行前检查" [ref=e100]
+                - cell "2026-10-15 19:39:21 北京时间" [ref=e101]
+                - cell "2026-10-15 19:39:21 北京时间" [ref=e102]
+                - cell "0.01" [ref=e103]
+              - row [ref=e104]:
+                - cell "生成报告" [ref=e105]
+                - cell "2026-10-15 19:39:21 北京时间" [ref=e106]
+                - cell "2026-10-15 19:39:21 北京时间" [ref=e107]
+                - cell "0.01" [ref=e108]
+          - paragraph [ref=e109]: 预算消耗：ai_websearch 0 · exa 0 · tavily 0
+          - paragraph [ref=e110]: 时效分布（指标数）：本次未记录
+          - link "查看这次运行的取数流向 →" [ref=e111] [cursor=pointer]:
+            - /url: /data-chain?run=run-74079e07623f257b3563
+          - heading "留存期趋势" [level=2] [ref=e112]
+          - generic [ref=e116]:
+            - img:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: 11:39:21.51Oct 15, 2026
+                    - generic: 11:39:21.52
+                    - generic: 11:39:21.53
+                    - generic: 11:39:21.54
+                    - generic: 11:39:21.55
+                    - generic: 11:39:21.56
+                    - generic: 11:39:21.57
+                    - generic: 11:39:21.58
+                  - generic:
+                    - generic: "0.01"
+                    - generic: "0.02"
+                    - generic: "0.03"
+                    - generic: "0.04"
+                  - generic:
+                    - generic:
+                      - generic: "0"
+                      - generic: "1"
+            - img:
+              - generic [ref=e137]:
+                - generic [ref=e138]:
+                  - generic [ref=e139]: 尝试耗时（秒，含排队）
+                  - generic [ref=e144] [cursor=pointer]
+                - generic [ref=e145]:
+                  - generic [ref=e146]: 运行累计请求
+                  - generic [ref=e151] [cursor=pointer]
+          - table [ref=e153]:
+            - rowgroup [ref=e154]:
+              - row [ref=e155]:
+                - columnheader "运行 / 类型" [ref=e156]
+                - columnheader "状态" [ref=e157]
+                - columnheader "耗时（秒）" [ref=e158]
+                - columnheader "外部请求" [ref=e159]
+                - columnheader "模型 / 目录" [ref=e160]
+            - rowgroup [ref=e161]:
+              - row [ref=e162]:
+                - cell [ref=e163]:
+                  - link "run-74079e07623f257b3563 · 报告生成" [ref=e164] [cursor=pointer]:
+                    - /url: /runs?run=run-74079e07623f257b3563
+                - cell "已完成" [ref=e165]
+                - cell "0.04" [ref=e166]
+                - cell "0" [ref=e167]
+                - cell "model-confirmation-fixture / metric-catalog-v0001" [ref=e168]
+              - row [ref=e169]:
+                - cell [ref=e170]:
+                  - link "run-c61de8f0150c67a0bf0a · 手动完整运行" [ref=e171] [cursor=pointer]:
+                    - /url: /runs?run=run-c61de8f0150c67a0bf0a
+                - cell "需要处理" [ref=e172]
+                - cell "0.02" [ref=e173]
+                - cell "0" [ref=e174]
+                - cell "model-v0002 / metric-catalog-v0002" [ref=e175]
+              - row [ref=e176]:
+                - cell [ref=e177]:
+                  - link "run-adcd01d010f06db2fc4b · 手动完整运行" [ref=e178] [cursor=pointer]:
+                    - /url: /runs?run=run-adcd01d010f06db2fc4b
+                - cell "已取消" [ref=e179]
+                - cell "0.01" [ref=e180]
+                - cell "0" [ref=e181]
+                - cell "model-v0002 / metric-catalog-v0002" [ref=e182]
+          - heading "操作与运行记录" [level=2] [ref=e183]
+          - generic [ref=e184]:
+            - paragraph [ref=e185]: 持久运行记录
+            - generic [ref=e186]:
+              - button "发起手动完整运行" [ref=e187] [cursor=pointer]
+              - textbox "Select Date" [ref=e191]: 2026-10-15
+              - paragraph [ref=e194]: 命令仅在显式操作后联网；重复提交复用同一权威运行。
+            - list [ref=e195]:
+              - listitem [ref=e196]:
+                - strong [ref=e197]: 2026-08-28 · 已完成
+                - generic [ref=e198]: 已完成 · 尝试 1 · 预算 Tavily 0/16、Exa 0/8、AI 0 · 下一动作 无需操作
+              - listitem [ref=e199]:
+                - strong [ref=e200]: 2026-08-28 · 需要处理
+                - generic [ref=e201]: 排队 · 尝试 1 · 预算 Tavily 0/16、Exa 0/8、AI 0 · 下一动作 补齐三核心或记录缺口说明
+                - group [ref=e202]:
+                  - generic "确认并继续" [ref=e203] [cursor=pointer]
+                  - paragraph [ref=e210]: 继续会恢复该运行，并允许尚未完成的外部调用。收起此处可放弃操作。
+                  - button "已受理，查看运行记录" [disabled] [ref=e212] [cursor=pointer]
+              - listitem [ref=e204]:
+                - strong [ref=e205]: 2026-08-28 · 已取消
+                - generic [ref=e206]: 排队 · 尝试 1 · 预算 Tavily 0/16、Exa 0/8、AI 0 · 下一动作 无需操作
+      - status [ref=e207]: 命令已受理：run-c61de8f0150c67a0bf0a · queued · 幂等键 cae36a16-22df-49e5-acf9-1a462ad102ad
+  - contentinfo

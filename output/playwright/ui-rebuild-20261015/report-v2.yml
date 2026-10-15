@@ -1,0 +1,93 @@
+- generic [ref=f6e1]:
+  - generic [ref=f6e24]:
+    - link "跳至主要内容" [ref=f6e25] [cursor=pointer]:
+      - /url: "#page-content"
+    - banner [ref=f6e26]:
+      - generic [ref=f6e27]:
+        - generic [ref=f6e28]: PRING CYCLE
+        - generic [ref=f6e29]: 周期驾驶舱
+      - generic [ref=f6e30]:
+        - generic [ref=f6e31]:
+          - generic [ref=f6e32]: 目标交易日
+          - generic [ref=f6e33]: 2026-08-28
+        - generic [ref=f6e34]:
+          - generic [ref=f6e35]: 分析截止
+          - generic [ref=f6e36]: 2026-08-28 21:00:00 北京时间
+        - group [ref=f6e37]:
+          - generic "projection-b3e186f673ff3adc7b95" [ref=f6e38] [cursor=pointer]
+      - button "切换明暗主题" [ref=f6e39] [cursor=pointer]
+    - status
+    - generic [ref=f6e40]:
+      - navigation "一级导航" [ref=f6e41]:
+        - link "数据看板" [ref=f6e42] [cursor=pointer]:
+          - /url: /
+        - link "数据链路" [ref=f6e43] [cursor=pointer]:
+          - /url: /data-chain
+        - link "运行状态" [ref=f6e44] [cursor=pointer]:
+          - /url: /runs
+      - main [active] [ref=f6e45]:
+        - generic [ref=f6e46]:
+          - generic [ref=f6e47]:
+            - paragraph [ref=f6e48]: IMMUTABLE REPORT WORKSPACE
+            - heading "报告" [level=1] [ref=f6e49]
+          - generic [ref=f6e50]: projection-b3e186f673ff3adc7b95
+          - generic [ref=f6e51]:
+            - generic [ref=f6e52]:
+              - generic [ref=f6e53] [cursor=pointer]: 生成
+              - generic [ref=f6e54] [cursor=pointer]: 历史
+              - generic [ref=f6e55] [cursor=pointer]: 阅读
+            - generic [ref=f6e56]:
+              - heading "报告阅读" [level=2] [ref=f6e62]
+              - generic [ref=f6e63]:
+                - generic [ref=f6e64]:
+                  - generic [ref=f6e65] [cursor=pointer]: 2026-08-28 · v2
+                  - generic [ref=f6e66] [cursor=pointer]: 2026-08-28 · v1
+                - generic [ref=f6e68]:
+                  - generic [ref=f6e69]:
+                    - generic [ref=f6e70]:
+                      - term [ref=f6e71]: 报告身份
+                      - definition [ref=f6e72]: report-4345a3ecb9dab523de41
+                    - generic [ref=f6e73]:
+                      - term [ref=f6e74]: 投影身份
+                      - definition [ref=f6e75]: projection-b3e186f673ff3adc7b95
+                    - generic [ref=f6e76]:
+                      - term [ref=f6e77]: 正式阶段
+                      - definition [ref=f6e78]: 第三阶段 · Stage III
+                    - generic [ref=f6e79]:
+                      - term [ref=f6e80]: 上一确认阶段
+                      - definition [ref=f6e81]: 第三阶段 · Stage III
+                    - generic [ref=f6e82]:
+                      - term [ref=f6e83]: 截止点
+                      - definition [ref=f6e84]: 2026-08-28T21:00:00+08:00
+                    - generic [ref=f6e85]:
+                      - term [ref=f6e86]: 时效判定
+                      - definition [ref=f6e87]: 目标日 2026-08-28；时效截至 2026-08-28 21:00（北京）
+                    - generic [ref=f6e88]:
+                      - term [ref=f6e89]: 确定性输出
+                      - definition [ref=f6e90]: 已生成
+                    - generic [ref=f6e91]:
+                      - term [ref=f6e92]: AI解释
+                      - definition [ref=f6e93]: 不可用
+                    - generic [ref=f6e94]:
+                      - term [ref=f6e95]: 解读来源
+                      - definition [ref=f6e96]: 确定性模板
+                    - generic [ref=f6e97]:
+                      - term [ref=f6e98]: 解释证据核查
+                      - definition [ref=f6e99]: 无AI解释
+                  - generic [ref=f6e100]:
+                    - heading "三核心" [level=3] [ref=f6e101]
+                    - group [ref=f6e102]:
+                      - generic "展开报告绑定的结构化事实" [ref=f6e103] [cursor=pointer]
+                  - generic [ref=f6e104]:
+                    - heading "已验证结果" [level=3] [ref=f6e105]
+                    - group [ref=f6e106]:
+                      - generic "展开报告绑定的结构化事实" [ref=f6e107] [cursor=pointer]
+                  - generic [ref=f6e108]:
+                    - heading "缺口清单" [level=3] [ref=f6e109]
+                    - paragraph [ref=f6e111]: 本次运行没有缺口。
+                  - generic [ref=f6e112]:
+                    - heading "核心沿用上一期" [level=3] [ref=f6e113]
+                    - group [ref=f6e114]:
+                      - generic "展开报告绑定的结构化事实" [ref=f6e115] [cursor=pointer]
+      - status [ref=f6e61]: 命令结果未确认：command_rejected。重试沿用幂等键 9001a288-678c-4334-85fa-3ed218513283
+  - contentinfo

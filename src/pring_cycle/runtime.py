@@ -4,9 +4,12 @@ import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from pring_cycle.health_types import ArtifactHealth, DatabaseHealth, RuntimeHealthDocument
+
+if TYPE_CHECKING:
+    from pring_cycle.web_config import WebConfig
 
 APPLICATION_NAME = "pring-cycle"
 
@@ -190,11 +193,15 @@ def diagnose_runtime(paths: RuntimePaths) -> DiagnosisDocument:
     }
 
 
-def runtime_health(paths: RuntimePaths, port: int) -> RuntimeHealthDocument:
+def runtime_health(
+    paths: RuntimePaths, port: int | None = None, *, config: WebConfig | None = None
+) -> RuntimeHealthDocument:
     from pring_cycle.artifacts import artifact_health
     from pring_cycle.source_contract_review import active_source_contract_review
     from pring_cycle.storage import database_health, worker_status
+    from pring_cycle.web_config import WebConfig
 
+    config = config or WebConfig.read(paths, port)
     database = database_health(paths.database)
     artifacts = artifact_health(paths.database, paths.artifacts)
     worker = worker_status(paths.database)
@@ -209,7 +216,7 @@ def runtime_health(paths: RuntimePaths, port: int) -> RuntimeHealthDocument:
     )
     return {
         "artifacts": artifacts,
-        "binding": {"host": "127.0.0.1", "port": port},
+        "binding": {"host": config.host, "port": config.port},
         "database": database,
         "services": {"web": {"status": "healthy"}, "worker": worker},
         "startup_actions": {"automatic_runs": 0, "external_requests": 0},

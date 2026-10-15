@@ -38,6 +38,7 @@ QUOTA_COUNTED = timedelta(days=2)
 
 # Run-owned ledgers, deleted with their run.
 _RUN_TABLES = (
+    "run_health_summary",
     "run_step_event",
     "run_checkpoint",
     "run_command",
@@ -245,6 +246,10 @@ def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> Rete
             "WHERE acquisition_id IS NOT NULL) "
             "AND NOT (provider='tushare' AND julianday(started_at) >= julianday(?))",
             ((now or datetime.now(UTC)) - QUOTA_COUNTED).isoformat(),
+        )
+        delete(
+            "acquisition_dispatch",
+            "acquisition_id NOT IN (SELECT acquisition_id FROM acquisition_request)",
         )
         orphans = _orphan_artifacts(connection)
         for content_hash in orphans:

@@ -482,6 +482,15 @@ def test_worker_completes_a_valid_noncanonical_projection_and_report(
     assert report.projection_set_id == current.envelope.projection_set_id
     assert report.current_stage is None
     assert report.status == "completed_degraded"
+    from pring_cycle.run_health import RunHealth
+
+    summary = RunHealth(paths.database).latest(stored.run_id)
+    assert summary is not None
+    assert summary["status"] == "completed"
+    assert summary["projection_set_id"] == stored.projection_set_id
+    assert summary["report_status"] == "completed_degraded"
+    assert summary["duration_seconds"] >= 0
+    assert summary["schema_version"] == "run-health-v0001"
     assert runs.next_queued() is None
 
 

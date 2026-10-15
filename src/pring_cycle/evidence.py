@@ -1723,6 +1723,114 @@ class EvidenceRepository:
             )
         return attempt_id
 
+    def frozen_versions(self, snapshot_id: str) -> tuple[str, ...]:
+        """The immutable manifest, even when some referenced details left retention."""
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT observation_version_ids_json FROM evidence_snapshot "
+                "WHERE evidence_snapshot_id=?",
+                (snapshot_id,),
+            ).fetchone()
+        if row is None:
+            raise LookupError("evidence_snapshot_not_found")
+        return tuple(str(item) for item in json.loads(row[0]))
+
+    def trace_version(self, version_id: str, *, as_of: datetime) -> dict[str, Any]:
+        """Trace the exact input version, never substitute the latest selected value.
+
+        Callers bind the version to a frozen manifest or a derived parent's input list.
+        Other claims remain visible at the cutoff for comparison with that frozen choice.
+        """
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM source_claim "
+                "WHERE claim_id=? AND julianday(available_at)<=julianday(?)",
+                (version_id, _iso(as_of)),
+            ).fetchone()
+        if row is None:
+            return {
+                "kind": "derived",
+                "trace": asdict(
+                    self.derived_trace(
+                        version_id,
+                        mode=AsOfMode.SYSTEM,
+                        as_of=as_of,
+                    )
+                ),
+            }
+        trace = self.trace(str(row["observation_id"]), mode=AsOfMode.SYSTEM, as_of=as_of)
+        frozen_claim = _claim_view(row)
+        with self._connect() as connection:
+            receipts = connection.execute(
+                "SELECT a.* FROM acquisition_request a JOIN source_claim_acquisition l "
+                "USING(acquisition_id) WHERE l.claim_id=? "
+                "AND julianday(a.started_at)<=julianday(?) "
+                "ORDER BY a.started_at",
+                (version_id, _iso(as_of)),
+            ).fetchall()
+        return {
+            "kind": "observation",
+            "selection_basis": "frozen_version",
+            "trace": asdict(
+                replace(
+                    trace,
+                    selected_claim_id=version_id,
+                    selected_value=row["value"],
+                    value_state=EvidenceValueState(row["value_state"]),
+                    definition_version=row["definition_version"],
+                    selection_status="frozen_selected",
+                    claims=(
+                        frozen_claim,
+                        *(claim for claim in trace.claims if claim.claim_id != version_id),
+                    ),
+                    acquisitions=tuple(receipt_from_row(receipt) for receipt in receipts),
+                    acquisition_status="linked" if receipts else "untraced",
+                )
+            ),
+            "same_definition_versions": list(
+                self.same_definition_versions(
+                    trace.metric_id,
+                    str(row["definition_version"]),
+                )
+            ),
+        }
+
+    def search_frozen(self, snapshot_id: str, query: str) -> list[dict[str, Any]]:
+        """Search only the immutable manifest; missing retained details stay missing."""
+        versions = json.dumps(self.frozen_versions(snapshot_id))
+        needle = query.strip().lower()[:100]
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT claim_id AS version_id, metric_id, definition_version, period_start, "
+                "period_end, dimensions_json, value, unit, provider FROM source_claim "
+                "WHERE claim_id IN (SELECT value FROM json_each(?)) AND "
+                "instr(lower(metric_id || ' ' || dimensions_json || ' ' || period_start || ' ' "
+                "|| period_end || ' ' || provider), ?) > 0 "
+                "ORDER BY metric_id, period_end DESC LIMIT 100",
+                (versions, needle),
+            ).fetchall()
+            derived = connection.execute(
+                "SELECT derived_observation_id AS version_id, metric_id, "
+                "formula_version, value, unit FROM derived_observation "
+                "WHERE derived_observation_id IN (SELECT value FROM json_each(?)) "
+                "AND instr(lower(metric_id || ' ' || formula_version), ?) > 0 LIMIT 100",
+                (versions, needle),
+            ).fetchall()
+        return [dict(row) for row in (*rows, *derived)][:100]
+
+    def version_units(self, version_ids: Iterable[str]) -> dict[str, str]:
+        """Units of the exact recorded inputs, including mixed-member catalogs."""
+        versions = json.dumps(tuple(version_ids))
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT claim_id, unit FROM source_claim WHERE claim_id IN "
+                "(SELECT value FROM json_each(?)) UNION ALL "
+                "SELECT derived_observation_id, unit FROM derived_observation WHERE "
+                "derived_observation_id IN (SELECT value FROM json_each(?))",
+                (versions, versions),
+            ).fetchall()
+        return {row[0]: row[1] for row in rows}
+
     def freeze_snapshot(
         self,
         observation_version_ids: tuple[str, ...],

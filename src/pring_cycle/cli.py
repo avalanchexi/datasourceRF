@@ -464,7 +464,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     web_parser = subparsers.add_parser("web")
     web_parser.add_argument("--runtime-root", type=Path)
-    web_parser.add_argument("--port", type=int, default=8050)
+    web_parser.add_argument("--port", type=int, default=None)
     worker_parser = subparsers.add_parser("worker")
     worker_parser.add_argument("--runtime-root", type=Path)
     for command in ("test", "verify"):

@@ -364,6 +364,14 @@ class AcquisitionRepository:
                 with self._connect() as connection:
                     self._require_active_owner(connection, owner)
             step = "request"
+            with self._connect() as connection:
+                if connection.execute(
+                    "SELECT 1 FROM sqlite_master WHERE name='acquisition_dispatch'"
+                ).fetchone():
+                    connection.execute(
+                        "INSERT INTO acquisition_dispatch VALUES (?, ?)",
+                        (acquisition_id, started_at.isoformat()),
+                    )
             try:
                 raw = fetch()
             except HTTPError as error:
@@ -665,7 +673,12 @@ class AcquisitionRepository:
             raise LookupError("acquisition_artifact_unavailable")
         if verified is not None and digest in verified:
             return verified[digest]
-        content = (self.artifacts / digest[:2] / digest).read_bytes()
+        if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+            raise ValueError("artifact_hash_invalid")
+        path = self.artifacts / digest[:2] / digest
+        if path.is_symlink() or not path.resolve().is_relative_to(self.artifacts.resolve()):
+            raise ValueError("artifact_path_outside_root")
+        content = path.read_bytes()
         if hashlib.sha256(content).hexdigest() != digest:
             raise ValueError("artifact_hash_mismatch")
         if verified is not None:

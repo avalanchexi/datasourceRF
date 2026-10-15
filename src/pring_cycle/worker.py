@@ -544,6 +544,9 @@ def process_pending_run(
             # The final connection and lease must outlive every heartbeat write.
             heartbeat.join()
             runs.release_lease(owner_id)
+            from pring_cycle.run_health import RunHealth
+
+            RunHealth(paths.database).finish(queued.run_id)
     return queued.run_id
 
 

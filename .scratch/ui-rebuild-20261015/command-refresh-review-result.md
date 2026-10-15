@@ -1,0 +1,3 @@
+- **[P2] Report-command failures leave the retry button disabled.** [dashboard.js:18–20](/D:/cursor/datasourceRF/src/pring_cycle/assets/dashboard.js:18) requires `data-projection-id` on the button, but `/reports` places it on `#report-projection`; the [button itself lacks it](/D:/cursor/datasourceRF/src/pring_cycle/dashboard.py:2116). Submission correctly uses that fallback, but after a rejected or failed POST, [the error handler](/D:/cursor/datasourceRF/src/pring_cycle/assets/dashboard.js:173) cannot locate and re-enable the button. Use the same projection-resolution logic when locating it.
+
+No other demonstrated findings in the bounded scope. No files edited or tests run.

@@ -1065,6 +1065,20 @@ def confirmation_document(
         "stage_reason": stage_reason,
         "applicable": stage is not None,
         "dimensions": dimensions,
+        "summary": {
+            "counting_unit": "key_indicator",
+            "applicable": stage is not None,
+            "total": len(documents),
+            "counts": (
+                {
+                    relation: sum(item["relation"] == relation for item in documents)
+                    for relation in RELATIONS
+                    if relation != "not_applicable"
+                }
+                if stage is not None
+                else None
+            ),
+        },
     }
 
 

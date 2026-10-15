@@ -147,6 +147,14 @@ def test_details_summaries_and_batches_before_the_window_are_deleted(
 ) -> None:
     paths = pruned["paths"]
     start = window_start(paths, pruned["latest"])
+    assert (
+        query(
+            paths,
+            "SELECT acquisition_id FROM acquisition_dispatch WHERE acquisition_id "
+            "NOT IN (SELECT acquisition_id FROM acquisition_request)",
+        )
+        == []
+    )
 
     assert query(paths, "SELECT count(*) FROM source_claim WHERE period_end < ?", start) == [(0,)]
     assert query(paths, "SELECT count(*) FROM source_claim WHERE period_end >= ?", start)[0][0] > 0

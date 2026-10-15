@@ -142,7 +142,7 @@ def test_repeated_runtime_views_remain_available(tmp_path: Path) -> None:
                     }
                     assert required_calendar(paths, run, selector)['status'] == 'unavailable'
                     assert execution_fingerprint(paths)['database_revision'] == (
-                        '0038_scheduled_run_at_0930'
+                        '0039_run_health'
                     )
                     try:
                         registered_definitions(paths.database, 'unregistered')

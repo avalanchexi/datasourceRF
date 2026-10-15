@@ -43,6 +43,8 @@ def dashboard_shell(
                 n_intervals=0,
             ),
             dcc.Store(id="theme-state", storage_type="local"),
+            dcc.Store(id="view-fingerprint"),
+            dcc.Store(id="command-refresh"),
             html.A("跳至主要内容", href="#page-content", className="skip-link"),
             html.Header(
                 [
@@ -60,6 +62,7 @@ def dashboard_shell(
                             _metadata("完整度", completeness),
                         ],
                         className="projection-strip",
+                        id="projection-strip",
                     ),
                     html.Button(
                         "切换明暗主题",
@@ -74,6 +77,7 @@ def dashboard_shell(
             html.Aside(source_contract_notice, className="source-contract-notice", role="alert")
             if source_contract_notice is not None
             else None,
+            html.Div(id="refresh-notice", role="status", className="refresh-notice"),
             html.Aside(projection_notes, className="source-contract-notice", role="status")
             if projection_notes
             else None,
@@ -137,20 +141,24 @@ def dashboard_page(
     release_events: Sequence[dict[str, object]] = (),
 ) -> html.Div:
     route = pathname or "/"
-    if route == "/":
-        return _home_page(projection, reports)
-    if route == "/core-assets":
-        return _core_assets_page(projection)
-    if route == "/macro":
-        return _macro_page(projection)
-    if route == "/inventory":
-        return _inventory_page(projection)
-    if route == "/stage-history":
-        return _stage_history_page(projection, stage_events)
+    if route in {"/", "/core-assets", "/macro", "/inventory", "/stage-history"}:
+        from pring_cycle.cockpit import report_board
+
+        return report_board(projection, runs, reports, stage_events)
     if route == "/release-calendar":
         return _release_calendar_page(projection, release_events)
     if route == "/reports":
-        return _reports_page(reports, runs)
+        page = _reports_page(reports, runs)
+        if projection:
+            page.children.insert(
+                1,
+                html.Div(
+                    projection.envelope.projection_set_id,
+                    id="report-projection",
+                    **cast(Any, {"data-projection-id": projection.envelope.projection_set_id}),
+                ),
+            )
+        return page
     if route == "/runs":
         return _runs_page(runs)
     return html.Div(
@@ -791,12 +799,27 @@ def _release_calendar_page(
 ) -> html.Div:
     document = _dataset(projection, "release_calendar")
     projected_events = document.get("events")
-    rows = list(release_events)
-    if not rows and isinstance(projected_events, list):
-        rows = [item for item in projected_events if isinstance(item, dict)]
+    rows = (
+        [item for item in projected_events if isinstance(item, dict)]
+        if isinstance(projected_events, list)
+        else list(release_events)
+    )
     return html.Div(
         [
             _page_heading("发布日历", "RELEASE CALENDAR"),
+            html.P(
+                "日历上下文："
+                + projection.envelope.projection_set_id
+                + " · 分析截止 "
+                + projection.envelope.system_as_of.isoformat()
+                + (
+                    " · 使用投影内事件。"
+                    if isinstance(projected_events, list)
+                    else " · 按该模型与截止读取留存事件。"
+                )
+                if projection
+                else "尚无分析投影；独立日历按当前模型与查询时点读取。"
+            ),
             html.P(
                 "预计窗口只用于调度；实际发布与系统首次可用时间分别记录。",
                 className="body-copy page-intro",
@@ -2131,7 +2154,7 @@ def _runs_page(runs: Sequence[RunRecord]) -> html.Div:
     rows = [_run_row(item) for item in runs]
     return html.Div(
         [
-            _page_heading("运行状态", "PERSISTENT RUN LEDGER"),
+            html.P("持久运行记录", className="section-kicker"),
             html.Div(
                 [
                     html.Button(
@@ -2145,6 +2168,8 @@ def _runs_page(runs: Sequence[RunRecord]) -> html.Div:
                         date=datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat(),
                         display_format="YYYY-MM-DD",
                         className="date-input",
+                        persistence=True,
+                        persistence_type="session",
                     ),
                     html.P(
                         "命令仅在显式操作后联网；重复提交复用同一权威运行。",
@@ -2177,6 +2202,12 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
             ),
             _compact_fact("确定性输出", "已生成"),
             _compact_fact("AI解释", "不可用" if report.adapter == "deterministic" else "已生成"),
+            _compact_fact(
+                "解读来源",
+                "确定性模板"
+                if report.adapter == "deterministic"
+                else "AI 解读 · " + report.adapter,
+            ),
             _compact_fact(
                 "解释证据核查",
                 {
@@ -2300,7 +2331,17 @@ def _correction_notes(corrections: dict[str, Any], whose: str, kind: str) -> lis
 
 def _report_fact_section(title: str, value: object) -> html.Section:
     return html.Section(
-        [html.H3(title), html.P(_display_value(value), className="body-copy")],
+        [
+            html.H3(title),
+            html.Details(
+                [
+                    html.Summary("展开报告绑定的结构化事实"),
+                    html.Pre(_display_value(value), className="body-copy"),
+                ]
+            )
+            if isinstance(value, (dict, list))
+            else html.P(_display_value(value), className="body-copy"),
+        ],
         className="report-section",
     )
 
@@ -2311,21 +2352,28 @@ def _run_row(item: RunRecord) -> html.Li:
     )
     budget = item.consumed_budget
     details = (
-        f"{item.current_step} · 尝试 {item.attempt_count} · "
+        f"{_state_label(item.current_step)} · 尝试 {item.attempt_count} · "
         f"预算 Tavily {budget['tavily']}/{RUN_SEARCH_LIMITS['tavily']}、"
         f"Exa {budget['exa']}/{RUN_SEARCH_LIMITS['exa']}、"
-        f"AI {budget['ai_websearch']} · 下一动作 {item.next_action}"
+        f"AI {budget['ai_websearch']} · 下一动作 {_state_label(item.next_action)}"
     )
     if attempt_summary:
         details += f" · 检索 {attempt_summary}"
-    actions: list[html.Button] = []
+    actions: list[html.Button | html.Details] = []
     if item.status in {"interrupted", "action_required"} and item.recoverable:
         actions.append(
-            html.Button(
-                "确认并继续",
-                className="quiet-button run-action",
-                type="button",
-                **cast(Any, {"data-run-action": "resume", "data-run-id": item.run_id}),
+            html.Details(
+                [
+                    html.Summary("确认并继续"),
+                    html.P("继续会恢复该运行，并允许尚未完成的外部调用。收起此处可放弃操作。"),
+                    html.Button(
+                        "允许外部调用并继续",
+                        className="quiet-button run-action",
+                        type="button",
+                        **cast(Any, {"data-run-action": "resume", "data-run-id": item.run_id}),
+                    ),
+                ],
+                className="resume-confirmation",
             )
         )
     if item.status in {"queued", "running"}:
@@ -2339,7 +2387,7 @@ def _run_row(item: RunRecord) -> html.Li:
         )
     return html.Li(
         [
-            html.Strong(f"{item.target_business_date} · {item.status}"),
+            html.Strong(f"{item.target_business_date} · {_state_label(item.status)}"),
             html.Span(details, className="secondary-copy"),
             *actions,
         ],
@@ -2534,6 +2582,29 @@ def _state_label(value: object) -> str:
     if value is None:
         return "不可用"
     return {
+        **_QUADRANT_LABELS,
+        "queued": "排队",
+        "main": "主要成员",
+        "primary": "主要成员",
+        "auxiliary": "辅助成员",
+        "preflight": "运行前检查",
+        "refreshing_evidence": "获取证据",
+        "validating_evidence": "校验证据",
+        "evaluating_core_readiness": "检查三核心",
+        "deriving_states": "识别状态",
+        "building_projection": "构建分析投影",
+        "publishing_projection": "发布投影与历史",
+        "generating_report": "生成报告",
+        "completed": "已完成",
+        "running": "运行中",
+        "failed": "失败",
+        "cancelled": "已取消",
+        "action_required": "需要处理",
+        "interrupted": "已中断",
+        "none": "无需操作",
+        "resume_required": "确认后恢复",
+        "refresh_p0_or_create_gap_notice": "补齐三核心或记录缺口说明",
+        "wait_for_release_or_cache_expiry": "等待发布或缓存到期",
         "bull": "偏多",
         "bullish": "偏多",
         "bear": "偏空",
@@ -2543,6 +2614,13 @@ def _state_label(value: object) -> str:
         "conflict": "矛盾",
         "conflicted": "矛盾",
         "insufficient_data": "数据不足",
+        "unclassified": "尚无法分类",
+        "unknown": "未知",
+        "missing": "缺失",
+        "daily": "日频",
+        "monthly": "月频",
+        "quarterly": "季频",
+        "bond_price": "债券价格观察",
         "stale_inputs": "输入数据已陈旧",
         "upstream_pressure": "上游压力",
         "producer_diffusion": "向生产端扩散",

@@ -53,6 +53,7 @@ from pring_cycle.context_projection import (
     ContextProjectionRules,
     build_context_projection,
 )
+from pring_cycle.display_projection import core_display, coverage_display, display_versions
 from pring_cycle.domain import FormalStage, StageResult
 from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend, proxy_12m_enabled
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
@@ -288,6 +289,15 @@ class DaySummaries:
                 day, readiness, decided, system_as_of=system_as_of, public_as_of=system_as_of
             )
             run_materials.step_done("context")
+            confirmation = ContextProjectionRules.from_manifest(self._model.manifest).confirmation
+            model_metrics = set(CORE_METRICS.values())
+            if confirmation is not None:
+                model_metrics.update(confirmation.metric_ids())
+            else:
+                model_metrics.update(
+                    item.metric_id for item in self._model.definitions if item.priority == "P1"
+                )
+            context.macro["coverage"] = coverage_display(run_materials.plan_gaps, model_metrics)
             backfilled = self._backfill(
                 backfill_window,
                 target=day,
@@ -570,6 +580,9 @@ class DaySummaries:
                 for version in (item.model_input_observation_version_ids or ())
             )
             + context.observation_version_ids
+            + tuple(
+                version for item in readiness for version in display_versions(item.display or {})
+            )
         )
         if not observation_versions:
             return None
@@ -703,6 +716,20 @@ class DaySummaries:
                 noise_band_pct = trend.noise_band_pct
                 if state is None:
                     reason = trend.reason
+            display_closes = closes
+            if not closes and series:
+                adoption = ClaimAdoption(
+                    self._evidence, definition_version=self._model.definition_version
+                ).check({metric_id: series})[metric_id]
+                display_closes = tuple(
+                    (point.period_end, float(point.selected_value))
+                    for point in series
+                    if point.selected_value is not None
+                    and point.selection_status == "selected"
+                    and point.value_state is EvidenceValueState.REPORTED_VALUE
+                    and point.selected_claim_id in adoption.adoptable
+                    and core_identity_holds(metric_id, point)
+                )
             results.append(
                 # Keep the price display at 120 observations. The separate input
                 # manifest preserves the full preheat used by the stateful trend.
@@ -731,6 +758,17 @@ class DaySummaries:
                     model_input_observation_version_ids=model_inputs,
                     carried_forward=carried and state is not None,
                     closes=closes,
+                    display=core_display(
+                        next(
+                            item for item in self._model.definitions if item.metric_id == metric_id
+                        ),
+                        series,
+                        display_closes,
+                        target=target,
+                        calendar=self._window_calendar,
+                        reason=reason,
+                        carried=carried and state is not None,
+                    ),
                 )
             )
         return tuple(results)  # type: ignore[return-value]

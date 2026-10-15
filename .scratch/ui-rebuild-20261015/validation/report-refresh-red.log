@@ -1,0 +1,59 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__ test_a_report_accepted_from_an_idle_board_immediately_shows_pending_state ___
+
+tmp_path = PosixPath('/tmp/pytest-of-tywin/pytest-49/test_a_report_accepted_from_an0')
+
+    def test_a_report_accepted_from_an_idle_board_immediately_shows_pending_state(tmp_path: Path) -> None:
+        paths = runtime(tmp_path)
+        seed_cores(paths)
+        projection = target_projection(paths)
+        identity = projection.envelope.projection_set_id
+        with serving(paths) as base:
+            dependencies = get(base + "/_dash-dependencies")[1]
+            callback = next(item for item in dependencies if "page-content.children" in item["output"])
+
+            def board(previous: str | None, command: str | None) -> dict[str, Any]:
+                payload = {
+                    "output": callback["output"],
+                    "outputs": [
+                        {"id": component, "property": prop}
+                        for component, prop in (
+                            ("page-content", "children"), ("runtime-poll", "interval"),
+                            ("projection-strip", "children"), ("view-fingerprint", "data"),
+                            ("refresh-notice", "children"),
+                        )
+                    ],
+                    "inputs": [
+                        {"id": "dashboard-location", "property": "pathname", "value": "/"},
+                        {"id": "dashboard-location", "property": "search", "value": f"?projection={identity}"},
+                        {"id": "runtime-poll", "property": "n_intervals", "value": 0},
+                        {"id": "command-refresh", "property": "data", "value": command},
+                    ],
+                    "state": [{"id": "view-fingerprint", "property": "data", "value": previous}],
+                    "changedPropIds": ["command-refresh.data"],
+                }
+                status, document = get(Request(
+                    base + "/_dash-update-component", data=json.dumps(payload).encode(),
+                    headers={"Content-Type": "application/json", "Origin": base},
+                ))
+                assert status == 200
+                return document["response"]
+
+            initial = board(None, None)
+            assert initial["runtime-poll"]["interval"] == 300_000
+            status, accepted = post(base, {
+                "command": "report_generation", "client_request_id": "idle-board-report",
+                "target_business_date": TARGET.isoformat(), "projection_set_id": identity,
+            })
+            assert status == 202
+            updated = board(initial["view-fingerprint"]["data"], accepted["run_id"])
+            assert updated["runtime-poll"]["interval"] == 30_000
+            rendered = json.dumps(updated.get("page-content"), ensure_ascii=False)
+>           assert "报告任务：排队" in rendered
+E           AssertionError: assert '报告任务：排队' in 'null'
+
+tests/web/test_cockpit_http.py:118: AssertionError
+=========================== short test summary info ============================
+FAILED tests/web/test_cockpit_http.py::test_a_report_accepted_from_an_idle_board_immediately_shows_pending_state
+1 failed in 4.62s

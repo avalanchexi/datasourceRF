@@ -312,7 +312,7 @@ def test_the_price_and_credit_counts_reach_the_pages_and_the_report(tmp_path: Pa
     assert "PPI 同比" in macro and "高于 0" in macro and "一年区间高位" in macro
     assert "存量同比" in macro and "命题：融资条件仍支持扩张" in macro
     # A member with nothing held says so.
-    assert "PPI 环比 · 方向未知 · 无可用读数（missing）" in macro
+    assert "PPI 环比 · 方向未知 · 无可用读数（缺失）" in macro
 
 
 def test_a_cumulative_february_is_said_on_the_page_and_in_the_report(tmp_path: Path) -> None:

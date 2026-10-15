@@ -566,6 +566,12 @@ def test_failed_response_keeps_receipt_cache_and_next_attempt_gates(
     assert len(calls) == 1
     assert cached["queries"][-1]["cache_hit"]
     assert cached["queries"][-1]["classification"] == "negative_cache_active"
+    from pring_cycle.run_health import RunHealth
+
+    summary = RunHealth(paths.database).latest(submitted.run_id)
+    assert summary is not None
+    assert summary["request_count"] == 1
+    assert summary["attempt"] == 2
     current[0] += timedelta(seconds=cache_seconds)
     runs.resume(submitted.run_id, client_request_id="expired-resume", confirm_external_calls=True)
     process_pending_run(paths, report_adapters=(), retrieval_now=current[0])

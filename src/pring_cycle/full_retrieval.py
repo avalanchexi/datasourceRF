@@ -1090,7 +1090,8 @@ def read_full_retrieval_plan(database: Path, run_id: str) -> dict[str, Any]:
             for row in connection.execute(
                 "SELECT owner.*, a.provider, a.api_name, a.state, a.raw_hash, a.normalized_hash, "
                 "a.error_type, a.source_record_count, a.normalized_scalar_count, "
-                "a.ingest_result, a.ingested_claim_count FROM full_run_acquisition owner "
+                "a.ingest_result, a.ingested_claim_count, a.structure_check, "
+                "a.started_at, a.received_at, a.validated_at FROM full_run_acquisition owner "
                 "JOIN acquisition_request a USING(acquisition_id) "
                 "WHERE owner.run_id=? AND owner.phase != ? ORDER BY owner.rowid",
                 (run_id, REFERENCED),

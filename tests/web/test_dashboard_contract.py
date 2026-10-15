@@ -37,22 +37,18 @@ def _hrefs(component: object) -> list[str]:
     return ([href] if isinstance(href, str) else []) + _hrefs(getattr(component, "children", None))
 
 
-def test_navigation_and_home_hierarchy_match_the_confirmed_eight_page_contract() -> None:
+def test_navigation_and_home_hierarchy_match_the_approved_report_contract() -> None:
     assert tuple(label for _path, label in DASHBOARD_NAVIGATION) == (
-        "首页",
-        "核心资产",
-        "宏观证据",
-        "库存特征",
-        "阶段历史",
-        "发布日历",
-        "报告",
+        "数据看板",
+        "数据链路",
         "运行状态",
     )
     assert "证据追溯" not in tuple(label for _path, label in DASHBOARD_NAVIGATION)
 
     home = _text(dashboard_page("/", None, (), ()))
 
-    assert home.index("正式阶段") < home.index("转折观察") < home.index("宏观事后确认")
+    assert "01 周期识别结论" in home
+    assert home.index("正式阶段") < home.index("转折观察")
     assert "当前阶段暂不判定" in home
     assert "不改变正式阶段" in home
 
@@ -184,11 +180,11 @@ def test_published_core_states_render_as_domain_ui_instead_of_raw_json() -> None
 
     assert "第二阶段 · Stage II" in home
     assert "上证国债指数" in home
-    assert "偏多 · bull" in home
+    assert "偏多" in home
     assert "2026-08-28" in home
     assert "等待三类 P0" not in home
-    assert "120 日正式轨道" in detail
-    assert "30 日转折观察" in detail
+    assert "稳定方向" in detail
+    assert "30 日即时方向" in detail
     assert '"asset": "bond"' not in detail
 
 
@@ -247,7 +243,20 @@ def test_home_summarizes_macro_states_without_dumping_nested_evidence_json() -> 
         },
     )
 
-    home = _text(dashboard_page("/", projection, (), ()))
+    page = dashboard_page("/", projection, (), ())
+
+    def conclusion(component: object) -> object:
+        if isinstance(component, Component):
+            if getattr(component, "id", None) == "conclusion":
+                return component
+            children = getattr(component, "children", None)
+            for child in children if isinstance(children, (list, tuple)) else [children]:
+                found = conclusion(child)
+                if found is not None:
+                    return found
+        return None
+
+    home = _text(conclusion(page))
 
     assert all(label in home for label in ("政策方向", "信用响应", "过热程度", "物价压力"))
     assert "数据不足" in home and "上游压力" in home
@@ -568,3 +577,40 @@ def test_run_page_exposes_safe_actions_and_adaptive_polling(tmp_path: Path) -> N
     interrupted = runs.list_runs()
     assert _poll_interval_ms(interrupted) == 300_000
     assert "确认并继续" in _text(dashboard_page("/runs", None, interrupted, ()))
+
+
+def test_large_requirement_details_are_paged_without_losing_filter_context(tmp_path: Path) -> None:
+    from pring_cycle.cockpit_operations import data_chain
+
+    runs = RunRepository.create(tmp_path / "runs.sqlite3")
+    run = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="paged-details",
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+    )
+    summary = {
+        "gaps": [
+            {
+                "metric_id": "fixture",
+                "period": f"period-{index:04d}",
+                "diagnosis": "not_delivered",
+                "request_ids": [],
+            }
+            for index in range(231)
+        ]
+    }
+    query = {"run": run.run_id, "projection": "pinned-projection", "metric": "fixture"}
+    first = data_chain([run], run, summary, query, None)
+    assert "231 条" in _text(first)
+    assert "period-0099" in _text(first)
+    assert "period-0100" not in _text(first)
+    next_href = next(href for href in _hrefs(first) if "gap_page=2" in href)
+    next_query = {key: values[-1] for key, values in parse_qs(urlsplit(next_href).query).items()}
+    assert {key: next_query[key] for key in query} == query
+    second = data_chain([run], run, summary, next_query, None)
+    assert "period-0100" in _text(second)
+    assert "period-0000" not in _text(second)
+    last = data_chain([run], run, summary, {**query, "gap_page": "999"}, None)
+    assert "period-0230" in _text(last)
+    assert "period-0000" not in _text(last)

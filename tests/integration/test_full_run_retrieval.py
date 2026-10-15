@@ -956,6 +956,16 @@ def test_joint_publication_shares_one_request_for_multiple_full_run_gaps(
     assert {g["metric_id"] for g in final} == {"CN_SF_TOTAL", "CN_SF_COMPONENTS"}
     assert {g["gap_id"] for g in final} <= set(requests[0]["gap_ids"])
     assert stored.consumed_budget["ai_websearch"] == 0
+    from pring_cycle.run_health import RunHealth, filtered_flow
+
+    health = RunHealth(paths.database).latest(run.run_id)
+    assert health is not None
+    assert sum(item["request_id"] == requests[0]["request_id"] for item in health["requests"]) == 1
+    flow = filtered_flow(health, {"channel": "tavily", "metric": "CN_SF_TOTAL"})
+    assert sum(item["value"] for item in flow["links"]) == 2 * flow["count"]
+    assert len(flow["requests"]) == flow["count"]
+    assert health["coverage"]["available"] is True
+    assert health["coverage"]["catalog"]["total"] >= health["coverage"]["model"]["total"]
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -988,6 +998,15 @@ def test_cancel_during_tavily_stops_following_physical_requests(
     assert calls == ["https://api.tavily.com/search"]
     assert runs.get(run.run_id).cutoffs_frozen is False
     assert runs.full_retrieval_plan(run.run_id)["adoption"] is None
+    from pring_cycle.run_health import RunHealth
+
+    health = RunHealth(paths.database).latest(run.run_id)
+    assert health is not None
+    assert health["status"] == "cancelled"
+    assert health["projection_set_id"] is None
+    assert health["ended_at"] is not None
+    assert health["final_plan_available"] is False
+    assert health["report_status"] is None
 
 
 def test_a_core_session_missing_inside_the_window_holds_the_core_through_the_run(

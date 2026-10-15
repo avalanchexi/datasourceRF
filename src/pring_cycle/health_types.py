@@ -28,7 +28,7 @@ class ServicesHealth(TypedDict):
 
 
 class RuntimeBinding(TypedDict):
-    host: Literal["127.0.0.1"]
+    host: str
     port: int
 
 

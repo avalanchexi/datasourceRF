@@ -208,6 +208,8 @@ def registered_warrant_change(
                 "status": "read" if rate is not None else "zero_base",
                 "first": start,
                 "last": end,
+                "first_claim_ids": list(start_inputs),
+                "last_claim_ids": list(end_inputs),
                 "change_rate": rate,
                 "direction": direction,
             }

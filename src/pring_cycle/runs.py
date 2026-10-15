@@ -120,6 +120,10 @@ _INITIAL_SCOPES: dict[str, dict[str, dict[str, Any]]] = {}
 
 
 def _initial_plan_scopes(connection: sqlite3.Connection, run_id: str) -> dict[str, dict[str, Any]]:
+    if not connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE name='full_run_gap_plan'"
+    ).fetchone():
+        return {}
     row = connection.execute(
         "SELECT document_hash FROM full_run_gap_plan WHERE run_id=? AND phase='initial'",
         (run_id,),
@@ -219,6 +223,7 @@ class RunRepository:
         period: str | None = None,
         source_url: str | None = None,
         cutoff_mode: str | None = None,
+        projection_set_id: str | None = None,
     ) -> RunRecord:
         allowed_commands = {
             "manual_full",
@@ -229,6 +234,8 @@ class RunRepository:
         }
         if command_type not in allowed_commands:
             raise ValueError("unsupported_run_command")
+        if projection_set_id is not None and command_type != "report_generation":
+            raise ValueError("projection_binding_requires_report_command")
         if system_as_of.tzinfo is None:
             raise ValueError("system_as_of_must_be_timezone_aware")
         cutoff_mode = cutoff_mode or (
@@ -259,6 +266,11 @@ class RunRepository:
             ).fetchone()
             if existing_command is not None:
                 run_id = str(existing_command["run_id"])
+                bound = connection.execute(
+                    "SELECT projection_set_id FROM parent_run WHERE run_id=?", (run_id,)
+                ).fetchone()
+                if projection_set_id is not None and bound[0] != projection_set_id:
+                    raise ValueError("report_projection_idempotency_conflict")
                 if self._retrieval_scope(connection, run_id) != scope:
                     raise ValueError("retrieval_scope_idempotency_conflict")
                 self._check_cutoff_identity(connection, run_id, cutoff_mode, system_as_of)
@@ -338,6 +350,16 @@ class RunRepository:
                 "INSERT INTO run_attempt(run_id, reason, started_at) VALUES (?, 'initial', ?)",
                 (run_id, datetime.now(UTC).isoformat()),
             )
+            if projection_set_id is not None:
+                connection.execute(
+                    "UPDATE parent_run SET projection_set_id=? WHERE run_id=?",
+                    (projection_set_id, run_id),
+                )
+                connection.execute(
+                    "INSERT INTO run_checkpoint(run_id, kind, reference, verified, created_at) "
+                    "VALUES (?, 'published_projection', ?, 1, ?)",
+                    (run_id, projection_set_id, datetime.now(UTC).isoformat()),
+                )
             if scope is not None:
                 connection.execute(
                     """
@@ -410,7 +432,7 @@ class RunRepository:
             row = connection.execute("SELECT COUNT(*) FROM parent_run").fetchone()
         return int(row[0]) if row is not None else 0
 
-    def list_runs(self, limit: int = 50) -> tuple[RunRecord, ...]:
+    def list_runs(self, limit: int = 50, *, include_details: bool = True) -> tuple[RunRecord, ...]:
         with self._connect() as connection:
             rows = connection.execute(
                 """
@@ -421,7 +443,9 @@ class RunRepository:
                 """,
                 (limit,),
             ).fetchall()
-            return tuple(self._run_record(connection, row) for row in rows)
+            return tuple(
+                self._run_record(connection, row, include_details=include_details) for row in rows
+            )
 
     def next_queued(self) -> RunRecord | None:
         with self._connect() as connection:
@@ -564,6 +588,9 @@ class RunRepository:
             from pring_cycle.retrieval_ledger import interrupt_retrieval_requests
 
             interrupt_retrieval_requests(connection, run_id)
+        from pring_cycle.run_health import RunHealth
+
+        RunHealth(self._database_path).finish(run_id, now=observed_at)
         return LeaseDecision(owner_state, run_id, "explicit_resume_required")
 
     def mark_interrupted(self, run_id: str, classification: str) -> None:
@@ -936,6 +963,11 @@ class RunRepository:
         self.record_checkpoint(run_id, "published_projection", projection_set_id, verified=True)
 
     def cancel(self, run_id: str) -> RunRecord:
+        previous = self.get(run_id)
+        if previous.status == "cancelled":
+            return previous
+        if previous.status in {"completed", "failed"}:
+            raise ValueError("run_is_terminal")
         self._set_run_state(
             run_id,
             status="cancelled",
@@ -943,6 +975,10 @@ class RunRepository:
             next_action="none",
             error_classification=None,
         )
+        if previous.status != "running":
+            from pring_cycle.run_health import RunHealth
+
+            RunHealth(self._database_path).finish(run_id)
         return self.get(run_id)
 
     def schedule(self) -> dict[str, object]:
@@ -1012,7 +1048,9 @@ class RunRepository:
             ensure_wal(connection, self._database_path)
             yield connection
 
-    def _run_record(self, connection: sqlite3.Connection, row: sqlite3.Row) -> RunRecord:
+    def _run_record(
+        self, connection: sqlite3.Connection, row: sqlite3.Row, *, include_details: bool = True
+    ) -> RunRecord:
         from dataclasses import replace
 
         from pring_cycle.retrieval_ledger import RetrievalLedger
@@ -1022,9 +1060,13 @@ class RunRepository:
             _run_record(
                 row,
                 retrieval_scope=self._retrieval_scope(connection, str(row["run_id"])),
-                retrieval_attempts=self._retrieval_attempts(connection, str(row["run_id"])),
+                retrieval_attempts=self._retrieval_attempts(connection, str(row["run_id"]))
+                if include_details
+                else (),
             ),
-            retrieval_ledger=RetrievalLedger(self._database_path).for_run(str(row["run_id"])),
+            retrieval_ledger=RetrievalLedger(self._database_path).for_run(str(row["run_id"]))
+            if include_details
+            else None,
             cutoff_mode=mode,
             cutoffs_frozen=frozen,
         )
@@ -1064,6 +1106,8 @@ class RunRepository:
         connection: sqlite3.Connection,
         run_id: str,
     ) -> tuple[dict[str, object], ...]:
+        scopes = _initial_plan_scopes(connection, run_id)
+        targeted = self._retrieval_scope(connection, run_id)
         rows = connection.execute(
             """
             SELECT * FROM run_retrieval_attempt WHERE run_id=? ORDER BY sequence
@@ -1073,6 +1117,15 @@ class RunRepository:
         return tuple(
             {
                 "channel": str(row["channel"]),
+                "sequence": int(row["sequence"]),
+                "release_event_id": str(row["release_event_id"]),
+                "physical_request_id": row["physical_request_id"],
+                "metric_ids": scopes.get(str(row["release_event_id"]), {}).get(
+                    "metric_ids",
+                    list(targeted.metric_ids)
+                    if targeted and targeted.release_event_id == row["release_event_id"]
+                    else [],
+                ),
                 "outcome": str(row["outcome"]),
                 "classification": (
                     str(row["classification"]) if row["classification"] is not None else None

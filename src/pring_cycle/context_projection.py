@@ -37,6 +37,7 @@ from pring_cycle.confirmation import (
     month_back,
     month_end,
 )
+from pring_cycle.display_projection import context_display
 from pring_cycle.domain import StageResult
 from pring_cycle.domain.macro import (
     EvidenceSignal,
@@ -57,8 +58,8 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.evidence import selected_claim as _selected_claim
 from pring_cycle.evidence import usable_point as _usable_point
+from pring_cycle.freshness import FRESHNESS_REGISTRY, backtracked, period_status
 from pring_cycle.freshness import assess as freshness_assess
-from pring_cycle.freshness import backtracked, period_status
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS, evidence_frequency
 from pring_cycle.price_consistency import (
     CorePrices,
@@ -70,7 +71,7 @@ from pring_cycle.registered_warrants import WarrantRules, registered_warrant_cha
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
 from pring_cycle.summary_cutoff import SummaryCutoff
-from pring_cycle.trading_calendar import TradingCalendar, current_calendar
+from pring_cycle.trading_calendar import TradingCalendar, current_calendar, market_calendar
 from pring_cycle.treasury_context import TREASURY_METRICS
 from pring_cycle.warrant_inputs import WarrantHistoryCoverage
 
@@ -378,6 +379,51 @@ def build_context_projection(
         for metric_id in sorted(relevant)
     }
     rows_by_metric = {metric_id: result.rows for metric_id, result in metric_results.items()}
+    display_inputs: set[str] = set()
+    for metric_id in sorted(relevant):
+        definition = definitions[metric_id]
+        if definition.priority != "P2" and (
+            prices is None or metric_id not in prices.interface_metrics
+        ):
+            continue
+        series = repository.metric_series(
+            metric_id,
+            mode=as_of_mode,
+            as_of=as_of,
+            definition_version=definition.definition_version,
+        )
+        rejected = set(
+            ClaimAdoption(
+                repository, definition_version=definition.definition_version, mode=as_of_mode
+            )
+            .check({metric_id: series})[metric_id]
+            .not_adoptable
+        )
+        freshness_rule = FRESHNESS_REGISTRY.get(metric_id)
+        display_calendar = (
+            market_calendar(freshness_rule.market, calendar or current_calendar())
+            if freshness_rule
+            else None
+        )
+        for row in rows_by_metric[metric_id]:
+            display = context_display(
+                definition,
+                [point for point in series if point.dimensions == row.get("dimensions")],
+                target=date.fromisoformat(target_business_date)
+                if target_business_date
+                else as_of.astimezone(ZoneInfo("Asia/Shanghai")).date(),
+                calendar=display_calendar,
+                frequency=evidence_frequency(metric_id, definition.frequency),
+                rejected=rejected,
+            )
+            row["display"] = display
+            display_inputs.update(
+                point["selected_claim_id"]
+                for point in display["points"]
+                if point["selected_claim_id"]
+            )
+            for key in ("change_5", "change_120"):
+                display_inputs.update(display[key].get("input_claim_ids", []))
     acquisition_period = (
         target_business_date or as_of.astimezone(ZoneInfo("Asia/Shanghai")).date().isoformat()
     )
@@ -658,6 +704,12 @@ def build_context_projection(
             if member.evidence_status == "current"
             for version in member.observation_versions()
         }
+        display_inputs.update(
+            version
+            for members in readings.values()
+            for member in members
+            for version in member.observation_versions()
+        )
         # The four labels are not given, nor stood in for: the dimension summary is.
         macro_document = {
             "output_structure": OUTPUT_STRUCTURE,
@@ -687,6 +739,12 @@ def build_context_projection(
             "international_context": international_context,
             "score": None,
         }
+        _reading_display_metadata(
+            macro_document["confirmation"],
+            rows_by_metric,
+            definitions,
+            repository.version_units(display_inputs),
+        )
         quadrant = next(
             (
                 item
@@ -796,6 +854,7 @@ def build_context_projection(
             | set(derived_ids)
             | set(market_derived_ids)
             | model_inputs
+            | display_inputs
         )
     )
     if any(item["status"] != "current" for item in international_context):
@@ -807,6 +866,50 @@ def build_context_projection(
         warnings,
         warrant_history=metric_results["CN_FUTURES_WARRANTS"].warrant_history,
     )
+
+
+def _reading_display_metadata(
+    document: Any,
+    rows: Mapping[str, tuple[dict[str, object], ...]],
+    definitions: Mapping[str, MetricDefinition],
+    version_units: Mapping[str, str],
+) -> None:
+    """Keep the latest source period separate from the period the model actually read."""
+    if isinstance(document, dict):
+        if "member" in document and "periods" in document:
+            metric = str(document.get("metric_id") or "")
+            definition = definitions.get(metric)
+            units = {
+                version_units[version]
+                for version in document.get("observation_version_ids", [])
+                if version in version_units
+            }
+            document["unit"] = next(iter(units)) if len(units) == 1 else None
+            document["frequency"] = (
+                evidence_frequency(metric, definition.frequency) if definition else None
+            )
+            dimensions = document["member"]
+            matching = [
+                row
+                for row in rows.get(metric, ())
+                if isinstance(row_dimensions := row.get("dimensions"), dict)
+                and all(row_dimensions.get(key) == value for key, value in dimensions.items())
+            ]
+            latest = max(matching, key=lambda row: str(row.get("period") or ""), default=None)
+            document["latest_source"] = (
+                {
+                    key: latest.get(key)
+                    for key in ("value", "unit", "period", "selected_claim_id", "status")
+                }
+                if latest and not document.get("formula_version")
+                else None
+            )
+            return
+        for child in document.values():
+            _reading_display_metadata(child, rows, definitions, version_units)
+    elif isinstance(document, list):
+        for child in document:
+            _reading_display_metadata(child, rows, definitions, version_units)
 
 
 def _member_readings(
@@ -2909,6 +3012,8 @@ def _metric_rows(
                 ),
                 "metric_id": definition.metric_id,
                 "observation_id": current.observation_id,
+                "name_cn": definition.name_cn,
+                "frequency": evidence_frequency(definition.metric_id, definition.frequency),
                 "period_start": current.period_start,
                 "period": current.period_end,
                 "public_available_at": (
@@ -2954,6 +3059,8 @@ def _gap_row(
         "direction": "unknown",
         "metric_id": definition.metric_id,
         "observation_id": f"gap:{definition.metric_id}",
+        "name_cn": definition.name_cn,
+        "frequency": evidence_frequency(definition.metric_id, definition.frequency),
         "period_start": None,
         "period": None,
         "public_available_at": None,
@@ -3253,6 +3360,7 @@ def _international_context(
                 {
                     **row,
                     "name_cn": definition.name_cn,
+                    "frequency": evidence_frequency(definition.metric_id, definition.frequency),
                     "role": "context_only_never_formal_stage",
                 }
             )

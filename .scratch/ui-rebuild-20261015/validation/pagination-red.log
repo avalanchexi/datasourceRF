@@ -1,0 +1,29 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ test_large_requirement_details_are_paged_without_losing_filter_context ____
+
+tmp_path = PosixPath('/tmp/pytest-of-tywin/pytest-54/test_large_requirement_details0')
+
+    def test_large_requirement_details_are_paged_without_losing_filter_context(tmp_path: Path) -> None:
+        from pring_cycle.cockpit_operations import data_chain
+
+        runs = RunRepository.create(tmp_path / "runs.sqlite3")
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-28", client_request_id="paged-details",
+            model_version_id="model-v0001", system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        )
+        summary = {"gaps": [
+            {"metric_id": "fixture", "period": f"period-{index:04d}",
+             "diagnosis": "not_delivered", "request_ids": []}
+            for index in range(231)
+        ]}
+        query = {"run": run.run_id, "projection": "pinned-projection", "metric": "fixture"}
+        first = data_chain([run], run, summary, query, None)
+>       assert "231 条" in _text(first)
+E       AssertionError: assert '231 条' in '数据链路   运行 全部 run-f8c0e234d5f33c4e5a5f 应用筛选 清空 运行 run-f8c0e234d5f33c4e5a5f · 排队 · 本次投影 尚未发布；下方分析证据沿用所选分析投影。   来源 全部 环节...d-0228 已请求但未交付应有期 — —  fixture period-0229 已请求但未交付应有期 — —  fixture period-0230 已请求但未交付应有期 — —  候选校验与时效 候选 结果 说明 采用声明  '
+E        +  where '数据链路   运行 全部 run-f8c0e234d5f33c4e5a5f 应用筛选 清空 运行 run-f8c0e234d5f33c4e5a5f · 排队 · 本次投影 尚未发布；下方分析证据沿用所选分析投影。   来源 全部 环节...d-0228 已请求但未交付应有期 — —  fixture period-0229 已请求但未交付应有期 — —  fixture period-0230 已请求但未交付应有期 — —  候选校验与时效 候选 结果 说明 采用声明  ' = _text(Div(children=[H1('数据链路'), Form(children=[Input(value='pinned-projection', type='hidden', name='projection'), Input(val...body([])], className='report-table'), className='table-scroll', tabIndex=0)]), None], className='operations-workspace'))
+
+tests/web/test_dashboard_contract.py:597: AssertionError
+=========================== short test summary info ============================
+FAILED tests/web/test_dashboard_contract.py::test_large_requirement_details_are_paged_without_losing_filter_context
+1 failed in 2.39s

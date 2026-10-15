@@ -1,0 +1,59 @@
+Scope: quick; execution
+/tmp/pring-ui-venv/bin/python -m pytest tests/integration/test_core_history_refresh.py::test_manual_run_cannot_backdate_daily_core_availability tests/integration/test_worker_execution.py::test_worker_completes_a_valid_noncanonical_projection_and_report tests/web/test_cockpit_http.py tests/web/test_report_board.py tests/web/test_dashboard_contract.py tests/web/test_projection_api.py -q --durations=10 -ptools.timings --timings-file=/tmp/pring-ui-final-acceptance-timings.jsonl
+.........................................                                [100%]
+============================= slowest 10 durations =============================
+27.61s call     tests/integration/test_core_history_refresh.py::test_manual_run_cannot_backdate_daily_core_availability
+19.49s call     tests/integration/test_worker_execution.py::test_worker_completes_a_valid_noncanonical_projection_and_report
+1.26s call     tests/web/test_cockpit_http.py::test_a_report_accepted_from_an_idle_board_immediately_shows_pending_state
+0.87s call     tests/web/test_cockpit_http.py::test_recursive_evidence_follows_exact_parent_versions_and_rejects_false_edges
+0.81s call     tests/web/test_cockpit_http.py::test_old_frozen_claim_keeps_its_own_receipt_after_a_visible_revision
+0.72s call     tests/web/test_cockpit_http.py::test_pinned_projection_does_not_mix_with_a_new_current_pointer
+0.66s call     tests/web/test_cockpit_http.py::test_evidence_opens_the_exact_version_drawn_by_the_projection
+0.63s call     tests/web/test_cockpit_http.py::test_report_command_stays_pinned_after_current_advances
+0.46s call     tests/web/test_report_board.py::test_board_orders_seven_sections_and_links_values_to_frozen_evidence
+0.46s call     tests/web/test_report_board.py::test_old_projection_calendar_keeps_its_frozen_events
+41 passed in 58.61s
+Exit: 0; elapsed: 59.58s
+Timings: 41 tests, 56.49s in test phases
+Slowest 30 tests (setup / call / teardown):
+    27.62s  0.01 / 27.61 / 0.00  tests/integration/test_core_history_refresh.py::test_manual_run_cannot_backdate_daily_core_availability
+    19.49s  0.00 / 19.49 / 0.00  tests/integration/test_worker_execution.py::test_worker_completes_a_valid_noncanonical_projection_and_report
+     1.26s  0.00 / 1.26 / 0.00  tests/web/test_cockpit_http.py::test_a_report_accepted_from_an_idle_board_immediately_shows_pending_state
+     0.87s  0.00 / 0.87 / 0.00  tests/web/test_cockpit_http.py::test_recursive_evidence_follows_exact_parent_versions_and_rejects_false_edges
+     0.81s  0.00 / 0.81 / 0.00  tests/web/test_cockpit_http.py::test_old_frozen_claim_keeps_its_own_receipt_after_a_visible_revision
+     0.73s  0.00 / 0.72 / 0.00  tests/web/test_cockpit_http.py::test_pinned_projection_does_not_mix_with_a_new_current_pointer
+     0.66s  0.00 / 0.66 / 0.00  tests/web/test_cockpit_http.py::test_evidence_opens_the_exact_version_drawn_by_the_projection
+     0.64s  0.00 / 0.63 / 0.00  tests/web/test_cockpit_http.py::test_report_command_stays_pinned_after_current_advances
+     0.46s  0.00 / 0.46 / 0.00  tests/web/test_report_board.py::test_board_orders_seven_sections_and_links_values_to_frozen_evidence
+     0.46s  0.00 / 0.46 / 0.00  tests/web/test_report_board.py::test_old_projection_calendar_keeps_its_frozen_events
+     0.45s  0.00 / 0.45 / 0.00  tests/web/test_cockpit_http.py::test_live_chain_refreshes_requests_without_a_run_step_change
+     0.41s  0.00 / 0.41 / 0.00  tests/web/test_cockpit_http.py::test_artifact_http_distinguishes_expired_missing_and_corrupt_content
+     0.36s  0.00 / 0.36 / 0.00  tests/web/test_projection_api.py::test_dashboard_deep_links_return_the_interactive_index
+     0.34s  0.00 / 0.34 / 0.00  tests/web/test_cockpit_http.py::test_cancelled_queue_has_immutable_health_and_is_not_duplicated
+     0.34s  0.00 / 0.34 / 0.00  tests/web/test_cockpit_http.py::test_configured_host_origin_and_health_share_the_boundary
+     0.27s  0.00 / 0.27 / 0.00  tests/web/test_projection_api.py::test_release_calendar_api_reads_only_the_active_models_definition_version
+     0.21s  0.00 / 0.21 / 0.00  tests/web/test_projection_api.py::test_release_calendar_rest_reads_certified_release_event_and_observation_count
+     0.14s  0.00 / 0.14 / 0.00  tests/web/test_projection_api.py::test_evidence_trace_rest_resolves_derived_formula_lineage
+     0.14s  0.00 / 0.14 / 0.00  tests/web/test_projection_api.py::test_stage_history_rest_includes_a_p0_gap_without_replacing_current_projection
+     0.14s  0.00 / 0.13 / 0.00  tests/web/test_projection_api.py::test_current_projection_rest_preserves_the_atomic_envelope
+     0.13s  0.00 / 0.12 / 0.00  tests/web/test_projection_api.py::test_runtime_init_bootstraps_the_candidate_model_without_activating_it
+     0.12s  0.00 / 0.12 / 0.00  tests/web/test_projection_api.py::test_report_command_is_bound_to_the_current_projection_at_acceptance
+     0.12s  0.00 / 0.12 / 0.00  tests/web/test_projection_api.py::test_deferred_dashboard_shell_is_meaningful_before_interactive_assets_load
+     0.11s  0.00 / 0.11 / 0.00  tests/web/test_cockpit_http.py::test_wildcard_access_configuration_is_rejected
+     0.10s  0.00 / 0.10 / 0.00  tests/web/test_dashboard_contract.py::test_large_requirement_details_are_paged_without_losing_filter_context
+     0.04s  0.00 / 0.04 / 0.00  tests/web/test_dashboard_contract.py::test_run_page_shows_retrieval_latency_budget_cache_and_next_action
+     0.04s  0.00 / 0.04 / 0.00  tests/web/test_dashboard_contract.py::test_run_page_exposes_safe_actions_and_adaptive_polling
+     0.01s  0.00 / 0.01 / 0.00  tests/web/test_dashboard_contract.py::test_macro_and_inventory_pages_render_evidence_fields_and_semantic_boundaries
+     0.01s  0.00 / 0.01 / 0.00  tests/web/test_dashboard_contract.py::test_visual_contract_covers_theme_state_type_focus_motion_and_narrow_windows
+     0.00s  0.00 / 0.00 / 0.00  tests/web/test_dashboard_contract.py::test_domain_pages_expose_fixed_sections_instead_of_generic_documents
+Slowest 15 files:
+    27.62s  1 tests  tests/integration/test_core_history_refresh.py
+    19.49s  1 tests  tests/integration/test_worker_execution.py
+     6.61s  11 tests  tests/web/test_cockpit_http.py
+     1.62s  9 tests  tests/web/test_projection_api.py
+     0.92s  3 tests  tests/web/test_report_board.py
+     0.22s  16 tests  tests/web/test_dashboard_contract.py
+Top 50 tests: 100.0% of test-phase time
+Top 10% (5 tests): 88.6% of test-phase time
+Timings file: /tmp/pring-ui-final-acceptance-timings.jsonl
+Affected feedback only. Close the slice with the two fast smoke tests (ADR-0025).

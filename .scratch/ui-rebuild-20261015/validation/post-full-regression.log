@@ -1,0 +1,65 @@
+Scope: quick; execution
+/tmp/pring-ui-venv/bin/python -m pytest tests/integration/test_candidate_duration.py::test_new_model_reports_actual_candidate_days_and_preserves_old_snapshots tests/integration/test_confirmation_publish.py::test_the_price_and_credit_counts_reach_the_pages_and_the_report tests/integration/test_core_history_correction.py::test_a_run_appends_a_correction_for_each_window_day_on_the_old_core_history tests/integration/test_core_history_refresh.py::test_new_acquisition_preserves_old_release_and_claim_bytes tests/integration/test_database_lifetime.py tests/web/test_cockpit_http.py tests/web/test_report_board.py tests/web/test_dashboard_contract.py tests/web/test_projection_api.py tests/reports/test_noncanonical_reading.py tests/integration/test_core_history_refresh.py::test_manual_run_cannot_backdate_daily_core_availability tests/integration/test_worker_execution.py::test_worker_completes_a_valid_noncanonical_projection_and_report -q --durations=10 -ptools.timings --timings-file=/tmp/pring-ui-post-full-timings.jsonl
+...................................................................      [100%]
+============================= slowest 10 durations =============================
+83.16s call     tests/integration/test_core_history_correction.py::test_a_run_appends_a_correction_for_each_window_day_on_the_old_core_history
+29.24s call     tests/integration/test_candidate_duration.py::test_new_model_reports_actual_candidate_days_and_preserves_old_snapshots
+27.97s call     tests/integration/test_core_history_refresh.py::test_manual_run_cannot_backdate_daily_core_availability
+24.15s call     tests/integration/test_worker_execution.py::test_worker_completes_a_valid_noncanonical_projection_and_report
+1.89s call     tests/integration/test_database_lifetime.py::test_repeated_runtime_views_remain_available
+1.29s call     tests/integration/test_confirmation_publish.py::test_the_price_and_credit_counts_reach_the_pages_and_the_report
+1.04s call     tests/web/test_cockpit_http.py::test_a_report_accepted_from_an_idle_board_immediately_shows_pending_state
+0.77s call     tests/web/test_cockpit_http.py::test_pinned_projection_does_not_mix_with_a_new_current_pointer
+0.75s call     tests/web/test_cockpit_http.py::test_old_frozen_claim_keeps_its_own_receipt_after_a_visible_revision
+0.67s call     tests/web/test_cockpit_http.py::test_recursive_evidence_follows_exact_parent_versions_and_rejects_false_edges
+67 passed in 180.35s (0:03:00)
+Exit: 0; elapsed: 189.12s
+Timings: 67 tests, 177.69s in test phases
+Slowest 30 tests (setup / call / teardown):
+    83.16s  0.00 / 83.16 / 0.00  tests/integration/test_core_history_correction.py::test_a_run_appends_a_correction_for_each_window_day_on_the_old_core_history
+    29.26s  0.02 / 29.24 / 0.00  tests/integration/test_candidate_duration.py::test_new_model_reports_actual_candidate_days_and_preserves_old_snapshots
+    27.97s  0.00 / 27.97 / 0.00  tests/integration/test_core_history_refresh.py::test_manual_run_cannot_backdate_daily_core_availability
+    24.15s  0.00 / 24.15 / 0.00  tests/integration/test_worker_execution.py::test_worker_completes_a_valid_noncanonical_projection_and_report
+     1.89s  0.00 / 1.89 / 0.00  tests/integration/test_database_lifetime.py::test_repeated_runtime_views_remain_available
+     1.29s  0.00 / 1.29 / 0.00  tests/integration/test_confirmation_publish.py::test_the_price_and_credit_counts_reach_the_pages_and_the_report
+     1.05s  0.00 / 1.04 / 0.00  tests/web/test_cockpit_http.py::test_a_report_accepted_from_an_idle_board_immediately_shows_pending_state
+     0.77s  0.00 / 0.77 / 0.00  tests/web/test_cockpit_http.py::test_pinned_projection_does_not_mix_with_a_new_current_pointer
+     0.76s  0.00 / 0.75 / 0.00  tests/web/test_cockpit_http.py::test_old_frozen_claim_keeps_its_own_receipt_after_a_visible_revision
+     0.67s  0.00 / 0.67 / 0.00  tests/web/test_cockpit_http.py::test_recursive_evidence_follows_exact_parent_versions_and_rejects_false_edges
+     0.66s  0.00 / 0.66 / 0.00  tests/web/test_cockpit_http.py::test_report_command_stays_pinned_after_current_advances
+     0.64s  0.00 / 0.64 / 0.00  tests/web/test_cockpit_http.py::test_evidence_opens_the_exact_version_drawn_by_the_projection
+     0.57s  0.00 / 0.57 / 0.00  tests/web/test_report_board.py::test_board_orders_seven_sections_and_links_values_to_frozen_evidence
+     0.44s  0.00 / 0.44 / 0.00  tests/web/test_report_board.py::test_old_projection_calendar_keeps_its_frozen_events
+     0.40s  0.00 / 0.40 / 0.00  tests/web/test_cockpit_http.py::test_artifact_http_distinguishes_expired_missing_and_corrupt_content
+     0.34s  0.00 / 0.34 / 0.00  tests/web/test_projection_api.py::test_dashboard_deep_links_return_the_interactive_index
+     0.33s  0.00 / 0.33 / 0.00  tests/web/test_cockpit_http.py::test_cancelled_queue_has_immutable_health_and_is_not_duplicated
+     0.32s  0.00 / 0.32 / 0.00  tests/web/test_cockpit_http.py::test_configured_host_origin_and_health_share_the_boundary
+     0.27s  0.00 / 0.26 / 0.00  tests/integration/test_core_history_refresh.py::test_new_acquisition_preserves_old_release_and_claim_bytes
+     0.26s  0.00 / 0.26 / 0.00  tests/web/test_projection_api.py::test_release_calendar_api_reads_only_the_active_models_definition_version
+     0.24s  0.00 / 0.24 / 0.00  tests/integration/test_database_lifetime.py::test_repeated_run_reads_do_not_exhaust_open_files
+     0.23s  0.00 / 0.23 / 0.00  tests/web/test_projection_api.py::test_release_calendar_rest_reads_certified_release_event_and_observation_count
+     0.15s  0.00 / 0.15 / 0.00  tests/web/test_projection_api.py::test_stage_history_rest_includes_a_p0_gap_without_replacing_current_projection
+     0.13s  0.00 / 0.13 / 0.00  tests/web/test_projection_api.py::test_report_command_is_bound_to_the_current_projection_at_acceptance
+     0.13s  0.00 / 0.13 / 0.00  tests/web/test_projection_api.py::test_runtime_init_bootstraps_the_candidate_model_without_activating_it
+     0.13s  0.00 / 0.13 / 0.00  tests/web/test_projection_api.py::test_current_projection_rest_preserves_the_atomic_envelope
+     0.13s  0.00 / 0.13 / 0.00  tests/web/test_projection_api.py::test_evidence_trace_rest_resolves_derived_formula_lineage
+     0.10s  0.00 / 0.10 / 0.00  tests/web/test_cockpit_http.py::test_wildcard_access_configuration_is_rejected
+     0.10s  0.00 / 0.10 / 0.00  tests/web/test_projection_api.py::test_deferred_dashboard_shell_is_meaningful_before_interactive_assets_load
+     0.07s  0.00 / 0.06 / 0.00  tests/reports/test_noncanonical_reading.py::test_invalid_reading_is_rejected_and_falls_back[wrong_asset]
+Slowest 15 files:
+    83.16s  1 tests  tests/integration/test_core_history_correction.py
+    29.26s  1 tests  tests/integration/test_candidate_duration.py
+    28.23s  2 tests  tests/integration/test_core_history_refresh.py
+    24.15s  1 tests  tests/integration/test_worker_execution.py
+     5.69s  10 tests  tests/web/test_cockpit_http.py
+     2.13s  2 tests  tests/integration/test_database_lifetime.py
+     1.61s  9 tests  tests/web/test_projection_api.py
+     1.29s  1 tests  tests/integration/test_confirmation_publish.py
+     1.04s  22 tests  tests/reports/test_noncanonical_reading.py
+     1.01s  3 tests  tests/web/test_report_board.py
+     0.12s  15 tests  tests/web/test_dashboard_contract.py
+Top 50 tests: 99.9% of test-phase time
+Top 10% (7 tests): 95.0% of test-phase time
+Timings file: /tmp/pring-ui-post-full-timings.jsonl
+Affected feedback only. Close the slice with the two fast smoke tests (ADR-0025).
+The 180s feedback target was exceeded; record the slow phases.
