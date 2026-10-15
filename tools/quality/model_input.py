@@ -398,8 +398,12 @@ def _explain(run: Run, final: dict, items: list[MissingItem], selected: set) -> 
                     f"模型用了最新已发布值（第一层依据：{item.reason}）"
                 )
                 item.kind = UNPUBLISHED_LATEST
-        if item.metric in acquisition.NO_PATH:
-            item.reason += f"；{acquisition.NO_PATH[item.metric]}，永久缺口，只计入目录全部指标"
+        if gap := acquisition.no_path(run, item.metric):
+            item.reason += f"；{gap}，永久缺口，只计入目录全部指标"
+        elif item.metric in acquisition.REGISTERED_PATH and not acquisition.registered_receipts(
+            run, item.metric
+        ):
+            item.reason += f"；{acquisition.path_note(run, item.metric)}"
         item.exempt, item.exempt_note = _exemption(item)
         rows = run.db.execute(
             "SELECT a.state, COALESCE(a.rejection_reason, a.error_type, '') FROM"

@@ -172,14 +172,14 @@ FRESHNESS_REGISTRY: dict[str, FreshnessRule] = {
         grace=3,
         market="us_equity",
     ),
-    # Restricted licence (ADR-0029): Nasdaq offers no documented free feed for SOX.
+    # Nasdaq's index site, its own history of SOX (ADR-0042, which ends ADR-0029's
+    # restricted licence). A session's end-of-day value is taken as out by the next morning.
     "NASDAQ_SOX_INDEX": FreshnessRule(
-        "nasdaq:licensed",
+        "nasdaq:index_history",
         "daily",
         1,
         time(6, 0),
-        "https://www.nasdaq.com/",
-        restricted_license=True,
+        "https://indexes.nasdaqomx.com/Index/History/SOX",
         market="us_equity",
     ),
     "UST10Y_NOMINAL_YIELD": _daily(

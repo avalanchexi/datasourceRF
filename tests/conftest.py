@@ -1,6 +1,7 @@
 import socket
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime, timedelta
+from io import BytesIO
 from itertools import count
 from time import monotonic
 from typing import TYPE_CHECKING
@@ -98,6 +99,19 @@ def runtime_clock(
 ) -> Callable[[], datetime]:
     """Keep a full run's external clocks on the same advancing UTC timeline."""
     return install_runtime_clock(monkeypatch, request, datetime.now(UTC))
+
+
+class OfficialFile(BytesIO):
+    """An official site's 200 answer with ``content``, as ``open_no_redirects`` gives it."""
+
+    status = 200
+
+    def __init__(self, url: str, content: bytes) -> None:
+        super().__init__(content)
+        self.url = url
+
+    def geturl(self) -> str:
+        return self.url
 
 
 @pytest.fixture(scope="session", autouse=True)

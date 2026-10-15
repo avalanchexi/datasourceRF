@@ -17,3 +17,5 @@ status: accepted
 本 ADR 部分取代 [ADR-0023](0023-retrieval-verification-by-registered-parsers.md) 中这三个 P2 指标的检索渠道。
 
 郑商所品种（TA、CF）的仓单来源已由 [ADR-0032](0032-czce-warrants-from-exchange-daily.md) 改为交易所日报。
+
+SOX 已由 [ADR-0042](0042-sox-from-nasdaq-index-site.md) 改为从 Nasdaq 指数官网取数（2026-10-14 用户决定，接受未公开接口的风险）；前提变化时回到本 ADR 的受限授权。

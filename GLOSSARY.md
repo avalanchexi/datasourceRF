@@ -377,7 +377,7 @@ _Avoid_: 可信来源、正式证据
 _Avoid_: 无需凭据、任意公开网页
 
 **受限授权 P2（Licensed P2）**：
-只有在用户提供有效账号、合同或书面许可后才能持久化并用于正式投影的 P2 国际背景渠道；授权缺失时必须保持透明缺口，不检索。现为 SOX；USDCNY 16:30 收盘价因本机个人使用、不对外分发，经用户选择按可公开接入处理（[ADR-0029](docs/adr/0029-p2-quote-sources-and-warrant-members.md)）。
+只有在用户提供有效账号、合同或书面许可后才能持久化并用于正式投影的 P2 国际背景渠道；授权缺失时必须保持透明缺口，不检索。目前没有指标属于此类。USDCNY 16:30 收盘价（[ADR-0029](docs/adr/0029-p2-quote-sources-and-warrant-members.md)）与 SOX（[ADR-0042](docs/adr/0042-sox-from-nasdaq-index-site.md)）本属此类，是用户接受授权风险后的项目例外：以本机个人使用、不对外分发为前提，按可公开接入处理；SOX 的自动取数与 Nasdaq 网站条款有冲突，ADR-0042 记有这一风险。前提变化时回到此类。
 _Avoid_: 搜索结果替代、相似指数代理、默认可用 P2
 
 **仓单成员（Warrant Member）**：

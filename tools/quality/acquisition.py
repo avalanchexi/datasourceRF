@@ -69,10 +69,83 @@ LATEST_ONLY = {
     ),
 }
 # Daily metrics with no acquisition path at all: wherever their cells are counted the report
-# says so, so a narrower requirement does not hide the gap.
+# says so, so a narrower requirement does not hide the gap. A metric that later got a path
+# (``REGISTERED_PATH``) stays listed for the runs made before it: see ``no_path``.
 NO_PATH = {
     "NASDAQ_SOX_INDEX": "受限授权缺口（ADR-0029）：无取数路径、不检索，应有格照记未取到",
 }
+
+
+@dataclass(frozen=True)
+class RegisteredPath:
+    """A path registered after the metric was listed in ``NO_PATH``, and the two marks a run
+    leaves when its code had it: receipts from ``provider``, and ``freshness`` as the metric's
+    source in the run's own ``batch_freshness`` rows."""
+
+    provider: str
+    freshness: str
+    decision: str
+
+
+# A run had the path when it holds its own receipt from the provider (``full_run_acquisition``
+# of this run, phase not ``referenced``, declaring the metric) started by the cutoff, or when
+# its batch freshness names the registered source; otherwise it is read as before, under
+# ``NO_PATH`` (residual ticket 12). No catalog version or effective time marks the change.
+REGISTERED_PATH = {
+    "NASDAQ_SOX_INDEX": RegisteredPath("Nasdaq Global Indexes", "nasdaq:index_history", "ADR-0042")
+}
+
+
+def registered_receipts(run: Run, metric: str) -> list[Receipt]:
+    """The run's own receipts from the metric's registered provider (``REGISTERED_PATH``)."""
+    return run.receipts(
+        "a.provider = ? AND a.acquisition_id IN (SELECT f.acquisition_id"
+        " FROM full_run_acquisition f WHERE f.run_id = ? AND f.phase != 'referenced'"
+        " AND EXISTS (SELECT 1 FROM json_each(f.metric_ids_json) WHERE value = ?))",
+        (REGISTERED_PATH[metric].provider, run.run_id, metric),
+    )
+
+
+def _registered_freshness(run: Run, metric: str) -> bool:
+    """The run's batch freshness judged the metric by its registered source."""
+    return bool(
+        run.db.execute(
+            "SELECT 1 FROM batch_freshness WHERE batch_id = ? AND metric_id = ? AND source = ?",
+            (run.run_id, metric, REGISTERED_PATH[metric].freshness),
+        ).fetchone()
+    )
+
+
+def no_path(run: Run, metric: str) -> str | None:
+    """``NO_PATH``'s note when the run had no acquisition path for the metric, else None."""
+    if metric not in NO_PATH:
+        return None
+    if metric in REGISTERED_PATH and (
+        registered_receipts(run, metric) or _registered_freshness(run, metric)
+    ):
+        return None
+    return NO_PATH[metric]
+
+
+def path_note(run: Run, metric: str) -> str:
+    """What the report says of the metric's path: the gap, the registered path, or nothing.
+    A run that had the path yet sent no request for it by the cutoff is said to need a look."""
+    gap = no_path(run, metric)
+    if gap:
+        return gap
+    if metric not in REGISTERED_PATH:
+        return ""
+    path = REGISTERED_PATH[metric]
+    count = len(registered_receipts(run, metric))
+    if count:
+        return (
+            f"取数路径为 {path.provider}（{path.decision}），本运行截止前有其回执 {count} 条，"
+            "应有格照常核对"
+        )
+    return (
+        f"取数路径为 {path.provider}（{path.decision}；本运行批次时效来源 {path.freshness}），"
+        "但本运行截止前没有其回执：未发请求，需要查明；应有格照常核对"
+    )
 
 
 @dataclass(frozen=True)
@@ -1326,7 +1399,7 @@ def _conclusion(run: Run, result: DailyResult, periods, delays, absent, cleared)
             parts.append(
                 f"{metric}（模型用到：{scope_label(run, metric)}）{counted or '无不计入的格'}"
                 + (f"，{RECOVERABLE} {again} 格（计入未取到）" if again else "")
-                + (f"，{NO_PATH[metric]}" if metric in NO_PATH else "")
+                + (f"，{path}" if (path := path_note(run, metric)) else "")
             )
         out.append(
             "- **按事件与需求口径核对的指标**不按“每个交易日都应有观测”计应有格，"
@@ -1503,7 +1576,7 @@ def _rule_tables(run: Run, result: DailyResult) -> list[str]:
         outside = Counter(
             status for (m, who, _), (status, _) in result.outside.items() if (m, who) == key
         )
-        basis = note.basis + (f"；{NO_PATH[metric]}" if metric in NO_PATH else "")
+        basis = note.basis + (f"；{path}" if (path := path_note(run, metric)) else "")
         rows.append(
             [
                 metric,

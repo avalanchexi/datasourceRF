@@ -64,7 +64,7 @@ from pring_cycle.release_calendar import month_bounds
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
 from pring_cycle.storage import database_connection
-from pring_cycle.summary_cutoff import day_end
+from pring_cycle.summary_cutoff import SummaryCutoff, day_end
 from pring_cycle.tushare_context import (
     ContextScalar,
     parse_cpi_acquisition,
@@ -1438,7 +1438,8 @@ def backtrack_rrr_chronicle(
             )
             if public_at is None or public_at > known_at or entry.year > until.year:
                 continue
-            if covered_through is None:
+            first = covered_through is None
+            if first:
                 last = calendar.monthrange(entry.year, entry.through_month)[1]
                 covered_through = date(entry.year, entry.through_month, last)
             period = _scan_chronicle(paths, entry, until, fetcher, on_acquisition_started)
@@ -1453,8 +1454,37 @@ def backtrack_rrr_chronicle(
                     definition_version=definition_version,
                     on_acquisition_started=on_acquisition_started,
                 )
-                return RrrBacktrack(result.claim_ids, covered_through)
+                if _claims_known(
+                    paths, result.claim_ids, SummaryCutoff(until, known_at), definition_version
+                ):
+                    return RrrBacktrack(result.claim_ids, covered_through)
+                # Its own page went out after the cutoff (ticket 11): the issue was not yet
+                # read then, so neither its cut nor its months count; an older one is next.
+                if first:
+                    covered_through = None
     return RrrBacktrack((), covered_through)
+
+
+def _claims_known(
+    paths: RuntimePaths,
+    claim_ids: tuple[str, ...],
+    cutoff: SummaryCutoff,
+    definition_version: str,
+) -> bool:
+    """Whether the target day's summary knows each of these RRR claims by their stored
+    public time, the page's own when it gives one (ticket 11)."""
+    wanted = set(claim_ids)
+    vintages = [
+        vintage
+        for vintage in EvidenceRepository(paths.database).source_claim_vintages(
+            "CN_RRR_EVENT", definition_version=definition_version
+        )
+        if vintage.claim_id in wanted
+    ]
+    return len(vintages) == len(wanted) and all(
+        cutoff.knows(date.fromisoformat(vintage.period_end), vintage.public_available_at)
+        for vintage in vintages
+    )
 
 
 def _read_chronicle_page(

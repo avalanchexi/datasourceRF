@@ -35,7 +35,7 @@ def test_parser_families_and_lenient_hosts_are_searchable(metric_id: str) -> Non
         "CN_INDEX_VALUATION",
         "CN_MARGIN_BALANCE",
         "CN_EQ_CSI300",
-        # Read from official files, or a restricted-licence gap: never searched (ADR-0029).
+        # Read from their publishers' own files: never searched (ADR-0029, ADR-0042).
         "CN_USDCNY_CLOSE_1630",
         "CBOE_VIX_INDEX",
         "NASDAQ_SOX_INDEX",

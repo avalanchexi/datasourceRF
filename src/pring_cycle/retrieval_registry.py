@@ -158,8 +158,8 @@ RETRIEVAL_FAMILIES: dict[str, RetrievalFamily] = {
             ("CN_BOND_CORE_000012", "上证国债指数 000012 {date} 收盘"),
         ),
     ),
-    # USDCNY 16:30 and VIX are read from their official files and SOX is a restricted-licence
-    # gap: none of the three is searched (ADR-0029).
+    # USDCNY 16:30 and VIX are read from their official files and SOX from Nasdaq's index
+    # history: none of the three is searched (ADR-0029, ADR-0042).
 }
 
 # Mainstream financial media a search may land on (ADR-0026). A host matches a domain

@@ -1,9 +1,9 @@
 """P2 daily quotes read straight from their publishers (ADR-0029, gap sources #06/#07).
 
-Cboe's VIX history and the CFETS 16:30 USD/CNY close each have one official file. They are
-registered sources: fetched once a run, never searched. A file whose shape has changed is a
-source failure, not a value, so nothing is taken from a document that no longer reads as
-expected.
+Cboe's VIX history and the CFETS 16:30 USD/CNY close each have one official file, and
+Nasdaq's index site gives SOX's history for a window (ADR-0042). They are registered
+sources: fetched once a run, never searched. A file whose shape has changed is a source
+failure, not a value, so nothing is taken from a document that no longer reads as expected.
 """
 
 from __future__ import annotations
@@ -15,9 +15,12 @@ import re
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from http.client import HTTPException
 from urllib.error import HTTPError
+from urllib.parse import urlencode
 from urllib.request import Request
+from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import AcquisitionRepository, SourceFailed, utc_now
 from pring_cycle.acquisition_outcome import (
@@ -82,6 +85,56 @@ def parse_cboe_vix_history(
     return tuple(rows)
 
 
+_NEW_YORK = ZoneInfo("America/New_York")
+_JSON_DATE = re.compile(r"/Date\((\d{1,15})\)/")
+
+
+def parse_nasdaq_index_history(
+    content: bytes, *, start_date: date, end_date: date
+) -> tuple[QuoteRow, ...]:
+    """Each U.S. session's end-of-day index value from Nasdaq Global Indexes' history.
+
+    The history page's table reads ``aaData``: a session's row is stamped at New York's
+    midnight of its trade date, and its ``Value`` is the index value the page shows (the
+    ``Close`` field stays empty). A row of another shape refuses the whole document.
+    """
+    try:
+        rows_in = json.loads(content, parse_float=Decimal)["aaData"]
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("nasdaq_index_document_invalid") from error
+    if not isinstance(rows_in, list):
+        raise ValueError("nasdaq_index_document_invalid")
+    rows: list[QuoteRow] = []
+    seen: set[date] = set()
+    for item in rows_in:
+        if not isinstance(item, dict):
+            raise ValueError("nasdaq_index_document_invalid")
+        stamp = _JSON_DATE.fullmatch(str(item.get("TimeStamp")))
+        if stamp is None:
+            raise ValueError("nasdaq_index_date_invalid")
+        try:
+            moment = datetime.fromtimestamp(int(stamp.group(1)) / 1000, _NEW_YORK)
+        except (OverflowError, OSError, ValueError) as error:
+            raise ValueError("nasdaq_index_date_invalid") from error
+        if (moment.hour, moment.minute, moment.second, moment.microsecond) != (0, 0, 0, 0):
+            raise ValueError("nasdaq_index_date_invalid")
+        day = moment.date()
+        if day in seen:
+            raise ValueError("nasdaq_index_duplicate_date")
+        seen.add(day)
+        value = item.get("Value")
+        if (
+            not isinstance(value, Decimal | int)
+            or isinstance(value, bool)
+            or not Decimal(value).is_finite()
+            or value <= 0
+        ):
+            raise ValueError("nasdaq_index_value_invalid")
+        if start_date <= day <= end_date:
+            rows.append(QuoteRow(day.isoformat(), float(value), str(value)))
+    return tuple(sorted(rows, key=lambda row: row.business_date))
+
+
 # The intraday snapshot marks its 16:30 point with a blank time; the page labels it 16:30.
 _CLOSE_POINT = re.compile(r'\{\s*"time"\s*:\s*" "\s*,\s*spotPrice\s*:\s*([0-9.]+)')
 
@@ -124,6 +177,8 @@ class QuoteSource:
     accept: str
     unit: str
     parse: Callable[[bytes, date, date], tuple[QuoteRow, ...]]
+    # A source asked for a window posts this form; any other is one file, fetched whole.
+    form: Callable[[date, date], dict[str, str]] | None = None
 
 
 CBOE_VIX = QuoteSource(
@@ -153,14 +208,35 @@ CHINAMONEY_USDCNY_1630 = QuoteSource(
         if start.isoformat() <= row.business_date <= end.isoformat()
     ),
 )
-QUOTE_SOURCES = (CBOE_VIX, CHINAMONEY_USDCNY_1630)
+# Nasdaq administers SOX; its index site's history table, the one the page's own script
+# posts, has no published interface (ADR-0042). Each day is stamped at its midnight.
+NASDAQ_SOX = QuoteSource(
+    metric_id="NASDAQ_SOX_INDEX",
+    provider="Nasdaq Global Indexes",
+    url="https://indexes.nasdaqomx.com/Index/HistoryData",
+    channel="nasdaq_index_official",
+    fields="TimeStamp,Value",
+    parser_version="nasdaq-index-history-parser-v0001",
+    accept="application/json",
+    unit="index_points",
+    parse=lambda raw, start, end: parse_nasdaq_index_history(raw, start_date=start, end_date=end),
+    form=lambda start, end: {
+        "id": "SOX",
+        "startDate": f"{start.isoformat()}T00:00:00.000",
+        "endDate": f"{end.isoformat()}T00:00:00.000",
+        "timeOfDay": "EOD",
+    },
+)
+QUOTE_SOURCES = (CBOE_VIX, CHINAMONEY_USDCNY_1630, NASDAQ_SOX)
 
 
-def _fetch(source: QuoteSource) -> bytes:
-    request = Request(
-        source.url,
-        headers={"Accept": source.accept, "User-Agent": "Mozilla/5.0 (pring-cycle/1.0)"},
-    )
+def _fetch(source: QuoteSource, start_date: date, end_date: date) -> bytes:
+    headers = {"Accept": source.accept, "User-Agent": "Mozilla/5.0 (pring-cycle/1.0)"}
+    body = None
+    if source.form is not None:
+        body = urlencode(source.form(start_date, end_date)).encode()
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+    request = Request(source.url, data=body, headers=headers)
     try:
         with open_no_redirects(request, timeout=20) as response:
             if int(response.status) != 200 or response.geturl() != source.url:
@@ -168,9 +244,6 @@ def _fetch(source: QuoteSource) -> bytes:
                     "quote_source_response_invalid", external_code=int(response.status)
                 )
             content = bytes(response.read(_MAX_BYTES + 1))
-    except HTTPError as error:
-        # The source's answer was a failure: its code is kept (ticket 18).
-        raise SourceFailed(f"quote_source_http_{error.code}", external_code=error.code) from error
     except HTTPException as error:
         raise OSError("quote_source_http_protocol_failed") from error
     if len(content) > _MAX_BYTES:
@@ -204,17 +277,24 @@ def refresh_quote_source(
     try:
         acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
             provider=source.provider,
-            api_name="official_http_get",
+            api_name="official_http_get" if source.form is None else "official_http_post",
             parameters=metadata,
             fields=source.fields,
             parser_version=source.parser_version,
-            fetch=lambda: _fetch(source),
+            # An HTTP failure reaches the receipt store as such, which keeps the page it
+            # answered with (an anti-bot page, say) as the receipt's original.
+            fetch=lambda: _fetch(source, start_date, end_date),
             parse=lambda raw: source.parse(raw, start_date, end_date),
             normalize=lambda rows: [asdict(row) for row in rows],
             on_started=identities.append,
             count_scalars=len,
+            max_error_body_bytes=_MAX_BYTES,
         )
-    except (LookupError, OSError, TypeError, ValueError) as error:
+    except (LookupError, OSError, TypeError, ValueError) as caught:
+        error: Exception = caught
+        if isinstance(caught, HTTPError):
+            # The source's answer was a failure: its code is kept (ticket 18).
+            error = SourceFailed(f"quote_source_http_{caught.code}", external_code=caught.code)
         outcome, recorded = capture_failure(error)
         if outcome == STRUCTURE_REJECTED:
             # By the source's specification a file that does not parse is the source failing
@@ -228,7 +308,9 @@ def refresh_quote_source(
             acquisition_ids=tuple(identities),
             safe_metadata={**metadata, **recorded, "reason": str(error)},
         )
-        raise
+        if error is caught:
+            raise
+        raise error from caught
     receipt = acquired.receipt
     held = {
         point.period_end: point.selected_value
