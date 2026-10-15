@@ -62,3 +62,42 @@ def test_old_projection_calendar_keeps_its_frozen_events(tmp_path: Path) -> None
     )
     assert "frozen-August" in text and "live-October" not in text
     assert projection.envelope.projection_set_id in text
+
+
+def test_run_charts_keep_unknown_time_and_count_physical_requests_once() -> None:
+    from pring_cycle.cockpit_operations import runs_workspace
+
+    summary = {
+        "run_id": "chart-run",
+        "attempt": 1,
+        "status": "completed",
+        "duration_seconds": 61.25,
+        "request_count": 3,
+        "segments": [
+            {
+                "step": "refreshing_evidence",
+                "started_at": "2026-10-15T13:00:00+00:00",
+                "ended_at": "2026-10-15T13:01:00+00:00",
+                "seconds": 60.0,
+            },
+            {
+                "step": "validating_evidence",
+                "started_at": "2026-10-15T13:01:00+00:00",
+                "ended_at": None,
+                "seconds": None,
+            },
+        ],
+        "requests": [
+            {"request_id": "a", "phase": "direct_core_refresh", "metric_ids": ["bond", "stock"]},
+            {"request_id": "a", "phase": "direct_core_refresh", "metric_ids": ["commodity"]},
+            {"request_id": "b", "phase": "direct_core_refresh", "metric_ids": ["bond"]},
+            {"request_id": "c", "phase": "direct_context_refresh", "metric_ids": ["pmi"]},
+        ],
+    }
+    text = " ".join(_text(runs_workspace((), summary, [], {})).split())
+    assert "本次运行各环节" in text
+    assert "获取证据 60.00 秒" in text
+    assert "校验证据 未记录" in text
+    assert "请求按环节" in text
+    assert "三核心取数 2 次" in text
+    assert "背景指标取数 1 次" in text

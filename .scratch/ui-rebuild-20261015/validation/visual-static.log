@@ -1,0 +1,6 @@
+System.Object[]
+ruff/mypy exit: 0
+
+node --check exit: 0
+
+git diff --check exit: 0

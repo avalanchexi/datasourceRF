@@ -28,6 +28,21 @@
       '"][data-run-id="' + CSS.escape(fields.run_id) + '"]');
   }
 
+  function markActiveReportSection() {
+    const toc = document.querySelector(".report-toc");
+    if (!toc) return;
+    const sections = [...document.querySelectorAll(".report-section[id]")];
+    const boundary = Math.max(0, toc.getBoundingClientRect().bottom) + 24;
+    let active = sections[0]?.id;
+    sections.forEach(function (section) {
+      if (section.getBoundingClientRect().top <= boundary) active = section.id;
+    });
+    toc.querySelectorAll("a").forEach(function (link) {
+      if (link.hash === "#" + active) link.setAttribute("aria-current", "location");
+      else link.removeAttribute("aria-current");
+    });
+  }
+
   function markActiveNavigation() {
     commands.forEach(function (_message, identity) {
       const button = commandButton(JSON.parse(identity));
@@ -49,6 +64,7 @@
       const section = document.getElementById(anchor);
       if (section) { section.scrollIntoView(); document.documentElement.dataset.locatedAnchor = anchorIdentity; }
     }
+    markActiveReportSection();
     document.querySelectorAll(".price-chart .js-plotly-plot").forEach(function (graph) {
       if (graph.dataset.evidenceBound || typeof graph.on !== "function") return;
       graph.dataset.evidenceBound = "true";
@@ -67,6 +83,7 @@
   });
   window.addEventListener("popstate", markActiveNavigation);
   window.addEventListener("hashchange", markActiveNavigation);
+  window.addEventListener("resize", markActiveReportSection);
 
   document.addEventListener("click", function (event) {
     const target = event.target;
@@ -183,6 +200,7 @@
   let renderedPage = null;
   function pageKey() { return window.location.pathname + window.location.search; }
   window.addEventListener("scroll", function () {
+    markActiveReportSection();
     const state = reading.get(pageKey()) || {};
     state.scroll = window.scrollY;
     reading.set(pageKey(), state);

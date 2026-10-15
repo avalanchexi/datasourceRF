@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, cast
@@ -52,6 +53,7 @@ LABELS = {
     "direct_core_refresh": "三核心取数",
     "direct_context_refresh": "背景指标取数",
     "release_schedule": "发布日历",
+    "tushare_news": "资讯取数",
     "gap_retrieval": "缺期补取",
     "not_attempted": "未尝试",
     "budget_exhausted": "预算耗尽",
@@ -136,6 +138,38 @@ def run_picker(runs: Sequence[RunRecord], query: dict[str, str], path: str) -> A
     return filter_form(path, query, {"run": ("运行", [run.run_id for run in runs])})
 
 
+def measure_bars(rows: Sequence[tuple[str, float | None]], unit: str) -> Any:
+    longest = max((value for _, value in rows if value is not None), default=0) or 1
+    return html.Ul(
+        [
+            html.Li(
+                [
+                    html.Span(label, className="measure-label"),
+                    html.Span(
+                        html.Span(
+                            className="measure-fill",
+                            style={"width": f"{max(0, value) / longest * 100:.4f}%"},
+                        )
+                        if value is not None
+                        else None,
+                        className="measure-track",
+                        **cast(Any, {"aria-hidden": "true"}),
+                    ),
+                    html.Strong(
+                        "未记录"
+                        if value is None
+                        else (f"{value:g}" if unit == "次" else number(value)) + " " + unit,
+                        className="measure-value",
+                    ),
+                ],
+                className="measure-row",
+            )
+            for label, value in rows
+        ],
+        className="measure-bars",
+    )
+
+
 def runs_workspace(
     runs: Sequence[RunRecord],
     summary: dict[str, Any] | None,
@@ -164,27 +198,41 @@ def runs_workspace(
     body: list[Any] = [
         html.H1("运行状态"),
         html.P("运行中约 30 秒刷新，空闲约 300 秒刷新。报告任务与完整取数分开比较。"),
-        filter_form(
-            "/runs",
-            query,
-            {
-                "type": ("类型", sorted({run.command_type for run in runs})),
-                "status": ("状态", sorted({run.status for run in runs})),
-            },
+        html.Div(
+            [
+                filter_form(
+                    "/runs",
+                    query,
+                    {
+                        "type": ("类型", sorted({run.command_type for run in runs})),
+                        "status": ("状态", sorted({run.status for run in runs})),
+                    },
+                ),
+                run_picker(filtered, query, "/runs"),
+            ],
+            className="run-filters",
         ),
-        run_picker(filtered, query, "/runs"),
     ]
     if summary:
         previous = comparison(summary, history)
+        # The summary contains physical request identities, not one row per delivered metric.
+        requests = {item["request_id"]: item for item in summary.get("requests", [])}
+        phases = Counter(str(item.get("phase") or "环节未记录") for item in requests.values())
         body.extend(
             [
-                html.P(
-                    f"运行 {summary['run_id']} · 第 {summary['attempt']} 次尝试 · "
-                    f"{label_value(summary['status'])}"
+                html.Div(
+                    [
+                        html.P(
+                            f"运行 {summary['run_id']} · 第 {summary['attempt']} 次尝试 · "
+                            f"{label_value(summary['status'])}"
+                        ),
+                        html.P(
+                            "本次投影：" + str(summary.get("projection_set_id") or "尚未发布新投影")
+                        ),
+                        html.P("下一步：" + label_value(summary.get("next_action") or "无需操作")),
+                    ],
+                    className="run-identity",
                 ),
-                html.P("本次投影：" + str(summary.get("projection_set_id") or "尚未发布新投影")),
-                html.P("下一步：" + label_value(summary.get("next_action") or "无需操作")),
-                coverage_table(obj(summary.get("coverage"))),
                 html.Div(
                     [
                         html.Div(
@@ -210,6 +258,13 @@ def runs_workspace(
                     ],
                     className="health-grid",
                 ),
+                html.Details(
+                    [
+                        html.Summary("数据完整度与未完成期口径"),
+                        coverage_table(obj(summary.get("coverage"))),
+                    ],
+                    className="operations-details",
+                ),
                 html.P(
                     "对比 "
                     + str(previous["run_id"])
@@ -220,19 +275,62 @@ def runs_workspace(
                     if previous.get("run_id")
                     else "无可比的留存摘要：须同类型、模型、目录和计数口径。"
                 ),
-                table(
-                    ("步骤", "开始", "结束", "秒"),
+                html.Section(
                     [
-                        (
-                            label_value(item["step"]),
-                            local_time(datetime.fromisoformat(item["started_at"])),
-                            local_time(datetime.fromisoformat(item["ended_at"]))
-                            if item.get("ended_at")
-                            else "进行中 / 未记录",
-                            number(item.get("seconds")),
+                        html.H2("本次运行各环节"),
+                        html.P(
+                            "条长按最长环节对齐；下方可展开起止时间。", className="secondary-copy"
+                        ),
+                        measure_bars(
+                            [
+                                (label_value(item["step"]), item.get("seconds"))
+                                for item in summary.get("segments", [])
+                            ],
+                            "秒",
                         )
-                        for item in summary.get("segments", [])
+                        if summary.get("segments")
+                        else html.P("本次未记录环节耗时。"),
                     ],
+                    className="operations-panel",
+                ),
+                html.Details(
+                    [
+                        html.Summary("环节起止时间（北京时间）"),
+                        table(
+                            ("步骤", "开始", "结束", "秒"),
+                            [
+                                (
+                                    label_value(item["step"]),
+                                    local_time(datetime.fromisoformat(item["started_at"])),
+                                    local_time(datetime.fromisoformat(item["ended_at"]))
+                                    if item.get("ended_at")
+                                    else "进行中 / 未记录",
+                                    number(item.get("seconds")),
+                                )
+                                for item in summary.get("segments", [])
+                            ],
+                        ),
+                    ],
+                    className="operations-details",
+                ),
+                html.Section(
+                    [
+                        html.H2("请求按环节"),
+                        html.P(
+                            "一次外部请求只计一次；重试单列，缓存复用不计入。",
+                            className="secondary-copy",
+                        ),
+                        measure_bars(
+                            [
+                                (label_value(phase), float(count))
+                                for phase, count in phases.most_common()
+                            ],
+                            "次",
+                        )
+                        if phases
+                        else html.P("本次没有已发送的外部请求。"),
+                    ],
+                    className="operations-panel",
                 ),
                 html.P(
                     "预算消耗："
