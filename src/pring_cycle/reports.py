@@ -13,10 +13,19 @@ from itertools import takewhile
 from pathlib import Path
 from typing import Any, Protocol
 
+from pring_cycle.artifacts import store_artifact
 from pring_cycle.batches import add_batch_columns, current_batch_id
 from pring_cycle.cli_process import run_structured_cli
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.freshness import CALENDAR_FALLBACK_NOTE, freshness_statement
+from pring_cycle.noncanonical import PROMPT_VERSION as NONCANONICAL_PROMPT_VERSION
+from pring_cycle.noncanonical import TITLE as NONCANONICAL_TITLE
+from pring_cycle.noncanonical import (
+    fact_sentences,
+    fallback_section,
+    observation_sentences,
+    reading_error,
+)
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.storage import database_connection, ensure_wal
 
@@ -73,7 +82,7 @@ class ReportInput:
         results: dict[str, Any] | None = None,
         gap_list: list[Any] | None = None,
     ) -> ReportInput:
-        schema_version, prompt_version = _contract(conclusions or {})
+        schema_version, prompt_version = _contract(conclusions or {}, results)
         identity = {
             "projection_set_id": projection_set_id,
             "target_business_date": target_business_date,
@@ -121,7 +130,7 @@ class ReportInput:
         return document
 
     def deterministic_skeleton(self) -> dict[str, Any]:
-        return {
+        body = {
             "report_identity": {
                 "bundle_id": self.bundle_id,
                 "projection_set_id": self.projection_set_id,
@@ -158,6 +167,11 @@ class ReportInput:
             },
             "core_carry_forward": list(self.results.get("core_carry_forward", [])),
         }
+        basis = self.results.get("noncanonical_basis")
+        if self.stage_reason == "noncanonical_combination" and isinstance(basis, dict):
+            body["ai_explanation"] = [fallback_section(basis)]
+            body["explanation_source"] = "deterministic_template"
+        return body
 
 
 # Which macro and inventory conclusions the report states, and the projection sections
@@ -286,6 +300,10 @@ def report_input_from_projection(projection: ProjectionSet) -> ReportInput:
             else {}
         ),
     }
+    if stage_reason == "noncanonical_combination" and isinstance(
+        overview.get("noncanonical_basis"), dict
+    ):
+        results["noncanonical_basis"] = overview["noncanonical_basis"]
     return ReportInput.create(
         projection_set_id=envelope.projection_set_id,
         target_business_date=envelope.target_business_date,
@@ -500,11 +518,18 @@ def _price_notes(macro: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _contract(conclusions: dict[str, Any]) -> tuple[str, str]:
+def _contract(
+    conclusions: dict[str, Any], results: dict[str, Any] | None = None
+) -> tuple[str, str]:
     """The schema and prompt contract a report's conclusions are written under."""
-    if "confirmation_applicable" in conclusions:
-        return CONFIRMATION_REPORT_SCHEMA_VERSION, CONFIRMATION_PROMPT_CONTRACT_VERSION
-    return REPORT_SCHEMA_VERSION, PROMPT_CONTRACT_VERSION
+    schema, prompt = (
+        (CONFIRMATION_REPORT_SCHEMA_VERSION, CONFIRMATION_PROMPT_CONTRACT_VERSION)
+        if "confirmation_applicable" in conclusions
+        else (REPORT_SCHEMA_VERSION, PROMPT_CONTRACT_VERSION)
+    )
+    if results and isinstance(results.get("noncanonical_basis"), dict):
+        prompt = NONCANONICAL_PROMPT_VERSION
+    return schema, prompt
 
 
 def _list(value: object) -> list[Any]:
@@ -667,6 +692,7 @@ class ReportRepository:
         repository = cls(database_path)
         with repository._connect() as connection:
             connection.executescript(_REPORT_SCHEMA)
+            connection.executescript(_REPORT_ARTIFACT_SCHEMA)
             upgrade_report_snapshot_nullable_stage(connection)
             upgrade_report_process_audit(connection)
             add_batch_columns(connection)
@@ -713,6 +739,17 @@ class ReportRepository:
                 ),
             )
         return bundle_hash
+
+    def save_output(self, bundle: ReportInput, document: Any) -> str:
+        """Keep CLI output as audit material, owned by its retained input bundle."""
+        artifact = store_artifact(
+            self._database_path,
+            self._database_path.parent / "artifacts" / "sha256",
+            _canonical_json(document).encode(),
+            "application/json",
+            f"report-output:{bundle.bundle_id}",
+        )
+        return artifact.content_hash
 
     def record_attempt(
         self,
@@ -811,7 +848,7 @@ class ReportRepository:
                     bundle.bundle_id,
                     bundle_hash,
                     bundle.model_version_id,
-                    *_contract(bundle.conclusions),
+                    *_contract(bundle.conclusions, bundle.results),
                     body_json,
                     datetime.now(UTC).isoformat(),
                     current_batch_id(),
@@ -976,8 +1013,17 @@ class ReportService:
             output_hash = (
                 _hash_document(response.document) if response.document is not None else None
             )
+            output_retention: dict[str, Any] = {}
+            if response.document is not None:
+                try:
+                    self._repository.save_output(bundle, response.document)
+                    output_retention = {"status": "retained"}
+                except (OSError, sqlite3.Error, ValueError) as error:
+                    # Audit storage must not suppress the CLI fallback or cancellation.
+                    output_retention = {"status": "failed", "error_type": type(error).__name__}
+            rejection: dict[str, Any] = {}
             if response.status == "succeeded" and response.document is not None:
-                outcome = _validate_ai_document(bundle, response)
+                outcome = _validate_ai_document(bundle, response, rejection=rejection)
             if cancelled_after:
                 outcome = "cancelled"
             self._repository.record_attempt(
@@ -989,7 +1035,12 @@ class ReportService:
                 completed_at=completed_at,
                 tool_events=response.tool_events,
                 output_hash=output_hash,
-                process_audit={**response.process_audit, "bundle_id": bundle.bundle_id},
+                process_audit={
+                    **{k: v for k, v in response.process_audit.items() if k != "rejection"},
+                    "bundle_id": bundle.bundle_id,
+                    **({"output_retention": output_retention} if output_retention else {}),
+                    **({"rejection": rejection} if rejection else {}),
+                },
                 elapsed_ms=(completed_ns - attempt_started_ns) // 1_000_000,
                 report_elapsed_ms=(completed_ns - report_started_ns) // 1_000_000,
             )
@@ -998,6 +1049,7 @@ class ReportService:
             if outcome == "succeeded" and response.document is not None:
                 body = bundle.deterministic_skeleton()
                 body["ai_explanation"] = response.document["sections"]
+                body["explanation_source"] = "ai"
                 body["explanation_verification"] = {
                     "status": "pending_evidence_review",
                     "identity_and_conclusions": "passed",
@@ -1054,7 +1106,7 @@ class CliReportAdapter:
         self._cancel_requested = cancel_requested
 
     def generate(self, bundle: ReportInput) -> AdapterResponse:
-        schema_version, prompt_version = _contract(bundle.conclusions)
+        schema_version, prompt_version = _contract(bundle.conclusions, bundle.results)
         confirmation = (
             "确认度的各维度计数与各关键指标的确认关系同样只能解释、不得改写；"
             "正文提及时须与 conclusions 一致（如“PMI 记为支持”“过热维度支持 1、反证 0”），"
@@ -1062,8 +1114,27 @@ class CliReportAdapter:
             if schema_version == CONFIRMATION_REPORT_SCHEMA_VERSION
             else ""
         )
+        basis = bundle.results.get("noncanonical_basis")
+        reading_contract = (
+            {
+                "title": NONCANONICAL_TITLE,
+                "required_fact_sentences": fact_sentences(basis),
+                "observation_sentences": observation_sentences(basis),
+                "instruction": (
+                    "报告只含这个固定标题section，不得新增其他section。"
+                    "宏观五维由确定性事实展示，不另写AI段。按给定顺序逐字保留全部事实句作为开头，"
+                    "随后从给定观察句中选取至少一句，可选择次序，每句至多一次，不加其他文字。"
+                    "不要自行改写资产、候选、天数或阶段对照，其他section不复述这些对照。"
+                    "30日候选没有持续天数，趋势切换候选另列。禁止最接近阶段、推测阶段、AI阶段，"
+                    "禁止倾向/更像/可视为/实际处于某阶段，不预测下一阶段。"
+                ),
+            }
+            if isinstance(basis, dict)
+            else None
+        )
         prompt = _canonical_json(
             {
+                **({"noncanonical_reading_contract": reading_contract} if reading_contract else {}),
                 "instruction": (
                     "仅解释报告输入中的已验证结果，输出共同报告 JSON；不得调用工具或给出交易建议。"
                     "正式阶段、三核心状态与宏观、库存结论只能解释、不得改写，"
@@ -1125,7 +1196,8 @@ def _report_output_schema(bundle: ReportInput) -> dict[str, Any]:
         "properties": {
             name: (
                 _const_schema(value)
-                if _contract(bundle.conclusions)[0] == CONFIRMATION_REPORT_SCHEMA_VERSION
+                if _contract(bundle.conclusions, bundle.results)[0]
+                == CONFIRMATION_REPORT_SCHEMA_VERSION
                 else {"type": ["string", "null"], "const": value}
             )
             for name, value in bundle.conclusions.items()
@@ -1481,50 +1553,117 @@ def _attributed(sentences: list[str], labels: Mapping[str, str | None]) -> list[
     return stretches
 
 
-def _validate_ai_document(bundle: ReportInput, response: AdapterResponse) -> str:
-    """The two post-checks (ADR-0027): the structure, and conclusions left as given."""
+def _first_difference(actual: Any, expected: Any, path: str) -> str:
+    if isinstance(actual, dict) and isinstance(expected, dict):
+        for key in sorted(actual.keys() | expected.keys()):
+            child = f"{path}.{key}"
+            if key not in actual or key not in expected:
+                return child
+            if not _same(actual[key], expected[key]):
+                return _first_difference(actual[key], expected[key], child)
+    elif isinstance(actual, list) and isinstance(expected, list):
+        for index, (left, right) in enumerate(zip(actual, expected, strict=False)):
+            if not _same(left, right):
+                return _first_difference(left, right, f"{path}[{index}]")
+        if len(actual) != len(expected):
+            return f"{path}[{min(len(actual), len(expected))}]"
+    return path
+
+
+def _validate_ai_document(
+    bundle: ReportInput, response: AdapterResponse, *, rejection: dict[str, Any] | None = None
+) -> str:
+    """Keep the result-code API; optionally describe the first failing check (zero-based)."""
+    if rejection is not None:
+        rejection.clear()
+
+    def reject(code: str, check: str, path: str, index: int | None = None) -> str:
+        if rejection is not None:
+            rejection.update(check=check, path=path)
+            if index is not None:
+                rejection["section_index"] = index
+                assert response.document is not None
+                section = response.document["sections"][index]
+                rejection["section_title"] = (
+                    section.get("title") if isinstance(section, dict) else None
+                )
+        return code
+
     if response.tool_events:
-        return "tool_use_rejected"
+        return reject("tool_use_rejected", "tool_events", "tool_events")
     document = response.document
     if not isinstance(document, dict):
-        return "invalid_json_schema"
+        return reject("invalid_json_schema", "document_type", "$")
     if set(document) != set(_OUTPUT_FIELDS):
-        return "schema_validation_failed"
+        return reject("schema_validation_failed", "document_fields", "$")
     if document["bundle_id"] != bundle.bundle_id:
-        return "schema_validation_failed"
+        return reject("schema_validation_failed", "bundle_id", "bundle_id")
     if document["current_stage"] != bundle.current_stage:
-        return "stage_mutation_rejected"
-    if document["core_states"] != bundle.core_states or not _same(
-        document["conclusions"], bundle.conclusions
-    ):
-        return "conclusion_mutation_rejected"
+        return reject("stage_mutation_rejected", "current_stage", "current_stage")
+    if document["core_states"] != bundle.core_states:
+        return reject(
+            "conclusion_mutation_rejected",
+            "core_states",
+            _first_difference(document["core_states"], bundle.core_states, "core_states"),
+        )
+    if not _same(document["conclusions"], bundle.conclusions):
+        return reject(
+            "conclusion_mutation_rejected",
+            "conclusions",
+            _first_difference(document["conclusions"], bundle.conclusions, "conclusions"),
+        )
     if document["report_cutoff"] != bundle.report_cutoff.isoformat():
-        return "schema_validation_failed"
+        return reject("schema_validation_failed", "report_cutoff", "report_cutoff")
     if document["proxy_used"] is not False:
-        return "forbidden_content_rejected"
+        return reject("forbidden_content_rejected", "proxy_used", "proxy_used")
     sections = document["sections"]
     if not isinstance(sections, list) or not sections:
-        return "schema_validation_failed"
+        return reject("schema_validation_failed", "sections", "sections")
     forbidden_terms = ("买入", "卖出", "目标价", "收益保证", "仓位建议")
-    for section in sections:
+    for index, section in enumerate(sections):
+        path = f"sections[{index}]"
         if not isinstance(section, dict) or set(section) != {"title", "explanation"}:
-            return "schema_validation_failed"
+            return reject("schema_validation_failed", "section_fields", path, index)
         if any(not isinstance(section[field], str) for field in ("title", "explanation")):
-            return "schema_validation_failed"
+            return reject("schema_validation_failed", "section_types", path, index)
         if any(term in section["explanation"] for term in forbidden_terms):
-            return "forbidden_content_rejected"
+            return reject("forbidden_content_rejected", "forbidden_terms", path, index)
         if any(stage != bundle.current_stage for stage in _stated_stages(section)):
-            return "stage_mutation_rejected"
-        if (
-            _restates_confirmation(bundle, section)
-            or _restates_prices(bundle, section)
-            or _restates_bond_attribution(bundle, section)
+            return reject("stage_mutation_rejected", "stated_stage", path, index)
+        basis = bundle.results.get("noncanonical_basis")
+        if not isinstance(basis, dict) and section["title"] == NONCANONICAL_TITLE:
+            return reject("schema_validation_failed", "noncanonical_basis_missing", path, index)
+        if isinstance(basis, dict):
+            text = section["title"] + "。" + section["explanation"]
+            if re.search(
+                r"最接近|最相似|推测阶段|AI\s*阶段|"
+                r"(?:倾向|更像|可视为|实际|当前|目前|现在).{0,12}"
+                r"(?:阶段|Stage)\s*(?:[IVX]+|[ⅠⅡⅢⅣⅤⅥ]|[一二三四五六1-6])",
+                text,
+                re.IGNORECASE,
+            ):
+                return reject("stage_mutation_rejected", "noncanonical_stated_stage", path, index)
+            if section["title"] == NONCANONICAL_TITLE:
+                if (error := reading_error(basis, section)) is not None:
+                    return reject("conclusion_mutation_rejected", error, path, index)
+            else:
+                return reject("schema_validation_failed", "noncanonical_extra_section", path, index)
+        for check, restates in (
+            ("restates_confirmation", _restates_confirmation),
+            ("restates_prices", _restates_prices),
+            ("restates_bond_attribution", _restates_bond_attribution),
         ):
-            return "conclusion_mutation_rejected"
+            if restates(bundle, section):
+                return reject("conclusion_mutation_rejected", check, path, index)
         if not section["explanation"].strip() or any(
             separator in section["explanation"] for separator in "\r\n\u2028\u2029"
         ):
-            return "paragraph_structure_invalid"
+            return reject("paragraph_structure_invalid", "paragraph_structure", path, index)
+    if (
+        isinstance(bundle.results.get("noncanonical_basis"), dict)
+        and sum(section["title"] == NONCANONICAL_TITLE for section in sections) != 1
+    ):
+        return reject("schema_validation_failed", "noncanonical_section_count", "sections")
     return "succeeded"
 
 
@@ -1753,4 +1892,21 @@ SELECT report_snapshot.*, evidence_bundle.document_json AS bundle_document_json,
            AS attempt_completed_at
 FROM report_snapshot
 JOIN evidence_bundle USING (bundle_id)
+"""
+
+
+# Standalone report repositories use the runtime artifact registry (migration 0001).
+_REPORT_ARTIFACT_SCHEMA = """
+CREATE TABLE IF NOT EXISTS artifact (
+    content_hash TEXT PRIMARY KEY,
+    byte_count INTEGER NOT NULL,
+    media_type TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS artifact_reference (
+    content_hash TEXT NOT NULL REFERENCES artifact(content_hash),
+    source_reference TEXT NOT NULL,
+    PRIMARY KEY (content_hash, source_reference)
+);
+
 """

@@ -138,7 +138,7 @@ def dashboard_page(
 ) -> html.Div:
     route = pathname or "/"
     if route == "/":
-        return _home_page(projection)
+        return _home_page(projection, reports)
     if route == "/core-assets":
         return _core_assets_page(projection)
     if route == "/macro":
@@ -162,7 +162,9 @@ def dashboard_page(
     )
 
 
-def _home_page(projection: ProjectionSet | None) -> html.Div:
+def _home_page(
+    projection: ProjectionSet | None, reports: Sequence[ReportSnapshot] = ()
+) -> html.Div:
     overview = _dataset(projection, "cycle_overview")
     current_stage = _stage_label(overview.get("current_stage"))
     stage_reason = _stage_explanation(overview)
@@ -239,6 +241,7 @@ def _home_page(projection: ProjectionSet | None) -> html.Div:
                 ],
                 className="content-section transition-section",
             ),
+            *_home_report_reading(projection, reports),
             html.Section(
                 [
                     html.Div(
@@ -269,6 +272,50 @@ def _home_page(projection: ProjectionSet | None) -> html.Div:
         ],
         className="page-stack",
     )
+
+
+def _home_report_reading(
+    projection: ProjectionSet | None, reports: Sequence[ReportSnapshot]
+) -> list[html.Section]:
+    if projection is None:
+        return []
+    overview = projection.datasets.get("cycle_overview", {})
+    if (
+        overview.get("stage_reason") != "noncanonical_combination"
+        or overview.get("current_stage") is not None
+    ):
+        return []
+    matching = [
+        report
+        for report in reports
+        if report.projection_set_id == projection.envelope.projection_set_id
+    ]
+    if not matching:
+        return []
+    report = max(matching, key=lambda item: item.version)
+    if not report.body_retained:
+        return []
+    sections = report.body.get("ai_explanation")
+    if not isinstance(sections, list):
+        return []
+    reading = [
+        section
+        for section in sections
+        if isinstance(section, dict) and section.get("title") == "非典型组合解读"
+    ]
+    if not reading:
+        return []
+    source = "确定性模板" if report.adapter == "deterministic" else "AI 解读"
+    return [
+        html.Section(
+            [
+                html.H2("非典型组合解读", className="section-title"),
+                html.P(source + " · 不构成阶段判断", className="secondary-copy"),
+                html.P(str(reading[0].get("explanation", "")), className="body-copy"),
+            ],
+            className="content-section",
+        )
+    ]
 
 
 def _carry_forward_notice(value: object) -> list[html.P]:
@@ -2160,6 +2207,11 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
             html.Section(
                 [
                     html.H3(str(section.get("title") or "未命名章节")),
+                    *(
+                        [html.P("确定性模板", className="secondary-copy")]
+                        if body.get("explanation_source") == "deterministic_template"
+                        else []
+                    ),
                     html.P(str(section.get("explanation") or ""), className="body-copy"),
                     # Reports before ADR-0027 cited evidence per paragraph; newer ones do not.
                     *(
@@ -2202,6 +2254,15 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
                 else []
             ),
         ]
+    results = body.get("verified_results")
+    if isinstance(results, dict) and isinstance(results.get("noncanonical_basis"), dict):
+        content.extend(
+            [
+                _report_fact_section("三核心", body.get("core_states")),
+                _report_fact_section("已验证结果", body.get("verified_results")),
+                html.Section([html.H3("缺口清单"), _gap_list(body.get("gap_list"))]),
+            ]
+        )
     return html.Div([*head, *content], className="report-reader")
 
 

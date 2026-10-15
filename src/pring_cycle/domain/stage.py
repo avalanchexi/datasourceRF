@@ -41,3 +41,23 @@ def derive_formal_stage(
     if current_stage is None:
         return StageResult(None, last_confirmed_stage, "noncanonical_combination")
     return StageResult(current_stage, current_stage, "canonical_combination")
+
+
+def single_asset_differences(
+    states: Mapping[str, CoreAssetState],
+) -> list[tuple[FormalStage, str, CoreAssetState]]:
+    """All typical combinations one asset away; no nearest-stage ranking."""
+    assets = ("bond", "stock", "commodity")
+    if set(states) != set(assets):
+        raise ValueError("three_core_states_required")
+    result = []
+    for pattern, stage in _FORMAL_STAGE_BY_PATTERN.items():
+        differences = [
+            (asset, required)
+            for asset, required in zip(assets, pattern, strict=True)
+            if states[asset] != required
+        ]
+        if len(differences) == 1:
+            asset, required = differences[0]
+            result.append((stage, asset, required))
+    return result

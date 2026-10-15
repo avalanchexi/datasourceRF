@@ -143,6 +143,12 @@ def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> Rete
             start,
         )
         delete("report_snapshot", "target_business_date < ?", start)
+        # Cancelled attempts have no report snapshot; their input still owns their lifetime.
+        delete(
+            "report_attempt",
+            "json_extract(process_audit_json, '$.bundle_id') IN "
+            "(SELECT bundle_id FROM evidence_bundle WHERE " + retired_projection + ")",
+        )
         delete("evidence_bundle", retired_projection)
         delete(
             "data_gap_notice",
@@ -291,10 +297,18 @@ def _expire_short_lived_originals(connection: sqlite3.Connection, now: datetime)
 
 
 def _orphan_artifacts(connection: sqlite3.Connection) -> list[str]:
-    """Originals every reference of which names an acquisition that no longer exists."""
+    """Remove artifacts only when all acquisition/report-input owners have expired."""
     remaining = {
         str(row[0]) for row in connection.execute("SELECT acquisition_id FROM acquisition_request")
     }
+    bundles = {str(row[0]) for row in connection.execute("SELECT bundle_id FROM evidence_bundle")}
+
+    def expired(source: str) -> bool:
+        owner, _, identifier = source.partition(":")
+        if owner == "report-output":
+            return identifier not in bundles
+        return owner.startswith("acquisition-") and owner not in remaining
+
     references: dict[str, list[str]] = {}
     for content_hash, source_reference in connection.execute(
         "SELECT content_hash, source_reference FROM artifact_reference"
@@ -302,10 +316,7 @@ def _orphan_artifacts(connection: sqlite3.Connection) -> list[str]:
         references.setdefault(str(content_hash), []).append(str(source_reference))
     orphans = []
     for content_hash, sources in references.items():
-        owners = [source.split(":", 1)[0] for source in sources]
-        if all(owner.startswith("acquisition-") for owner in owners) and not any(
-            owner in remaining for owner in owners
-        ):
+        if all(expired(source) for source in sources):
             orphans.append(content_hash)
     return orphans
 

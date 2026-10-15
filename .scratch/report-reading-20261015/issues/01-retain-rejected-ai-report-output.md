@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Category: bug
 Type: task
 
@@ -8,14 +8,14 @@ Type: task
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `_validate_ai_document` 返回结果码之外还能给出命中位置（检查名、section 序号／标题、对 conclusions 不一致的给出第一处差异的键路径），现有调用方不变
-- [ ] 被拒输出按现有制品规则留存，`output_hash` 能在制品库里找到正文；留存受现有留存期规则约束（不新增永久制品）
-- [ ] `process_audit_json` 新增 `rejection` 字段记录依据；成功时不写
-- [ ] 两条 CLI 适配器路径（codex_cli、claude_code_cli）都覆盖；被拒后的后备链不变
-- [ ] 测试：以 `run-0eb95531…` 式的非典型组合输入构造一份改写了 conclusions 的 AI 输出，断言结果码、依据与留存
-- [ ] 不改任何检查的判定规则本身（误拒与否留待票 02 或后续用留存的正文定性）
+- [x] `_validate_ai_document` 返回结果码之外还能给出命中位置（检查名、section 序号／标题、对 conclusions 不一致的给出第一处差异的键路径），现有调用方不变
+- [x] 被拒输出按现有制品规则留存，`output_hash` 能在制品库里找到正文；留存受现有留存期规则约束（不新增永久制品）
+- [x] `process_audit_json` 新增 `rejection` 字段记录依据；成功时不写
+- [x] 两条 CLI 适配器路径（codex_cli、claude_code_cli）都覆盖；被拒后的后备链不变
+- [x] 测试：以 `run-0eb95531…` 式的非典型组合输入构造一份改写了 conclusions 的 AI 输出，断言结果码、依据与留存
+- [x] 不改任何检查的判定规则本身（误拒与否留待票 02 或后续用留存的正文定性）
 
 ## 背景
 
@@ -24,3 +24,11 @@ Type: task
 - 检查代码：`src/pring_cycle/reports.py:1483-1525`；ADR-0027（AI 只解释、不改写结论）。
 
 ## Comments
+
+### 2026-10-15 Codex 接续实施
+
+实现已在 `report-reading-20261015` 集成分支完成，验收记录见 [acceptance.md](../acceptance.md)。原 `_validate_ai_document` 字符串返回接口保留，新增可选 `rejection` 输出；路径为零基 section 下标、标题、检查名与首差异键路径。所有已解析 CLI 文档按规范 JSON 保存，`output_hash` 为同一字节串的 SHA-256。输入 bundle 管理制品寿命，不新增永久留存。
+
+独立 Codex 静态复核发现并修复：落盘异常不能截断后备链（记录 `output_retention`）；取消后无快照的尝试也必须随过期输入清理。正常落盘失败时保留哈希与失败记录，不谎称正文已保存。原 run-0eb95531 的丢失正文无法凭哈希恢复。
+
+离线实施验收完成（2026-10-15）；正式环境安装与下一次正常新运行的关口 A 验收仍待执行，见 acceptance.md 交付边界。

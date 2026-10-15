@@ -721,6 +721,7 @@ class DaySummaries:
                     evidence_window_start=(series[-120].period_end if len(series) >= 120 else None),
                     candidate_state=candidate_state,
                     candidate_days=candidate_days,
+                    persistence_required=rules.persistence_days,
                     candidate_30d=candidate_30d,
                     proxy_12m=proxy_12m,
                     proxy_12m_enabled=rules.proxy_12m_enabled,

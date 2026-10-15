@@ -6,7 +6,10 @@
 
 | 票 | 内容 | 状态 |
 |---|---|---|
-| [01](issues/01-retain-rejected-ai-report-output.md) | 留存被拒的 AI 报告输出，并记录是哪条检查、哪个 section 拒的 | ready-for-agent |
-| [02](issues/02-noncanonical-combination-reading.md) | 实施非典型组合解读（提示词指引、独立 section、校验放行） | needs-triage（建议先 `/grill-with-docs`） |
+| [01](issues/01-retain-rejected-ai-report-output.md) | 留存被拒的 AI 报告输出，并记录是哪条检查、哪个 section 拒的 | done（离线验收通过） |
+| [02](issues/02-noncanonical-combination-reading.md) | 实施非典型组合解读（提示词指引、独立 section、校验放行） | done（离线验收通过） |
 
 规则沿用：测试执行 `docs/agents/testing.md`；审查与只读调查走 `codex exec`；不启动 Worker、不做真实运行；运行库只读。
+
+
+2026-10-15 Codex 接续：用户确认票 02 六项方向；两票代码与离线验证完成。见 [决定](decisions.md)、[验收](acceptance.md)、[复核](review.md)。新解读仅对新投影生效，正式环境未安装新代码，关口 A 的正式运行验证仍待下一次正常新运行。

@@ -586,3 +586,95 @@ def test_a_snapshot_from_before_the_report_input_still_reads_and_renders(tmp_pat
     )
     assert "组合不在六阶段内。" in page
     assert "证据 obs-bond" in page
+
+
+@pytest.mark.parametrize("adapter_name", ["codex_cli", "claude_code_cli"])
+def test_rejected_noncanonical_output_is_retained_with_first_difference(
+    tmp_path: Path, adapter_name: str
+) -> None:
+    from dataclasses import replace
+    from hashlib import sha256
+
+    source = replace(
+        bundle(),
+        current_stage=None,
+        stage_reason="noncanonical_combination",
+        core_states={"bond": "bull", "stock": "bear", "commodity": "bull"},
+    )
+    document = valid_document(
+        current_stage=None,
+        core_states=source.core_states,
+        conclusions={**source.conclusions, "credit_response": "changed"},
+    )
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    result = ReportService(
+        reports, (FakeAdapter(adapter_name, AdapterResponse.succeeded(document)),)
+    ).generate(source)
+    assert result.status == "completed_degraded"
+    (attempt,) = reports.attempts(result.report_snapshot_id)
+    assert attempt.outcome == "conclusion_mutation_rejected"
+    assert attempt.process_audit["rejection"] == {
+        "check": "conclusions",
+        "path": "conclusions.credit_response",
+    }
+    digest = attempt.output_hash
+    assert digest is not None
+    content = (tmp_path / "artifacts" / "sha256" / digest[:2] / digest).read_bytes()
+    assert sha256(content).hexdigest() == digest
+    assert json.loads(content) == document
+    assert "ai_explanation" not in reports.get(result.report_snapshot_id).body
+
+
+def test_rejection_points_to_section_and_success_has_no_rejection(tmp_path: Path) -> None:
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    bad = valid_document(sections=[{"title": "错误阶段", "explanation": "当前阶段为 IV。"}])
+    result = ReportService(
+        reports,
+        (
+            FakeAdapter("codex_cli", AdapterResponse.succeeded(bad)),
+            FakeAdapter("claude_code_cli", AdapterResponse.succeeded(valid_document())),
+        ),
+    ).generate(bundle())
+    first, second = reports.attempts(result.report_snapshot_id)
+    assert first.process_audit["rejection"] == {
+        "check": "stated_stage",
+        "path": "sections[0]",
+        "section_index": 0,
+        "section_title": "错误阶段",
+    }
+    assert "rejection" not in second.process_audit
+    assert result.status == "completed"
+    assert result.adapter == "claude_code_cli"
+
+
+def test_output_storage_failure_does_not_suppress_cli_fallback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+
+    def fail(*args: Any) -> str:
+        raise OSError("fixture disk unavailable")
+
+    monkeypatch.setattr(reports, "save_output", fail)
+    result = ReportService(
+        reports,
+        (
+            FakeAdapter(
+                "codex_cli", AdapterResponse.succeeded(valid_document(current_stage="stage_i"))
+            ),
+            FakeAdapter("claude_code_cli", AdapterResponse.succeeded(valid_document())),
+        ),
+    ).generate(bundle())
+    assert result.status == "completed"
+    first, second = reports.attempts(result.report_snapshot_id)
+    assert first.outcome == "stage_mutation_rejected"
+    assert first.process_audit["rejection"]["check"] == "current_stage"
+    assert second.outcome == "succeeded"
+    assert all(
+        attempt.process_audit["output_retention"]
+        == {
+            "status": "failed",
+            "error_type": "OSError",
+        }
+        for attempt in (first, second)
+    )

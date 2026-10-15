@@ -95,6 +95,31 @@ def pruned(tmp_path_factory: pytest.TempPathFactory) -> Iterator[dict[str, Any]]
         old_raw = {row[0] for row in query(paths, "SELECT raw_hash FROM acquisition_request")}
         stored = RunRepository(paths.database).get(old)
         assert stored.status == "completed", stored.error_classification
+        from pring_cycle.reports import (
+            ReportRepository,
+            ReportService,
+            report_input_from_projection,
+        )
+
+        old_input = report_input_from_projection(ProjectionSetRepository(paths.database).current())
+        repository = ReportRepository(paths.database)
+        # An audit artifact is retained while its input bundle remains, even if rejected.
+        output_hash = repository.save_output(old_input, {"rejected": "fixture"})
+        assert (paths.artifacts / output_hash[:2] / output_hash).exists()
+        ReportService(repository, ()).generate(
+            old_input, client_request_id="retention-output-owner"
+        )
+        repository.record_attempt(
+            "report-cancelled-without-snapshot",
+            adapter="codex_cli",
+            adapter_version="fixture",
+            outcome="cancelled",
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
+            tool_events=0,
+            output_hash=output_hash,
+            process_audit={"bundle_id": old_input.bundle_id},
+        )
         latest = runner.run(TARGET, "target-day")
         states = ProjectionSetRepository(paths.database).current().datasets["core_assets"]
         yield {
@@ -103,6 +128,7 @@ def pruned(tmp_path_factory: pytest.TempPathFactory) -> Iterator[dict[str, Any]]
             "old": old,
             "latest": latest,
             "old_raw": old_raw,
+            "old_output": output_hash,
             "states": [(a["asset"], a["state"]) for a in states["assets"]],
         }
 
@@ -722,3 +748,18 @@ def test_retention_command_is_a_no_op_without_a_successful_run(
     main(["retention-prune", "--runtime-root", str(paths.override_root), "--json"])
 
     assert json.loads(capsys.readouterr().out)["window_start"] is None
+
+
+def test_report_output_artifact_expires_with_report_input(pruned: dict[str, Any]) -> None:
+    paths = pruned["paths"]
+    digest = pruned["old_output"]
+    assert query(paths, "SELECT content_hash FROM artifact WHERE content_hash=?", digest) == []
+    assert not (paths.artifacts / digest[:2] / digest).exists()
+    assert (
+        query(
+            paths,
+            "SELECT attempt_id FROM report_attempt WHERE report_snapshot_id=?",
+            "report-cancelled-without-snapshot",
+        )
+        == []
+    )

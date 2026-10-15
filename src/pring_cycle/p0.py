@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from pring_cycle.batches import current_batch_id
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.domain.stage import StageResult, derive_formal_stage
+from pring_cycle.noncanonical import build_basis
 from pring_cycle.projections import (
     ANALYTICAL_DATASETS,
     INVENTORY_CARD_NAMES,
@@ -46,6 +47,7 @@ class CoreAssetReadiness:
     # The actual closes (ISO day, value) the gate passed, oldest first: none when it failed,
     # and never the close carried forward. Read beside the stage, never published here.
     closes: tuple[tuple[str, float], ...] = ()
+    persistence_required: int | None = None
 
 
 # What a correction recomputed: the whole day, or its cores and formal stage only, when
@@ -187,6 +189,13 @@ class P0ProjectionService:
             "release_calendar_events": list(release_calendar_events),
             "gap_list": list(gap_list),
         }
+        noncanonical_basis = (
+            build_basis(asset_documents, shown_stage.value if shown_stage else None)
+            if stage.reason == "noncanonical_combination"
+            else None
+        )
+        if noncanonical_basis is not None:
+            identity_document["noncanonical_basis"] = noncanonical_basis
         if model_inputs is not None:
             identity_document["core_model_input_observation_version_ids"] = model_inputs
         if lookback_document is not None:
@@ -263,6 +272,8 @@ class P0ProjectionService:
                 "core_carry_forward": carried,
             }
         )
+        if noncanonical_basis is not None:
+            datasets["cycle_overview"]["noncanonical_basis"] = noncanonical_basis
         if freshness_calendar is not None:
             # Only when weekdays stood in for the calendar; a set without it states none.
             datasets["cycle_overview"]["freshness_calendar"] = dict(freshness_calendar)
@@ -374,6 +385,11 @@ class P0ProjectionService:
         overview = datasets["cycle_overview"]
         if last_confirmed_stage is not None or "last_confirmed_lookback" not in overview:
             overview["last_confirmed_stage"] = last_confirmed_stage
+            if isinstance(basis := overview.get("noncanonical_basis"), dict):
+                overview["noncanonical_basis"] = {
+                    **basis,
+                    "last_confirmed_stage": last_confirmed_stage,
+                }
             overview.pop("last_confirmed_lookback", None)
             datasets["stage_history"].pop("last_confirmed_lookback", None)
         datasets["stage_history"]["events"] = [*history, assessment]
@@ -484,6 +500,7 @@ def _asset_document(item: CoreAssetReadiness) -> dict[str, object]:
         "carried_forward": item.carried_forward,
         "candidate_30d": (item.candidate_30d.value if item.candidate_30d is not None else None),
         "candidate_days": item.candidate_days,
+        "persistence_required": item.persistence_required,
         "candidate_state": (
             item.candidate_state.value if item.candidate_state is not None else None
         ),
