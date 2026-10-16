@@ -2,6 +2,7 @@
 
 **范围**：[spec.md](spec.md) 与 [issues/](issues/) 01–10；决定见 [decisions.md](decisions.md)。
 **集成分支**：`cockpit-layout`（基于 `conclusion-board` 638d125），集成 worktree `/home/tywin/worktrees/datasourceRF-cl`。主工作区 `/mnt/d/cursor/datasourceRF` 不动；验收后由用户决定与 conclusion-board 一起并入 main。
+**状态（2026-10-17 01:40）**：01–09 与审查修复 done，10 ready-for-human；预览 8067（10-14）、8068（10-15）由 dev-venv-cl10 起站。
 **终点**：01–09 `done`，10 `ready-for-human`；集成分支经 Codex 两轴审查并修复；本文件进度表与记忆已更新。
 
 ## 任务图
@@ -59,4 +60,4 @@
 | 08 ⑦ 精简 | done（gap_preview 前 5 条＋查看全部抽屉；report_summary 四态；报告详情与发布日历抽屉；⑦ 段 1838→689px） | 63cd500 |
 | 09 桑基图 | done（FLOW_RESULTS 一处映射四色；flow_sankey 中文名·数、其他（N）、悬停占比；主题变量 restyle；请求表限高 480 吸顶） | 26f8313、9383800 |
 | 审查与修复 | done（S1–S4、P2、P4、P5 修；P1 不改、P3 接受；集成 3 例旧文案断言改写；家数整数、仓单千分位） | 3a86b37、1eb0d17、1828c2d |
-| 10 集成验收 | ready-for-agent | |
+| 10 集成验收 | ready-for-human（首页 1440 总高 22,467→5,396；82 个抽屉全可开关；全套 2676 过 / 1 败，该例为删观察接口列表后的过时断言，已改写复跑通过；8067/8068 已换新代码；待用户逐段确认） | 9970350 |
