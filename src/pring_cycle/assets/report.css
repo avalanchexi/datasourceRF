@@ -112,3 +112,6 @@ html, body { font-size: 14px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+.report-table .state-tag { display: inline-block; padding: 0 8px; border: 1px solid currentColor; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
+.core-table td { white-space: nowrap; }
+.core-table th:nth-child(6), .core-table td:nth-child(6) { text-align: left; }

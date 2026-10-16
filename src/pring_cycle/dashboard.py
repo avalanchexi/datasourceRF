@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 from dash import dcc, html
 
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
+from pring_cycle.domain.trend import TrendRules
 from pring_cycle.freshness import CALENDAR_FALLBACK_NOTE, freshness_statement
 from pring_cycle.navigation import DASHBOARD_NAVIGATION
 from pring_cycle.projections import ProjectionSet
@@ -143,6 +144,7 @@ def dashboard_page(
     release_events: Sequence[dict[str, object]] = (),
     *,
     producer_run: ProducerRun | None = None,
+    trend_rules: TrendRules | None = None,
 ) -> html.Div:
     """``producer_run`` is the full run that produced ``projection`` with its persisted
     health summary; ``None`` when no such run is known."""
@@ -150,7 +152,14 @@ def dashboard_page(
     if route in {"/", "/core-assets", "/macro", "/inventory", "/stage-history"}:
         from pring_cycle.cockpit import report_board
 
-        return report_board(projection, runs, reports, stage_events, producer_run=producer_run)
+        return report_board(
+            projection,
+            runs,
+            reports,
+            stage_events,
+            producer_run=producer_run,
+            trend_rules=trend_rules,
+        )
     if route == "/release-calendar":
         return _release_calendar_page(projection, release_events)
     if route == "/reports":

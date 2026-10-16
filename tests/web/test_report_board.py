@@ -32,7 +32,7 @@ def test_board_orders_seven_sections_and_links_values_to_frozen_evidence(tmp_pat
     assert all(heading in text for heading in headings)
     assert [text.index(heading) for heading in headings] == sorted(text.index(h) for h in headings)
     assert "MA120" in text
-    assert "5 日变化" in text and "120 日变化" in text
+    assert "近 5 日" in text and "近 120 日" in text
     links = [href for href in _hrefs(board) if "version=" in href]
     assert links
     assert all(projection.envelope.projection_set_id in href for href in links)
