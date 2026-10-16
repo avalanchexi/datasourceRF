@@ -428,7 +428,7 @@ def report_board(
         [
             html.P("正式阶段由债券、股票、商品的 120 日稳定方向映射；宏观事实只做事后确认。"),
             stage_bands(projection),
-            view._stage_history_page(projection, stage_events if projection is None else ()),
+            history_intervals(history_days(projection, stage_events)),
             html.A("本投影解读 →", href=pinned + "#reading"),
         ],
         [
@@ -1367,7 +1367,9 @@ HISTORY_LABELS = {
     "undetermined": "待定",
     "unknown": "未知",
     "noncanonical_combination": "非典型组合",
+    "canonical_combination": "典型组合",
     "insufficient_core_evidence": "核心不足",
+    **BLOCKED_REASONS,
 }
 
 
@@ -1383,6 +1385,7 @@ def stage_bands(projection: ProjectionSet | None) -> Any:
         return html.P("旧投影未提供对齐的交易日色带；历史事件仍可阅读。")
     kinds = ("official", "bond", "stock", "commodity")
     labels = ("正式阶段", "债券", "股票", "商品")
+    calendar = drawer_key("history-calendar")
     categories = list(dict.fromkeys(str(day[key]) for day in days for key in kinds))
     colors = [
         "#36566b",
@@ -1436,31 +1439,176 @@ def stage_bands(projection: ProjectionSet | None) -> Any:
                     for key, value in obj(display.get("counts")).items()
                 )
             ),
-            html.Details(
+            html.P(drawer_trigger(calendar, "交易日历与色带等价表格")),
+            drawer_panel(
+                calendar,
+                "交易日历与色带等价表格",
                 [
-                    html.Summary("交易日历与色带等价表格"),
                     table(
-                        ("交易日", *labels, "投影版本", "修正记录"),
+                        ("交易日", *labels, "投影版本", "更正的版本"),
                         [
                             (
                                 day["date"],
                                 *(history_label(day[key]) for key in kinds),
-                                html.A(
-                                    day["projection_set_id"],
-                                    href="/?"
-                                    + urlencode({"projection": day["projection_set_id"]})
-                                    + "#history",
-                                )
-                                if day.get("projection_set_id")
-                                else "未发布",
-                                str(day.get("corrects") or "—"),
+                                projection_link(day.get("projection_set_id")),
+                                projection_link(obj(day.get("corrects")).get("projection_set_id"))
+                                if day.get("corrects")
+                                else "—",
                             )
                             for day in days
                         ],
-                    ),
-                ]
+                    )
+                ],
             ),
         ]
+    )
+
+
+# The interval list covers the bands' window: the latest 120 trading days.
+HISTORY_WINDOW = 120
+
+
+def history_days(
+    projection: ProjectionSet | None, stage_events: Sequence[dict[str, object]]
+) -> list[dict[str, Any]]:
+    """The latest window's days, oldest first, each with its day's event when there is one.
+
+    The projection's aligned band days come first; a set without them (or no set, with the
+    read model's events) lists its events, a day's state its stage or the reason it has none.
+    """
+    document = view._dataset(projection, "stage_history")
+    events = {
+        str(item.get("business_date")): item
+        for item in objects(document.get("events") if projection else stage_events)
+    }
+    days = objects(obj(document.get("display")).get("days")) or [
+        {
+            "date": day,
+            "official": item.get("current_stage") or item.get("stage_reason") or "unpublished",
+            "projection_set_id": item.get("projection_set_id"),
+            "corrects": item.get("corrects"),
+        }
+        for day, item in sorted(events.items())
+    ]
+    return [{**events.get(str(day["date"]), {}), **day} for day in days][-HISTORY_WINDOW:]
+
+
+def history_intervals(days: Sequence[dict[str, Any]]) -> Any:
+    """Consecutive days of one state, a stage or the reason for none, as one row each."""
+    runs: list[list[dict[str, Any]]] = []
+    for day in days:
+        if runs and runs[-1][-1]["official"] == day["official"]:
+            runs[-1].append(day)
+        else:
+            runs.append([day])
+    heading = html.H3(f"阶段区间（最近 {HISTORY_WINDOW} 个交易日）")
+    if not runs:
+        return html.Div(
+            [
+                heading,
+                html.P(
+                    "尚无阶段事件；首次完整投影发布后，区间会显示在这里。", className="empty-note"
+                ),
+            ]
+        )
+    # Month and day read well while the window stays in one year.
+    short = len({str(day["date"])[:4] for day in days}) == 1
+
+    def span(run: list[dict[str, Any]]) -> str:
+        first, last = (str(run[0]["date"]), str(run[-1]["date"]))
+        if short:
+            first, last = first[5:], last[5:]
+        return first if len(run) == 1 else f"{first}～{last}"
+
+    keys = [drawer_key("history-interval", run[0]["date"]) for run in runs]
+    return html.Div(
+        [
+            heading,
+            html.Ul(
+                [
+                    html.Li(
+                        drawer_trigger(
+                            key,
+                            [
+                                html.Strong(span(run)),
+                                html.Span(history_label(run[0]["official"])),
+                                html.Span(f"{len(run)} 日"),
+                                *corrected_count(run),
+                            ],
+                            class_name="history-interval",
+                        )
+                    )
+                    for key, run in zip(keys, runs, strict=True)
+                ],
+                className="history-intervals",
+            ),
+            *(
+                drawer_panel(
+                    key,
+                    f"{history_label(run[0]['official'])} · {span(run)}",
+                    [html.Ul([history_day(day) for day in run], className="record-list")],
+                )
+                for key, run in zip(keys, runs, strict=True)
+            ),
+        ]
+    )
+
+
+def corrected_count(run: Sequence[dict[str, Any]]) -> list[html.Span]:
+    count = sum(isinstance(day.get("corrects"), dict) for day in run)
+    return [html.Span(f"含更正 {count} 日")] if count else []
+
+
+def projection_link(projection_set_id: object) -> Any:
+    """A day's own set, opened at its stage history: the page then reads that set alone."""
+    if not projection_set_id:
+        return "未发布"
+    return html.A(
+        str(projection_set_id),
+        href="/?" + urlencode({"projection": str(projection_set_id)}) + "#history",
+    )
+
+
+def history_day(day: dict[str, Any]) -> html.Li:
+    """One day of an interval: its state, its event's facts, the version it corrects and why."""
+    corrects = day.get("corrects")
+    gaps = day.get("gaps")
+    facts = (
+        [
+            "上一确认 "
+            + (
+                view._stage_label(day["last_confirmed_stage"])
+                if day.get("last_confirmed_stage")
+                else "尚无"
+            ),
+            "原因 " + history_label(day.get("stage_reason") or "未记录"),
+            "；".join(view._gap_label(str(value)) for value in gaps)
+            if isinstance(gaps, list) and gaps
+            else "无 P0 缺口",
+            f"模型 {day.get('model_version_id') or '见投影详情'}",
+        ]
+        if "business_date" in day
+        else []
+    )
+    return html.Li(
+        [
+            html.Strong(f"{day['date']} · {history_label(day['official'])}"),
+            html.Span(" · ".join(facts), className="secondary-copy") if facts else None,
+            html.Span(
+                [
+                    "更正版本：更正 ",
+                    projection_link(corrects.get("projection_set_id")),
+                    "（"
+                    + (view._stage_correction_note(corrects) or str(corrects.get("reason")))
+                    + "）",
+                ],
+                className="secondary-copy",
+            )
+            if isinstance(corrects, dict)
+            else None,
+            html.Span(["投影 ", projection_link(day.get("projection_set_id"))]),
+        ],
+        className="record-row",
     )
 
 

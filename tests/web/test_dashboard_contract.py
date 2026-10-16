@@ -284,7 +284,7 @@ def test_domain_pages_expose_fixed_sections_instead_of_generic_documents() -> No
 
     assert all(label in macro for label in ("政策方向", "过热程度", "物价压力", "国际环境"))
     assert "四象限解释" in inventory and "七张阶段特征卡" in inventory
-    assert "正式区间与空档" in history
+    assert "阶段区间（最近 120 个交易日）" in history and "尚无阶段事件" in history
     assert all(label in calendar for label in ("预计窗口", "实际发布", "系统首次可用"))
 
 

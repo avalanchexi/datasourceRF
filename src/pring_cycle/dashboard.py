@@ -1952,15 +1952,7 @@ def _stage_event_row(item: dict[str, object]) -> html.Li:
         else "无 P0 缺口"
     )
     last_confirmed = item.get("last_confirmed_stage")
-    corrects = item.get("corrects")
-    # A day whose last confirmed stage alone was corrected says so, and what the summary it
-    # corrects said of itself (follow-up ticket 01).
-    note = _core_history_note(corrects)
-    if isinstance(corrects, dict) and corrects.get("reason") == "stage_history_changed":
-        carried = _core_history_note(corrects.get("carries"))
-        note = "更早日的阶段历史已变，只更正上一确认阶段，核心、上下文与确认度沿用原汇总" + (
-            f"；原汇总：{carried}" if carried else ""
-        )
+    note = _stage_correction_note(item.get("corrects"))
     correction = f" · 更正版本（{note}）" if note else ""
     return html.Li(
         [
@@ -1977,6 +1969,19 @@ def _stage_event_row(item: dict[str, object]) -> html.Li:
         ],
         className="record-row",
     )
+
+
+def _stage_correction_note(corrects: object) -> str:
+    """Why a day's correction version corrected the one before; empty for none."""
+    note = _core_history_note(corrects)
+    # A day whose last confirmed stage alone was corrected says so, and what the summary it
+    # corrects said of itself (follow-up ticket 01).
+    if isinstance(corrects, dict) and corrects.get("reason") == "stage_history_changed":
+        carried = _core_history_note(corrects.get("carries"))
+        note = "更早日的阶段历史已变，只更正上一确认阶段，核心、上下文与确认度沿用原汇总" + (
+            f"；原汇总：{carried}" if carried else ""
+        )
+    return note
 
 
 def _core_history_note(corrects: object) -> str:
