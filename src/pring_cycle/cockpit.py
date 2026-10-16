@@ -76,14 +76,16 @@ def number(value: object, unit: object = None) -> str:
     return text + (f" {UNITS.get(str(unit), str(unit))}" if unit else "")
 
 
-def table(headers: Sequence[str], rows: Sequence[Sequence[Any]]) -> html.Div:
+def table(
+    headers: Sequence[str], rows: Sequence[Sequence[Any]], *, class_name: str = "report-table"
+) -> html.Div:
     return html.Div(
         html.Table(
             [
                 html.Thead(html.Tr([html.Th(label, scope="col") for label in headers])),
                 html.Tbody([html.Tr([html.Td(value) for value in row]) for row in rows]),
             ],
-            className="report-table",
+            className=class_name,
         ),
         className="table-scroll",
         tabIndex=0,
@@ -223,7 +225,42 @@ def change_cell(value: object) -> Any:
     )
 
 
-def core_table(projection: ProjectionSet | None, *, section: str = "conclusion") -> Any:
+def state_tag(value: object) -> html.Span:
+    """A core asset state as a 牛市 / 熊市 tag in the board's up / down state colours."""
+    label = core_state_label(value)
+    tone = {"牛市": "up", "熊市": "down"}.get(label, "warning")
+    return html.Span(label, className=f"state-tag state-{tone}")
+
+
+def candidate_cell(asset: dict[str, Any]) -> html.Div:
+    """The 30-day direction and the asset candidate on two lines, never one merged duration."""
+    direction = asset.get("candidate_30d")
+    candidate = asset.get("candidate_state")
+    days = asset.get("candidate_days")
+    threshold = asset.get("persistence_required")
+    return html.Div(
+        [
+            html.Div("30 日候选方向 " + (core_state_label(direction) if direction else "无")),
+            html.Div(
+                "资产候选状态 "
+                + (
+                    f"{core_state_label(candidate)} · "
+                    f"持续 {'未提供' if days is None else f'{days} 日'} / "
+                    f"门槛 {'未提供' if threshold is None else f'{threshold} 日'}"
+                    if candidate
+                    else "无"
+                )
+            ),
+        ]
+    )
+
+
+def core_table(
+    projection: ProjectionSet | None,
+    *,
+    section: str = "conclusion",
+    trend_rules: TrendRules | None = None,
+) -> Any:
     if projection is None:
         return html.P("等待首次完整运行。", className="empty-note")
     dataset = projection.datasets["core_assets"]
@@ -241,8 +278,13 @@ def core_table(projection: ProjectionSet | None, *, section: str = "conclusion")
         )
         rows.append(
             (
-                html.Strong(view._asset_label(str(asset.get("asset")))),
-                view._state_label(asset.get("state")),
+                html.Div(
+                    [
+                        html.Strong(view._asset_label(str(asset.get("asset")))),
+                        html.Small(str(asset.get("metric_id") or "")),
+                    ]
+                ),
+                state_tag(asset.get("state")),
                 html.Div(
                     [
                         value_link(
@@ -257,14 +299,7 @@ def core_table(projection: ProjectionSet | None, *, section: str = "conclusion")
                 ),
                 number(asset.get("distance_pct"), "percent"),
                 number(asset.get("slope_pct"), "percent"),
-                view._state_label(asset.get("candidate_30d")),
-                (
-                    f"{view._state_label(asset.get('candidate_state'))} · "
-                    f"持续 {asset.get('candidate_days', 0)} 日 / "
-                    f"门槛 {asset.get('persistence_required') or '未提供'} 日"
-                    if asset.get("candidate_state")
-                    else "无切换候选"
-                ),
+                candidate_cell(asset),
                 change_cell(display.get("change_5")),
                 change_cell(display.get("change_120")),
                 chart(display, projection, small=True),
@@ -272,18 +307,18 @@ def core_table(projection: ProjectionSet | None, *, section: str = "conclusion")
         )
     return table(
         (
-            "核心",
-            "稳定方向",
-            "最新值 / 日期",
-            "距均线",
-            "斜率",
-            "30 日候选方向",
-            "资产候选状态",
-            "5 日变化",
-            "120 日变化",
-            "价格 / MA120",
+            "三核心",
+            "状态",
+            "最新",
+            f"距 MA{trend_rules.window_days}" if trend_rules else "距均线",
+            f"{trend_rules.slope_days} 日斜率" if trend_rules else "斜率",
+            "候选",
+            "近 5 日",
+            "近 120 日",
+            "120 日走势",
         ),
         rows,
+        class_name="report-table core-table",
     )
 
 
@@ -352,7 +387,7 @@ def report_board(
                 ],
                 className="conclusion-board",
             ),
-            core_table(projection),
+            core_table(projection, trend_rules=trend_rules),
             html.P(
                 [
                     "解读：",

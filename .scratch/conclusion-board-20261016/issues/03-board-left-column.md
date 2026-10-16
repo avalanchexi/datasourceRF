@@ -39,6 +39,7 @@
 
 - 新增 `tests/web/test_conclusion_board.py` 11 例：四类原因各一（阻断类含有缺口条目与无缺口条目两例，后者断言不出现"落后"）、未知原因、转折观察同向与反向、上次确认回溯说明与核心沿用、两套趋势规则渲染不同数字与规则缺失、空库、段头副标题、窄屏堆叠（对旧 CSS 已确认红）。`test_cockpit_http.py` 新增经 HTTP 的判法行用例（Web 读 Worker 冻结的同一份清单）。`test_dashboard_contract.py` 中"不改变正式阶段"断言改为空库"转折观察 无"。
 - 合并 `conclusion-board`（`eca3730`，含票 02）后重装 venv：完整 Web 目录 5 个文件 55 passed，12.1 秒；两项必跑冒烟（flock）2 passed，47.2 秒。
+- 再合并 `conclusion-board`（`fc4696c`，含票 05）：按约定删去票 05 的临时读取函数 `web._trend_rules`（及其对 `day_summary._trend_rules` 的导入），Web 层只留 `web._projection_trend_rules` → `domain.trend.trend_rules_from_manifest`；`core_table(projection, trend_rules=...)` 与左栏共用同一参数。重装 venv 后完整 Web 目录 6 个文件加 `tests/reports/test_noncanonical_reading.py` 88 passed，13.0 秒；两项必跑冒烟 2 passed，42.0 秒；ruff、源码 mypy 通过。
 - 改动文件 ruff check / format 通过；源码 mypy 0 处错误（测试文件单独跑 mypy 有既有的模块路径报错，与本票无关）。
 
 **遗留**
