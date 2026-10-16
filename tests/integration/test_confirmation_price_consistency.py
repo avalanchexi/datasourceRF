@@ -755,7 +755,10 @@ def test_the_page_and_the_report_input_show_them(tmp_path: Path) -> None:
     page = _text(dashboard_page("/macro", projection, (), ()))
     assert "价格内部一致性" in page and "不计数" in page
     assert "商品对债" in page and "股票对债" in page and "股票对商品" in page
-    assert "观察接口" in page and "只展示" in page
+    # Each core's observation interfaces read in its own card, display only.
+    assert page.count("同类观察") >= 3
+    assert "沪深 300" in page and "南华综合指数" in page
+    assert "仅观察，不计数" in page
     report = report_input_from_projection(projection)
     confirmation = report.results["confirmation"]
     assert [item["key"] for item in confirmation["price_consistency"]["relative_momentum"]] == [
