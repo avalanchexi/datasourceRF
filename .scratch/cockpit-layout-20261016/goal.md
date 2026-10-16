@@ -49,7 +49,7 @@
 
 | 票 | 状态 | 分支／提交 |
 |---|---|---|
-| 01 抽屉与 ③ 卡片 | ready-for-agent | |
+| 01 抽屉与 ③ 卡片 | done（drawer.py 三函数＋assets/drawer.js 统一开合；③ 名单 OVERSEAS_METRICS 卡片网格；其他背景指标卡；用法见 notes/cockpit-layout/drawer-usage.md） | c3d2158 |
 | 02 中文名 | ready-for-agent | |
 | 03 ① 非典型读法 | ready-for-agent | |
 | 04 ② 三列资产卡 | ready-for-agent | |
