@@ -50,7 +50,7 @@ codex exec -s read-only -C /mnt/d/cursor/datasourceRF --skip-git-repo-check "<�
 - `-s read-only` — **这是关键**。它让「不许改文件」成为进程级的机制保证，而不是提示词里的
   一句叮嘱。并发多个任务、又共用一个安装副本时，这个差别是实质性的。
   可选值：`read-only`、`workspace-write`、`danger-full-access`。**默认用 `read-only`**；
-  另外两个要交出写权限，本文档描述的用法都不需要。
+  另外两个要交出写权限；除第五节浏览器验证用 `workspace-write`（工作目录限于 scratchpad），本文档其余用法都不需要。
 - `-C <dir>` — 工作目录。
 - `--skip-git-repo-check` — 仓库有未提交改动时不拦。
 - `< /dev/null` — 必带。stdin 不是终端时，即使给了提示词参数，Codex 也会先读 stdin 追加到提示词；
@@ -99,7 +99,33 @@ Codex 每次都是全新上下文，仓库惯例它一概不知道。所以提�
 对方自己标注「未实测」「读码推断」的部分，要么实测，要么在引用时保留这个标注，
 不要在转述中把它升级成事实。
 
-## 五、已知的坑
+## 五、浏览器验证（2026-10-17 用户约定）
+
+前端的浏览器验收——明暗 × 宽度截图、实测 `scrollWidth`／段高／抽屉宽、点开抽屉与锚点、
+与参考方案逐段对照——默认交给 Codex，不由 Claude 子代理做。这是读取与操作量大、产出
+（截图与数值）可回头核验的工作，符合第一节的判据。
+
+```bash
+codex exec -s workspace-write -C <scratchpad 下本次验证的独立目录> --skip-git-repo-check "<提示词>" < /dev/null
+```
+
+- **为什么是 `workspace-write`**：截图要写文件，`read-only` 下做不到（见第六节）。`-C` 指向
+  scratchpad 里一个新建的空目录，不指向仓库，所以可写范围只有这个目录；仓库与安装副本仍不可写。
+  这是本文档中唯一放开写权限的用法。
+- **网络**：`~/.codex/config.toml` 已设 `[sandbox_workspace_write] network_access = true`，
+  可访问本机预览端口，命令行不必再放开。
+- **怎么驱动浏览器**：让 Codex 在该目录写一个 Python 脚本，用系统 `python3` 的
+  `playwright.sync_api` 无头运行。Dash 页面不要用 `networkidle`（轮询让它永不到达），用
+  `domcontentloaded` 加等待某段文字或选择器。Codex 能用自带看图工具查看自己截的图，可做视觉判断。
+  2026-10-17 实测：1440 宽截图、`scrollWidth`、看图描述均正确。
+- **不走的路**：Codex 的 Playwright MCP 在 `codex exec` 下未加载出工具（原因未查）；
+  computer use／内置浏览器是桌面应用功能，命令行没有。均不用。
+- **硬约束写进提示词**：只访问隔离副本上的预览端口；不启动 Worker、不点"发起运行"类按钮、
+  不提交命令；不碰正式库与正式安装；起停进程只按自己记录的 PID，不按名字 `pkill`。
+- **分工不变**：起站、选副本、决定要验什么由调度方做；Codex 交回截图路径、实测数值与观察；
+  调度方抽看关键截图、核验数值后才写进验收记录或转述给用户（第四节）。验收框仍由人勾。
+
+## 六、已知的坑
 
 - `--strict-config` 目前会因为 `~/.codex/config.toml:17` 的
   `sandbox_workspace_write.approval_policy` 是本版本（0.155.1）不识别的字段而直接报错退出。
