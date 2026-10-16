@@ -269,12 +269,12 @@ def test_observations_show_four_columns_and_each_row_opens_every_field() -> None
     (row,) = [item for item in _triggers(card) if _text(item) == "上涨家数"]
     panel = _words(_panel(page, row))
 
-    assert "同类观察 名称 值 近 5 日 方向 上涨家数 978.00 家 -222.00 家 ↓ 下降" in _words(card)
+    assert "同类观察 名称 值 近 5 日 方向 上涨家数 978 家 -222 家 ↓ 下降" in _words(card)
     assert "2026-09-30" not in _words(card).split("同类观察", 1)[1]
     assert panel.startswith(
         "上涨家数 CN_EQ_ADV_DEC · advances 关闭 "
-        "最新值 978.00 家 统计期 / 频率 2026-09-30 / 日频 方向 ↓ 下降 "
-        "近 5 日 -222.00 家（2026-09-23 → 2026-09-30） "
+        "最新值 978 家 统计期 / 频率 2026-09-30 / 日频 方向 ↓ 下降 "
+        "近 5 日 -222 家（2026-09-23 → 2026-09-30） "
         "近 120 日 —（不足完整 120 交易日回看） 时效 当前有效 用途 仅观察，不计数 "
         "证据 查看固定版本证据 → 观测 observation-advances 走势与比较端点"
     )
@@ -297,6 +297,47 @@ def test_unregistered_observations_and_a_bond_price_reading_say_what_they_are() 
 
     assert "用途 债券价格观察" in _words(_panel(page, row))
     assert "当前模型未登记同类观察接口。" in _words(_by_id(page, "asset-bond"))
+
+
+def test_a_member_the_catalog_does_not_list_says_so_in_its_drawer() -> None:
+    page = dashboard_page(
+        "/",
+        _with_observations(
+            [
+                {"label": "市场广度：涨跌家数", "evidence": [ADVANCES]},
+                {"label": "两融余额", "metric_id": "CN_MARGIN", "in_catalog": False},
+            ]
+        ),
+        (),
+        (),
+    )
+    triggers = _triggers(_by_id(page, "asset-stock"))
+    (row,) = [item for item in triggers if _text(item) == "两融余额"]
+    (listed,) = [item for item in triggers if _text(item) == "上涨家数"]
+
+    assert "目录状态 当前目录未收录" in _words(_panel(page, row))
+    assert "当前目录未收录" not in _words(_panel(page, listed))
+
+
+def test_a_row_named_after_its_group_says_the_member_has_no_chinese_name() -> None:
+    unnamed = {**ADVANCES, "metric_id": "CN_EQ_NEW_BREADTH", "name_cn": "CN_EQ_NEW_BREADTH"}
+    page = dashboard_page(
+        "/",
+        _with_observations(
+            [
+                {"label": "市场广度：新指标", "evidence": [unnamed]},
+                {"label": "市场广度：涨跌家数", "evidence": [ADVANCES]},
+            ]
+        ),
+        (),
+        (),
+    )
+    triggers = _triggers(_by_id(page, "asset-stock"))
+    (row,) = [item for item in triggers if _text(item) == "市场广度：新指标"]
+    (named,) = [item for item in triggers if _text(item) == "上涨家数"]
+
+    assert "未提供成员中文名" in _words(_panel(page, row))
+    assert "未提供成员中文名" not in _words(_panel(page, named))
 
 
 def test_count_multiple_and_ratio_units_read_in_chinese() -> None:

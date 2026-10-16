@@ -970,9 +970,10 @@ def test_the_policy_dimension_reaches_the_pages_and_the_report(tmp_path: Path) -
     assert reading["members"][0]["action"] == "cut"
     # The rate on the session before the window (from 2026-03-16).
     assert reading["members"][0]["baseline"] == {"period": "2026-03-13", "value": 1.5}
-    home = _text(dashboard_page("/", projection, (), ()))
+    home = " ".join(_text(dashboard_page("/", projection, (), ())).split())
     macro = _text(dashboard_page("/macro", projection, (), ()))
-    assert "政策利率：支持" in home and "DR007：未确认" in home
+    assert "政策 支持 2 · 反证 0 · 仅观察 0 · 未确认 3 政策利率 支持" in home
+    assert "DR007 未确认" in home
     assert "窗口内最近动作：下调（2026-06-15" in macro
     assert "窗口前基准 2026-03-13 值 1.5" in macro
     assert "dr007:trading_calendar_incomplete" in macro

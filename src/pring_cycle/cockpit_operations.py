@@ -97,17 +97,9 @@ def flow_result(value: object) -> tuple[str, str]:
 
 # Sources sending fewer than two requests share one node, so the chart does not splinter.
 OTHER_SOURCE = "source"
-# Light-theme colours the figure starts with; dashboard.js repaints them from the theme's
-# --flow-* variables, by the colour family recorded in the trace's meta.
-FLOW_COLOURS = {
-    "success": "rgba(22, 131, 77, 0.4)",
-    "candidate": "rgba(209, 138, 22, 0.45)",
-    "neutral": "rgba(128, 134, 138, 0.35)",
-    "failure": "rgba(196, 50, 58, 0.4)",
-    "source": "#3d6d9b",
-    "phase": "#7b5ea7",
-    "result": "#176a66",
-}
+# The figure starts in one neutral grey; dashboard.js paints each node and link from the
+# theme's --flow-* variables (report.css), by the colour family recorded in the trace meta.
+FLOW_FALLBACK = "rgba(128, 134, 138, 0.35)"
 
 
 def flow_sankey(requests: Sequence[dict[str, Any]]) -> Any:
@@ -170,7 +162,7 @@ def flow_sankey(requests: Sequence[dict[str, Any]]) -> Any:
                     "meta": {"node_columns": node_columns, "link_tones": link_tones},
                     "node": {
                         "label": [label(node) for node in nodes],
-                        "color": [FLOW_COLOURS[column] for column in node_columns],
+                        "color": [FLOW_FALLBACK] * len(nodes),
                         "customdata": [node_hover(node) for node in nodes],
                         "hovertemplate": "%{label}<br>%{customdata}<extra></extra>",
                         "pad": 16,
@@ -179,7 +171,7 @@ def flow_sankey(requests: Sequence[dict[str, Any]]) -> Any:
                         "source": [nodes.index(source) for source, _, _ in links],
                         "target": [nodes.index(target) for _, target, _ in links],
                         "value": list(links.values()),
-                        "color": [FLOW_COLOURS[tone] for tone in link_tones],
+                        "color": [FLOW_FALLBACK] * len(link_tones),
                         "customdata": [
                             f"{flow_result(result)[0]} · {share(value)}"
                             for (_, _, result), value in links.items()

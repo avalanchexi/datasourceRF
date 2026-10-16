@@ -72,21 +72,40 @@ def _trigger(section: Component, label: str) -> Component:
     return found
 
 
-def _panel(section: Component, trigger: Component) -> str:
-    return _words(_text(_by_id(section, str(getattr(trigger, "href", ""))[1:])))
+def _panel(container: Component, trigger: Component) -> str:
+    return _words(_text(_by_id(container, str(getattr(trigger, "href", ""))[1:])))
 
 
 def test_gaps_are_listed_once_and_five_at_most_with_the_rest_in_a_drawer() -> None:
     gaps = [_gap(f"METRIC_{index}") for index in range(1, 8)]
 
-    section = _reading(_gaps_projection(gaps))
+    page = dashboard_page("/", _gaps_projection(gaps), (), ())
+    section = _by_id(page, "reading")
     visible = _words(_visible(section))
 
     assert [visible.count(f"METRIC_{index}：") for index in range(1, 8)] == [1] * 5 + [0, 0]
     trigger = _trigger(section, "查看全部")
     assert "7" in _text(trigger)
-    panel = _panel(section, trigger)
+    panel = _panel(page, trigger)
     assert all(f"P1 METRIC_{index}：period_not_requested" in panel for index in range(1, 8))
+
+
+def test_the_data_boundary_and_section_07_open_the_same_gap_drawer() -> None:
+    gaps = [_gap(f"METRIC_{index}") for index in range(1, 8)]
+    page = dashboard_page("/", _gaps_projection(gaps), (), ())
+
+    boundary = _trigger(_by_id(page, "conclusion"), "7 项缺口")
+    full = _trigger(_by_id(page, "reading"), "查看全部")
+    panels = _find(
+        page,
+        lambda item: (
+            "drawer-panel" in str(getattr(item, "className", "")) and "METRIC_7" in _text(item)
+        ),
+    )
+
+    assert getattr(boundary, "href", None) == getattr(full, "href", None)
+    assert len(panels) == 1
+    assert _words(_text(panels[0])).startswith("全部缺口（7）")
 
 
 def test_five_gaps_or_fewer_need_no_drawer() -> None:

@@ -11,7 +11,7 @@ would pin the fixed drawer to that container instead of the viewport.
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from typing import Any, cast
 
 from dash import html
@@ -23,6 +23,15 @@ def drawer_key(*parts: object) -> str:
     """A URL-safe key from parts such as a section, a metric id and its member dimensions."""
     text = "-".join(str(part) for part in parts if part not in (None, ""))
     return re.sub(r"[^A-Za-z0-9_.]+", "-", text).strip("-") or "item"
+
+
+def unique_key(key: str, taken: Collection[str]) -> str:
+    """``key``, or the first ``key-<n>`` from 2 up that no other row has taken."""
+    candidate, number = key, 1
+    while candidate in taken:
+        number += 1
+        candidate = f"{key}-{number}"
+    return candidate
 
 
 def drawer_trigger(key: str, children: Any, *, class_name: str = "") -> html.A:

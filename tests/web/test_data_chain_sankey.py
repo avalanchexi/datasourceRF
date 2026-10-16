@@ -7,12 +7,14 @@ folded into one "其他（N）" node so the chart does not splinter.
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
 from dash import dcc, html
 
+from pring_cycle import cockpit_operations
 from pring_cycle.cockpit_operations import data_chain
 from pring_cycle.runs import RunRecord, RunRepository
 from tests.web.test_overseas_cards import _find, _words
@@ -119,76 +121,86 @@ def test_a_lone_small_source_keeps_its_own_name(tmp_path: Path) -> None:
     assert trace["node"]["label"][:2] == ["TuShare · 3", "欧洲央行 · 1"]
 
 
-def _rgb(colour: str) -> tuple[int, int, int]:
-    if colour.startswith("#"):
-        return int(colour[1:3], 16), int(colour[3:5], 16), int(colour[5:7], 16)
-    red, green, blue = colour[colour.index("(") + 1 : colour.index(")")].split(",")[:3]
-    return int(red), int(green), int(blue)
-
-
-def _family(colour: str) -> str:
-    red, green, blue = _rgb(colour)
-    if max(red, green, blue) - min(red, green, blue) < 40:
-        return "grey"
-    if green > red and green > blue:
-        return "green"
-    if red > green > blue and green > red * 0.5:
-        return "amber"
-    return "red" if red > green and red > blue else "other"
-
-
-def test_links_take_the_colour_of_what_the_request_came_to(tmp_path: Path) -> None:
+def test_links_record_the_colour_family_of_what_the_request_came_to(tmp_path: Path) -> None:
     results = {
-        "accepted": "green",
-        "verified": "green",
-        "validated": "green",
-        "candidate_source": "amber",
-        "not_found": "grey",
-        "started": "grey",
-        "reserved": "grey",
-        "unknown_completion": "grey",
-        "completed": "grey",
-        "failed": "red",
-        "interrupted": "red",
-        "timeout": "red",
-        "error": "red",
-        "rejected": "red",
-        "brand_new_state": "grey",
+        "accepted": "success",
+        "verified": "success",
+        "validated": "success",
+        "candidate_source": "candidate",
+        "not_found": "neutral",
+        "started": "neutral",
+        "reserved": "neutral",
+        "unknown_completion": "neutral",
+        "completed": "neutral",
+        "failed": "failure",
+        "interrupted": "failure",
+        "timeout": "failure",
+        "error": "failure",
+        "rejected": "failure",
+        "brand_new_state": "neutral",
     }
     trace = _sankey(tmp_path, [("tushare", "retrieval", result, 2) for result in results])
     labels = trace["node"]["label"]
     links = trace["link"]
+    tones = trace["meta"]["link_tones"]
     into_results = {
-        labels[target]: _family(colour)
-        for source, target, colour in zip(
-            links["source"], links["target"], links["color"], strict=True
-        )
+        labels[target]: tone
+        for source, target, tone in zip(links["source"], links["target"], tones, strict=True)
         if labels[source] == "补缺 · 30"
     }
     from_source = {
-        _family(colour)
-        for source, colour in zip(links["source"], links["color"], strict=True)
+        tone
+        for source, tone in zip(links["source"], tones, strict=True)
         if labels[source] == "TuShare · 30"
     }
 
     assert into_results == {
-        "已接纳 · 2": "green",
-        "已验证 · 2": "green",
-        "校验通过 · 2": "green",
-        "候选来源 · 2": "amber",
-        "未找到 · 2": "grey",
-        "已开始 · 2": "grey",
-        "已预留 · 2": "grey",
-        "完成情况未知 · 2": "grey",
-        "已完成 · 2": "grey",
-        "失败 · 2": "red",
-        "已中断 · 2": "red",
-        "超时 · 2": "red",
-        "出错 · 2": "red",
-        "已拒绝 · 2": "red",
-        "brand_new_state · 2": "grey",
+        "已接纳 · 2": "success",
+        "已验证 · 2": "success",
+        "校验通过 · 2": "success",
+        "候选来源 · 2": "candidate",
+        "未找到 · 2": "neutral",
+        "已开始 · 2": "neutral",
+        "已预留 · 2": "neutral",
+        "完成情况未知 · 2": "neutral",
+        "已完成 · 2": "neutral",
+        "失败 · 2": "failure",
+        "已中断 · 2": "failure",
+        "超时 · 2": "failure",
+        "出错 · 2": "failure",
+        "已拒绝 · 2": "failure",
+        "brand_new_state · 2": "neutral",
     }
-    assert from_source == {"green", "amber", "grey", "red"}
+    assert from_source == {"success", "candidate", "neutral", "failure"}
+    assert trace["meta"]["node_columns"] == ["source"] + ["phase"] + ["result"] * 15
+
+
+def test_the_figure_starts_in_one_neutral_colour_until_the_theme_paints_it(
+    tmp_path: Path,
+) -> None:
+    # The colour of each family lives once, in the theme's --flow-* variables.
+    trace = _sankey(
+        tmp_path,
+        [("tushare", "retrieval", "accepted", 2), ("official", "retrieval", "failed", 2)],
+    )
+
+    assert len({*trace["link"]["color"], *trace["node"]["color"]}) == 1
+
+
+def test_every_colour_family_the_figure_records_has_a_theme_variable_in_both_themes() -> None:
+    stylesheet = (Path(cockpit_operations.__file__).parent / "assets" / "report.css").read_text(
+        encoding="utf-8"
+    )
+    families = {tone for _name, tone in cockpit_operations.FLOW_RESULTS.values()}
+    families |= {"neutral", "source", "phase", "result"}
+    rules = re.findall(r"([^{}]*)\{([^{}]*)\}", stylesheet)
+    blocks = [
+        " ".join(body for selectors, body in rules if theme in selectors)
+        for theme in (":root:not([data-theme])", ':root[data-theme="dark"]')
+    ]
+
+    for block in blocks:
+        assert all(f"--flow-{family}:" in block for family in families)
 
 
 def test_hovering_a_link_or_node_shows_its_requests_and_share(tmp_path: Path) -> None:

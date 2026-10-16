@@ -46,3 +46,7 @@
 ### 2026-10-16 补充：回溯小节进抽屉
 
 主 agent 决定：原"窗口前的上一确认阶段"小节（上一确认阶段、回溯年数、区间与日历请求次数）放在"交易日历与色带等价表格"抽屉顶部，按信息三层属于抽屉详情，首页不再出现。新增用例 `test_the_lookback_before_the_window_sits_atop_the_trading_day_drawer`。并入 cockpit-layout 53e0749（`report.css` 末尾与票 09 冲突，保留两段）后：`tests/web/` 130 passed（38.9 s）；两项必跑冒烟 2 passed（1 m 40 s，flock）；ruff、mypy 通过。
+
+### 2026-10-16 审查处置（P1，不改）
+
+集成审查 P1 指 ⑥ 明细未限量；主 agent 处置为不改：⑥ 已按 120 交易日窗口限量（规格"默认最近 120 个交易日"），区间列表随窗口有界。审查修复分支 cl-rf 未改本段。

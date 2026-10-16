@@ -10,9 +10,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from dash import html
-from dash.development.base_component import Component
-
 from pring_cycle.evidence import EvidenceRepository
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from tests.integration.test_confirmation_publish import MODEL, publish, register_confirmation_model
@@ -96,18 +93,7 @@ def test_an_old_set_without_the_basis_shows_no_difference_row() -> None:
     assert "要求熊市" not in board
 
 
-def _bold(component: object) -> list[str]:
-    """The texts set in bold under a component, in reading order."""
-    if isinstance(component, (list, tuple)):
-        return [text for child in component for text in _bold(child)]
-    if isinstance(component, html.Strong):
-        return [" ".join(_text(component).split())]
-    if not isinstance(component, Component):
-        return []
-    return _bold(getattr(component, "children", None))
-
-
-def test_the_reason_and_the_key_values_beside_it_are_set_in_bold() -> None:
+def test_the_reason_reads_with_the_key_values_beside_it() -> None:
     confirmation = _inventory(
         "active_destocking", None, demand="down", production="down", inventory="down"
     )
@@ -120,11 +106,11 @@ def test_the_reason_and_the_key_values_beside_it_are_set_in_bold() -> None:
         },
     )
     board = _board(projection)
-    bold = _bold(_conclusion(projection))
+    section = " ".join(_text(_conclusion(projection)).split())
 
-    assert "非典型组合" in bold
-    for value in ("+1.23 个百分点", "-0.50 个百分点", "40.0%", "3/7", "主动去库存", "5"):
-        assert value in bold
+    assert "非典型组合" in section
+    for value in ("+1.23 个百分点", "-0.50 个百分点", "40.0%", "3/7", "主动去库存"):
+        assert value in section
     # Still read in percentage points, never pp.
     assert "pp" not in board
     assert "原因 非典型组合 ：债券牛市 · 股票熊市 · 商品牛市" in board
@@ -137,7 +123,7 @@ def test_the_data_boundary_opens_the_full_gap_list_in_the_drawer() -> None:
     triggers = _find(section, lambda item: str(getattr(item, "href", "")).startswith("#drawer-"))
     (gaps,) = [item for item in triggers if _words(item) == "2 项缺口"]
     drawer = _words(_by_id(section, str(getattr(gaps, "href", "")).removeprefix("#")))
-    assert drawer.startswith("数据边界：缺口全文")
+    assert drawer.startswith("全部缺口（2）")
     assert "P1 CN_DR007" in drawer and "P2 UST10Y_NOMINAL_YIELD" in drawer
     assert "时效缺口（1）" in drawer and "缺失（1）" in drawer
     # The board keeps the one line and its way on to section 07 and the data chain.

@@ -14,7 +14,7 @@
     paintFlowSankeys();
   }
 
-  // The data chain's Sankey arrives in light-theme colours; repaint it from the theme's
+  // The data chain's Sankey arrives in one neutral grey; paint it from the theme's
   // --flow-* variables, by the colour family each node and link records in the trace meta.
   function paintFlowSankeys() {
     const style = getComputedStyle(document.documentElement);

@@ -301,6 +301,20 @@ def test_a_noncanonical_drawer_says_why_proposition_and_maturity_are_empty() -> 
     )
 
 
+def test_a_drawer_without_a_formal_stage_for_another_reason_does_not_say_noncanonical() -> None:
+    projection = _projection(
+        [_asset("bond", "bull"), _asset("stock", "unknown"), _asset("commodity", "bear")],
+        stage_reason="insufficient_core_evidence",
+        macro={"confirmation": _confirmation(_noncanonical_indicators(), applicable=False)},
+    )
+    page = dashboard_page("/", projection, (), ())
+    drawers = [_words(_drawer(page, row)) for row in _rows(projection)]
+
+    assert len(drawers) == 4
+    assert all("无正式阶段，不判定命题与成熟度" in drawer for drawer in drawers)
+    assert not any("非典型组合" in drawer for drawer in drawers)
+
+
 def test_a_row_opens_a_drawer_with_members_derivation_basis_gaps_and_proposition() -> None:
     m1_m2 = _indicator(
         "m1_m2",

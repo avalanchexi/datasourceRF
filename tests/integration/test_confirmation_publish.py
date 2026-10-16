@@ -177,21 +177,23 @@ def test_the_old_model_still_publishes_the_four_labels_and_seven_cards(tmp_path:
 def test_the_pages_list_the_dimension_summary_and_the_pmi_reading(tmp_path: Path) -> None:
     projection = confirmed(tmp_path)
 
-    home = _text(dashboard_page("/", projection, (), ()))
+    home = " ".join(_text(dashboard_page("/", projection, (), ())).split())
     macro = _text(dashboard_page("/macro", projection, (), ()))
-    inventory = _text(dashboard_page("/inventory", projection, (), ()))
+    inventory = " ".join(_text(dashboard_page("/inventory", projection, (), ())).split())
 
-    # Every dimension is read now, inventory by its quadrant.
-    assert "过热" in home and "支持 1" in home and "尚未接入" not in home
-    assert "库存象限：未确认" in home
-    assert "PMI：支持" in home and "高于 50" in home and "较上期上升" in home
+    # Every dimension is read now, inventory by its quadrant; each card counts its rows.
+    assert "过热 支持 1 · 反证 0 · 仅观察 0 · 未确认 4" in home and "尚未接入" not in home
+    assert "库存 支持 0 · 反证 0 · 仅观察 0 · 未确认 1 库存象限 未确认" in home
+    # The PMI row reads its relation; its drawer, the level and momentum.
+    assert "PMI 支持 读取期 2026-07-31" in home and "高于 50" in home and "较上期上升" in home
     assert "政策方向" not in home and "数据不足" not in home
     assert "制造业 PMI" in macro and "新订单" in macro and "斜率变陡" in macro
     assert "命题：经济自底部恢复，需求与生产扩张" in macro
     # The policy dimension reads its five indicators, none held here.
     assert "政策利率" in macro and "DR007" in macro and "未确认 5" in macro
     assert "库存象限" in inventory and "七张阶段特征卡" not in inventory
-    assert "数据不可用" in inventory and "确认关系（随库存象限）：未确认" in inventory
+    # The lines held nothing, and the quadrant is counted once as unconfirmed.
+    assert "数据 不可用（缺失）" in inventory and "确认关系：未确认（象限仅计一项）" in inventory
     assert "实际库存近似（粗略价格调整代理）" in inventory and "不参与库存象限" in inventory
 
 
@@ -305,10 +307,11 @@ def test_the_price_and_credit_counts_reach_the_pages_and_the_report(tmp_path: Pa
     assert bundle.conclusions["dimension:price"] == {**_NONE, "support": 1, "unconfirmed": 2}
     assert bundle.conclusions["key_indicator:social_financing"] == "support"
     assert bundle.conclusions["dimension:credit"] == {**_NONE, "support": 1, "unconfirmed": 2}
-    home = _text(dashboard_page("/", projection, (), ()))
+    home = " ".join(_text(dashboard_page("/", projection, (), ())).split())
     macro = _text(dashboard_page("/macro", projection, (), ()))
-    assert "PPI：支持" in home and "社融：支持" in home and "M1/M2：未确认" in home
-    assert "物价" in home and "信用" in home
+    assert "物价 支持 1 · 反证 0 · 仅观察 0 · 未确认 2 PPI 支持" in home
+    assert "信用 支持 1 · 反证 0 · 仅观察 0 · 未确认 2 社融 支持" in home
+    assert "M1/M2 未确认" in home
     assert "PPI 同比" in macro and "高于 0" in macro and "一年区间高位" in macro
     assert "存量同比" in macro and "命题：融资条件仍支持扩张" in macro
     # A member with nothing held says so.

@@ -232,3 +232,20 @@ def test_a_pinned_older_projection_fills_the_drawer_from_its_own_rows() -> None:
     assert evidence
     assert all("projection=projection-older" in href for href in evidence)
     assert "version=claim-older" in evidence[0]
+
+
+def test_a_repeated_row_never_takes_the_key_of_another_row() -> None:
+    # The third row repeats the first; numbering it by position would collide with the second.
+    rows = [
+        _row("JP_A", 1.11, "percent"),
+        _row("JP_A-3", 2.22, "percent"),
+        _row("JP_A", 3.33, "percent", period="2026-10-13"),
+    ]
+    projection = _overseas_projection(rows)
+    page = dashboard_page("/", projection, (), ())
+
+    cards = _cards(projection)
+
+    assert len({_href(card) for card in cards}) == 3
+    for card, value in zip(cards, ("1.11 %", "2.22 %", "3.33 %"), strict=True):
+        assert f"最新值 {value}" in _words(_drawer(page, card))

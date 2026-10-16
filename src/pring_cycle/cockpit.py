@@ -15,7 +15,7 @@ from dash import dcc, html
 from pring_cycle import dashboard as view
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.domain.trend import TrendRules
-from pring_cycle.drawer import drawer_key, drawer_panel, drawer_trigger
+from pring_cycle.drawer import drawer_key, drawer_panel, drawer_trigger, unique_key
 from pring_cycle.page_identity import identity_fields
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
@@ -27,6 +27,7 @@ from pring_cycle.wording import (
     _GDP_MEASURES,
     CORE_STATE_LABELS,
     NO_CHINESE_NAME,
+    NO_MEMBER_NAME,
     DisplayName,
     core_state_label,
     display_name,
@@ -84,7 +85,9 @@ def row_name(row: dict[str, Any], *, fallback: object = None) -> DisplayName:
     """
     name = display_name(row.get("metric_id"), obj(row.get("dimensions")), row.get("name_cn"))
     return (
-        name if name.provided or not fallback else replace(name, name=str(fallback), provided=True)
+        name
+        if name.provided or not fallback
+        else replace(name, name=str(fallback), provided=True, group=True)
     )
 
 
@@ -94,8 +97,9 @@ def name_cell(name: DisplayName) -> Any:
 
 
 def name_note(name: DisplayName) -> list[Any]:
-    """The drawer's note when the name fell back to the code."""
-    return [] if name.provided else [html.P(NO_CHINESE_NAME, className="empty-note")]
+    """The drawer's note when the name fell back to the code or to the member's group."""
+    note = NO_CHINESE_NAME if not name.provided else NO_MEMBER_NAME if name.group else None
+    return [html.P(note, className="empty-note")] if note else []
 
 
 def with_metric_unit(row: dict[str, Any]) -> dict[str, Any]:
@@ -118,7 +122,9 @@ def obj(value: object) -> dict[str, Any]:
 def number(value: object, unit: object = None) -> str:
     if value is None:
         return "—"
-    text = f"{value:,.2f}" if isinstance(value, (float, int)) else str(value)
+    # A count of companies (家) reads in whole numbers.
+    places = 0 if unit == "count" else 2
+    text = f"{value:,.{places}f}" if isinstance(value, (float, int)) else str(value)
     return text + (f" {UNITS.get(str(unit), str(unit))}" if unit else "")
 
 
@@ -651,6 +657,13 @@ def _combination(cores: dict[str, dict[str, Any]]) -> str:
     )
 
 
+def is_noncanonical(projection: ProjectionSet | None) -> bool:
+    """Whether the stage is empty because the three cores form a noncanonical combination."""
+    overview = view._dataset(projection, "cycle_overview")
+    reason = overview.get("stage_reason") or overview.get("stage_unavailable_reason")
+    return reason == "noncanonical_combination"
+
+
 def stage_reason_line(projection: ProjectionSet | None) -> str | list[Any]:
     """Why the board shows this stage, in the three cores' own states (spec: reason line)."""
     overview = view._dataset(projection, "cycle_overview")
@@ -978,15 +991,16 @@ def bond_attribution_line(note: dict[str, Any]) -> str:
     return f"{note.get('text')}" + (f"：{axes}" if axes else "") + "（附注，不计数）"
 
 
-GAPS_DRAWER = drawer_key("conclusion", "gaps")
+GAPS_DRAWER = drawer_key("gaps")
 
 
 def gaps_drawer(projection: ProjectionSet | None) -> Any:
-    """The full gap list the data boundary row counts, in the drawer; none when no gap."""
-    gaps = view._dataset(projection, "cycle_overview").get("gap_list")
-    if not objects(gaps):
+    """The full gap list in one drawer, opened from the data boundary row and from section
+    07; none when no gap."""
+    gaps = view._document_list(view._dataset(projection, "cycle_overview").get("gap_list"))
+    if not gaps:
         return None
-    return drawer_panel(GAPS_DRAWER, "数据边界：缺口全文", [view._gap_list(gaps)])
+    return drawer_panel(GAPS_DRAWER, f"全部缺口（{len(gaps)}）", [view._gap_list(gaps)])
 
 
 def data_boundary_line(gaps: object, coverage: dict[str, Any], pinned: str) -> list[Any]:
@@ -1025,10 +1039,7 @@ def conclusion_right(projection: ProjectionSet | None) -> Any:
     macro = view._dataset(projection, "macro")
     confirmation = obj(macro.get("confirmation"))
     applicable = bool(obj(confirmation.get("summary")).get("applicable"))
-    overview = view._dataset(projection, "cycle_overview")
-    noncanonical = (
-        overview.get("stage_reason") or overview.get("stage_unavailable_reason")
-    ) == "noncanonical_combination"
+    noncanonical = is_noncanonical(projection)
     rows: tuple[tuple[str, Any], ...] = (
         ("价格一致性", price_consistency_line(obj(macro.get("price_consistency")))),
         (
@@ -1468,7 +1479,14 @@ def _indicator_drawer(
             *(
                 []
                 if applicable
-                else [html.P("非典型组合不判定命题与成熟度", className="empty-note")]
+                else [
+                    html.P(
+                        "非典型组合不判定命题与成熟度"
+                        if is_noncanonical(projection)
+                        else "无正式阶段，不判定命题与成熟度",
+                        className="empty-note",
+                    )
+                ]
             ),
             html.H3("主辅成员"),
             member_readings(objects(item.get("members")), projection, section="confirmation"),
@@ -1496,8 +1514,9 @@ def confirmation_cards(
     for dimension in dimensions:
         rows = []
         for item in objects(dimension.get("key_indicators")):
-            key = drawer_key("confirmation", item.get("metric_id"), item.get("key"))
-            key = key if key not in keys else f"{key}-{len(keys) + 1}"
+            key = unique_key(
+                drawer_key("confirmation", item.get("metric_id"), item.get("key")), keys
+            )
             items.append(item)
             keys.append(key)
             rows.append(_indicator_row(item, key, applicable=applicable))
@@ -1777,6 +1796,11 @@ def related_assets(
                         if member.get("reads_as")
                         else "仅观察，不计数",
                     ),
+                    *(
+                        (("目录状态", "当前目录未收录"),)
+                        if member.get("in_catalog") is False
+                        else ()
+                    ),
                 ),
             )
         )
@@ -1825,12 +1849,11 @@ def gap_preview(value: object) -> list[Any]:
     ]
     if len(gaps) <= GAP_PREVIEW:
         return [view._gap_list(gaps)]
-    key = drawer_key("reading", "gaps")
     return [
         html.P(f"缺口共 {len(gaps)} 条，以下为前 {GAP_PREVIEW} 条。", className="secondary-copy"),
         view._gap_list(gaps[:GAP_PREVIEW]),
-        drawer_trigger(key, f"查看全部 {len(gaps)} 条缺口 →"),
-        drawer_panel(key, f"全部缺口（{len(gaps)}）", [view._gap_list(gaps)]),
+        # The panel is the one gaps_drawer renders beside the conclusion board.
+        drawer_trigger(GAPS_DRAWER, f"查看全部 {len(gaps)} 条缺口 →"),
     ]
 
 
@@ -2496,7 +2519,7 @@ def _row_keys(
             item.get("metric_id"),
             *(dimensions[name] for name in sorted(dimensions)),
         )
-        keys.append(key if key not in keys else f"{key}-{len(keys) + 1}")
+        keys.append(unique_key(key, keys))
     return keys
 
 

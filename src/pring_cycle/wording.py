@@ -203,6 +203,7 @@ SOURCE_NAMES = {
     "Nasdaq Global Indexes": "纳斯达克指数",
 }
 NO_CHINESE_NAME = "未提供中文名"
+NO_MEMBER_NAME = "未提供成员中文名"
 
 
 @dataclass(frozen=True)
@@ -212,6 +213,8 @@ class DisplayName:
     name: str
     code: str
     provided: bool
+    # The name is the Chinese label of the member's group, not of the row itself.
+    group: bool = False
 
 
 def display_name(

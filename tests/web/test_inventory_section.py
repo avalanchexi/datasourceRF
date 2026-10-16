@@ -362,6 +362,16 @@ def test_warrants_take_one_line_and_their_table_waits_in_a_drawer_in_chinese() -
         assert any(claim in href for href in hrefs)
 
 
+def test_the_seven_symbol_tonnes_read_as_whole_tonnes_with_thousands_separators() -> None:
+    warrants = {**WARRANTS, "tonnes": {"first": 2175351.0, "last": 2090014.0}}
+    section = _section(_inventory_projection(registered_warrants=warrants))
+    (trigger,) = [item for item in _triggers(section) if "仓单" in _words(item)]
+
+    assert "七品种折算吨数合计（辅助）2,175,351 吨 → 2,090,014 吨" in _words(
+        _drawer(section, trigger)
+    )
+
+
 def _is_row(item: object) -> bool:
     return isinstance(item, html.Tr)
 

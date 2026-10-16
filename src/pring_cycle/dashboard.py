@@ -1520,8 +1520,8 @@ def _warrant_summary(note: dict[str, object]) -> str:
         f"减少 {_integer(breadth.get('decrease'))}（读到 {_integer(breadth.get('read'))}/"
         f"{_integer(breadth.get('symbols'))} 个品种）",
         (
-            f"七品种折算吨数合计（辅助）{_display_value(tonnes.get('first'))} → "
-            f"{_display_value(tonnes.get('last'))}"
+            f"七品种折算吨数合计（辅助）{_tonnes(tonnes.get('first'))} → "
+            f"{_tonnes(tonnes.get('last'))}"
             if tonnes.get("first") is not None
             else "七品种折算吨数合计不可用"
         ),
@@ -1530,6 +1530,13 @@ def _warrant_summary(note: dict[str, object]) -> str:
     if note.get("missing"):
         parts.append("缺：" + "、".join(str(item) for item in _list_of(note["missing"])))
     return " · ".join(parts)
+
+
+def _tonnes(value: object) -> str:
+    """Whole tonnes with thousands separators."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return f"{value:,.0f} 吨"
+    return _display_value(value)
 
 
 _WARRANT_UNITS = {"sheet": "张", "lot": "手", "tonne": "吨", "barrel": "桶"}
