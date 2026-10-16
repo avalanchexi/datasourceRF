@@ -20,6 +20,12 @@ from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
 from pring_cycle.batches import processing_batch
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.projections import ProjectionSetRepository
+from pring_cycle.reports import (
+    AdapterResponse,
+    ReportRepository,
+    ReportService,
+    report_input_from_projection,
+)
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.web import create_web_application
@@ -27,6 +33,7 @@ from tests.integration.test_core_carry_forward import CUTOFF, TARGET, seed_cores
 from tests.integration.test_day_summary import target_projection
 from tests.integration.test_decertified_main_chain import claim
 from tests.integration.test_worker_execution import runtime
+from tests.reports.test_report_boundary import FakeAdapter
 
 
 @contextmanager
@@ -227,6 +234,21 @@ def _full_run(paths: RuntimePaths, name: str) -> str:
     )
 
 
+def _board(base: str, search: str) -> str:
+    """The rendered page's visible text, as a reader sees it."""
+
+    def text(node: Any) -> str:
+        if isinstance(node, str):
+            return node
+        if isinstance(node, list):
+            return " ".join(text(item) for item in node)
+        if isinstance(node, dict):
+            return text(node.get("props", {}).get("children"))
+        return ""
+
+    return " ".join(text(rendered_page(base, "/", search)["page-content"]["children"]).split())
+
+
 def _identity_bar(base: str, search: str) -> str:
     strip = rendered_page(base, "/", search)["projection-strip"]["children"]
     return json.dumps(strip, ensure_ascii=False)
@@ -270,6 +292,22 @@ def test_pinned_projection_does_not_mix_with_a_new_current_pointer(tmp_path: Pat
         latest = _identity_bar(base, "")
         assert "projection-new-current" in latest and second_run in latest
         assert first_run not in latest
+
+        # The board's reading and run facts belong to the shown projection too.
+        repository = ReportRepository(paths.database)
+        ReportService(
+            repository, (FakeAdapter("codex_cli", AdapterResponse.unavailable("timed_out")),)
+        ).generate(
+            report_input_from_projection(
+                ProjectionSetRepository(paths.database).get("projection-new-current")
+            )
+        )
+        pinned_board = _board(base, f"?projection={identity}")
+        assert "解读： 报告尚未生成" in pinned_board
+        assert "外部请求 0 次，失败 0 次" in pinned_board  # the cancelled first run's summary
+        latest_board = _board(base, "")
+        assert "本次报告为确定性模板，无 AI 解读（适配器失败原因：codex_cli 超时）" in latest_board
+        assert "外部请求 口径不可用" in latest_board  # the second run has not finished
 
         orphan = replace(first.envelope, projection_set_id="projection-without-run")
         ProjectionSetRepository(paths.database).publish(

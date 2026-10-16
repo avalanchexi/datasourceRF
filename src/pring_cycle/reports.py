@@ -667,6 +667,8 @@ class ReportSnapshot:
     # Read with it: whether its projection was computed on a value read for the wrong
     # period, and the reports that correct it or that it corrects (audit 06).
     corrections: dict[str, Any] = field(default_factory=dict)
+    # Each recorded adapter attempt as (adapter, outcome), in order: why a template stood in.
+    adapter_outcomes: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -956,6 +958,7 @@ class ReportRepository:
                 measured_duration if measured_duration is not None else snapshot.duration_ms
             ),
             corrections=corrections,
+            adapter_outcomes=tuple((item.adapter, item.outcome) for item in attempts),
         )
 
     @contextmanager

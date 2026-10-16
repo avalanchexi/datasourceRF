@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, cast
@@ -15,7 +16,8 @@ from pring_cycle import dashboard as view
 from pring_cycle.domain.trend import TrendRules
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
-from pring_cycle.run_health import ProducerRun
+from pring_cycle.retrieval import RUN_SEARCH_LIMITS
+from pring_cycle.run_health import REQUEST_FAILURES, ProducerRun
 from pring_cycle.runs import RunRecord
 from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, stage_code
 
@@ -370,12 +372,14 @@ def report_board(
             ),
             core_table(projection, trend_rules=trend_rules),
             html.P(
-                [
-                    "解读：",
-                    html.A("阅读同投影报告", href=pinned + "#reading")
-                    if report
-                    else "报告尚未生成",
-                ]
+                ["解读：", *reading_line(report, pinned, pending=report_pending)]
+                if projection
+                else ["解读：报告尚未生成"],
+                className="board-fact",
+            ),
+            html.P(
+                "运行事实：" + run_facts_line(producer_run.summary if producer_run else None),
+                className="board-fact",
             ),
             html.A("查看运行摘要与数据边界 →", href="/runs" + pinned),
         ],
@@ -871,6 +875,96 @@ def conclusion_right(projection: ProjectionSet | None) -> Any:
             ),
         ],
         className="board-right",
+    )
+
+
+# Why an AI adapter attempt produced no reading (reports.ReportService, cli_process).
+ADAPTER_FAILURES = {
+    "timed_out": "超时",
+    "cancelled": "已取消",
+    "process_start_failed": "进程未能启动",
+    "nonzero_exit": "进程异常退出",
+    "authentication_required": "未登录",
+    "quota_or_rate_limited": "额度或限频",
+    "cli_protocol_incompatible": "命令行协议不兼容",
+    "invalid_json_output": "输出不是 JSON",
+    "invalid_json_schema": "输出不合结构",
+    "schema_validation_failed": "输出不合契约",
+    "tool_use_rejected": "调用工具被拒",
+    "stage_mutation_rejected": "输出改写正式阶段被拒",
+    "conclusion_mutation_rejected": "输出改写结论被拒",
+    "forbidden_content_rejected": "输出含禁用内容被拒",
+    "paragraph_structure_invalid": "段落结构不合规",
+}
+
+
+def reading_line(
+    report: ReportSnapshot | None, pinned: str, *, pending: bool
+) -> list[str | html.A]:
+    """The board's reading: an AI report's opening sentence, never a template as AI output.
+
+    A report already read stays while a newer version is generated.
+    """
+    if report is None and pending:
+        return ["报告生成中"]
+    if report is None:
+        return [
+            "报告尚未生成 ",
+            html.A("生成报告", href=pinned + "#generate-report-command"),
+        ]
+    if report.adapter == "deterministic":
+        failures = "；".join(
+            f"{adapter} {ADAPTER_FAILURES.get(outcome, outcome)}"
+            for adapter, outcome in report.adapter_outcomes
+            if outcome != "succeeded"
+        )
+        return [
+            "本次报告为确定性模板，无 AI 解读"
+            + (f"（适配器失败原因：{failures}）" if failures else "（未记录适配器尝试）")
+        ]
+    sections = objects(report.body.get("ai_explanation"))
+    paragraph = str(sections[0].get("explanation") or "") if sections else ""
+    sentence = re.match(r"[^。！？]*[。！？]?", paragraph)
+    return [
+        sentence.group(0) if sentence else paragraph,
+        " ",
+        html.A("全文", href=pinned + "#reading"),
+    ]
+
+
+UNAVAILABLE = "口径不可用"
+
+
+def run_facts_line(summary: dict[str, Any] | None) -> str:
+    """Five facts of the producing run's persisted summary; a missing one is never a zero."""
+    facts = obj(summary)
+    outcomes = facts.get("request_outcomes")
+    requests = (
+        f"{facts['request_count']} 次，失败 "
+        f"{sum(n for key, n in outcomes.items() if key in REQUEST_FAILURES)} 次"
+        if isinstance(facts.get("request_count"), int) and isinstance(outcomes, dict)
+        else UNAVAILABLE
+    )
+    budget = obj(facts.get("budget"))
+    channels = (("tavily", "Tavily"), ("exa", "Exa"), ("ai_websearch", "AI"))
+    spent = (
+        "、".join(
+            f"{name} {budget[key]}"
+            + (f"/{RUN_SEARCH_LIMITS[key]}" if RUN_SEARCH_LIMITS[key] is not None else "")
+            for key, name in channels
+        )
+        if all(key in budget for key, _name in channels)
+        else UNAVAILABLE
+    )
+    duration = facts.get("duration_seconds")
+    return " · ".join(
+        (
+            "目标交易日 " + str(facts.get("target_business_date") or UNAVAILABLE),
+            "模型版本 " + str(facts.get("model_version_id") or UNAVAILABLE),
+            "外部请求 " + requests,
+            "检索预算 " + spent,
+            "耗时 " + (number(duration) + " 秒" if duration is not None else UNAVAILABLE),
+        )
     )
 
 

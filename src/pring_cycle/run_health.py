@@ -14,6 +14,8 @@ from pring_cycle.storage import database_connection
 
 SCHEMA = "run-health-v0001"
 TERMINAL = {"completed", "cancelled", "failed", "action_required", "interrupted"}
+# Request results that mean the call itself failed, as opposed to answered without a value.
+REQUEST_FAILURES = {"failed", "interrupted", "timeout", "error"}
 
 
 def _elapsed(start: str | None, end: str | None) -> float | None:
@@ -321,9 +323,7 @@ def gap_diagnostics(
             for item in linked
         ) or any(item.get("classification") == "semantic_validation_failed" for item in attempts):
             diagnosis = "rejected"
-        elif any(
-            item["result"] in {"failed", "interrupted", "timeout", "error"} for item in linked
-        ):
+        elif any(item["result"] in REQUEST_FAILURES for item in linked):
             diagnosis = "request_failed"
         elif any("budget" in reason or "quota" in reason for reason in reasons) or any(
             item.get("outcome") == "budget_exhausted"
