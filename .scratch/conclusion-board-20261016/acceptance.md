@@ -6,6 +6,7 @@
 
 - 隔离安装 `~/.local/share/pring-cycle/dev-venv-cb07`，从 cb-07 worktree 按源变更 `--reinstall-package` 重装。
 - 数据：隔离副本 `/tmp/pring-ui-real-20261015`（正式库只读 backup，调度关闭）；当前投影 `projection-4fcc87ba938168fd3636`，目标交易日 2026-10-14，model-v0015，产出运行 `run-34d49a71553ec24f96ac`。
+- 第二份隔离副本（主 agent 告知正式库 16:15 补跑完成后建）：`/tmp/pring-cb-real-20261016`，正式 SQLite 以 `mode=ro` 只读 backup、原件硬链接复用、未复制密钥、调度关闭（`manifest.json`）。当前投影 `projection-6ff0cd3a7d71cbdfe8e4`，目标交易日 2026-10-15，产出运行 `run-2b21b77b4968f3bbcfc3`（正式安装的定时运行，AI 报告 codex_cli 成功）。该副本起站 8068。
 - 起站：`run_web(paths, 8067)`（只起 Web，不启动 Worker、不发起运行、不调用外部接口或 AI 适配器）。8065、8066 旧预览未动。
 - 浏览器：Playwright 1.62.1 无头 Chromium，`deviceScaleFactor=1`，主题经 `localStorage["pring-cycle-theme"]` 设定；宽度以 `innerWidth`/`clientWidth`/`scrollWidth` 实测。
 
@@ -18,6 +19,7 @@
 | 同一 Web 切片（修复后，含新增 1 例） | 110 passed | 18.6 秒 |
 | 两项必跑冒烟（修复后） | 2 passed | 50.1 秒 |
 | 首屏标记受影响的 e2e 3 例（`test_local_runtime_cli.py` 起 Web/Worker 与离线验证） | 3 passed | 6.7 秒 |
+| 同一 Web 切片（补 ⑦ 段换行样式后） | 110 passed | 21.3 秒 |
 
 未重跑全套。改动文件 `ruff check`、`ruff format --check`、`mypy` 通过（仓库另有 4 个未改动文件格式不符，基线相同）。
 
@@ -28,12 +30,16 @@
 - 明暗 × 宽度：`board-dark-1440.jpg`、`board-light-1440.jpg`、`board-dark-908.jpg`、`board-light-908.jpg`、`board-dark-390.jpg`、`board-light-390.jpg`。
 - 与 Claude 方案 ① 段并排（参考截于约 908 像素宽，故取同宽）：`compare-dark-908.jpg`、`compare-light-908.jpg`；参考原图 `claude-board-reference.jpg`、`claude-board-light-reference.jpg`。
 - 回调前静态外壳（禁用脚本截取）：`shell-before-dash.jpg`。
+- 10-15 投影（第二份副本，板底为 AI 解读首句与"全文"链接）：`board-1015-{dark,light}-{1440,908,390}.jpg`。
+- 同一副本固定正式库的 10-14 投影 `projection-df27cc7bc10d72ee0955`（板底为确定性模板与适配器失败原因"codex_cli 输出改写结论被拒；claude_code_cli 输出改写结论被拒"）：`board-1015copy-pinned-1014-dark-1440.jpg`。顶栏七项随所选投影变为 10-14 / run-0eb9553118ba92a183b9，未混入当前指针。
+- 以上前六张（无前缀）为第一份副本 10-14 投影，板底为确定性模板（适配器超时）。
 
 ## 窄屏与锚点（实测）
 
 - 390 像素明暗：`innerWidth=clientWidth=scrollWidth=390`，无整页横向溢出；结论板左右栏上下堆叠，五维格两列，三核心表在自身容器内横向滚动。908、1440 同样 `scrollWidth` 等于视口宽。
 - `/#conclusion`（1440、390）与固定投影书签 `/?projection=projection-4fcc87ba938168fd3636#conclusion`：落在 01 段，目录高亮"01 周期识别结论"。
 - 旧书签 `/core-assets`→#assets、`/macro`→#confirmation、`/inventory`→#inventory、`/stage-history`→#history 均定位到对应段；主导航高亮"数据看板"。
+- 第二份副本 10-15 投影：明暗 1440/908/390 `scrollWidth` 均等于视口宽（修复 4 后）；`/#conclusion`、固定投影书签与四个旧书签同样定位正确，且 `/core-assets`、`/#assets` 目录高亮为 02。
 - 页面无控制台错误。
 
 ## 发现与修复
@@ -43,8 +49,9 @@
 | 1 | 回调返回前的静态外壳与 Dash 初始顶栏仍是旧三项：`SYSTEM AS OF 2026-10-15T13:34:37+00:00`（UTC ISO）、`投影身份`、`完整度 degraded`，结论段输出原始码 `noncanonical_combination`（票 02 遗留） | 统一为顶栏七项。新增无 dash 依赖的 `page_identity.identity_fields`，外壳、Dash 初始布局与回调三处共用；外壳结论改用 `wording.stage_title`（"暂无正式阶段"）。先改测试（空库外壳七项顺序、带投影外壳显示"降级"/北京时间/无原始码、Dash 外壳七项）见红后改码。首屏性能自检标记 `投影身份` 随之改为 `目标交易日`（`verification.py` 与 e2e 断言） |
 | 2 | 1440 宽顶栏值在窄格内断行（`projection-` / `4fcc…`，`北京` / `时间`）；908 宽同样断行（`run-…f96a` / `c`） | `report.css`：561 像素以上顶栏改为按字段换行、值不断行；560 以下保持两列且长标识可断行。实测 1440 一行、908/562 两到三行，均不截断 |
 | 3 | 1440 宽五维格"不适用"字内断开（`不适` / `用`），计数三行 | 结论板列比改为 1 : 1.4（右栏需容纳五格），计数行 `word-break: keep-all` 只在词间断行。1440 两行读完；908 堆叠时仍有末尾"0"单独成行，可读，未再调 |
+| 4 | 10-15 投影 390 宽 `scrollWidth=548`：⑦ 段缺口清单中的候选 URL（如 cls.cn、sina 长链接）不换行，撑宽整页 | `report.css` 增 `.gap-list { overflow-wrap: anywhere; }`；复测明暗 390 均为 390。10-14 投影无长 URL，故第一轮未暴露 |
 
-修复 2、3 是纯样式，按审查结论不写 CSS 断言，以截图与实测宽度为证据。
+修复 2、3、4 是纯样式，按审查结论不写 CSS 断言，以截图与实测宽度为证据。
 
 ## 与 Claude 方案 ① 段的差异
 
@@ -65,7 +72,12 @@
 - 方案顶栏两行等宽字体；本实现按字段自然换行，1440 一行。
 - 1440 宽时方案未提供参考，本实现左右两栏并列；≤1000 像素堆叠，与方案一致。
 
-既有现象（不属本批次）：`/core-assets` 与 `/#assets` 定位到 02 段，但目录高亮仍为 01（段顶 156～173 像素，超出高亮阈值）；旧预览 8066（main 012f362）同样如此。
+既有现象（不属本批次）：
+
+- 10-14 投影上 `/core-assets` 与 `/#assets` 定位到 02 段，但目录高亮仍为 01（段顶 156～173 像素，超出高亮阈值）；旧预览 8066（main 012f362）同样如此；10-15 投影上高亮正确（段顶 138），疑为图表加载后布局下移，属 ② 段。
+- 10-15 投影由正式安装（前端重建之前的代码）产出，是旧结构：三核心表"最新 / 近 5 日 / 近 120 日 / 走势"显示"旧投影未提供"，确认度写"该版本未提供确认汇总"，运行事实整行"口径不可用"（该运行无持久化健康摘要）。这是按规格"不回填"的预期降级，正式安装切换后新运行才会有这些字段。
+- 10-15 的转折观察为"商品 30 日候选方向无 · 只作观察，不改变正式阶段"（商品状态牛市、30 日候选方向为空）。这是票 03 的选择"30 日方向为无也列入转折观察"，用户可判断是否保留。
+- 固定一个本库不存在的投影号（如第一份副本自产的 `projection-4fcc87ba938168fd3636`）时，回调报 `LookupError`，页面显示"读取失败，请重试"，顶栏停在当前指针的七项。既有行为，未改。
 
 ## 审查
 

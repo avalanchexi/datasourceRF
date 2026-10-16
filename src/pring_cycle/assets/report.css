@@ -71,6 +71,8 @@ html, body { font-size: 14px; }
 .board-right h3 { margin: 2px 0 8px; }
 .board-right .board-rows { margin-top: 12px; }
 .board-fact { margin: 8px 0 0; font-size: 13px; color: var(--ink-muted); overflow-wrap: anywhere; }
+/* Gap entries carry candidate URLs; they wrap inside the page instead of widening it. */
+.gap-list { overflow-wrap: anywhere; }
 .summary-cell p { margin-bottom: 0; }
 .operations-workspace { max-width: 1380px; margin: auto; }
 .operations-workspace > h1 { font-size: 20px; margin: 4px 0 8px; }
