@@ -137,3 +137,14 @@ html, body { font-size: 14px; }
 .report-table .state-tag { display: inline-block; padding: 0 8px; border: 1px solid currentColor; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
 .core-table td { white-space: nowrap; }
 .core-table th:nth-child(6), .core-table td:nth-child(6) { text-align: left; }
+/* 03: overseas cards, four per row on wide screens; details open in the drawer. */
+.overseas-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.overseas-card { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-panel); color: var(--ink-body); font-size: 12.5px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.overseas-card:hover, .overseas-card:focus-visible { border-color: var(--accent); }
+.overseas-card strong { color: var(--ink-strong); font-size: 13px; }
+.overseas-card small { color: var(--ink-muted); font-family: monospace; font-size: 11px; overflow-wrap: anywhere; }
+.overseas-card .card-value { color: var(--ink-strong); font-size: 18px; font-weight: 650; }
+.overseas-others { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 10px; border: 1px dashed var(--line); border-radius: 8px; }
+.overseas-others h3 { grid-column: 1 / -1; margin: 0; }
+@media (max-width: 1100px) { .overseas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .overseas-grid { grid-template-columns: minmax(0, 1fr); } }

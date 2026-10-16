@@ -13,6 +13,7 @@ from dash import dcc, html
 
 from pring_cycle import dashboard as view
 from pring_cycle.domain.trend import TrendRules
+from pring_cycle.drawer import drawer_key, drawer_panel, drawer_trigger
 from pring_cycle.page_identity import identity_fields
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
@@ -412,7 +413,7 @@ def report_board(
             *view._price_sections(macro),
             *view._attribution_sections(macro),
         ],
-        [international_table(macro, projection)],
+        [overseas_cards(macro, projection)],
         [
             html.P(view._confirmation_scope(confirmation)),
             confirmation_tables(confirmation, projection),
@@ -997,7 +998,7 @@ def reading_series(member: dict[str, Any], projection: ProjectionSet | None) -> 
                 "uirevision": projection.envelope.projection_set_id if projection else "empty",
             },
         },
-        config={"displayModeBar": False, "responsive": True},
+        config={"displayModeBar": False},
         className="small-chart",
     )
 
@@ -1285,73 +1286,78 @@ def warrant_table(projection: ProjectionSet | None) -> Any:
 
 
 def context_chart(row: dict[str, Any], projection: ProjectionSet | None, section: str) -> Any:
+    trend = context_trend(row, projection, section)
+    if isinstance(trend, str):
+        return trend
+    return html.Details([html.Summary("走势 / 比较端点"), *trend])
+
+
+def context_trend(
+    row: dict[str, Any], projection: ProjectionSet | None, section: str
+) -> list[Any] | str:
+    """A context row's real-period line, its comparison endpoints and the equivalent table."""
     display = obj(row.get("display"))
     points = objects(display.get("points"))
     if not points:
         return "尚无可用点列" if display else "该版本未提供"
-    return html.Details(
-        [
-            html.Summary("走势 / 比较端点"),
-            dcc.Graph(
-                figure={
-                    "data": [
-                        {
-                            "type": "scatter",
-                            "mode": "lines+markers",
-                            "connectgaps": False,
-                            "x": [point["date"] for point in points],
-                            "y": [point["value"] for point in points],
-                            "customdata": [
-                                evidence_href(
-                                    projection, point["selected_claim_id"], section=section
-                                )
-                                if projection and point.get("selected_claim_id")
-                                else None
-                                for point in points
-                            ],
-                            "line": {"color": "#278a96"},
-                        }
-                    ],
-                    "layout": {
-                        "height": 180,
-                        "margin": {"l": 45, "r": 8, "t": 8, "b": 35},
-                        "paper_bgcolor": "rgba(0,0,0,0)",
-                        "plot_bgcolor": "rgba(0,0,0,0)",
-                        "font": {"color": "#788c96"},
-                    },
-                },
-                config={"displayModeBar": False},
-                className="price-chart",
-            ),
-            *[
-                html.P(
-                    f"{count} 日："
-                    f"{obj(display.get('change_' + str(count))).get('start_date') or '—'} → "
-                    f"{obj(display.get('change_' + str(count))).get('end_date') or '—'}；"
-                    + REASONS.get(
-                        str(obj(display.get("change_" + str(count))).get("reason")), "实际端点"
-                    )
-                )
-                for count in (5, 120)
-            ],
-            table(
-                ("统计期", "值 / 单位"),
-                [
-                    (
-                        point["date"],
-                        value_link(
-                            point["value"],
-                            row.get("unit"),
-                            point.get("selected_claim_id"),
-                            projection,
-                            section=section,
-                        ),
-                    )
-                    for point in points
+    return [
+        dcc.Graph(
+            figure={
+                "data": [
+                    {
+                        "type": "scatter",
+                        "mode": "lines+markers",
+                        "connectgaps": False,
+                        "x": [point["date"] for point in points],
+                        "y": [point["value"] for point in points],
+                        "customdata": [
+                            evidence_href(projection, point["selected_claim_id"], section=section)
+                            if projection and point.get("selected_claim_id")
+                            else None
+                            for point in points
+                        ],
+                        "line": {"color": "#278a96"},
+                    }
                 ],
-            ),
-        ]
-    )
+                "layout": {
+                    "height": 180,
+                    "margin": {"l": 45, "r": 8, "t": 8, "b": 35},
+                    "paper_bgcolor": "rgba(0,0,0,0)",
+                    "plot_bgcolor": "rgba(0,0,0,0)",
+                    "font": {"color": "#788c96"},
+                },
+            },
+            config={"displayModeBar": False},
+            className="price-chart",
+        ),
+        *[
+            html.P(
+                f"{count} 日："
+                f"{obj(display.get('change_' + str(count))).get('start_date') or '—'} → "
+                f"{obj(display.get('change_' + str(count))).get('end_date') or '—'}；"
+                + REASONS.get(
+                    str(obj(display.get("change_" + str(count))).get("reason")), "实际端点"
+                )
+            )
+            for count in (5, 120)
+        ],
+        table(
+            ("统计期", "值 / 单位"),
+            [
+                (
+                    point["date"],
+                    value_link(
+                        point["value"],
+                        row.get("unit"),
+                        point.get("selected_claim_id"),
+                        projection,
+                        section=section,
+                    ),
+                )
+                for point in points
+            ],
+        ),
+    ]
 
 
 HISTORY_LABELS = {
@@ -1458,46 +1464,168 @@ def stage_bands(projection: ProjectionSet | None) -> Any:
     )
 
 
-def international_table(macro: dict[str, object], projection: ProjectionSet | None) -> Any:
+# The page's "海外与汇率" list, in reading order: FX, US Treasuries, then risk and oil. The
+# Worker groups every P2 metric as international context; CNY030 already sits on the bond
+# card and GDP belongs to section 04, so neither shows here.
+OVERSEAS_METRICS = (
+    "CN_USDCNY_CENTRAL_PARITY",
+    "CN_USDCNY_CLOSE_1630",
+    "CN_USDCNY_ECB_REFERENCE_CROSS",
+    "UST10Y_NOMINAL_YIELD",
+    "UST2Y_NOMINAL_YIELD",
+    "UST_2S10S_SPREAD",
+    "CBOE_VIX_INDEX",
+    "NASDAQ_SOX_INDEX",
+    "EIA_BRENT_RBRTE",
+    "EIA_WTI_RWTC",
+)
+OVERSEAS_ELSEWHERE = ("CN_BOND_FULL_PRICE_CNY030", "CN_GDP")
+DIRECTION_ARROWS = {"up": "↑ 上升", "down": "↓ 下降", "flat": "→ 持平"}
+
+
+def _direction_arrow(value: object) -> str:
+    return DIRECTION_ARROWS.get(str(value), "— " + view._state_label(value))
+
+
+def _overseas_card(item: dict[str, Any], key: str) -> Any:
+    metric_id = str(item.get("metric_id") or "")
+    name = str(item.get("name_cn") or metric_id)
+    return drawer_trigger(
+        key,
+        [
+            html.Strong(name),
+            html.Small(metric_id) if name != metric_id else None,
+            html.Span(number(item.get("value"), item.get("unit")), className="card-value"),
+            html.Span(str(item.get("period") or "—")),
+            html.Span(_direction_arrow(item.get("direction"))),
+            html.Span(["近 5 日 ", change_cell(obj(item.get("display")).get("change_5"))]),
+        ],
+        class_name="overseas-card",
+    )
+
+
+def _change_text(value: object) -> str:
+    change = obj(value)
+    if change.get("value") is None:
+        reason = str(change.get("reason") or "旧投影未提供")
+        return f"—（{REASONS.get(reason, reason)}）"
+    return (
+        number(change["value"], change.get("unit"))
+        + f"（{change.get('start_date') or '—'} → {change.get('end_date') or '—'}）"
+    )
+
+
+def _source_link(reference: object) -> Any:
+    label = view._source_label(reference)
+    return html.A(label, href=label) if label.startswith(("https://", "http://")) else label
+
+
+def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet | None) -> Any:
+    metric_id = str(item.get("metric_id") or "")
+    display = obj(item.get("display"))
+    fields: list[tuple[str, Any]] = [
+        (
+            "最新值",
+            value_link(
+                item.get("value"),
+                item.get("unit"),
+                item.get("selected_claim_id"),
+                projection,
+                section="overseas",
+            ),
+        ),
+        (
+            "统计期 / 频率",
+            f"{item.get('period') or '—'} / "
+            + view._state_label(item.get("frequency") or "未提供"),
+        ),
+        ("方向", _direction_arrow(item.get("direction"))),
+        ("近 5 日", _change_text(display.get("change_5"))),
+        ("近 120 日", _change_text(display.get("change_120"))),
+        ("时效", view._state_label(item.get("status"))),
+        ("最近获取", view._state_label(item.get("acquisition_status"))),
+        ("采用来源", _source_link(item.get("source_reference"))),
+        (
+            "证据",
+            [
+                html.A(
+                    "查看固定版本证据 →",
+                    href=evidence_href(
+                        projection, str(item["selected_claim_id"]), section="overseas"
+                    ),
+                )
+                if projection and item.get("selected_claim_id")
+                else "该版本未提供",
+                f" 观测 {item['observation_id']}" if item.get("observation_id") else None,
+            ],
+        ),
+    ]
+    trend = context_trend(item, projection, "overseas")
+    return drawer_panel(
+        key,
+        str(item.get("name_cn") or metric_id),
+        [
+            html.Dl(
+                [part for label, value in fields for part in (html.Dt(label), html.Dd(value))],
+                className="drawer-fields",
+            ),
+            html.H3("走势与比较端点"),
+            *([html.P(trend, className="empty-note")] if isinstance(trend, str) else trend),
+        ],
+        code=metric_id,
+    )
+
+
+def overseas_cards(macro: dict[str, object], projection: ProjectionSet | None) -> Any:
     rows = objects(macro.get("international_context"))
     if not rows:
         return html.P("本投影尚无海外与汇率事实。", className="empty-note")
-    return table(
-        (
-            "指标",
-            "值 / 单位",
-            "方向",
-            "统计期 / 频率",
-            "近 5 日",
-            "近 120 日",
-            "真实期次走势",
-            "时效",
-            "最近获取",
-            "采用来源",
-        ),
-        [
-            (
-                item.get("name_cn", item.get("metric_id")),
-                value_link(
-                    item.get("value"),
-                    item.get("unit"),
-                    item.get("selected_claim_id"),
-                    projection,
-                    section="overseas",
-                ),
-                view._state_label(item.get("direction")),
-                f"{item.get('period') or '—'} / "
-                + view._state_label(item.get("frequency") or "未提供"),
-                change_cell(obj(item.get("display")).get("change_5")),
-                change_cell(obj(item.get("display")).get("change_120")),
-                context_chart(item, projection, "overseas"),
-                view._state_label(item.get("status")),
-                view._state_label(item.get("acquisition_status")),
-                view._source_label(item.get("source_reference")),
-            )
-            for item in rows
-        ],
+    listed = sorted(
+        (item for item in rows if item.get("metric_id") in OVERSEAS_METRICS),
+        key=lambda item: OVERSEAS_METRICS.index(str(item["metric_id"])),
     )
+    others = [
+        item
+        for item in rows
+        if item.get("metric_id") not in OVERSEAS_METRICS
+        and item.get("metric_id") not in OVERSEAS_ELSEWHERE
+    ]
+    keys = _overseas_keys([*listed, *others])
+    return html.Div(
+        [
+            *[_overseas_card(item, key) for item, key in zip(listed, keys, strict=False)],
+            html.Div(
+                [
+                    html.H3("其他背景指标"),
+                    *[
+                        _overseas_card(item, key)
+                        for item, key in zip(others, keys[len(listed) :], strict=True)
+                    ],
+                ],
+                className="overseas-others",
+            )
+            if others
+            else None,
+            # Panels sit outside the cards so the drawer is fixed to the viewport.
+            *[
+                _overseas_drawer(item, key, projection)
+                for item, key in zip([*listed, *others], keys, strict=True)
+            ],
+        ],
+        className="overseas-grid",
+    )
+
+
+def _overseas_keys(rows: Sequence[dict[str, Any]]) -> list[str]:
+    """One drawer key per row: the metric and its member dimensions, numbered if repeated."""
+    keys: list[str] = []
+    for item in rows:
+        dimensions = obj(item.get("dimensions"))
+        key = drawer_key(
+            "overseas", item.get("metric_id"), *(dimensions[name] for name in sorted(dimensions))
+        )
+        keys.append(key if key not in keys else f"{key}-{len(keys) + 1}")
+    return keys
 
 
 def identity_strip(

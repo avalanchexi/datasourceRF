@@ -1,0 +1,49 @@
+/* The site-wide right drawer (pring_cycle.drawer, drawer.js). Colours come from the theme
+   tokens, so light and dark read the same as the page. */
+.drawer-panel[hidden], .drawer-backdrop[hidden] { display: none; }
+.drawer-backdrop { position: fixed; inset: 0; z-index: 200; background: rgb(8 14 24 / 38%); }
+.drawer-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 210;
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 40vw);
+  border-left: 1px solid var(--line);
+  background: var(--surface-panel);
+  box-shadow: var(--shadow);
+  color: var(--ink-body);
+  text-align: left;
+}
+@media (max-width: 759.98px) {
+  .drawer-panel { width: 100vw; border-left: 0; }
+}
+.drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.drawer-header > div { min-width: 0; }
+.drawer-header h2 { margin: 0; color: var(--ink-strong); font-size: 16px; font-weight: 650; }
+.drawer-code { display: block; margin-top: 3px; color: var(--ink-muted); font-family: monospace; font-size: 12px; overflow-wrap: anywhere; }
+.drawer-close {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  text-decoration: none;
+}
+.drawer-close:hover { border-color: var(--accent); color: var(--accent); }
+.drawer-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px 18px 28px; font-size: 13px; overflow-wrap: anywhere; }
+.drawer-body h3 { margin: 18px 0 8px; font-size: 14px; }
+.drawer-fields { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 6px 12px; margin: 0; }
+.drawer-fields dt { color: var(--ink-muted); font-size: 12px; }
+.drawer-fields dd { margin: 0; min-width: 0; color: var(--ink-strong); }
+html.drawer-open { overflow: hidden; }

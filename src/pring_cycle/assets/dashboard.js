@@ -58,7 +58,9 @@
     });
     const anchors = {"/core-assets": "assets", "/macro": "confirmation",
       "/inventory": "inventory", "/stage-history": "history"};
-    const anchor = window.location.hash.slice(1) || anchors[pathname];
+    // A #drawer-<key> fragment opens a drawer (drawer.js); it is not a section to scroll to.
+    const fragment = window.location.hash.slice(1);
+    const anchor = (fragment.startsWith("drawer-") ? "" : fragment) || anchors[pathname];
     const anchorIdentity = pathname + window.location.search + "#" + anchor;
     if (anchor && document.documentElement.dataset.locatedAnchor !== anchorIdentity) {
       const section = document.getElementById(anchor);
