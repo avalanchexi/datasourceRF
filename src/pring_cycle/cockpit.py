@@ -1622,8 +1622,25 @@ def history_label(value: object) -> str:
     return HISTORY_LABELS.get(text, view._stage_label(value) if text.startswith("stage_") else text)
 
 
+def lookback_note(lookback: object) -> list[Any]:
+    """The last confirmed stage looked back for before the window, and what it cost."""
+    if not isinstance(lookback, dict):
+        return []
+    return [
+        html.H3("窗口前的上一确认阶段"),
+        html.P(view._last_confirmed_label(lookback.get("stage"), lookback)),
+        html.P(
+            f"回溯 {lookback.get('years')} 年，区间请求 {lookback.get('core_requests')} 次、"
+            f"日历请求 {lookback.get('calendar_requests')} 次；"
+            "回溯的价格只用于找出上一确认阶段，不进入宏观确认度与模型输入。",
+            className="secondary-copy",
+        ),
+    ]
+
+
 def stage_bands(projection: ProjectionSet | None) -> Any:
-    display = obj(view._dataset(projection, "stage_history").get("display"))
+    document = view._dataset(projection, "stage_history")
+    display = obj(document.get("display"))
     days = objects(display.get("days"))
     if not days:
         return html.P("旧投影未提供对齐的交易日色带；历史事件仍可阅读。")
@@ -1688,6 +1705,8 @@ def stage_bands(projection: ProjectionSet | None) -> Any:
                 calendar,
                 "交易日历与色带等价表格",
                 [
+                    *lookback_note(document.get("last_confirmed_lookback")),
+                    html.H3("交易日与色带"),
                     table(
                         ("交易日", *labels, "投影版本", "更正的版本"),
                         [
@@ -1701,7 +1720,7 @@ def stage_bands(projection: ProjectionSet | None) -> Any:
                             )
                             for day in days
                         ],
-                    )
+                    ),
                 ],
             ),
         ]

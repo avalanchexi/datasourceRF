@@ -209,3 +209,26 @@ def test_a_pinned_set_lists_its_own_history_not_the_read_models_later_days() -> 
     assert "原因 典型组合" in _words(panel)
     assert "projection-later-04-28" not in _text(section)
     assert "2026-04-29" not in _text(section)
+
+
+def test_the_lookback_before_the_window_sits_atop_the_trading_day_drawer() -> None:
+    lookback = {
+        "status": "found",
+        "stage": "stage_ii",
+        "stage_date": "2026-01-15",
+        "years": 5,
+        "core_requests": 3,
+        "calendar_requests": 2,
+    }
+    projection = _history([_day("2026-04-27", "stage_iii")], last_confirmed_lookback=lookback)
+    page = dashboard_page("/", projection, (), ())
+
+    (trigger,) = _find(
+        _section(page), lambda item: "history-calendar" in str(getattr(item, "href", ""))
+    )
+    text = _words(_by_id(page, str(getattr(trigger, "href", ""))[1:]))
+
+    assert text.index("窗口前的上一确认阶段") < text.index("2026-04-27 第三阶段")
+    assert "第二阶段 · Stage II（回溯得出，最近一次在 2026-01-15）" in text
+    assert "回溯 5 年，区间请求 3 次、日历请求 2 次" in text
+    assert _words(page).count("窗口前的上一确认阶段") == 1
