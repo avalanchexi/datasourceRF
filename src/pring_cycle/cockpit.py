@@ -22,6 +22,8 @@ from pring_cycle.retrieval import RUN_SEARCH_LIMITS
 from pring_cycle.run_health import REQUEST_FAILURES, ProducerRun
 from pring_cycle.runs import RunRecord
 from pring_cycle.wording import (
+    _GDP_AGGREGATES,
+    _GDP_MEASURES,
     CORE_STATE_LABELS,
     NO_CHINESE_NAME,
     DisplayName,
@@ -454,7 +456,7 @@ def report_board(
         [overseas_cards(macro, projection)],
         [
             html.P(view._confirmation_scope(confirmation)),
-            confirmation_tables(confirmation, projection),
+            confirmation_cards(confirmation, macro, projection),
         ]
         if confirmation
         else [view._macro_page(projection)],
@@ -1201,41 +1203,175 @@ def member_readings(
     )
 
 
-def confirmation_tables(confirmation: dict[str, Any], projection: ProjectionSet | None) -> Any:
-    groups = []
-    for dimension in objects(confirmation.get("dimensions")):
-        indicators = objects(dimension.get("key_indicators"))
-        groups.append(
-            html.Div(
+def dimension_counts(dimension: dict[str, Any], *, applicable: bool) -> str:
+    """A dimension card's head: each relation's count by its full name, or why there is none."""
+    counts = obj(dimension.get("counts"))
+    if dimension.get("status") != "connected" or not counts:
+        return "尚未接入"
+    text = " · ".join(
+        f"{view._RELATION_LABELS[relation]} {view._integer(counts.get(relation))}"
+        for relation in RELATION_COUNTED
+    )
+    return (
+        text if applicable else f"{text} · 不计数 {len(objects(dimension.get('key_indicators')))}"
+    )
+
+
+def _main_member(item: dict[str, Any]) -> dict[str, Any]:
+    members = objects(item.get("members"))
+    return next((member for member in members if member.get("role") == "main"), None) or (
+        members[0] if members else {}
+    )
+
+
+def _own_reading(item: dict[str, Any]) -> list[Any]:
+    """A key indicator read through its main member alone: value, period and direction, each
+    from the latest source when the member lacks it. No stage, so nothing is counted."""
+    member = _main_member(item)
+    source = obj(member.get("latest_source"))
+
+    def read(field: str) -> object:
+        return member[field] if member.get(field) is not None else source.get(field)
+
+    label = str(member.get("label") or "")
+    if member.get("direction") is not None:
+        direction = _direction_arrow(member["direction"])
+    elif member.get("quadrant") is not None:
+        direction = view._QUADRANT_LABELS.get(str(member["quadrant"]), "未分类")
+    else:
+        direction = "方向未提供"
+    return [
+        html.Small(label) if label and label != item.get("name") else None,
+        html.Span(number(read("value"), read("unit")), className="card-value"),
+        html.Span(str(read("period") or "—")),
+        html.Span(direction),
+        html.Span("不计数", className="uncounted-tag"),
+    ]
+
+
+def _indicator_row(item: dict[str, Any], key: str, *, applicable: bool) -> Any:
+    return drawer_trigger(
+        key,
+        [
+            html.Strong(str(item.get("name") or item.get("metric_id") or "未命名指标")),
+            *(
+                [
+                    html.Span(view._RELATION_LABELS.get(str(item.get("relation")), "未知")),
+                    html.Span(f"读取期 {item.get('statistical_period') or '未提供'}"),
+                ]
+                if applicable
+                else _own_reading(item)
+            ),
+        ],
+        class_name="indicator-row",
+    )
+
+
+def gdp_sectors(macro: dict[str, object], projection: ProjectionSet | None) -> Any:
+    """GDP by sector, each real quarterly growth and nominal year-to-date level as projected."""
+    rows = {
+        (
+            str(obj(row.get("dimensions")).get("aggregate")),
+            str(obj(row.get("dimensions")).get("measure")),
+        ): row
+        for row in objects(macro.get("international_context"))
+        if row.get("metric_id") == "CN_GDP"
+    }
+
+    def cell(aggregate: str, measure: str) -> Any:
+        row = rows.get((aggregate, measure))
+        if row is None:
+            return "未提供"
+        return html.Div(
+            [
+                value_link(
+                    row.get("value"),
+                    row.get("unit"),
+                    row.get("selected_claim_id"),
+                    projection,
+                    section="confirmation",
+                ),
+                html.Small(str(row.get("period") or "—")),
+            ]
+        )
+
+    return table(
+        ("口径", *_GDP_MEASURES.values()),
+        [
+            (name, *(cell(aggregate, measure) for measure in _GDP_MEASURES))
+            for aggregate, name in _GDP_AGGREGATES.items()
+        ],
+    )
+
+
+def _indicator_drawer(
+    item: dict[str, Any],
+    key: str,
+    macro: dict[str, object],
+    projection: ProjectionSet | None,
+    *,
+    applicable: bool,
+) -> Any:
+    return drawer_panel(
+        key,
+        str(item.get("name") or item.get("metric_id") or "未命名指标"),
+        [
+            *(
+                []
+                if applicable
+                else [html.P("非典型组合不判定命题与成熟度", className="empty-note")]
+            ),
+            html.H3("主辅成员"),
+            member_readings(objects(item.get("members")), projection, section="confirmation"),
+            html.H3("派生、依据与缺口、命题与成熟度"),
+            view._indicator_card(item),
+            *(
+                [html.H3("分产业"), gdp_sectors(macro, projection)]
+                if item.get("metric_id") == "CN_GDP"
+                else []
+            ),
+        ],
+        code=str(item.get("metric_id") or ""),
+    )
+
+
+def confirmation_cards(
+    confirmation: dict[str, Any], macro: dict[str, object], projection: ProjectionSet | None
+) -> Any:
+    """Five dimension cards, one row per key indicator; each row opens its drawer."""
+    applicable = confirmation.get("applicable") is True
+    dimensions = objects(confirmation.get("dimensions"))
+    items: list[dict[str, Any]] = []
+    keys: list[str] = []
+    cards = []
+    for dimension in dimensions:
+        rows = []
+        for item in objects(dimension.get("key_indicators")):
+            key = drawer_key("confirmation", item.get("metric_id"), item.get("key"))
+            key = key if key not in keys else f"{key}-{len(keys) + 1}"
+            items.append(item)
+            keys.append(key)
+            rows.append(_indicator_row(item, key, applicable=applicable))
+        cards.append(
+            html.Article(
                 [
                     html.H3(view._DIMENSION_LABELS.get(str(dimension.get("dimension")), "维度")),
-                    html.P(view._dimension_counts(dimension)),
-                    table(
-                        ("关键指标", "确认关系", "读取期", "依据与缺口"),
-                        [
-                            (
-                                item.get("name"),
-                                view._RELATION_LABELS.get(str(item.get("relation")), "未知"),
-                                item.get("statistical_period") or "未提供",
-                                html.Details(
-                                    [
-                                        html.Summary("展开主辅成员、命题与成熟度"),
-                                        member_readings(
-                                            objects(item.get("members")),
-                                            projection,
-                                            section="confirmation",
-                                        ),
-                                        view._indicator_card(item),
-                                    ]
-                                ),
-                            )
-                            for item in indicators
-                        ],
-                    ),
-                ]
+                    html.P(dimension_counts(dimension, applicable=applicable)),
+                    *rows,
+                ],
+                className="dimension-card",
             )
         )
-    return html.Div(groups)
+    return html.Div(
+        [
+            html.Div(cards, className="dimension-grid"),
+            # Panels sit outside the cards so the drawer is fixed to the viewport.
+            *[
+                _indicator_drawer(item, key, macro, projection, applicable=applicable)
+                for item, key in zip(items, keys, strict=True)
+            ],
+        ]
+    )
 
 
 def inventory_lines(confirmation: dict[str, Any], projection: ProjectionSet | None) -> Any:

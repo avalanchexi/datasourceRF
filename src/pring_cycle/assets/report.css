@@ -148,3 +148,15 @@ html, body { font-size: 14px; }
 .overseas-others h3 { grid-column: 1 / -1; margin: 0; }
 @media (max-width: 1100px) { .overseas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .overseas-grid { grid-template-columns: minmax(0, 1fr); } }
+/* 04: five dimension cards, two per row on wide screens; each indicator row opens the drawer. */
+.dimension-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dimension-card { min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-panel); }
+.dimension-card h3 { margin: 0; }
+.dimension-card > p { margin: 2px 0 6px; color: var(--ink-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.indicator-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 6px 4px; border-top: 1px solid var(--line); color: var(--ink-body); font-size: 12.5px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.indicator-row:hover, .indicator-row:focus-visible { background: var(--surface-muted); }
+.indicator-row strong { min-width: 6em; color: var(--ink-strong); font-size: 13px; }
+.indicator-row small { color: var(--ink-muted); font-size: 11.5px; }
+.indicator-row .card-value { color: var(--ink-strong); font-weight: 650; }
+.indicator-row .uncounted-tag { margin-left: auto; padding: 0 8px; border: 1px solid currentColor; border-radius: 999px; color: var(--ink-muted); font-size: 11px; line-height: 1.6; white-space: nowrap; }
+@media (max-width: 1100px) { .dimension-grid { grid-template-columns: minmax(0, 1fr); } }
