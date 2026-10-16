@@ -43,8 +43,8 @@ html, body { font-size: 14px; }
 .report-table td:first-child, .report-table th:first-child { text-align: left; min-width: 65px; }
 .report-table small { display: block; color: var(--ink-muted); white-space: nowrap; }
 .report-table tbody tr:hover { background: var(--surface-muted); }
-.small-chart { min-width: 155px; width: 175px; }
 .asset-block { padding: 10px 0 24px; }
+.small-chart { min-width: 155px; width: 175px; }
 .price-chart { max-width: 100%; }
 .report-section .content-section { padding: 14px; margin: 12px 0; box-shadow: none; border-radius: 3px; }
 .report-section .page-heading { display: none; }
@@ -135,8 +135,6 @@ html, body { font-size: 14px; }
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
 .report-table .state-tag { display: inline-block; padding: 0 8px; border: 1px solid currentColor; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
-.core-table td { white-space: nowrap; }
-.core-table th:nth-child(6), .core-table td:nth-child(6) { text-align: left; }
 /* 03: overseas cards, four per row on wide screens; details open in the drawer. */
 .overseas-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .overseas-card { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-panel); color: var(--ink-body); font-size: 12.5px; text-decoration: none; font-variant-numeric: tabular-nums; }
@@ -160,6 +158,49 @@ html, body { font-size: 14px; }
 .indicator-row .card-value { color: var(--ink-strong); font-weight: 650; }
 .indicator-row .uncounted-tag { margin-left: auto; padding: 0 8px; border: 1px solid currentColor; border-radius: 999px; color: var(--ink-muted); font-size: 11px; line-height: 1.6; white-space: nowrap; }
 @media (max-width: 1100px) { .dimension-grid { grid-template-columns: minmax(0, 1fr); } }
+/* 06: one row per interval of one state; its days open in the drawer. */
+.history-intervals { list-style: none; margin: 8px 0 12px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-panel); }
+.history-intervals li + li { border-top: 1px solid var(--line); }
+.history-interval { display: grid; grid-template-columns: 9em minmax(0, 1fr) 4.5em 7em; gap: 12px; align-items: baseline; padding: 8px 12px; color: var(--ink-body); font-size: 13px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.history-interval:hover, .history-interval:focus-visible { color: var(--accent); }
+.history-interval strong { color: var(--ink-strong); white-space: nowrap; }
+.history-interval span:nth-child(3) { text-align: right; }
+.history-interval span:nth-child(4) { color: var(--ink-muted); font-size: 12px; }
+.drawer-body .record-row { display: flex; flex-direction: column; gap: 2px; }
+.drawer-body .report-table td:first-child { white-space: nowrap; }
+@media (max-width: 560px) { .history-interval { display: flex; flex-wrap: wrap; gap: 2px 10px; } .history-interval span:nth-child(4) { flex-basis: 100%; } }
+/* 02: three asset cards side by side; observations scroll inside the card; details open in the drawer. */
+.core-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.core-card { min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--asset-bond); border-radius: 8px; background: var(--surface-panel); }
+.core-card.core-stock { border-left-color: var(--asset-equity); }
+.core-card.core-commodity { border-left-color: var(--asset-commodity); }
+.core-card-head { display: grid; gap: 6px; font-size: 12.5px; color: var(--ink-body); }
+.core-card-title { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+.core-card-title strong { color: var(--ink-strong); font-size: 14px; }
+.core-card-title small { color: var(--ink-muted); font-family: monospace; font-size: 11px; overflow-wrap: anywhere; }
+.core-card .state-tag { display: inline-block; padding: 0 8px; border: 1px solid currentColor; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
+.core-card .card-value { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; color: var(--ink-strong); font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.core-card .card-value small { color: var(--ink-muted); font-size: 11.5px; font-weight: 400; }
+.card-facts { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 2px 8px; margin: 0; font-variant-numeric: tabular-nums; }
+.card-facts dt { color: var(--ink-muted); }
+.card-facts dd { margin: 0; color: var(--ink-strong); }
+.card-button { justify-self: start; padding: 3px 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--accent); font-size: 12px; text-decoration: none; }
+.card-button:hover, .card-button:focus-visible { border-color: var(--accent); }
+.core-card .card-chart { height: 160px; }
+.core-card .secondary-copy { margin: 2px 0 0; color: var(--ink-muted); font-size: 11.5px; line-height: 1.5; }
+.report-section .core-card h3 { margin: 12px 0 4px; font-size: 13px; }
+.core-card .table-scroll { max-height: 320px; overflow-y: auto; margin: 4px 0 0; }
+.core-card thead th { position: sticky; top: 0; z-index: 1; }
+.core-card .report-table td:not(:first-child) { white-space: nowrap; }
+/* The name link stretches over its row, so the whole row opens the drawer. */
+.core-card tbody tr { position: relative; }
+.row-trigger { color: var(--ink-strong); text-decoration: none; }
+.row-trigger::after { content: ""; position: absolute; inset: 0; }
+.row-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.consistency-card { max-width: 760px; margin: 12px 0; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-panel); }
+.report-section .consistency-card h3 { margin: 0 0 4px; font-size: 13px; }
+.report-section .consistency-card p { margin: 0 0 6px; }
+@media (max-width: 999.98px) { .core-cards { grid-template-columns: minmax(0, 1fr); } }
 
 /* 数据链路桑基图：连线按请求结果四色、节点按列分色；dashboard.js 依主题读这些变量重绘。 */
 :root[data-theme="light"],

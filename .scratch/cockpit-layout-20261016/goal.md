@@ -55,7 +55,7 @@
 | 04 ② 三列资产卡 | ready-for-agent | |
 | 05 ④ 两列维度卡 | ready-for-agent | |
 | 06 ⑤ 库存精简 | ready-for-agent | |
-| 07 ⑥ 区间列表 | ready-for-agent | |
+| 07 ⑥ 区间列表 | done（同状态连续日合并区间、区间抽屉逐日与更正；等价表格抽屉顶部含回溯小节 lookback_note；⑥ 段 ~8000→611px） | 86d5094、d5e04b1、aa2aca7 |
 | 08 ⑦ 精简 | done（gap_preview 前 5 条＋查看全部抽屉；report_summary 四态；报告详情与发布日历抽屉；⑦ 段 1838→689px） | 63cd500 |
 | 09 桑基图 | done（FLOW_RESULTS 一处映射四色；flow_sankey 中文名·数、其他（N）、悬停占比；主题变量 restyle；请求表限高 480 吸顶） | 26f8313、9383800 |
 | 10 集成验收 | ready-for-agent | |
