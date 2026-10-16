@@ -32,6 +32,7 @@
 **测试与耗时**
 - 受影响 Web 用例：`tests/web/*.py` 130 passed（合入 cockpit-layout 后复跑 21.8 秒）。
 - 两项必跑冒烟（flock）：2 passed（首次 56.6 秒；合入后复跑 84.9 秒，另等锁约 5.5 分钟）。
+- 再次合入 cockpit-layout（含票 04、07；report.css 两处并列追加的冲突保留双方）后复跑：`tests/web/*.py` 139 passed（22.2 秒），两项冒烟 2 passed（47.4 秒），ruff / mypy 通过。
 - 渲染首页的确认集成用例 `test_confirmation_publish / policy / bond_attribution / inventory / cumulative_quarterly`：279 passed、4 failed（7 分 41 秒）；4 例在未改动的 cockpit-layout 代码上同样失败（断言旧首页文案"PPI：支持""政策利率：支持""库存象限：未确认"与仓单行原文），非本票引入，留给集成验收（票 10）处理。
 - `ruff check`、`ruff format --check` 通过；`mypy src/pring_cycle/cockpit.py` 无报错（测试文件导入的 `test_dashboard_contract` 有既有报错，与本票无关）。
 
