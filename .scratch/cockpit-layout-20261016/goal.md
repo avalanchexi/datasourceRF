@@ -52,7 +52,7 @@
 | 01 抽屉与 ③ 卡片 | done（drawer.py 三函数＋assets/drawer.js 统一开合；③ 名单 OVERSEAS_METRICS 卡片网格；其他背景指标卡；用法见 notes/cockpit-layout/drawer-usage.md） | c3d2158 |
 | 02 中文名 | done（wording.display_name 成员项→目录名→指标项→代号；source_name 供 09；row_name/name_cell/name_note；1630 单位元/美元；沪深 300 更正） | d1e04b7、c1837d3 |
 | 03 ① 非典型读法 | done（只差一项读 noncanonical_basis；非典型右栏一行；转折观察只列反向；缺口抽屉 conclusion-gaps。遗留：tests/integration/test_confirmation_publish.py 两例自结论板批次起即失败，待审查修复时改写） | 7ab64a4、d9fb04d |
-| 04 ② 三列资产卡 | ready-for-agent | |
+| 04 ② 三列资产卡 | done（① 去三核心表加"三核心详见 ②"；② 三卡＋160px 小图＋同类观察限高 320＋行抽屉；价格一致性窄卡；单位家/倍/比值；② 段 ~5005→1321px。遗留：家数两位小数"978.00 家"） | 3d14527、da572cb；合并 5911e74（report.css 冲突两边保留，合并后 tests/web 133 passed） |
 | 05 ④ 两列维度卡 | ready-for-agent | |
 | 06 ⑤ 库存精简 | ready-for-agent | |
 | 07 ⑥ 区间列表 | done（同状态连续日合并区间、区间抽屉逐日与更正；等价表格抽屉顶部含回溯小节 lookback_note；⑥ 段 ~8000→611px） | 86d5094、d5e04b1、aa2aca7 |
