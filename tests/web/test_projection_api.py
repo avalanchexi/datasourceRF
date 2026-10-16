@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
@@ -21,6 +22,11 @@ LPR_URL = "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html"
 LPR_ANNOUNCEMENT = (
     Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html"
 ).read_bytes()
+
+
+def _visible(document: str) -> str:
+    """A served document's text as a reader sees it, without its markup."""
+    return " ".join(re.sub(r"<[^>]+>", " ", document).split())
 
 
 def _route(application: FastAPI, name: str) -> Any:
@@ -119,10 +125,52 @@ def test_deferred_dashboard_shell_is_meaningful_before_interactive_assets_load(
 
     assert "data-pring-meaningful-content='true'" in document
     assert "周期驾驶舱" in document
-    assert "投影身份" in document
+    # Before the callback lands, the header already names the topbar's seven fields.
+    assert (
+        "目标交易日 尚无 模型版本 尚无 投影 等待首次完整运行 完整度 尚无 "
+        "分析截止 尚无 运行 未提供 页面生成"
+    ) in _visible(document)
+    assert "SYSTEM AS OF" not in document
+    assert "投影身份" not in document
     assert "等待首次完整运行" in document
     assert "核心资产" in document
     assert "运行状态" in document
+
+
+def test_deferred_dashboard_shell_reads_its_projection_as_the_topbar_does(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    envelope = ProjectionEnvelope(
+        projection_set_id="projection-shell-test",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        target_business_date="2026-08-28",
+        evidence_snapshot_id="evidence-shell-test",
+        model_version_id="model-v0001",
+        trend_rule_version="trend-v0001",
+        evidence_window_start="2026-03-09",
+        evidence_window_end="2026-08-28",
+        generated_at=datetime(2026, 8, 28, 13, 1, tzinfo=UTC),
+        completeness="degraded",
+        refresh_status="changed",
+        warnings=(),
+    )
+    datasets: dict[str, dict[str, Any]] = {
+        name: {"projection_set_id": envelope.projection_set_id} for name in ANALYTICAL_DATASETS
+    }
+    datasets["cycle_overview"].update(current_stage=None, stage_reason="noncanonical_combination")
+    ProjectionSetRepository(paths.database).publish(envelope, datasets)
+
+    document = _initial_dashboard_html(paths, failed=False)
+
+    assert (
+        "目标交易日 2026-08-28 模型版本 model-v0001 投影 projection-shell-test 完整度 降级 "
+        "分析截止 2026-08-28 21:00:00 北京时间 运行 未提供 页面生成"
+    ) in _visible(document)
+    assert "暂无正式阶段" in _visible(document)
+    assert "noncanonical_combination" not in document
+    assert "degraded" not in document
 
 
 def test_dashboard_deep_links_return_the_interactive_index(tmp_path: Path) -> None:

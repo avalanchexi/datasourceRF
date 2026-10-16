@@ -236,7 +236,7 @@ def _benchmark_dashboard_first_content(port: int) -> float:
     required = (
         "data-pring-meaningful-content='true'",
         "周期驾驶舱",
-        "投影身份",
+        "目标交易日",
         "核心资产",
         "运行状态",
     )

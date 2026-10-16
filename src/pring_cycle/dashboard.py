@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from dataclasses import asdict
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, cast
 from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
@@ -14,6 +14,7 @@ from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.domain.trend import TrendRules
 from pring_cycle.freshness import CALENDAR_FALLBACK_NOTE, freshness_statement
 from pring_cycle.navigation import DASHBOARD_NAVIGATION
+from pring_cycle.page_identity import identity_fields
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS
@@ -28,11 +29,8 @@ def dashboard_shell(
     reports: Sequence[ReportSnapshot],
     *,
     source_contract_notice: str | None = None,
+    producer: ProducerRun | None = None,
 ) -> html.Div:
-    envelope = projection.envelope if projection is not None else None
-    system_as_of = envelope.system_as_of.isoformat() if envelope is not None else "尚无投影"
-    projection_id = envelope.projection_set_id if envelope is not None else "等待首次完整运行"
-    completeness = envelope.completeness if envelope is not None else "不可用"
     drawer_document = _projection_detail(projection, runs, reports)
     projection_notes = _correction_notes(
         projection.corrections if projection is not None else {}, "当前投影", "投影"
@@ -60,9 +58,10 @@ def dashboard_shell(
                     ),
                     html.Div(
                         [
-                            _metadata("SYSTEM AS OF", system_as_of),
-                            _metadata("投影身份", projection_id),
-                            _metadata("完整度", completeness),
+                            _metadata(label, value)
+                            for label, value in identity_fields(
+                                projection, producer=producer, rendered_at=datetime.now(UTC)
+                            )
                         ],
                         className="projection-strip",
                         id="projection-strip",

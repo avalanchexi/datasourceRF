@@ -8,12 +8,12 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, cast
 from urllib.parse import urlencode
-from zoneinfo import ZoneInfo
 
 from dash import dcc, html
 
 from pring_cycle import dashboard as view
 from pring_cycle.domain.trend import TrendRules
+from pring_cycle.page_identity import identity_fields
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS
@@ -1500,41 +1500,16 @@ def international_table(macro: dict[str, object], projection: ProjectionSet | No
     )
 
 
-def local_time(value: datetime) -> str:
-    return value.astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M:%S 北京时间")
-
-
-_COMPLETENESS = {"complete": "完整", "degraded": "降级"}
-
-
 def identity_strip(
     projection: ProjectionSet | None,
     *,
     producer: ProducerRun | None,
     rendered_at: datetime,
 ) -> list[Any]:
-    """The seven identity fields of the page; all belong to ``projection``, never the pointer."""
-    run = producer.run_id if producer else "未提供"
-    generated = local_time(rendered_at)
-    if projection is None:
-        return [
-            view._metadata("目标交易日", "尚无"),
-            view._metadata("模型版本", "尚无"),
-            view._metadata("投影", "等待首次完整运行"),
-            view._metadata("完整度", "尚无"),
-            view._metadata("分析截止", "尚无"),
-            view._metadata("运行", run),
-            view._metadata("页面生成", generated),
-        ]
-    envelope = projection.envelope
+    """The topbar's seven identity fields as label / value pairs."""
     return [
-        view._metadata("目标交易日", envelope.target_business_date),
-        view._metadata("模型版本", envelope.model_version_id),
-        view._metadata("投影", envelope.projection_set_id),
-        view._metadata("完整度", _COMPLETENESS.get(envelope.completeness, envelope.completeness)),
-        view._metadata("分析截止", local_time(envelope.system_as_of)),
-        view._metadata("运行", run),
-        view._metadata("页面生成", generated),
+        view._metadata(label, value)
+        for label, value in identity_fields(projection, producer=producer, rendered_at=rendered_at)
     ]
 
 

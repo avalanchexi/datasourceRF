@@ -33,6 +33,7 @@ from pring_cycle.logging import write_runtime_event
 from pring_cycle.maintenance import mutation_rejection
 from pring_cycle.models import ModelRepository
 from pring_cycle.navigation import DASHBOARD_NAVIGATION, LEGACY_ROUTES
+from pring_cycle.page_identity import identity_fields
 from pring_cycle.projections import ProjectionSet, ProjectionSetRepository
 from pring_cycle.release_calendar import current_lpr_period, lpr_release_calendar
 from pring_cycle.reports import ReportRepository, ReportSnapshot
@@ -49,6 +50,7 @@ from pring_cycle.source_contract_review import (
 )
 from pring_cycle.storage import database_health
 from pring_cycle.web_config import HostBoundary, WebConfig
+from pring_cycle.wording import stage_title
 
 COMMAND_BODY_LIMIT = 4096
 
@@ -410,24 +412,24 @@ def _initial_dashboard_html(paths: RuntimePaths, *, failed: bool) -> str:
 
 def _meaningful_dashboard_shell(paths: RuntimePaths, *, status: str) -> str:
     projection = _current_projection(paths)
-    envelope = projection.envelope if projection is not None else None
-    system_as_of = envelope.system_as_of.isoformat() if envelope is not None else "尚无投影"
-    projection_id = envelope.projection_set_id if envelope is not None else "等待首次完整运行"
-    completeness = envelope.completeness if envelope is not None else "不可用"
+    identity = "".join(
+        f"<dt>{escape(label)}</dt><dd>{escape(value)}</dd>"
+        for label, value in identity_fields(
+            projection,
+            producer=_producer(paths, projection, _runs(paths)),
+            rendered_at=datetime.now(UTC),
+        )
+    )
     navigation = "".join(
         f"<a href='{escape(path)}'>{escape(label)}</a>" for path, label in DASHBOARD_NAVIGATION
     )
     notice = _source_contract_notice(paths)
     notice_html = f"<aside role='alert'>{escape(notice)}</aside>" if notice is not None else ""
     overview = projection.datasets.get("cycle_overview", {}) if projection else {}
-    conclusion = str(
-        overview.get("current_stage") or overview.get("stage_reason") or "等待首次完整运行"
-    )
+    conclusion = stage_title(overview.get("current_stage")) if projection else "等待首次完整运行"
     return (
         "<header><p>PRING CYCLE</p><h1>周期驾驶舱</h1>"
-        f"<dl><dt>SYSTEM AS OF</dt><dd>{escape(system_as_of)}</dd>"
-        f"<dt>投影身份</dt><dd>{escape(projection_id)}</dd>"
-        f"<dt>完整度</dt><dd>{escape(completeness)}</dd></dl></header>"
+        f"<dl>{identity}</dl></header>"
         f"{notice_html}"
         f"<nav aria-label='一级导航'>{navigation}</nav>"
         "<main id='initial-page-content' data-pring-meaningful-content='true'>"
@@ -555,12 +557,19 @@ def _load_dashboard(
             suppress_callback_exceptions=True,
             update_title="更新投影视图…",
         )
-        dashboard.layout = lambda: dashboard_shell(
-            _current_projection(paths),
-            _runs(paths),
-            _reports(paths),
-            source_contract_notice=_source_contract_notice(paths),
-        )
+
+        def dashboard_layout() -> Any:
+            projection = _current_projection(paths)
+            runs = _runs(paths)
+            return dashboard_shell(
+                projection,
+                runs,
+                _reports(paths),
+                source_contract_notice=_source_contract_notice(paths),
+                producer=_producer(paths, projection, runs),
+            )
+
+        dashboard.layout = dashboard_layout
 
         dashboard_index_endpoint = next(
             cast(Any, route).endpoint
@@ -613,14 +622,7 @@ def _load_dashboard(
                 )
                 reports = _reports(paths)
                 identity = projection.envelope.projection_set_id if projection else None
-                produced_by = _producer_run(paths, projection, runs)
-                producer = (
-                    ProducerRun(
-                        produced_by.run_id, RunHealth(paths.database).latest(produced_by.run_id)
-                    )
-                    if produced_by
-                    else None
-                )
+                producer = _producer(paths, projection, runs)
                 strip = identity_strip(projection, producer=producer, rendered_at=datetime.now(UTC))
                 # The producer's summary can land after the page first renders.
                 signature = [pathname, search, identity, repr(producer)]
@@ -767,6 +769,16 @@ def _current_projection(paths: RuntimePaths) -> ProjectionSet | None:
         return ProjectionSetRepository(paths.database).current()
     except (LookupError, OSError):
         return None
+
+
+def _producer(
+    paths: RuntimePaths, projection: ProjectionSet | None, runs: Sequence[RunRecord]
+) -> ProducerRun | None:
+    """The run that produced ``projection`` with its persisted summary, as pages show it."""
+    produced_by = _producer_run(paths, projection, runs)
+    if produced_by is None:
+        return None
+    return ProducerRun(produced_by.run_id, RunHealth(paths.database).latest(produced_by.run_id))
 
 
 def _producer_run(

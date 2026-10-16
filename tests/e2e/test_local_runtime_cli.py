@@ -281,7 +281,7 @@ def test_web_and_worker_start_offline_as_independent_local_processes(tmp_path: P
         assert response.status == 200
         assert "data-pring-meaningful-content='true'" in loaded_page
         assert "周期驾驶舱" in loaded_page
-        assert "投影身份" in loaded_page
+        assert "目标交易日" in loaded_page
         assert "核心资产" in loaded_page
         assert "运行状态" in loaded_page
 

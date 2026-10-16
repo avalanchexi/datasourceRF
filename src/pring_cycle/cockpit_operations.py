@@ -12,7 +12,8 @@ from zoneinfo import ZoneInfo
 from dash import dcc, html
 
 from pring_cycle import dashboard as view
-from pring_cycle.cockpit import coverage_table, local_time, number, obj, objects, table
+from pring_cycle.cockpit import coverage_table, number, obj, objects, table
+from pring_cycle.page_identity import local_time
 from pring_cycle.run_health import comparison, filtered_flow
 from pring_cycle.runs import RunRecord
 

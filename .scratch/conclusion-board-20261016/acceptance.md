@@ -1,0 +1,79 @@
+# 结论板对齐批次集成验收（票 07，2026-10-16）
+
+基线：集成分支 `conclusion-board` 69c1529（01–06 与审查修复已合入）；验收分支 `cb-07`。
+
+## 环境与边界
+
+- 隔离安装 `~/.local/share/pring-cycle/dev-venv-cb07`，从 cb-07 worktree 按源变更 `--reinstall-package` 重装。
+- 数据：隔离副本 `/tmp/pring-ui-real-20261015`（正式库只读 backup，调度关闭）；当前投影 `projection-4fcc87ba938168fd3636`，目标交易日 2026-10-14，model-v0015，产出运行 `run-34d49a71553ec24f96ac`。
+- 起站：`run_web(paths, 8067)`（只起 Web，不启动 Worker、不发起运行、不调用外部接口或 AI 适配器）。8065、8066 旧预览未动。
+- 浏览器：Playwright 1.62.1 无头 Chromium，`deviceScaleFactor=1`，主题经 `localStorage["pring-cycle-theme"]` 设定；宽度以 `innerWidth`/`clientWidth`/`scrollWidth` 实测。
+
+## 测试
+
+| 范围 | 结果 | 耗时 |
+|---|---|---|
+| `tests/web/` 全部 8 个文件 + `tests/reports/test_noncanonical_reading.py`（开验前） | 109 passed | 22.7 秒 |
+| 两项必跑冒烟（flock，开验前） | 2 passed | 45.0 秒 |
+| 同一 Web 切片（修复后，含新增 1 例） | 110 passed | 18.6 秒 |
+| 两项必跑冒烟（修复后） | 2 passed | 50.1 秒 |
+| 首屏标记受影响的 e2e 3 例（`test_local_runtime_cli.py` 起 Web/Worker 与离线验证） | 3 passed | 6.7 秒 |
+
+未重跑全套。改动文件 `ruff check`、`ruff format --check`、`mypy` 通过（仓库另有 4 个未改动文件格式不符，基线相同）。
+
+## 截图
+
+均在本目录 `screenshots/`，范围为顶栏到 01 段底（含板底两行）。
+
+- 明暗 × 宽度：`board-dark-1440.jpg`、`board-light-1440.jpg`、`board-dark-908.jpg`、`board-light-908.jpg`、`board-dark-390.jpg`、`board-light-390.jpg`。
+- 与 Claude 方案 ① 段并排（参考截于约 908 像素宽，故取同宽）：`compare-dark-908.jpg`、`compare-light-908.jpg`；参考原图 `claude-board-reference.jpg`、`claude-board-light-reference.jpg`。
+- 回调前静态外壳（禁用脚本截取）：`shell-before-dash.jpg`。
+
+## 窄屏与锚点（实测）
+
+- 390 像素明暗：`innerWidth=clientWidth=scrollWidth=390`，无整页横向溢出；结论板左右栏上下堆叠，五维格两列，三核心表在自身容器内横向滚动。908、1440 同样 `scrollWidth` 等于视口宽。
+- `/#conclusion`（1440、390）与固定投影书签 `/?projection=projection-4fcc87ba938168fd3636#conclusion`：落在 01 段，目录高亮"01 周期识别结论"。
+- 旧书签 `/core-assets`→#assets、`/macro`→#confirmation、`/inventory`→#inventory、`/stage-history`→#history 均定位到对应段；主导航高亮"数据看板"。
+- 页面无控制台错误。
+
+## 发现与修复
+
+| # | 现象（修复前截图在会话 scratchpad） | 处理 |
+|---|---|---|
+| 1 | 回调返回前的静态外壳与 Dash 初始顶栏仍是旧三项：`SYSTEM AS OF 2026-10-15T13:34:37+00:00`（UTC ISO）、`投影身份`、`完整度 degraded`，结论段输出原始码 `noncanonical_combination`（票 02 遗留） | 统一为顶栏七项。新增无 dash 依赖的 `page_identity.identity_fields`，外壳、Dash 初始布局与回调三处共用；外壳结论改用 `wording.stage_title`（"暂无正式阶段"）。先改测试（空库外壳七项顺序、带投影外壳显示"降级"/北京时间/无原始码、Dash 外壳七项）见红后改码。首屏性能自检标记 `投影身份` 随之改为 `目标交易日`（`verification.py` 与 e2e 断言） |
+| 2 | 1440 宽顶栏值在窄格内断行（`projection-` / `4fcc…`，`北京` / `时间`）；908 宽同样断行（`run-…f96a` / `c`） | `report.css`：561 像素以上顶栏改为按字段换行、值不断行；560 以下保持两列且长标识可断行。实测 1440 一行、908/562 两到三行，均不截断 |
+| 3 | 1440 宽五维格"不适用"字内断开（`不适` / `用`），计数三行 | 结论板列比改为 1 : 1.4（右栏需容纳五格），计数行 `word-break: keep-all` 只在词间断行。1440 两行读完；908 堆叠时仍有末尾"0"单独成行，可读，未再调 |
+
+修复 2、3 是纯样式，按审查结论不写 CSS 断言，以截图与实测宽度为证据。
+
+## 与 Claude 方案 ① 段的差异
+
+有意偏离（规格写明）：
+
+- **候选分列**：方案写"牛市 · 0 天"；本实现按词汇表分两行"30 日候选方向 牛市 / 资产候选状态 无"。
+- **判法取冻结规则**：方案句子漏噪声带与持续门槛；本实现读 model-v0015 冻结规则：`MA120 + 20 日斜率定稳定牛熊，噪声带 1.5×20 日波动，持续 8 日确认，30 日候选只作转折观察；宏观与库存只做事后确认，不改写阶段 · model-v0015`。
+- **上次确认保留回溯**：方案样例为"无"；真实投影 `last_confirmed_stage=stage_iii`，页面显示"第三阶段 · Stage III"。该投影 `last_confirmed_lookback` 为空（窗口内即得），按 ADR-0040 不附回溯说明、不补造；规格 Further Notes 所说"回溯得出"与此投影实际字段不符，以投影为准。
+- **时间口径**：方案顶栏写"(UTC)"；本实现按规格一律北京时间并标注。
+- **转折观察**：方案末尾"0 天"不沿用，写"无（三核心 30 日候选均与当前状态同向）"。
+
+视觉差异（未改，留用户判断）：
+
+- 方案确认度标题"不适用"大字、其余小字；本实现整行同级粗体，文案为"不适用 · 17 项关键指标 · 无正式阶段，不计数 · 规则 macro-confirmation-v0001"。
+- 方案原因行"非典型组合"与旁证数值加粗；本实现正文不加粗。
+- 方案五维格计数缩写"支 0 / 反 0 / 观 0 / 未 0"；本实现按规格写全"支持 / 反证 / 仅观察 / 未确认"。
+- 方案价格一致性用"pp"；本实现沿用"个百分点"及广度口径说明，数值为真实投影（−0.27 / −14.26 / −13.99，股市广度 34.1%，篮子 5/7），方案为样例数字。
+- 方案顶栏两行等宽字体；本实现按字段自然换行，1440 一行。
+- 1440 宽时方案未提供参考，本实现左右两栏并列；≤1000 像素堆叠，与方案一致。
+
+既有现象（不属本批次）：`/core-assets` 与 `/#assets` 定位到 02 段，但目录高亮仍为 01（段顶 156～173 像素，超出高亮阈值）；旧预览 8066（main 012f362）同样如此。
+
+## 审查
+
+- 集成分支两轴审查已由主 agent 完成并修复，见 [review.md](review.md)。
+- 本票改动另跑一次原生 `codex exec -s read-only` 两轴审查：规格轴无问题，并实测导入 `web` 不加载 Dash；规范轴 1 条建议（外壳测试断言 `<dt>/<dd>` 标记而非可见文本）已改为去标记后断言可见文本与顺序。阻断：无。
+
+## 待用户确认
+
+- 与 Claude 方案 ① 段逐项核对（上表差异是否接受）。
+- 关口 C：前端重建批次的用户逐段验收，以本版本为准；未代填。
+- 正式安装、正式库、调度均未切换。

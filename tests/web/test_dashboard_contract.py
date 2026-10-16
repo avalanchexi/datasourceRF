@@ -107,9 +107,12 @@ def test_report_workspace_renders_immutable_metadata_and_selected_body() -> None
 def test_dashboard_shell_exposes_projection_identity_and_evidence_drawer() -> None:
     shell = _text(dashboard_shell(None, (), ()))
 
-    assert "SYSTEM AS OF" in shell
-    assert "投影身份" in shell
-    assert "完整度" in shell
+    assert (
+        "目标交易日 尚无 模型版本 尚无 投影 等待首次完整运行 完整度 尚无 "
+        "分析截止 尚无 运行 未提供 页面生成"
+    ) in " ".join(shell.split())
+    assert "SYSTEM AS OF" not in shell
+    assert "投影身份" not in shell
     assert "投影详情与证据追溯" in shell
 
 
