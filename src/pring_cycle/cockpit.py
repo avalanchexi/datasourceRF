@@ -332,6 +332,7 @@ def report_board(
     runs: Sequence[RunRecord],
     reports: Sequence[ReportSnapshot],
     stage_events: Sequence[dict[str, object]] = (),
+    release_events: Sequence[dict[str, object]] = (),
     *,
     producer_run: ProducerRun | None = None,
     trend_rules: TrendRules | None = None,
@@ -435,13 +436,18 @@ def report_board(
             html.H3("完整度与缺期"),
             coverage_table(obj(macro.get("coverage"))),
             *view._freshness_basis(projection),
-            view._gap_list(overview.get("gap_list")) if projection else html.P("尚无分析投影。"),
+            *(gap_preview(overview.get("gap_list")) if projection else [html.P("尚无分析投影。")]),
             html.P(
                 [
-                    html.A("发布日历", href="/release-calendar" + pinned),
+                    drawer_trigger(drawer_key("reading", "calendar"), "发布日历"),
                     " · ",
                     html.A("数据链路与证据", href="/data-chain" + pinned),
                 ]
+            ),
+            drawer_panel(
+                drawer_key("reading", "calendar"),
+                "发布日历",
+                view._release_calendar_body(projection, release_events),
             ),
             html.H3("本投影解读"),
             html.P(
@@ -453,7 +459,7 @@ def report_board(
             )
             if report_run
             else None,
-            view._report_reader(report) if report else html.P("报告尚未生成，或旧投影未提供解读。"),
+            *report_summary(report, pinned),
             html.Button(
                 "为本投影生成报告",
                 id="generate-report-command",
@@ -932,6 +938,77 @@ def reading_line(
     ]
 
 
+def report_summary(report: ReportSnapshot | None, pinned: str) -> list[Any]:
+    """Section 07's reading of the board's report: the AI reading's first paragraph, or the
+    template note with the noncanonical reading; identity and facts open in a drawer."""
+    if report is None:
+        return [html.P("报告尚未生成，或旧投影未提供解读。")]
+    body = report.body if report.body_retained else {}
+    sections = objects(body.get("ai_explanation"))
+    if report.adapter == "deterministic":
+        summary: list[Any] = [
+            html.P(reading_line(report, pinned, pending=False)),
+            *(
+                html.Div(
+                    [
+                        html.Strong(str(item.get("title") or "未命名章节")),
+                        html.P(str(item.get("explanation") or ""), className="body-copy"),
+                    ]
+                )
+                for item in sections
+                if body.get("explanation_source") == "deterministic_template"
+            ),
+        ]
+    else:
+        summary = [
+            html.P("AI 解读 · " + report.adapter, className="secondary-copy"),
+            html.P(str(sections[0].get("explanation") or ""), className="body-copy")
+            if sections
+            else None,
+        ]
+    if not report.body_retained:
+        summary.append(html.P("正文已不在保留期；报告身份仍可在详情中核对。"))
+    key = drawer_key("reading", "report")
+    return [
+        *summary,
+        html.P(drawer_trigger(key, "查看报告详情 →")),
+        drawer_panel(key, "报告详情", report_details(report), code=report.report_snapshot_id),
+    ]
+
+
+def report_details(report: ReportSnapshot) -> list[Any]:
+    """The report's identity, the projection it read, its cutoff and timeliness, the AI
+    reading in full, and the structured facts it bound (three cores, verified results).
+    A template reading is already whole on the page."""
+    if not report.body_retained:
+        return [*view._report_head(report), html.P("正文已不在保留期。")]
+    body = report.body
+    return [
+        *view._report_head(report),
+        *(
+            html.Section(
+                [
+                    html.H3(str(item.get("title") or "未命名章节")),
+                    html.P(str(item.get("explanation") or ""), className="body-copy"),
+                ]
+            )
+            for item in objects(body.get("ai_explanation"))
+            if report.adapter != "deterministic"
+        ),
+        *(
+            html.Section(
+                [
+                    html.H3(title),
+                    html.Pre(view._display_value(body[field]), className="body-copy")
+                    if field in body
+                    else html.P("该报告未提供。"),
+                ]
+            )
+            for title, field in (("三核心", "core_states"), ("已验证结果", "verified_results"))
+        ),
+    ]
+
+
 UNAVAILABLE = "口径不可用"
 
 
@@ -1238,6 +1315,29 @@ def coverage_table(coverage: dict[str, Any]) -> Any:
             ),
         ]
     )
+
+
+GAP_PREVIEW = 5
+
+
+def gap_preview(value: object) -> list[Any]:
+    """The gap list once: its first rows on the page, every row in a drawer (spec 07)."""
+    listed = view._document_list(value)
+    gaps = [
+        item
+        for category in view.GAP_CATEGORY_LABELS
+        for item in listed
+        if item.get("category") == category
+    ]
+    if len(gaps) <= GAP_PREVIEW:
+        return [view._gap_list(gaps)]
+    key = drawer_key("reading", "gaps")
+    return [
+        html.P(f"缺口共 {len(gaps)} 条，以下为前 {GAP_PREVIEW} 条。", className="secondary-copy"),
+        view._gap_list(gaps[:GAP_PREVIEW]),
+        drawer_trigger(key, f"查看全部 {len(gaps)} 条缺口 →"),
+        drawer_panel(key, f"全部缺口（{len(gaps)}）", [view._gap_list(gaps)]),
+    ]
 
 
 def warrant_table(projection: ProjectionSet | None) -> Any:
