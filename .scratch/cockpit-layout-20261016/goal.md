@@ -50,7 +50,7 @@
 | 票 | 状态 | 分支／提交 |
 |---|---|---|
 | 01 抽屉与 ③ 卡片 | done（drawer.py 三函数＋assets/drawer.js 统一开合；③ 名单 OVERSEAS_METRICS 卡片网格；其他背景指标卡；用法见 notes/cockpit-layout/drawer-usage.md） | c3d2158 |
-| 02 中文名 | ready-for-agent | |
+| 02 中文名 | done（wording.display_name 成员项→目录名→指标项→代号；source_name 供 09；row_name/name_cell/name_note；1630 单位元/美元；沪深 300 更正） | d1e04b7、c1837d3 |
 | 03 ① 非典型读法 | ready-for-agent | |
 | 04 ② 三列资产卡 | ready-for-agent | |
 | 05 ④ 两列维度卡 | ready-for-agent | |
