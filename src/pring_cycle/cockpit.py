@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 from dash import dcc, html
 
 from pring_cycle import dashboard as view
+from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.domain.trend import TrendRules
 from pring_cycle.drawer import drawer_key, drawer_panel, drawer_trigger
 from pring_cycle.page_identity import identity_fields
@@ -458,11 +459,7 @@ def report_board(
         ]
         if confirmation
         else [view._macro_page(projection)],
-        [
-            inventory_lines(confirmation, projection),
-            warrant_table(projection),
-            view._inventory_page(projection),
-        ],
+        inventory_section(confirmation, projection),
         [
             html.P("正式阶段由债券、股票、商品的 120 日稳定方向映射；宏观事实只做事后确认。"),
             stage_bands(projection),
@@ -1238,43 +1235,209 @@ def confirmation_tables(confirmation: dict[str, Any], projection: ProjectionSet 
     return html.Div(groups)
 
 
-def inventory_lines(confirmation: dict[str, Any], projection: ProjectionSet | None) -> Any:
-    indicators = [
-        item
-        for dimension in objects(confirmation.get("dimensions"))
-        if dimension.get("dimension") == "inventory"
-        for item in objects(dimension.get("key_indicators"))
+LINE_CARDS = (("demand", "需求"), ("production", "生产"), ("inventory", "库存"))
+LINE_ROLES = {"line": "主线成员", "auxiliary": "辅助成员"}
+
+
+def inventory_section(confirmation: dict[str, Any], projection: ProjectionSet | None) -> list[Any]:
+    """Section 05: the quadrant card, the three lines' cards, the warrants in one line; each
+    member once, its auxiliaries and the warrant table in drawers."""
+    document = view._dataset(projection, "inventory")
+    if document.get("output_structure") != CONFIRMATION_STRUCTURE:
+        return [view._inventory_page(projection)]
+    indicator = next(
+        (
+            item
+            for dimension in objects(confirmation.get("dimensions"))
+            if dimension.get("dimension") == "inventory"
+            for item in objects(dimension.get("key_indicators"))
+        ),
+        None,
+    )
+    if document.get("status") != "connected" or indicator is None:
+        return [
+            html.P("库存维度尚未接入：当前模型的库存象限规则尚未接入，不给出象限或三条线。"),
+            *warrant_line(document, projection),
+        ]
+    members = objects(indicator.get("members"))
+    available = {str(card.get("label")): card for card in objects(document.get("cards"))}
+    return [
+        quadrant_card(indicator),
+        line_cards(members, available, projection),
+        *warrant_line(document, projection),
     ]
-    if not indicators:
-        return html.P("当前投影未提供三线读取结果。")
-    members = [
-        member
-        for item in indicators
-        for member in objects(item.get("members"))
-        if member.get("line")
-    ]
+
+
+def quadrant_card(indicator: dict[str, Any]) -> Any:
+    member = next((item for item in objects(indicator.get("members")) if "quadrant" in item), {})
+    relation = str(indicator.get("relation"))
     return html.Div(
         [
-            html.H3("需求、生产、库存三线 · 象限仅计一项"),
-            *[
-                html.Section(
-                    [
-                        html.H4(label),
-                        member_readings(
-                            [member for member in members if member.get("line") == key],
-                            projection,
-                            section="inventory",
-                        ),
-                    ]
-                )
-                for key, label in (
-                    ("demand", "需求线"),
-                    ("production", "生产线"),
-                    ("inventory", "库存线"),
-                )
-            ],
-        ]
+            html.P("库存象限", className="section-kicker"),
+            html.Strong(
+                view._QUADRANT_LABELS.get(str(member.get("quadrant")), "未分类"),
+                className="card-value",
+            ),
+            html.Span(
+                "统计期 "
+                + str(member.get("period") or indicator.get("statistical_period") or "未提供")
+            ),
+            html.Span(quadrant_reading(member)),
+            html.Span(
+                f"确认关系：{view._RELATION_LABELS[relation]}（象限仅计一项）"
+                if relation in RELATION_COUNTED
+                else "确认关系：不适用（无正式阶段，不计数）",
+                className="secondary-copy",
+            ),
+        ],
+        className="quadrant-card",
     )
+
+
+def quadrant_reading(member: dict[str, Any]) -> str:
+    """Why the quadrant is unclassified when it is, then each line's direction."""
+    because = UNCLASSIFIED_BY.get(str(member.get("unclassified_by")))
+    lines = obj(member.get("lines"))
+    directions = "、".join(
+        label + view._DIRECTION_LABELS.get(str(obj(lines.get(line)).get("direction")), "方向未知")
+        for line, label in view._LINE_LABELS.items()
+    )
+    return "；".join(part for part in (because and f"未分类原因：{because}", directions) if part)
+
+
+def _member_name(member: dict[str, Any], line_label: str) -> DisplayName:
+    """A line member's own Chinese label without its line's prefix, its code beside it."""
+    code = display_name(member.get("metric_id"), obj(member.get("member"))).code
+    label = str(member.get("label") or member.get("name") or code)
+    return DisplayName(label.removeprefix(line_label + "："), code, bool(member.get("label")))
+
+
+def _line_member(
+    member: dict[str, Any],
+    name: DisplayName,
+    card: dict[str, Any],
+    projection: ProjectionSet | None,
+) -> list[Any]:
+    """A line member's every field in the drawer: its reading, the source's newest value,
+    its role beside the main member, whether its data is held, and the inputs read."""
+    source = obj(member.get("latest_source"))
+    versions = [str(version) for version in member.get("observation_version_ids") or []]
+    fields: list[tuple[str, Any]] = [
+        ("角色", LINE_ROLES.get(str(member.get("role")), view._state_label(member.get("role")))),
+        (
+            "读取值 / 期",
+            f"{number(member.get('value'), member.get('unit'))} {member.get('period') or '—'}",
+        ),
+        (
+            "来源最新 / 期",
+            [
+                value_link(
+                    source.get("value"),
+                    source.get("unit"),
+                    source.get("selected_claim_id"),
+                    projection,
+                    section="inventory",
+                ),
+                f" {source.get('period') or '未提供单一来源值'}",
+            ],
+        ),
+        ("方向", _direction_arrow(member.get("direction") or member.get("momentum"))),
+        (
+            "主辅关系",
+            view._READING_LABELS["consistency"].get(str(member.get("consistency")), "未知"),
+        ),
+        (
+            "数据",
+            "可用"
+            if card.get("availability") == "available"
+            else f"不可用（{view._state_label(card.get('evidence_status'))}）"
+            if card
+            else "该版本未提供",
+        ),
+        (
+            "读取时序",
+            " → ".join(
+                f"{period} {number(value)}"
+                for period, value in zip(
+                    member.get("periods") or [], member.get("values") or [], strict=False
+                )
+            )
+            or "读取期不足",
+        ),
+        (
+            "实际输入",
+            [
+                html.A(
+                    version[:12],
+                    href=evidence_href(projection, version, section="inventory"),
+                    title=version,
+                )
+                for version in versions
+            ]
+            if projection and versions
+            else "—",
+        ),
+    ]
+    return [
+        html.H3([name.name, " ", html.Small(name.code, className="drawer-code")]),
+        html.Dl(
+            [part for label, value in fields for part in (html.Dt(label), html.Dd(value))],
+            className="drawer-fields",
+        ),
+        reading_series(member, projection),
+    ]
+
+
+def line_cards(
+    members: list[dict[str, Any]],
+    cards_by_label: dict[str, dict[str, Any]],
+    projection: ProjectionSet | None,
+) -> Any:
+    """One card per line with its main member; the drawer holds every member of the line."""
+    cards: list[Any] = []
+    panels: list[Any] = []
+    for line, label in LINE_CARDS:
+        listed = sorted(
+            (member for member in members if member.get("line") == line),
+            key=lambda member: member.get("role") != "line",
+        )
+        if not listed:
+            cards.append(html.Div([html.Strong(label), html.Span("本投影未提供该线读取")]))
+            continue
+        main = listed[0]
+        name = _member_name(main, label)
+        key = drawer_key("inventory", line)
+        cards.append(
+            drawer_trigger(
+                key,
+                [
+                    html.Span(label, className="section-kicker"),
+                    html.Strong(name.name),
+                    html.Small(name.code),
+                    html.Span(number(main.get("value"), main.get("unit")), className="card-value"),
+                    html.Span(_direction_arrow(main.get("direction") or main.get("momentum"))),
+                    html.Span(str(main.get("period") or "—")),
+                ],
+                class_name="line-card",
+            )
+        )
+        panels.append(
+            drawer_panel(
+                key,
+                f"{label}线",
+                [
+                    part
+                    for member in listed
+                    for part in _line_member(
+                        member,
+                        _member_name(member, label),
+                        cards_by_label.get(str(member.get("label")), {}),
+                        projection,
+                    )
+                ],
+            )
+        )
+    return html.Div([*cards, *panels], className="line-cards")
 
 
 def related_assets(macro: dict[str, object], asset: str, projection: ProjectionSet) -> Any:
@@ -1379,51 +1542,142 @@ def gap_preview(value: object) -> list[Any]:
     ]
 
 
-def warrant_table(projection: ProjectionSet | None) -> Any:
-    warrants = obj(view._dataset(projection, "inventory").get("registered_warrants"))
-    if not warrants:
-        return html.P("本投影未提供分品种仓单变化。")
-    return html.Div(
-        [
-            html.H3("分品种注册仓单（附注，不重复计数）"),
-            html.P(
-                f"真实比较期：{warrants.get('first_day') or '—'} → "
-                f"{warrants.get('last_day') or '—'}"
-            ),
-            table(
-                ("品种", "起点 / 单位", "终点 / 单位", "变化", "状态", "原始输入"),
-                [
-                    (
-                        name_cell(
-                            display_name("CN_FUTURES_WARRANTS", {"symbol": item.get("symbol")})
+def warrant_line(document: dict[str, Any], projection: ProjectionSet | None) -> list[Any]:
+    """The registered warrants in one line, their table by symbol and the real inventory
+    approximation in a drawer; neither is counted."""
+    warrants = obj(document.get("registered_warrants"))
+    symbols = objects(warrants.get("symbols"))
+    key = drawer_key("inventory", "warrants")
+    return [
+        html.P(
+            [
+                html.Strong("注册仓单（附注，不计数）"),
+                " ",
+                f"{len(symbols)} 个品种 · 最新期 {warrants.get('last_day') or '—'}"
+                if warrants
+                else "本投影未提供分品种仓单变化",
+                " ",
+                drawer_trigger(key, "分品种仓单与实际库存近似 →"),
+            ],
+            className="warrant-line",
+        ),
+        drawer_panel(
+            key,
+            "注册仓单与实际库存近似",
+            [
+                html.H3("分品种注册仓单"),
+                *(
+                    [
+                        html.P(view._warrant_summary(warrants)),
+                        table(
+                            ("品种", "起点 → 终点", "变化", "换算"),
+                            [_warrant_row(item) for item in symbols],
                         ),
-                        number(item.get("first"), item.get("unit")),
-                        number(item.get("last"), item.get("unit")),
-                        f"{item['change_rate']:+.2%}"
-                        if item.get("change_rate") is not None
-                        else "—",
-                        view._WARRANT_STATES.get(str(item.get("status")), str(item.get("status"))),
-                        html.Div(
-                            [
-                                html.A(
-                                    f"{label} {i + 1} ",
-                                    href=evidence_href(projection, version, section="inventory"),
-                                )
-                                for key, label in (
-                                    ("first_claim_ids", "起点"),
-                                    ("last_claim_ids", "终点"),
-                                )
-                                for i, version in enumerate(item.get(key, []))
-                            ]
-                        )
-                        if projection
-                        else "—",
-                    )
-                    for item in objects(warrants.get("symbols"))
-                ],
-            ),
-        ]
+                        *_warrant_inputs(symbols, projection),
+                    ]
+                    if warrants
+                    else [html.P("本投影未提供分品种仓单变化。", className="empty-note")]
+                ),
+                *real_inventory_approximation(
+                    obj(document.get("real_inventory_approximation")), projection
+                ),
+                html.P(
+                    "PMI 库存是扩散指数，不是库存数量；注册仓单不代表产业总库存；"
+                    "实际库存近似只是名义产成品存货按 PPI 的粗略调整，不是不变价库存。",
+                    className="secondary-copy",
+                ),
+            ],
+        ),
+    ]
+
+
+def _warrant_row(item: dict[str, Any]) -> tuple[Any, ...]:
+    unit = view._WARRANT_UNITS.get(str(item.get("unit")), str(item.get("unit")))
+    rate, factor = item.get("change_rate"), item.get("factor")
+    state = view._WARRANT_STATES.get(str(item.get("status")), "")
+    return (
+        name_cell(display_name("CN_FUTURES_WARRANTS", {"symbol": item.get("symbol")})),
+        f"{_count(item.get('first'))} → {_count(item.get('last'))} {unit}"
+        if item.get("first") is not None
+        else "—",
+        f"{rate:+.1%}" if isinstance(rate, (int, float)) else state or "—",
+        f"每{view._WARRANT_UNITS.get(str(item.get('input_unit')), '')} {factor:g} {unit}"
+        f"（{item.get('weight_basis')}）"
+        if isinstance(factor, (int, float))
+        else "—",
     )
+
+
+def _count(value: object) -> str:
+    """Warrant amounts are whole sheets, lots, tonnes or barrels, read without decimals."""
+    if isinstance(value, (int, float)) and float(value).is_integer():
+        return f"{value:,.0f}"
+    return number(value)
+
+
+def _warrant_inputs(symbols: list[dict[str, Any]], projection: ProjectionSet | None) -> list[Any]:
+    """Each symbol's raw inputs at either end, numbered, each opening its fixed evidence."""
+    rows = []
+    for item in symbols:
+        if not (item.get("first_claim_ids") or item.get("last_claim_ids")):
+            continue
+        name = display_name("CN_FUTURES_WARRANTS", {"symbol": item.get("symbol")}).name
+        symbol = str(item.get("symbol"))
+        parts: list[Any] = [f"{name}（{symbol}）" if name != symbol else symbol]
+        for field, label in (("first_claim_ids", "起点"), ("last_claim_ids", "终点")):
+            parts.append(f" {label} ")
+            parts.extend(
+                html.A(
+                    f"{i + 1} ", href=evidence_href(projection, str(version), section="inventory")
+                )
+                if projection
+                else f"{i + 1} "
+                for i, version in enumerate(item.get(field) or [])
+            )
+        rows.append(html.P(parts, className="secondary-copy"))
+    return [html.H3("原始输入"), *rows] if rows else []
+
+
+def real_inventory_approximation(
+    document: dict[str, Any], projection: ProjectionSet | None
+) -> list[Any]:
+    """The nominal finished-goods inventory deflated by PPI: a rough proxy, never counted."""
+    title = html.H3("实际库存近似（粗略价格调整代理）")
+    if not document:
+        return [title, html.P("本投影未提供实际库存近似。", className="empty-note")]
+    nominal, ppi = obj(document.get("nominal_inventory")), obj(document.get("ppi_input"))
+
+    def source(item: dict[str, Any]) -> Any:
+        return value_link(
+            item.get("value"),
+            item.get("unit"),
+            item.get("selected_claim_id"),
+            projection,
+            section="inventory",
+        )
+
+    fields: list[tuple[str, Any]] = [
+        (
+            "值",
+            number(document.get("value"), nominal.get("unit"))
+            if document.get("value") is not None
+            else view._state_label(document.get("status")),
+        ),
+        ("统计期", str(nominal.get("period") or "—")),
+        ("算法", "名义产成品存货 ÷（1 + PPI 同比 ÷ 100）"),
+        ("名义产成品存货", source(nominal)),
+        ("PPI 同比", source(ppi)),
+        ("公式版本", str(document.get("formula_version") or "—")),
+        ("派生证据", str(document.get("derived_observation_id") or "—")),
+        ("计数", "不计数，不参与库存象限"),
+    ]
+    return [
+        title,
+        html.Dl(
+            [part for label, value in fields for part in (html.Dt(label), html.Dd(value))],
+            className="drawer-fields",
+        ),
+    ]
 
 
 def context_chart(row: dict[str, Any], projection: ProjectionSet | None, section: str) -> Any:

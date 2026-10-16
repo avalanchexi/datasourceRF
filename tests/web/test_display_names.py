@@ -184,14 +184,11 @@ def test_warrant_symbols_read_in_chinese_with_the_symbol_beside_them() -> None:
     tables = _find(section, lambda item: isinstance(item, html.Table))
     rows = _find(tables[-1], lambda item: isinstance(item, html.Tr))[1:]
     cells = [_find(row, lambda item: isinstance(item, html.Td))[0] for row in rows]
-    text = _words(section)
 
     assert [_words(cell) for cell in cells] == ["棉花", "PTA", "原油"]
     assert [
         str(_find(cell, lambda item: getattr(item, "title", None))[0].title) for cell in cells
     ] == ["CN_FUTURES_WARRANTS · CF", "CN_FUTURES_WARRANTS · TA", "CN_FUTURES_WARRANTS · SC"]
-    assert "棉花（CF）" in text
-    assert "原油（SC）" in text
 
 
 def test_the_data_chain_request_table_names_metrics_and_sources_in_chinese(

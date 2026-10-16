@@ -148,3 +148,15 @@ html, body { font-size: 14px; }
 .overseas-others h3 { grid-column: 1 / -1; margin: 0; }
 @media (max-width: 1100px) { .overseas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .overseas-grid { grid-template-columns: minmax(0, 1fr); } }
+/* 05: the quadrant card, the three lines' cards side by side, the warrants in one line. */
+.quadrant-card { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; background: var(--surface-panel); color: var(--ink-body); font-size: 13px; }
+.quadrant-card .section-kicker { margin: 0; }
+.quadrant-card .card-value { color: var(--ink-strong); font-size: 20px; font-weight: 650; }
+.line-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.line-card { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-panel); color: var(--ink-body); font-size: 12.5px; text-decoration: none; font-variant-numeric: tabular-nums; }
+.line-card:hover, .line-card:focus-visible { border-color: var(--accent); }
+.line-card strong { color: var(--ink-strong); font-size: 13px; }
+.line-card small { color: var(--ink-muted); font-family: monospace; font-size: 11px; overflow-wrap: anywhere; }
+.line-card .card-value { color: var(--ink-strong); font-size: 18px; font-weight: 650; }
+.warrant-line { margin: 10px 0 0; color: var(--ink-body); font-size: 13px; }
+@media (max-width: 760px) { .line-cards { grid-template-columns: minmax(0, 1fr); } }

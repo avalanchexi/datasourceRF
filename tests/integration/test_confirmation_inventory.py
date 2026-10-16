@@ -727,15 +727,19 @@ def test_the_inventory_page_and_the_report_carry_the_quadrant_and_the_warrant_no
         datasets={**published.datasets, "macro": context.macro, "inventory": context.inventory},
     )
 
-    page = _text(dashboard_page("/inventory", projection, (), ()))
-    assert "2026-07-31 主动补库存，需求上升，生产上升，库存上升" in page
-    assert "需求：PMI 新订单 · 数据可用 · 确认关系（随库存象限）：支持" in page
-    assert "注册库存变化（附注，不计数）" in page and "变化率中位数 20.0%" in page
-    assert "CF · 400.0 → 480.0 吨 · +20.0% · 换算：每张 40 吨（公定重量（名义））" in page
-    assert "SC · 窗口内未持有 · 换算：每桶 1 桶（净体积桶）" in page
+    # Section 05: the quadrant and its relation on the page, the warrant table and the real
+    # inventory approximation in the drawer the warrant line opens (cockpit layout ticket 06).
+    page = " ".join(_text(dashboard_page("/", projection, (), ())).split())
+    assert (
+        "库存象限 主动补库存 统计期 2026-07-31 需求上升、生产上升、库存上升 "
+        "确认关系：支持（象限仅计一项）"
+    ) in page
+    assert "需求 PMI 新订单" in page and "数据 可用" in page
+    assert "注册仓单（附注，不计数） 8 个品种 · 最新期 2026-09-15" in page
+    assert "变化率中位数 20.0%" in page
+    assert "棉花 400 → 480 吨 +20.0% 每张 40 吨（公定重量（名义））" in page
+    assert "原油 — 窗口内未持有 每桶 1 桶（净体积桶）" in page
     assert "实际库存近似（粗略价格调整代理）" in page and "不参与库存象限" in page
-    home = _text(dashboard_page("/", projection, (), ()))
-    assert "库存象限：支持" in home
     bundle = report_input_from_projection(projection)
     assert bundle.conclusions["dimension:inventory"]["support"] == 1
     assert bundle.conclusions["key_indicator:inventory_quadrant"] == "support"

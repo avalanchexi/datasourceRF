@@ -20,7 +20,7 @@ from pring_cycle.reports import ReportSnapshot
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS
 from pring_cycle.run_health import ProducerRun
 from pring_cycle.runs import RunRecord
-from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, display_name, stage_title
+from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, stage_title
 
 
 def dashboard_shell(
@@ -696,8 +696,6 @@ def _macro_page(projection: ProjectionSet | None) -> html.Div:
 def _inventory_page(projection: ProjectionSet | None) -> html.Div:
     document = _dataset(projection, "inventory")
     as_of = projection.envelope.system_as_of.isoformat() if projection is not None else None
-    if document.get("output_structure") == CONFIRMATION_STRUCTURE:
-        return _confirmation_inventory_page(document, _dataset(projection, "macro"))
     cards = document.get("cards")
     card_documents = (
         [item for item in cards if isinstance(item, dict)] if isinstance(cards, list) else []
@@ -1506,110 +1504,6 @@ def _held(run: dict[str, object]) -> str:
     return ""
 
 
-def _confirmation_inventory_page(document: dict[str, object], macro: dict[str, object]) -> html.Div:
-    """The inventory dimension: its quadrant the one count, each card's data apart from the
-    quadrant's relation, the registered warrants a note, the real inventory approximation a
-    rough proxy beside them."""
-    confirmation = _object_document(macro.get("confirmation"))
-    quadrant = next(
-        (
-            item
-            for dimension in _document_list(confirmation.get("dimensions"))
-            if dimension.get("dimension") == "inventory"
-            for item in _document_list(dimension.get("key_indicators"))
-        ),
-        None,
-    )
-    if document.get("status") != "connected" or quadrant is None:
-        body: list[Any] = [
-            _empty_state("库存维度尚未接入", "当前模型的库存象限规则尚未接入，不给出象限或特征卡。")
-        ]
-    else:
-        body = [
-            html.P(
-                "库存维度以库存象限为结论，作为一项计数；单个库存指标不单独计数。",
-                className="body-copy page-intro",
-            ),
-            html.Div([_indicator_card(quadrant)], className="evidence-card-grid"),
-            html.Section(
-                [
-                    _section_heading("库存卡", "DATA AVAILABILITY · RELATION APART"),
-                    html.Ul(
-                        [
-                            html.Li(_inventory_card_line(card), className="record-row")
-                            for card in _document_list(document.get("cards"))
-                        ],
-                        className="record-list",
-                    ),
-                ],
-                className="content-section",
-            ),
-        ]
-    warrants = _object_document(document.get("registered_warrants"))
-    return html.Div(
-        [
-            _page_heading("库存特征", "INVENTORY CHARACTERISTICS"),
-            *body,
-            *(
-                [
-                    html.Section(
-                        [
-                            _section_heading("注册库存变化（附注，不计数）", "FUTURES WARRANTS"),
-                            html.P(_warrant_summary(warrants), className="body-copy"),
-                            html.Ul(
-                                [
-                                    html.Li(_warrant_line(item), className="record-row")
-                                    for item in _document_list(warrants.get("symbols"))
-                                ],
-                                className="record-list",
-                            ),
-                        ],
-                        className="content-section",
-                    )
-                ]
-                if warrants
-                else []
-            ),
-            _domain_panel(
-                "实际库存近似（粗略价格调整代理）",
-                "DERIVED · ROUGH PROXY · NOT COUNTED",
-                _formula_summary(document.get("real_inventory_approximation"))
-                + " · 不计数，不参与库存象限",
-            ),
-            html.Section(
-                [
-                    _section_heading("口径边界", "SEMANTIC GUARDRAILS"),
-                    html.P(
-                        "PMI 库存是扩散指数，不是库存数量；注册仓单不代表产业总库存；"
-                        "实际库存近似只是名义产成品存货按 PPI 的粗略调整，不是不变价库存。",
-                        className="body-copy",
-                    ),
-                ],
-                className="content-section",
-            ),
-        ],
-        className="page-stack",
-    )
-
-
-def _inventory_card_line(card: dict[str, object]) -> str:
-    """A card: its data there or not, and apart from it the relation the quadrant bears."""
-    available = (
-        "数据可用"
-        if card.get("availability") == "available"
-        else f"数据不可用（{_state_label(card.get('evidence_status'))}）"
-    )
-    relation = _RELATION_LABELS.get(str(card.get("relation")), "不可用")
-    return " · ".join(
-        (
-            str(card.get("label")),
-            available,
-            f"确认关系（随库存象限）：{relation}",
-            _READING_LABELS["consistency"].get(str(card.get("consistency")), "方向未知"),
-        )
-    )
-
-
 def _warrant_summary(note: dict[str, object]) -> str:
     """The warrants' median change and breadth, the seven symbols' tonnes beside them."""
     breadth = _object_document(note.get("breadth"))
@@ -1643,32 +1537,6 @@ _WARRANT_STATES = {
     "zero_base": "基期为零，无变化率",
     "no_common_span": "窗口内无共同日期",
 }
-
-
-def _warrant_line(item: dict[str, object]) -> str:
-    """A symbol's warrants first and last, converted as the frozen table says."""
-    unit = _WARRANT_UNITS.get(str(item.get("unit")), str(item.get("unit")))
-    rate, factor = item.get("change_rate"), item.get("factor")
-    reading = (
-        f"{_display_value(item.get('first'))} → {_display_value(item.get('last'))} {unit}"
-        if item.get("first") is not None
-        else ""
-    )
-    name = display_name("CN_FUTURES_WARRANTS", {"symbol": item.get("symbol")}).name
-    return " · ".join(
-        part
-        for part in (
-            f"{name}（{item.get('symbol')}）" if name != item.get("symbol") else name,
-            reading,
-            f"{rate:+.1%}" if isinstance(rate, (int, float)) else "",
-            _WARRANT_STATES.get(str(item.get("status")), ""),
-            f"换算：每{_WARRANT_UNITS.get(str(item.get('input_unit')), '')} {factor:g} {unit}"
-            f"（{item.get('weight_basis')}）"
-            if isinstance(factor, (int, float))
-            else "",
-        )
-        if part
-    )
 
 
 def _list_of(value: object) -> list[object]:
