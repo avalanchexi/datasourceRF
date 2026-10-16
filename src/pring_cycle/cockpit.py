@@ -12,11 +12,12 @@ from zoneinfo import ZoneInfo
 from dash import dcc, html
 
 from pring_cycle import dashboard as view
+from pring_cycle.domain.trend import TrendRules
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
 from pring_cycle.run_health import ProducerRun
 from pring_cycle.runs import RunRecord
-from pring_cycle.wording import CORE_STATE_LABELS
+from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, stage_code
 
 SECTIONS = (
     ("conclusion", "周期识别结论"),
@@ -293,6 +294,7 @@ def report_board(
     stage_events: Sequence[dict[str, object]] = (),
     *,
     producer_run: ProducerRun | None = None,
+    trend_rules: TrendRules | None = None,
 ) -> html.Div:
     """``producer_run`` carries the producing run's persisted health summary for the board's
     run facts; ``None`` (or a ``None`` summary) means the page must say it is unavailable."""
@@ -326,47 +328,30 @@ def report_board(
         [
             html.Div(
                 [
+                    conclusion_left(projection, trend_rules),
                     html.Div(
                         [
-                            html.P("正式阶段", className="section-kicker"),
-                            html.H2(
-                                view._stage_label(overview.get("current_stage")),
-                                className="stage-value",
-                            ),
-                            html.P(view._stage_explanation(overview)),
-                            *view._carry_forward_notice(overview.get("core_carry_forward")),
-                        ]
-                    ),
-                    html.Div(
-                        [
-                            html.P("上一确认阶段", className="section-kicker"),
-                            html.Strong(
-                                view._last_confirmed_label(
-                                    overview.get("last_confirmed_stage"),
-                                    overview.get("last_confirmed_lookback"),
+                            html.H3("五维确认度（关键指标计数，非概率）"),
+                            confirmation_summary(macro),
+                            html.P(
+                                "库存象限："
+                                + view._state_label(
+                                    view._dataset(projection, "inventory").get("quadrant")
                                 )
                             ),
-                            html.P("历史背景；正式结论以本次三核心稳定方向为准。"),
-                        ]
+                            html.Details(
+                                [html.Summary("价格内部一致性"), *view._price_sections(macro)]
+                            ),
+                            *[
+                                html.P(line, className="secondary-copy")
+                                for line in view._attribution_lines(macro, brief=True)
+                            ],
+                        ],
+                        className="board-right",
                     ),
                 ],
                 className="conclusion-board",
             ),
-            html.P(
-                "转折观察 · 不改变正式阶段："
-                + view._transition_watch(overview.get("transition_watch"))
-            ),
-            html.H3("五维确认度（关键指标计数，非概率）"),
-            confirmation_summary(macro),
-            html.P(
-                "库存象限："
-                + view._state_label(view._dataset(projection, "inventory").get("quadrant"))
-            ),
-            html.Details([html.Summary("价格内部一致性"), *view._price_sections(macro)]),
-            *[
-                html.P(line, className="secondary-copy")
-                for line in view._attribution_lines(macro, brief=True)
-            ],
             core_table(projection),
             html.P(
                 [
@@ -479,7 +464,13 @@ def report_board(
                     html.Section(
                         [
                             html.Header(
-                                [html.H2(f"{index:02d} {title}")], className="report-heading"
+                                [
+                                    html.H2(f"{index:02d} {title}"),
+                                    html.P(BOARD_SUBTITLE, className="report-subtitle")
+                                    if key == "conclusion"
+                                    else None,
+                                ],
+                                className="report-heading",
                             ),
                             *body,
                         ],
@@ -495,6 +486,194 @@ def report_board(
         ],
         className="report-layout",
     )
+
+
+BOARD_SUBTITLE = "正式阶段 · 三核心 · 确认度 · 一致性 · 库存 · 归因，一板看完"
+CORE_ORDER = ("bond", "stock", "commodity")
+CORE_NAMES = {"bond": "债券", "stock": "股票", "commodity": "商品"}
+# A blocked stage reason, named before the board lists each core (spec: reason line).
+BLOCKED_REASONS = {
+    "core_data_pending": "核心数据待处理",
+    "core_state_unavailable": "核心状态不可用",
+    "p0_unavailable": "P0 未过门禁",
+}
+CORE_READABLE = {"validated", "carried_forward_one_session"}
+
+
+def conclusion_left(projection: ProjectionSet | None, trend_rules: TrendRules | None) -> Any:
+    """The board's left column: the formal stage and the five rows a reader checks it by."""
+    overview = view._dataset(projection, "cycle_overview")
+    lookback = overview.get("last_confirmed_lookback")
+    last_confirmed = overview.get("last_confirmed_stage")
+    rows = (
+        ("原因", stage_reason_line(projection)),
+        (
+            "上次确认",
+            view._last_confirmed_label(last_confirmed, lookback)
+            if last_confirmed is not None or isinstance(lookback, dict)
+            else "无",
+        ),
+        ("转折观察", transition_watch_line(projection)),
+        ("核心沿用", carry_forward_line(projection)),
+        ("判法", method_line(projection, trend_rules)),
+    )
+    return html.Div(
+        [
+            html.P("正式阶段", className="section-kicker"),
+            html.H2(view._stage_label(overview.get("current_stage")), className="stage-value"),
+            html.Dl(
+                [item for label, value in rows for item in (html.Dt(label), html.Dd(value))],
+                className="board-rows",
+            ),
+        ],
+        className="board-left",
+    )
+
+
+def _cores(projection: ProjectionSet | None) -> dict[str, dict[str, Any]]:
+    assets = objects(view._dataset(projection, "core_assets").get("assets"))
+    return {str(item.get("asset")): item for item in assets}
+
+
+def _core_gaps(overview: dict[str, object]) -> dict[str, dict[str, Any]]:
+    return {str(item.get("metric_id")): item for item in objects(overview.get("gap_list"))}
+
+
+def _carried(overview: dict[str, object]) -> list[str]:
+    value = overview.get("core_carry_forward")
+    return [str(item) for item in value] if isinstance(value, list) else []
+
+
+def _held(core: dict[str, Any], gaps: dict[str, dict[str, Any]]) -> str:
+    """The period a core holds: its gap entry's, else its own latest business date."""
+    gap = gaps.get(str(core.get("metric_id")), {})
+    return str(gap.get("held_period") or core.get("latest_business_date") or "未提供")
+
+
+def _combination(cores: dict[str, dict[str, Any]]) -> str:
+    return " · ".join(
+        CORE_NAMES[asset] + core_state_label(cores.get(asset, {}).get("state"))
+        for asset in CORE_ORDER
+    )
+
+
+def stage_reason_line(projection: ProjectionSet | None) -> str:
+    """Why the board shows this stage, in the three cores' own states (spec: reason line)."""
+    overview = view._dataset(projection, "cycle_overview")
+    cores = _cores(projection)
+    stage = overview.get("current_stage")
+    if stage is not None:
+        return f"典型组合：{_combination(cores)} → {stage_code(stage)}"
+    reason = overview.get("stage_reason") or overview.get("stage_unavailable_reason")
+    if reason == "noncanonical_combination":
+        return f"非典型组合：{_combination(cores)}，不在六个典型组合内；不创建 Stage VII/VIII"
+    if reason in BLOCKED_REASONS:
+        gaps = _core_gaps(overview)
+        carried = set(_carried(overview))
+        readings = [
+            _core_reading(asset, cores.get(asset, {}), gaps, carried) for asset in CORE_ORDER
+        ]
+        return f"{BLOCKED_REASONS[str(reason)]}：" + " · ".join(readings)
+    return view._stage_explanation(overview)
+
+
+def transition_watch_line(projection: ProjectionSet | None) -> str:
+    """Each core whose 30-day candidate or asset candidate leans off its state; it never
+    changes the formal stage (GLOSSARY: 转折观察, 30 日候选方向, 资产候选状态)."""
+    published = view._dataset(projection, "cycle_overview").get("transition_watch")
+    if isinstance(published, list) and published:
+        return view._transition_watch(published) + " · 只作观察，不改变正式阶段"
+    cores = _cores(projection)
+    watched = []
+    for asset in CORE_ORDER:
+        core = cores.get(asset)
+        if core is None or core.get("state") is None:
+            continue
+        signs = []
+        direction = core.get("candidate_30d")
+        if direction != core.get("state"):
+            signs.append(
+                "30 日候选方向"
+                + (core_state_label(direction) if direction is not None else "无")
+                + (
+                    f"，与当前{core_state_label(core.get('state'))}相反"
+                    if direction is not None
+                    else ""
+                )
+            )
+        if core.get("candidate_state") is not None:
+            signs.append(
+                f"资产候选状态{core_state_label(core.get('candidate_state'))} · "
+                f"持续 {core.get('candidate_days', 0)} 日 / "
+                f"门槛 {core.get('persistence_required') or '未提供'} 日"
+            )
+        if signs:
+            watched.append(f"{CORE_NAMES[asset]} " + "；".join(signs))
+    if watched:
+        return "；".join(watched) + " · 只作观察，不改变正式阶段"
+    unread = [
+        CORE_NAMES[asset] for asset in CORE_ORDER if cores.get(asset, {}).get("state") is None
+    ]
+    if not unread:
+        return "无（三核心 30 日候选均与当前状态同向）"
+    if len(unread) == len(CORE_ORDER):
+        return "无（三核心尚无可用状态）"
+    return "无（" + "、".join(unread) + "状态不可用；其余核心 30 日候选与当前状态同向）"
+
+
+def carry_forward_line(projection: ProjectionSet | None) -> str:
+    """The cores priced at their previous session, each with the period it holds."""
+    overview = view._dataset(projection, "cycle_overview")
+    carried = _carried(overview)
+    if not carried:
+        return "无"
+    cores, gaps = _cores(projection), _core_gaps(overview)
+    return "、".join(
+        f"{CORE_NAMES.get(asset, asset)}（沿用期 {_held(cores.get(asset, {}), gaps)}）"
+        for asset in carried
+    )
+
+
+def method_line(projection: ProjectionSet | None, trend_rules: TrendRules | None) -> str:
+    """How the stage is judged, in the trend rules frozen in the projection's model."""
+    if projection is None:
+        return "等待首次完整运行"
+    model = projection.envelope.model_version_id
+    if trend_rules is None:
+        return f"该模型版本未提供趋势规则参数 · {model}"
+    return (
+        f"MA{trend_rules.window_days} + {trend_rules.slope_days} 日斜率定稳定牛熊，"
+        f"噪声带 {trend_rules.noise_multiplier:g}×{trend_rules.volatility_days} 日波动，"
+        f"持续 {trend_rules.persistence_days} 日确认，"
+        f"{trend_rules.candidate_window_days} 日候选只作转折观察；"
+        f"宏观与库存只做事后确认，不改写阶段 · {model}"
+    )
+
+
+def _core_reading(
+    asset: str,
+    core: dict[str, Any],
+    gaps: dict[str, dict[str, Any]],
+    carried: set[str],
+) -> str:
+    """A core's state when it was read; else what blocked it, as its records say."""
+    name = CORE_NAMES[asset]
+    gap = gaps.get(str(core.get("metric_id")), {})
+    if core.get("state") is not None and core.get("reason") in CORE_READABLE:
+        reading = name + core_state_label(core.get("state"))
+        if core.get("carried_forward") or asset in carried:
+            reading += f"（核心沿用，沿用期 {_held(core, gaps)}）"
+        return reading
+    if gap.get("periods_behind"):
+        return f"{name}受阻：落后 {gap['periods_behind']} 期，沿用期 {_held(core, gaps)}"
+    if gap:
+        category = str(gap.get("category"))
+        cause = view.GAP_CATEGORY_LABELS.get(category, category)
+    else:
+        reason = str(core.get("reason") or "未记录原因")
+        cause = REASONS.get(reason) or view.CORE_GAP_REASON_LABELS.get(reason, reason)
+    latest = core.get("latest_business_date")
+    return f"{name}受阻：{cause}" + (f"，最新 {latest}" if latest else "")
 
 
 def confirmation_summary(macro: dict[str, object]) -> Any:

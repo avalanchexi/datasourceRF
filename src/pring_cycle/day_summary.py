@@ -55,7 +55,12 @@ from pring_cycle.context_projection import (
 )
 from pring_cycle.display_projection import core_display, coverage_display, display_versions
 from pring_cycle.domain import FormalStage, StageResult
-from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend, proxy_12m_enabled
+from pring_cycle.domain.trend import (
+    PricePoint,
+    TrendRules,
+    evaluate_trend,
+    trend_rules_from_manifest,
+)
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
 from pring_cycle.freshness import add_projection_gaps, release_schedule_scope, use_release_schedule
 from pring_cycle.models import ModelRepository
@@ -205,30 +210,9 @@ class ModelRules:
             model_version_id,
             manifest,
             rules.metric_catalog_version,
-            _trend_rules(manifest),
+            trend_rules_from_manifest(manifest),
             rules.metric_definitions,
         )
-
-
-def _trend_rules(manifest: Mapping[str, object]) -> TrendRules:
-    document = manifest.get("trend_rules")
-    if not isinstance(document, dict):
-        raise ValueError("model_trend_rules_missing")
-    try:
-        return TrendRules(
-            window_days=int(document["window_days"]),
-            slope_days=int(document["slope_days"]),
-            volatility_days=int(document["volatility_days"]),
-            noise_multiplier=float(document["noise_multiplier"]),
-            persistence_days=int(document["persistence_days"]),
-            candidate_window_days=int(document["candidate_window_days"]),
-            candidate_duration_rule_version=str(
-                document.get("candidate_duration_rule_version", "candidate-duration-v0001")
-            ),
-            proxy_12m_enabled=proxy_12m_enabled(document),
-        )
-    except (KeyError, TypeError, ValueError) as error:
-        raise ValueError("model_trend_rules_invalid") from error
 
 
 class DaySummaries:

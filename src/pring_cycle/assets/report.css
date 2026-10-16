@@ -25,9 +25,15 @@ html, body { font-size: 14px; }
 .report-heading h2 { font-size: 20px; font-weight: 650; letter-spacing: -.02em; margin: 10px 0 12px; }
 .report-section h3 { font-size: 15px; margin: 20px 0 10px; }
 .report-section p { font-size: 13px; line-height: 1.7; }
-.conclusion-board { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; padding: 14px 16px; background: var(--surface-panel); border: 1px solid var(--line); border-radius: 8px; }
+.report-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 14px; }
+.report-heading .report-subtitle { margin: 0 0 12px; color: var(--ink-muted); font-size: 13px; }
+.conclusion-board { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; padding: 14px 16px; background: var(--surface-panel); border: 1px solid var(--line); border-radius: 8px; }
 .conclusion-board .stage-value { font-family: inherit; font-size: 30px; font-weight: 700; margin: 5px 0 10px; }
+.conclusion-board > div { min-width: 0; }
 .conclusion-board > div + div { border-left: 1px solid var(--line); padding-left: 22px; }
+.board-rows { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 6px 10px; margin: 0; font-size: 13px; align-items: baseline; }
+.board-rows dt { color: var(--ink-muted); font-size: 12px; }
+.board-rows dd { margin: 0; min-width: 0; color: var(--ink-strong); overflow-wrap: anywhere; }
 .table-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); margin: 12px 0; }
 .report-table { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .report-table th { text-align: right; font-weight: 500; color: var(--ink-muted); background: var(--surface-muted); white-space: nowrap; }
@@ -92,6 +98,8 @@ html, body { font-size: 14px; }
   .primary-nav { top: 16px; }
   .report-toc { top: 0; }
   .report-section { scroll-margin-top: 65px; }
+  .conclusion-board { grid-template-columns: minmax(0,1fr); }
+  .conclusion-board > div + div { border-left: 0; border-top: 1px solid var(--line); padding: 12px 0 0; }
 }
 @media (max-width: 760px) {
   .application-grid { display: block; }
@@ -102,8 +110,7 @@ html, body { font-size: 14px; }
   .workspace { padding: 12px; }
 }
 @media (max-width: 560px) {
-  .conclusion-board { grid-template-columns: minmax(0,1fr); }
-  .conclusion-board > div + div { border-left: 0; border-top: 1px solid var(--line); padding: 12px 0 0; }
+  .board-rows { grid-template-columns: 72px minmax(0, 1fr); }
   .projection-strip { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .primary-nav { padding: 8px; }
   .primary-nav .nav-link { padding: 8px 12px; }

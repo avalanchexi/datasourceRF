@@ -21,6 +21,7 @@ from starlette.routing import Mount
 from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_catalog
 from pring_cycle.context_projection import ContextProjectionRules
+from pring_cycle.domain.trend import TrendRules, trend_rules_from_manifest
 from pring_cycle.evidence import (
     AsOfMode,
     DerivedEvidenceTrace,
@@ -725,6 +726,7 @@ def _load_dashboard(
                         (),
                         _release_calendar_events(paths, projection),
                         producer_run=producer,
+                        trend_rules=_projection_trend_rules(paths, projection),
                     )
                 return page, interval, strip, fingerprint, ""
             except (
@@ -830,6 +832,23 @@ def _release_calendar_events(
         )
     except (OSError, ValueError):
         return ()
+
+
+def _projection_trend_rules(
+    paths: RuntimePaths, projection: ProjectionSet | None
+) -> TrendRules | None:
+    """The trend rules frozen in the projection's model, from the manifest the Worker reads.
+
+    None when there is no projection, or its model provides no valid rules; the board
+    then says so and never shows defaults.
+    """
+    if projection is None:
+        return None
+    try:
+        manifest = ModelRepository(paths.database).manifest(projection.envelope.model_version_id)
+        return trend_rules_from_manifest(manifest)
+    except (LookupError, OSError, ValueError):
+        return None
 
 
 def _current_definition_version(paths: RuntimePaths) -> str:

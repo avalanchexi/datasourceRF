@@ -34,6 +34,11 @@ def core_state_label(value: object) -> str:
     return CORE_STATE_LABELS.get(str(value).lower(), UNAVAILABLE)
 
 
+def stage_code(value: object) -> str:
+    """A formal stage's short name, as the reason line maps a combination to it."""
+    return STAGE_TITLES.get(str(value).lower(), str(value)).rpartition(" · ")[2]
+
+
 def stage_title(value: object) -> str:
     """A formal stage title; an empty current stage is a result, not a pending judgement."""
     if value is None:

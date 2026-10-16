@@ -285,6 +285,23 @@ def test_pinned_projection_does_not_mix_with_a_new_current_pointer(tmp_path: Pat
         assert first_run not in unknown and second_run not in unknown
 
 
+def test_board_method_row_reads_the_trend_rules_the_worker_froze(tmp_path: Path) -> None:
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    projection = target_projection(paths)
+    with serving(paths) as base:
+        page = json.dumps(
+            rendered_page(base, "/", "?projection=" + projection.envelope.projection_set_id),
+            ensure_ascii=False,
+        )
+
+    assert (
+        "MA120 + 20 日斜率定稳定牛熊，噪声带 1.5×20 日波动，持续 8 日确认，30 日候选只作转折观察；"
+        "宏观与库存只做事后确认，不改写阶段 · " + projection.envelope.model_version_id
+    ) in page
+    assert "该模型版本未提供趋势规则参数" not in page
+
+
 def test_evidence_opens_the_exact_version_drawn_by_the_projection(tmp_path: Path) -> None:
     paths = runtime(tmp_path)
     seed_cores(paths)

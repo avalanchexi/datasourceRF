@@ -49,6 +49,28 @@ def proxy_12m_enabled(document: Mapping[str, object]) -> bool:
     return enabled
 
 
+def trend_rules_from_manifest(manifest: Mapping[str, object]) -> TrendRules:
+    """A model's frozen trend rules; the Worker judges by them and the board states them."""
+    document = manifest.get("trend_rules")
+    if not isinstance(document, dict):
+        raise ValueError("model_trend_rules_missing")
+    try:
+        return TrendRules(
+            window_days=int(document["window_days"]),
+            slope_days=int(document["slope_days"]),
+            volatility_days=int(document["volatility_days"]),
+            noise_multiplier=float(document["noise_multiplier"]),
+            persistence_days=int(document["persistence_days"]),
+            candidate_window_days=int(document["candidate_window_days"]),
+            candidate_duration_rule_version=str(
+                document.get("candidate_duration_rule_version", "candidate-duration-v0001")
+            ),
+            proxy_12m_enabled=proxy_12m_enabled(document),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("model_trend_rules_invalid") from error
+
+
 @dataclass(frozen=True)
 class TrendResult:
     stable_state: CoreAssetState | None

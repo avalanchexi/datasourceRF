@@ -51,7 +51,9 @@ def test_navigation_and_home_hierarchy_match_the_approved_report_contract() -> N
     assert home.index("正式阶段") < home.index("转折观察")
     assert "暂无正式阶段" in home
     assert "暂不判定" not in home
-    assert "不改变正式阶段" in home
+    # An empty runtime watches nothing; a watched core says it does not change the stage
+    # (tests/web/test_conclusion_board.py).
+    assert "转折观察 无" in " ".join(home.split())
 
 
 def test_report_workspace_has_generation_history_and_reading_areas() -> None:
