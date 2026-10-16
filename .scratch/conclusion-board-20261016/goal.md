@@ -39,10 +39,11 @@
 
 | 票 | 状态 | 分支／提交 |
 |---|---|---|
-| 01 用词统一 | 待派 | |
-| 02 顶栏与运行摘要 | 待派 | |
-| 03 左栏 | 阻塞（01） | |
-| 04 右栏 | 阻塞（03） | |
-| 05 三核心表九列 | 阻塞（01） | |
-| 06 板底事实行 | 阻塞（02、04） | |
-| 07 集成验收 | 阻塞（全部） | |
+| 01 用词统一 | done（新增 wording.py 单一映射；非典型解读句改用"资产候选状态"，提示词契约升 report-prompt-v0007） | 569ffab |
+| 02 顶栏与运行摘要 | done（ProducerRun 传入渲染入口；顶栏七项；遗留：回调前外壳占位旧文案留给 07） | eca3730 |
+| 03 左栏 | done（五行依据；趋势规则收拢为 domain.trend.trend_rules_from_manifest，Worker 与 Web 共用；窄屏堆叠断点 1000px；30 日方向为"无"也列入转折观察） | 5c39811、9fef5a9 |
+| 04 右栏 | done（conclusion_right；历史期未取到取最终计划模型所需口径 missing；旧模型投影写"该版本未提供确认汇总"并保留四项领域状态） | 492dd1d |
+| 05 三核心表九列 | done（九列、候选两行、state_tag；暂留 web._trend_rules 待 03 收拢；窄屏未实测留 07） | fc4696c |
+| 06 板底事实行 | done（reading_line 四分、run_facts_line；ReportSnapshot 增 adapter_outcomes；失败数口径 REQUEST_FAILURES；重新生成时仍显示已有报告） | 4238bdc |
+| 代码审查与修复 | 审查完成（review.md：Standards 3、Spec 3，无阻断）；修复中（review-fix-cb） | cb-rf |
+| 07 集成验收 | 阻塞（审查修复） | |
