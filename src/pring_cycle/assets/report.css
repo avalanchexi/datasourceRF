@@ -159,3 +159,32 @@ html, body { font-size: 14px; }
 .drawer-body .record-row { display: flex; flex-direction: column; gap: 2px; }
 .drawer-body .report-table td:first-child { white-space: nowrap; }
 @media (max-width: 560px) { .history-interval { display: flex; flex-wrap: wrap; gap: 2px 10px; } .history-interval span:nth-child(4) { flex-basis: 100%; } }
+
+/* 数据链路桑基图：连线按请求结果四色、节点按列分色；dashboard.js 依主题读这些变量重绘。 */
+:root[data-theme="light"],
+:root:not([data-theme]) {
+  --flow-success: rgba(22, 131, 77, 0.4);
+  --flow-candidate: rgba(209, 138, 22, 0.45);
+  --flow-neutral: rgba(128, 134, 138, 0.35);
+  --flow-failure: rgba(196, 50, 58, 0.4);
+  --flow-source: #3d6d9b;
+  --flow-phase: #7b5ea7;
+  --flow-result: #176a66;
+}
+:root[data-theme="dark"] {
+  --flow-success: rgba(75, 212, 155, 0.45);
+  --flow-candidate: rgba(242, 173, 70, 0.5);
+  --flow-neutral: rgba(157, 170, 184, 0.35);
+  --flow-failure: rgba(255, 104, 111, 0.5);
+  --flow-source: #4b97ff;
+  --flow-phase: #b78af5;
+  --flow-result: #5ce1ed;
+}
+.flow-sankey .node-label { fill: var(--ink-body) !important; text-shadow: none !important; }
+.request-table .table-scroll { max-height: 480px; overflow-y: auto; }
+.request-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: linear-gradient(var(--surface-muted), var(--surface-muted)), var(--surface-canvas);
+}

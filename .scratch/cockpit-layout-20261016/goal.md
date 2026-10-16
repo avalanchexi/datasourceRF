@@ -57,5 +57,5 @@
 | 06 ⑤ 库存精简 | ready-for-agent | |
 | 07 ⑥ 区间列表 | ready-for-agent | |
 | 08 ⑦ 精简 | done（gap_preview 前 5 条＋查看全部抽屉；report_summary 四态；报告详情与发布日历抽屉；⑦ 段 1838→689px） | 63cd500 |
-| 09 桑基图 | ready-for-agent | |
+| 09 桑基图 | done（FLOW_RESULTS 一处映射四色；flow_sankey 中文名·数、其他（N）、悬停占比；主题变量 restyle；请求表限高 480 吸顶） | 26f8313、9383800 |
 | 10 集成验收 | ready-for-agent | |
