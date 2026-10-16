@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import datetime
 from typing import Any, cast
 from urllib.parse import urlencode
@@ -20,7 +21,14 @@ from pring_cycle.reports import ReportSnapshot
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS
 from pring_cycle.run_health import REQUEST_FAILURES, ProducerRun
 from pring_cycle.runs import RunRecord
-from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, stage_code
+from pring_cycle.wording import (
+    CORE_STATE_LABELS,
+    NO_CHINESE_NAME,
+    DisplayName,
+    core_state_label,
+    display_name,
+    stage_code,
+)
 
 SECTIONS = (
     ("conclusion", "周期识别结论"),
@@ -58,6 +66,35 @@ UNITS = {
     "usd_per_barrel": "美元/桶",
     "usd_per_troy_ounce": "美元/盎司",
 }
+# A metric whose source records a generic unit reads in its catalog unit: the 16:30 close
+# parser stamps "scalar" on a CNY-per-USD quote.
+METRIC_UNITS = {("CN_USDCNY_CLOSE_1630", "scalar"): "cny_per_usd"}
+
+
+def row_name(row: dict[str, Any], *, fallback: object = None) -> DisplayName:
+    """A projection row's display name, from its metric, member dimensions and catalog name.
+
+    ``fallback`` is a Chinese group label the projection already carries, used before the code.
+    """
+    name = display_name(row.get("metric_id"), obj(row.get("dimensions")), row.get("name_cn"))
+    return (
+        name if name.provided or not fallback else replace(name, name=str(fallback), provided=True)
+    )
+
+
+def name_cell(name: DisplayName) -> Any:
+    """The Chinese name alone for compact places; hovering shows the code."""
+    return html.Span(name.name, title=name.code)
+
+
+def name_note(name: DisplayName) -> list[Any]:
+    """The drawer's note when the name fell back to the code."""
+    return [] if name.provided else [html.P(NO_CHINESE_NAME, className="empty-note")]
+
+
+def with_metric_unit(row: dict[str, Any]) -> dict[str, Any]:
+    unit = METRIC_UNITS.get((str(row.get("metric_id")), str(row.get("unit"))))
+    return {**row, "unit": unit} if unit else row
 
 
 def objects(value: object) -> list[dict[str, Any]]:
@@ -332,6 +369,7 @@ def report_board(
     runs: Sequence[RunRecord],
     reports: Sequence[ReportSnapshot],
     stage_events: Sequence[dict[str, object]] = (),
+    release_events: Sequence[dict[str, object]] = (),
     *,
     producer_run: ProducerRun | None = None,
     trend_rules: TrendRules | None = None,
@@ -436,13 +474,18 @@ def report_board(
             html.H3("完整度与缺期"),
             coverage_table(obj(macro.get("coverage"))),
             *view._freshness_basis(projection),
-            view._gap_list(overview.get("gap_list")) if projection else html.P("尚无分析投影。"),
+            *(gap_preview(overview.get("gap_list")) if projection else [html.P("尚无分析投影。")]),
             html.P(
                 [
-                    html.A("发布日历", href="/release-calendar" + pinned),
+                    drawer_trigger(drawer_key("reading", "calendar"), "发布日历"),
                     " · ",
                     html.A("数据链路与证据", href="/data-chain" + pinned),
                 ]
+            ),
+            drawer_panel(
+                drawer_key("reading", "calendar"),
+                "发布日历",
+                view._release_calendar_body(projection, release_events),
             ),
             html.H3("本投影解读"),
             html.P(
@@ -454,7 +497,7 @@ def report_board(
             )
             if report_run
             else None,
-            view._report_reader(report) if report else html.P("报告尚未生成，或旧投影未提供解读。"),
+            *report_summary(report, pinned),
             html.Button(
                 "为本投影生成报告",
                 id="generate-report-command",
@@ -1035,6 +1078,77 @@ def reading_line(
     ]
 
 
+def report_summary(report: ReportSnapshot | None, pinned: str) -> list[Any]:
+    """Section 07's reading of the board's report: the AI reading's first paragraph, or the
+    template note with the noncanonical reading; identity and facts open in a drawer."""
+    if report is None:
+        return [html.P("报告尚未生成，或旧投影未提供解读。")]
+    body = report.body if report.body_retained else {}
+    sections = objects(body.get("ai_explanation"))
+    if report.adapter == "deterministic":
+        summary: list[Any] = [
+            html.P(reading_line(report, pinned, pending=False)),
+            *(
+                html.Div(
+                    [
+                        html.Strong(str(item.get("title") or "未命名章节")),
+                        html.P(str(item.get("explanation") or ""), className="body-copy"),
+                    ]
+                )
+                for item in sections
+                if body.get("explanation_source") == "deterministic_template"
+            ),
+        ]
+    else:
+        summary = [
+            html.P("AI 解读 · " + report.adapter, className="secondary-copy"),
+            html.P(str(sections[0].get("explanation") or ""), className="body-copy")
+            if sections
+            else None,
+        ]
+    if not report.body_retained:
+        summary.append(html.P("正文已不在保留期；报告身份仍可在详情中核对。"))
+    key = drawer_key("reading", "report")
+    return [
+        *summary,
+        html.P(drawer_trigger(key, "查看报告详情 →")),
+        drawer_panel(key, "报告详情", report_details(report), code=report.report_snapshot_id),
+    ]
+
+
+def report_details(report: ReportSnapshot) -> list[Any]:
+    """The report's identity, the projection it read, its cutoff and timeliness, the AI
+    reading in full, and the structured facts it bound (three cores, verified results).
+    A template reading is already whole on the page."""
+    if not report.body_retained:
+        return [*view._report_head(report), html.P("正文已不在保留期。")]
+    body = report.body
+    return [
+        *view._report_head(report),
+        *(
+            html.Section(
+                [
+                    html.H3(str(item.get("title") or "未命名章节")),
+                    html.P(str(item.get("explanation") or ""), className="body-copy"),
+                ]
+            )
+            for item in objects(body.get("ai_explanation"))
+            if report.adapter != "deterministic"
+        ),
+        *(
+            html.Section(
+                [
+                    html.H3(title),
+                    html.Pre(view._display_value(body[field]), className="body-copy")
+                    if field in body
+                    else html.P("该报告未提供。"),
+                ]
+            )
+            for title, field in (("三核心", "core_states"), ("已验证结果", "verified_results"))
+        ),
+    ]
+
+
 UNAVAILABLE = "口径不可用"
 
 
@@ -1281,7 +1395,9 @@ def related_assets(macro: dict[str, object], asset: str, projection: ProjectionS
         for evidence in objects(member.get("evidence")) or [{}]:
             rows.append(
                 (
-                    member.get("label"),
+                    name_cell(row_name(evidence, fallback=member.get("label")))
+                    if evidence.get("metric_id")
+                    else member.get("label"),
                     value_link(
                         evidence.get("value"),
                         evidence.get("unit"),
@@ -1343,6 +1459,29 @@ def coverage_table(coverage: dict[str, Any]) -> Any:
     )
 
 
+GAP_PREVIEW = 5
+
+
+def gap_preview(value: object) -> list[Any]:
+    """The gap list once: its first rows on the page, every row in a drawer (spec 07)."""
+    listed = view._document_list(value)
+    gaps = [
+        item
+        for category in view.GAP_CATEGORY_LABELS
+        for item in listed
+        if item.get("category") == category
+    ]
+    if len(gaps) <= GAP_PREVIEW:
+        return [view._gap_list(gaps)]
+    key = drawer_key("reading", "gaps")
+    return [
+        html.P(f"缺口共 {len(gaps)} 条，以下为前 {GAP_PREVIEW} 条。", className="secondary-copy"),
+        view._gap_list(gaps[:GAP_PREVIEW]),
+        drawer_trigger(key, f"查看全部 {len(gaps)} 条缺口 →"),
+        drawer_panel(key, f"全部缺口（{len(gaps)}）", [view._gap_list(gaps)]),
+    ]
+
+
 def warrant_table(projection: ProjectionSet | None) -> Any:
     warrants = obj(view._dataset(projection, "inventory").get("registered_warrants"))
     if not warrants:
@@ -1358,7 +1497,9 @@ def warrant_table(projection: ProjectionSet | None) -> Any:
                 ("品种", "起点 / 单位", "终点 / 单位", "变化", "状态", "原始输入"),
                 [
                     (
-                        item.get("symbol"),
+                        name_cell(
+                            display_name("CN_FUTURES_WARRANTS", {"symbol": item.get("symbol")})
+                        ),
                         number(item.get("first"), item.get("unit")),
                         number(item.get("last"), item.get("unit")),
                         f"{item['change_rate']:+.2%}"
@@ -1591,13 +1732,12 @@ def _direction_arrow(value: object) -> str:
 
 
 def _overseas_card(item: dict[str, Any], key: str) -> Any:
-    metric_id = str(item.get("metric_id") or "")
-    name = str(item.get("name_cn") or metric_id)
+    name = row_name(item)
     return drawer_trigger(
         key,
         [
-            html.Strong(name),
-            html.Small(metric_id) if name != metric_id else None,
+            html.Strong(name.name),
+            html.Small(name.code) if name.code != name.name else None,
             html.Span(number(item.get("value"), item.get("unit")), className="card-value"),
             html.Span(str(item.get("period") or "—")),
             html.Span(_direction_arrow(item.get("direction"))),
@@ -1624,7 +1764,7 @@ def _source_link(reference: object) -> Any:
 
 
 def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet | None) -> Any:
-    metric_id = str(item.get("metric_id") or "")
+    name = row_name(item)
     display = obj(item.get("display"))
     fields: list[tuple[str, Any]] = [
         (
@@ -1666,8 +1806,9 @@ def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet |
     trend = context_trend(item, projection, "overseas")
     return drawer_panel(
         key,
-        str(item.get("name_cn") or metric_id),
+        name.name,
         [
+            *name_note(name),
             html.Dl(
                 [part for label, value in fields for part in (html.Dt(label), html.Dd(value))],
                 className="drawer-fields",
@@ -1675,12 +1816,12 @@ def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet |
             html.H3("走势与比较端点"),
             *([html.P(trend, className="empty-note")] if isinstance(trend, str) else trend),
         ],
-        code=metric_id,
+        code=name.code,
     )
 
 
 def overseas_cards(macro: dict[str, object], projection: ProjectionSet | None) -> Any:
-    rows = objects(macro.get("international_context"))
+    rows = [with_metric_unit(item) for item in objects(macro.get("international_context"))]
     if not rows:
         return html.P("本投影尚无海外与汇率事实。", className="empty-note")
     listed = sorted(

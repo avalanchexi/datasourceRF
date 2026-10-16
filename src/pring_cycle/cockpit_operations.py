@@ -12,10 +12,11 @@ from zoneinfo import ZoneInfo
 from dash import dcc, html
 
 from pring_cycle import dashboard as view
-from pring_cycle.cockpit import coverage_table, number, obj, objects, table
+from pring_cycle.cockpit import coverage_table, name_cell, number, obj, objects, table
 from pring_cycle.page_identity import local_time
 from pring_cycle.run_health import comparison, filtered_flow
 from pring_cycle.runs import RunRecord
+from pring_cycle.wording import display_name, source_name
 
 DIAGNOSES = {
     "adopted": "本投影已采用",
@@ -72,6 +73,14 @@ def label_value(value: object) -> str:
 def flow_node_label(node: str) -> str:
     prefix, separator, value = node.partition(":")
     return prefix + separator + label_value(value) if separator else label_value(node)
+
+
+def metric_names(metric_ids: Sequence[str]) -> list[Any]:
+    """Request metrics by Chinese name, each code on hover, joined as one cell."""
+    names = [name_cell(display_name(metric_id)) for metric_id in metric_ids]
+    return [
+        part for index, name in enumerate(names) for part in (("、",) if index else ()) + (name,)
+    ]
 
 
 def filter_form(path: str, query: dict[str, str], options: dict[str, tuple[str, list[str]]]) -> Any:
@@ -548,11 +557,14 @@ def data_chain(
                 [
                     (
                         item["request_id"],
-                        item["channel"] + " / " + label_value(item["phase"]),
+                        [
+                            html.Span(source_name(item["channel"]), title=item["channel"]),
+                            " / " + label_value(item["phase"]),
+                        ],
                         label_value(item["result"])
                         + " · "
                         + str(item.get("classification") or "—"),
-                        "、".join(item["metric_ids"]),
+                        metric_names(item["metric_ids"]),
                         number(item.get("source_record_count"))
                         + " / "
                         + number(item.get("claim_count")),
