@@ -54,7 +54,7 @@
 | 03 ① 非典型读法 | done（只差一项读 noncanonical_basis；非典型右栏一行；转折观察只列反向；缺口抽屉 conclusion-gaps。遗留：tests/integration/test_confirmation_publish.py 两例自结论板批次起即失败，待审查修复时改写） | 7ab64a4、d9fb04d |
 | 04 ② 三列资产卡 | done（① 去三核心表加"三核心详见 ②"；② 三卡＋160px 小图＋同类观察限高 320＋行抽屉；价格一致性窄卡；单位家/倍/比值；② 段 ~5005→1321px。遗留：家数两位小数"978.00 家"） | 3d14527、da572cb；合并 5911e74（report.css 冲突两边保留，合并后 tests/web 133 passed） |
 | 05 ④ 两列维度卡 | done（confirmation_cards 五卡两列；非典型行写读法＋不计数；指标抽屉含 GDP 分产业 4×2；④ 段 ~1459→746px。遗留：tests/integration 确认相关 4 例旧首页文案断言待票 10 改写；有正式阶段的真实投影未在浏览器核对） | 50e888a、c4cb883；合并 830e3b6 |
-| 06 ⑤ 库存精简 | ready-for-agent | |
+| 06 ⑤ 库存精简 | done（inventory_section：象限卡＋三线小卡＋仓单一行，抽屉含分品种/原始输入/实际库存近似；⑤ 段 3671→454px。遗留：仓单吨数旧格式 2175351.0） | 89d1c3e |
 | 07 ⑥ 区间列表 | done（同状态连续日合并区间、区间抽屉逐日与更正；等价表格抽屉顶部含回溯小节 lookback_note；⑥ 段 ~8000→611px） | 86d5094、d5e04b1、aa2aca7 |
 | 08 ⑦ 精简 | done（gap_preview 前 5 条＋查看全部抽屉；report_summary 四态；报告详情与发布日历抽屉；⑦ 段 1838→689px） | 63cd500 |
 | 09 桑基图 | done（FLOW_RESULTS 一处映射四色；flow_sankey 中文名·数、其他（N）、悬停占比；主题变量 restyle；请求表限高 480 吸顶） | 26f8313、9383800 |
