@@ -51,11 +51,11 @@
 |---|---|---|
 | 01 抽屉与 ③ 卡片 | done（drawer.py 三函数＋assets/drawer.js 统一开合；③ 名单 OVERSEAS_METRICS 卡片网格；其他背景指标卡；用法见 notes/cockpit-layout/drawer-usage.md） | c3d2158 |
 | 02 中文名 | done（wording.display_name 成员项→目录名→指标项→代号；source_name 供 09；row_name/name_cell/name_note；1630 单位元/美元；沪深 300 更正） | d1e04b7、c1837d3 |
-| 03 ① 非典型读法 | ready-for-agent | |
+| 03 ① 非典型读法 | done（只差一项读 noncanonical_basis；非典型右栏一行；转折观察只列反向；缺口抽屉 conclusion-gaps。遗留：tests/integration/test_confirmation_publish.py 两例自结论板批次起即失败，待审查修复时改写） | 7ab64a4、d9fb04d |
 | 04 ② 三列资产卡 | ready-for-agent | |
 | 05 ④ 两列维度卡 | ready-for-agent | |
 | 06 ⑤ 库存精简 | ready-for-agent | |
 | 07 ⑥ 区间列表 | ready-for-agent | |
 | 08 ⑦ 精简 | done（gap_preview 前 5 条＋查看全部抽屉；report_summary 四态；报告详情与发布日历抽屉；⑦ 段 1838→689px） | 63cd500 |
-| 09 桑基图 | ready-for-agent | |
+| 09 桑基图 | done（FLOW_RESULTS 一处映射四色；flow_sankey 中文名·数、其他（N）、悬停占比；主题变量 restyle；请求表限高 480 吸顶） | 26f8313、9383800 |
 | 10 集成验收 | ready-for-agent | |

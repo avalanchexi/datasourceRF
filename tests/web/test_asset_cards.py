@@ -336,9 +336,10 @@ def test_price_consistency_sits_below_the_cards_with_its_details_in_the_drawer()
     text = _words(section)
 
     assert text.index("商品 · 南华工业品指数") < text.index("价格内部一致性（不计数）")
+    # Bold values are separate text runs; the shared text helper joins runs with a space.
     assert _words(consistency) == (
         "价格内部一致性（不计数） 商品对债 +1.23 个百分点 · 股票对债 -0.50 个百分点 · "
-        "股票对商品 未确认；股市广度（站上 90 日均线个股占比） 40.0%（上涨集中于较少个股）；"
+        "股票对商品 未确认；股市广度（站上 90 日均线个股占比） 40.0% （上涨集中于较少个股）；"
         "商品篮子分项广度 3/7 个分项同向（上涨集中于少数分项） 查看明细 →"
     )
     assert panel.startswith(
