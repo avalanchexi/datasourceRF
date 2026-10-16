@@ -49,7 +49,8 @@ def test_navigation_and_home_hierarchy_match_the_approved_report_contract() -> N
 
     assert "01 周期识别结论" in home
     assert home.index("正式阶段") < home.index("转折观察")
-    assert "当前阶段暂不判定" in home
+    assert "暂无正式阶段" in home
+    assert "暂不判定" not in home
     assert "不改变正式阶段" in home
 
 
@@ -180,11 +181,17 @@ def test_published_core_states_render_as_domain_ui_instead_of_raw_json() -> None
 
     assert "第二阶段 · Stage II" in home
     assert "上证国债指数" in home
-    assert "偏多" in home
+    assert "牛市" in home
+    assert "偏多" not in home
     assert "2026-08-28" in home
     assert "等待三类 P0" not in home
     assert "稳定方向" in detail
-    assert "30 日即时方向" in detail
+    # The two candidate concepts stay in separate, glossary-named columns.
+    assert "30 日候选方向" in detail
+    assert "资产候选状态" in detail
+    assert "熊市 · 持续 8 日" in detail
+    assert "30 日即时方向" not in detail
+    assert "趋势切换候选" not in detail
     assert '"asset": "bond"' not in detail
 
 
@@ -458,7 +465,8 @@ def test_stage_history_page_can_show_an_unpublished_p0_gap_from_the_read_model()
     history = _text(dashboard_page("/stage-history", None, (), (), (gap,)))
 
     assert "2026-08-31" in history
-    assert "当前阶段暂不判定" in history
+    assert "暂无正式阶段" in history
+    assert "暂不判定" not in history
     assert "上一确认 第二阶段 · Stage II" in history
     assert "商品：来源冲突" in history
 

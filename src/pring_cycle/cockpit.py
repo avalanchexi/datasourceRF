@@ -15,6 +15,7 @@ from pring_cycle import dashboard as view
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
 from pring_cycle.runs import RunRecord
+from pring_cycle.wording import CORE_STATE_LABELS
 
 SECTIONS = (
     ("conclusion", "周期识别结论"),
@@ -274,8 +275,8 @@ def core_table(projection: ProjectionSet | None, *, section: str = "conclusion")
             "最新值 / 日期",
             "距均线",
             "斜率",
-            "30 日即时方向",
-            "趋势切换候选",
+            "30 日候选方向",
+            "资产候选状态",
             "5 日变化",
             "120 日变化",
             "价格 / MA120",
@@ -918,8 +919,7 @@ def context_chart(row: dict[str, Any], projection: ProjectionSet | None, section
 HISTORY_LABELS = {
     "unpublished": "未发布",
     "unavailable": "不可用",
-    "bull": "牛",
-    "bear": "熊",
+    **CORE_STATE_LABELS,
     "undetermined": "待定",
     "unknown": "未知",
     "noncanonical_combination": "非典型组合",

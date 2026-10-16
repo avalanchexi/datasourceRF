@@ -6,11 +6,12 @@ from typing import Any
 
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.domain.stage import single_asset_differences
+from pring_cycle.wording import core_state_label
 
 TITLE = "非典型组合解读"
-PROMPT_VERSION = "report-prompt-v0006"
+PROMPT_VERSION = "report-prompt-v0007"
 _ASSETS = {"bond": "债券", "stock": "股票", "commodity": "商品"}
-_STATES = {"bull": "牛市", "bear": "熊市", None: "无"}
+_STATES = {"bull": core_state_label("bull"), "bear": core_state_label("bear"), None: "无"}
 
 
 def build_basis(assets: list[dict[str, Any]], last_confirmed_stage: str | None) -> dict[str, Any]:
@@ -55,7 +56,7 @@ def fact_sentences(basis: dict[str, Any]) -> list[str]:
             f"与{_stage(row['stage'])}只差{name}一项"
             f"（当前{_STATES[row['current_state']]}，该典型组合要求{_STATES[row['required_state']]}；"
             f"30 日候选方向：{_STATES[row['candidate_30d']]}；"
-            f"趋势切换候选：{candidate}{duration}{persistence}）。"
+            f"资产候选状态：{candidate}{duration}{persistence}）。"
         )
     sentences.append(f"上一确认阶段：{_stage(basis['last_confirmed_stage'])}，仅作历史上下文。")
     return sentences
@@ -72,7 +73,7 @@ def observation_sentences(basis: dict[str, Any]) -> list[str]:
         else:
             direction = "尚未指向上述差异所需方向"
         sentences.append(
-            f"观察{name}：30 日候选{direction}，继续观察趋势切换候选及其持续确认条件，"
+            f"观察{name}：30 日候选{direction}，继续观察资产候选状态及其持续确认条件，"
             "候选信号不等于稳定状态切换，也不预测下一阶段。"
         )
     return sentences

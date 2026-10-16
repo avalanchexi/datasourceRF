@@ -17,6 +17,7 @@ from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS
 from pring_cycle.runs import RunRecord
+from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, stage_title
 
 
 def dashboard_shell(
@@ -2491,11 +2492,8 @@ def _asset_table(value: object) -> html.Div:
 
 
 def _state_badge(value: str) -> html.Span:
-    normalized = value.lower()
-    state = "up" if normalized in {"bull", "bullish", "上涨", "支持"} else "down"
-    if normalized not in {"bull", "bullish", "上涨", "支持", "bear", "bearish", "下跌", "矛盾"}:
-        state = "warning"
-    label = {"up": "偏多", "down": "偏空", "warning": "不可用"}[state]
+    label = core_state_label(value)
+    state = {"牛市": "up", "熊市": "down"}.get(label, "warning")
     return html.Span(f"{label} · {value}", className=f"state-badge state-{state}")
 
 
@@ -2508,17 +2506,7 @@ def _asset_label(asset: str) -> str:
 
 
 def _stage_label(value: object) -> str:
-    labels = {
-        "stage_i": "第一阶段 · Stage I",
-        "stage_ii": "第二阶段 · Stage II",
-        "stage_iii": "第三阶段 · Stage III",
-        "stage_iv": "第四阶段 · Stage IV",
-        "stage_v": "第五阶段 · Stage V",
-        "stage_vi": "第六阶段 · Stage VI",
-    }
-    if value is None:
-        return "当前阶段暂不判定"
-    return labels.get(str(value).lower(), str(value))
+    return stage_title(value)
 
 
 def _last_confirmed_label(stage: object, lookback: object) -> str:
@@ -2605,10 +2593,7 @@ def _state_label(value: object) -> str:
         "resume_required": "确认后恢复",
         "refresh_p0_or_create_gap_notice": "补齐三核心或记录缺口说明",
         "wait_for_release_or_cache_expiry": "等待发布或缓存到期",
-        "bull": "偏多",
-        "bullish": "偏多",
-        "bear": "偏空",
-        "bearish": "偏空",
+        **CORE_STATE_LABELS,
         "support": "支持",
         "supports": "支持",
         "conflict": "矛盾",

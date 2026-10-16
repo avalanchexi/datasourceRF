@@ -88,7 +88,7 @@ def test_worker_lists_every_single_asset_difference_without_classifying(
     assert all(row["candidate_state"] is None for row in basis["comparisons"])
     source = report_input_from_projection(published)
     assert source.results["noncanonical_basis"] == basis
-    assert source.prompt_version == "report-prompt-v0006"
+    assert source.prompt_version == "report-prompt-v0007"
     assert "候选熊市 0 天" not in "".join(fact_sentences(basis))
 
 
@@ -133,6 +133,37 @@ def test_new_report_and_home_show_reading_with_honest_source(
         assert "观察债券：" not in home
         reader = _text(dashboard_page("/reports", published, (), (snapshot,)))
         assert "确定性模板" in reader and "已验证结果" in reader
+
+
+_RETIRED_WORDING = ("偏多", "偏空", "暂不判定", "30 日即时方向", "趋势切换候选")
+
+
+@pytest.mark.parametrize("states", [("bull", "bull", "bear"), ("bull", "bear", "bull")])
+def test_pages_use_glossary_wording_for_canonical_and_noncanonical_projections(
+    tmp_path: Path, states: tuple[str, ...]
+) -> None:
+    published = projection(tmp_path, states)
+    reports: tuple[Any, ...] = ()
+    if published.datasets["cycle_overview"]["current_stage"] is None:
+        source = report_input_from_projection(published)
+        repository = ReportRepository.create(tmp_path / "reports.sqlite3")
+        adapter = FakeAdapter("codex_cli", AdapterResponse.succeeded(document(source)))
+        result = ReportService(repository, (adapter,)).generate(source)
+        reports = (repository.get(result.report_snapshot_id),)
+    pages = {
+        route: _text(dashboard_page(route, published, (), reports))
+        for route in ("/", "/core-assets", "/stage-history", "/reports")
+    }
+    home = pages["/"]
+    if reports:
+        assert "暂无正式阶段" in home
+        assert "资产候选状态：无" in home
+    else:
+        assert "第二阶段 · Stage II" in home
+    assert "牛市" in home and "熊市" in home
+    for route, text in pages.items():
+        for word in _RETIRED_WORDING:
+            assert word not in text, (route, word)
 
 
 @pytest.mark.parametrize(
@@ -206,7 +237,7 @@ def test_cli_prompt_contains_frozen_reading_contract(
     def generate(name: str, prompt: str, schema: Any, **kwargs: Any) -> Any:
         data = json.loads(prompt)
         assert name == adapter
-        assert data["execution_contract"]["prompt_version"] == "report-prompt-v0006"
+        assert data["execution_contract"]["prompt_version"] == "report-prompt-v0007"
         contract = data["noncanonical_reading_contract"]
         assert contract["title"] == TITLE
         assert len(contract["required_fact_sentences"]) == 5
@@ -246,7 +277,7 @@ def test_noncanonical_reading_preserves_not_applicable_confirmation(tmp_path: Pa
     assert result.status == "completed"
     snapshot = repository.get(result.report_snapshot_id)
     assert snapshot.schema_version == "report-schema-v0005"
-    assert snapshot.prompt_version == "report-prompt-v0006"
+    assert snapshot.prompt_version == "report-prompt-v0007"
     assert snapshot.body["conclusions"] == source.conclusions
 
 
