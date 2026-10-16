@@ -56,6 +56,6 @@
 | 05 ④ 两列维度卡 | ready-for-agent | |
 | 06 ⑤ 库存精简 | ready-for-agent | |
 | 07 ⑥ 区间列表 | ready-for-agent | |
-| 08 ⑦ 精简 | ready-for-agent | |
+| 08 ⑦ 精简 | done（gap_preview 前 5 条＋查看全部抽屉；report_summary 四态；报告详情与发布日历抽屉；⑦ 段 1838→689px） | 63cd500 |
 | 09 桑基图 | ready-for-agent | |
 | 10 集成验收 | ready-for-agent | |
