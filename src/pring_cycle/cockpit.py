@@ -1675,6 +1675,7 @@ def warrant_line(document: dict[str, Any], projection: ProjectionSet | None) -> 
                         table(
                             ("品种", "起点 → 终点", "变化", "换算"),
                             [_warrant_row(item) for item in symbols],
+                            class_name="report-table warrant-table",
                         ),
                         *_warrant_inputs(symbols, projection),
                     ]

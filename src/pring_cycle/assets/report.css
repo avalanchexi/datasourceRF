@@ -159,6 +159,8 @@ html, body { font-size: 14px; }
 .line-card small { color: var(--ink-muted); font-family: monospace; font-size: 11px; overflow-wrap: anywhere; }
 .line-card .card-value { color: var(--ink-strong); font-size: 18px; font-weight: 650; }
 .warrant-line { margin: 10px 0 0; color: var(--ink-body); font-size: 13px; }
+.warrant-table td:nth-child(2), .warrant-table td:nth-child(3) { white-space: nowrap; }
+.warrant-table td:nth-child(4) { min-width: 10em; }
 @media (max-width: 760px) { .line-cards { grid-template-columns: minmax(0, 1fr); } }
 
 /* 数据链路桑基图：连线按请求结果四色、节点按列分色；dashboard.js 依主题读这些变量重绘。 */
