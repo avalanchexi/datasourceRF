@@ -193,6 +193,33 @@ def test_queued_report_task_says_the_report_is_being_generated(tmp_path: Path) -
     assert "报告尚未生成" not in text
 
 
+def test_regenerating_a_report_says_it_is_being_generated_over_the_one_already_read(
+    tmp_path: Path,
+) -> None:
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    projection = target_projection(paths)
+    identity = projection.envelope.projection_set_id
+    runs = RunRepository(paths.database)
+    runs.submit(
+        command_type="report_generation",
+        target_business_date="2026-08-28",
+        client_request_id="board-footer-regenerate",
+        model_version_id=projection.envelope.model_version_id,
+        system_as_of=CUTOFF,
+        projection_set_id=identity,
+    )
+
+    text, _hrefs = _board(
+        projection,
+        runs=runs.list_runs(limit=-1, include_details=False),
+        reports=(_report(identity, body=_reading("已读过的首句。次句。")),),
+    )
+
+    assert "解读： 报告生成中" in text
+    assert "已读过的首句" not in text
+
+
 def test_without_a_same_projection_report_the_board_links_to_the_generate_button(
     published: tuple[RuntimePaths, ProjectionSet],
 ) -> None:

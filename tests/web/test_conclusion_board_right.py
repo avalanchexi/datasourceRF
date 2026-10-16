@@ -10,10 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from pring_cycle.dashboard import dashboard_page
-from pring_cycle.domain import FormalStage
-from pring_cycle.evidence import EvidenceRepository
 from pring_cycle.projections import ProjectionSet
-from tests.integration.test_confirmation_projection import project, seed
+from tests.integration.test_confirmation_publish import confirmed
 from tests.web.test_conclusion_board import _asset, _board, _conclusion, _projection
 from tests.web.test_dashboard_contract import _hrefs, _text
 
@@ -308,32 +306,19 @@ def test_the_board_drops_its_folded_blocks_while_the_details_stay_in_later_secti
     assert "完整度与缺期" in page
 
 
-def test_the_right_column_reads_the_confirmation_the_worker_builds(tmp_path: Path) -> None:
-    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
-    seed(repository, (49.5, 49.2, 48.8))
-    boards = {}
-    for stage, reason in (
-        (FormalStage.STAGE_I, "canonical_combination"),
-        (None, "noncanonical_combination"),
-    ):
-        context = project(repository, stage, reason=reason)
-        shell = _projection([], current_stage=stage and stage.value, stage_reason=reason)
-        boards[reason] = _board(
-            ProjectionSet(
-                shell.envelope,
-                {**shell.datasets, "macro": context.macro, "inventory": context.inventory},
-            )
-        )
-    typical, noncanonical = boards["canonical_combination"], boards["noncanonical_combination"]
+def test_the_right_column_reads_the_confirmation_the_day_summary_publishes(
+    tmp_path: Path,
+) -> None:
+    board = _board(confirmed(tmp_path))
 
+    assert "确认度 可评估 · 17 项关键指标 · 规则 macro-confirmation-v0001" in board
     # The PMI supports; the other four overheat indicators, held nowhere, are unconfirmed.
-    assert "过热 5 项 支持 1 · 反证 0 · 仅观察 0 · 未确认 4" in typical
-    assert "过热 5 项 · 不适用 支持 0 · 反证 0 · 仅观察 0 · 未确认 0" in noncanonical
-    assert "确认度 可评估 · " in typical and "确认度 不适用 · " in noncanonical
-    for board in boards.values():
-        assert "项关键指标" in board and " · 规则 macro-confirmation-v" in board
-        assert "库存象限 未分类（统计期 " in board
-        assert "未分类原因：三条线缺数或月份不齐" in board
+    assert "过热 5 项 支持 1 · 反证 0 · 仅观察 0 · 未确认 4" in board
+    assert "库存象限 未分类（统计期 未提供；未分类原因：三条线缺数或月份不齐" in board
+    assert "债券归因 推动力不明" in board
+    assert "数据边界 0 项缺口 · 历史期未取到：该版本未提供" in board
+    rows = ("确认度 ", "价格一致性 ", "库存象限 ", "债券归因 ", "数据边界 ")
+    assert [board.index(row) for row in rows] == sorted(board.index(row) for row in rows)
 
 
 def test_an_empty_runtime_right_column_waits_for_the_first_run() -> None:

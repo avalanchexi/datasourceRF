@@ -7,7 +7,6 @@ each case builds a small projection by hand and asserts the reader-visible sente
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 from dash.development.base_component import Component
@@ -241,6 +240,24 @@ def test_transition_watch_says_none_only_when_every_30_day_candidate_agrees() ->
     assert "同向" not in turning
 
 
+def test_a_candidate_without_its_duration_reads_not_provided_in_the_watch_and_the_table() -> None:
+    stock = _asset("stock", "bear", candidate_30d="bull", candidate_state="bull")
+    del stock["candidate_days"], stock["persistence_required"]
+    board = _board(
+        _projection(
+            [_asset("bond", "bull"), stock, _asset("commodity", "bull")],
+            stage_reason="noncanonical_combination",
+        )
+    )
+
+    assert (
+        "转折观察 股票 30 日候选方向牛市，与当前熊市相反；"
+        "资产候选状态牛市 · 持续 未提供 / 门槛 未提供 · 只作观察"
+    ) in board
+    assert "30 日候选方向 牛市 资产候选状态 牛市 · 持续 未提供 / 门槛 未提供" in board
+    assert "持续 0 日" not in board and "未提供 日" not in board
+
+
 def test_last_confirmed_keeps_its_lookback_note_and_carry_forward_names_the_held_core() -> None:
     carried = _board(
         _projection(
@@ -271,7 +288,8 @@ def test_last_confirmed_keeps_its_lookback_note_and_carry_forward_names_the_held
 
     assert "上次确认 第三阶段 · Stage III（回溯得出，最近一次在 2026-03-31）" in carried
     assert "核心沿用 商品（沿用期 2026-09-29）" in carried
-    assert "上次确认 无" in plain
+    # An old set with neither a last confirmed stage nor a lookback record never says none.
+    assert "上次确认 未提供" in plain
     assert "核心沿用 无" in plain
     for board in (carried, plain):
         rows = ["原因", "上次确认", "转折观察", "核心沿用"]
@@ -338,15 +356,3 @@ def test_the_conclusion_heading_says_what_the_board_holds() -> None:
     assert board.startswith(
         "01 周期识别结论 正式阶段 · 三核心 · 确认度 · 一致性 · 库存 · 归因，一板看完"
     )
-
-
-def test_the_board_stacks_its_columns_on_narrow_windows_without_widening_the_page() -> None:
-    stylesheet = (
-        Path(__file__).parents[2] / "src" / "pring_cycle" / "assets" / "report.css"
-    ).read_text(encoding="utf-8")
-    narrow = stylesheet[stylesheet.index("@media (max-width: 1000px)") :]
-    narrow = narrow[: narrow.index("\n}")]
-
-    assert ".conclusion-board { grid-template-columns: minmax(0,1fr); }" in narrow
-    assert ".conclusion-board > div { min-width: 0; }" in stylesheet
-    assert "overflow-wrap: anywhere" in stylesheet[stylesheet.index(".board-rows dd") :]

@@ -234,25 +234,27 @@ def state_tag(value: object) -> html.Span:
     return html.Span(label, className=f"state-tag state-{tone}")
 
 
+def asset_candidate(asset: dict[str, Any]) -> str:
+    """The asset candidate with its duration and threshold; a missing one is never a zero."""
+    candidate = asset.get("candidate_state")
+    if not candidate:
+        return "无"
+    days = asset.get("candidate_days")
+    threshold = asset.get("persistence_required")
+    return (
+        f"{core_state_label(candidate)} · "
+        f"持续 {'未提供' if days is None else f'{days} 日'} / "
+        f"门槛 {'未提供' if threshold is None else f'{threshold} 日'}"
+    )
+
+
 def candidate_cell(asset: dict[str, Any]) -> html.Div:
     """The 30-day direction and the asset candidate on two lines, never one merged duration."""
     direction = asset.get("candidate_30d")
-    candidate = asset.get("candidate_state")
-    days = asset.get("candidate_days")
-    threshold = asset.get("persistence_required")
     return html.Div(
         [
             html.Div("30 日候选方向 " + (core_state_label(direction) if direction else "无")),
-            html.Div(
-                "资产候选状态 "
-                + (
-                    f"{core_state_label(candidate)} · "
-                    f"持续 {'未提供' if days is None else f'{days} 日'} / "
-                    f"门槛 {'未提供' if threshold is None else f'{threshold} 日'}"
-                    if candidate
-                    else "无"
-                )
-            ),
+            html.Div("资产候选状态 " + asset_candidate(asset)),
         ]
     )
 
@@ -531,7 +533,8 @@ def conclusion_left(projection: ProjectionSet | None, trend_rules: TrendRules | 
             "上次确认",
             view._last_confirmed_label(last_confirmed, lookback)
             if last_confirmed is not None or isinstance(lookback, dict)
-            else "无",
+            # A set without a lookback record never says none (spec: 不回填).
+            else ("无" if projection is None else "未提供"),
         ),
         ("转折观察", transition_watch_line(projection)),
         ("核心沿用", carry_forward_line(projection)),
@@ -622,11 +625,7 @@ def transition_watch_line(projection: ProjectionSet | None) -> str:
                 )
             )
         if core.get("candidate_state") is not None:
-            signs.append(
-                f"资产候选状态{core_state_label(core.get('candidate_state'))} · "
-                f"持续 {core.get('candidate_days', 0)} 日 / "
-                f"门槛 {core.get('persistence_required') or '未提供'} 日"
-            )
+            signs.append("资产候选状态" + asset_candidate(core))
         if signs:
             watched.append(f"{CORE_NAMES[asset]} " + "；".join(signs))
     if watched:
@@ -903,9 +902,9 @@ def reading_line(
 ) -> list[str | html.A]:
     """The board's reading: an AI report's opening sentence, never a template as AI output.
 
-    A report already read stays while a newer version is generated.
+    A queued or running report task says so, also over a report already read (spec).
     """
-    if report is None and pending:
+    if pending:
         return ["报告生成中"]
     if report is None:
         return [

@@ -32,3 +32,18 @@
 - Standards 2 属判断：build_context_projection 产出的是 Worker 真实结构，未经单日汇总入口；成本低则改。
 - Spec 3 按规格原句改：任务排队或运行中写"报告生成中"，推翻票 06 Comments 的选择。
 - 窄屏不溢出改由票 07 浏览器截图验证，不再断言 CSS 源码。
+
+## 修复记录
+
+2026-10-16，分支 `cb-rf`（worktree `/home/tywin/worktrees/datasourceRF-cb-rf`），基于 conclusion-board `faf76ad`。每个行为修复先写失败测试再改。
+
+- **Spec 1（上次确认）**：有投影但既无上一确认阶段、又无回溯记录时写"上次确认 未提供"，不再写"无"；空库（无投影）仍写"无"。测试：`test_last_confirmed_keeps_its_lookback_note_and_carry_forward_names_the_held_core` 断言改为"未提供"（先红后绿）。
+- **Spec 2 / Standards 3（候选持续天数）**：新增 `cockpit.asset_candidate`，三核心表候选列与转折观察行共用；持续天数或门槛缺失均写"未提供"，不再补 0，也不再出现"未提供 日"。测试：新增 `test_a_candidate_without_its_duration_reads_not_provided_in_the_watch_and_the_table`。
+- **Spec 3（报告生成中）**：按规格原句，报告任务排队或运行中板底一律写"报告生成中"，已有同投影旧报告也不例外；⑦ 段仍保留旧报告与"完成后自动显示新版本"提示。票 06 Comments 中相反的选择已划掉并标注"已按审查推翻"。测试：新增 `test_regenerating_a_report_says_it_is_being_generated_over_the_one_already_read`。
+- **Standards 1（样式断言）**：删除 `test_the_table_scrolls_inside_its_own_container_so_the_page_does_not_overflow`（test_core_table.py）与 `test_the_board_stacks_its_columns_on_narrow_windows_without_widening_the_page`（test_conclusion_board.py）。两者的业务意图都是"窄屏不溢出"，无法改写成可见文本与顺序断言，交给票 07 浏览器截图验证。
+- **Standards 2（投影构造）**：成本低（单例约 1.5 秒），已改。`test_the_right_column_reads_the_confirmation_the_day_summary_publishes` 改用 `tests.integration.test_confirmation_publish.confirmed`（集成运行时 + 带确认规则的模型 + 单日汇总 `summarize_target`）生成投影，断言确认度标题、过热格计数、库存象限、债券归因、数据边界及四行顺序。原测试中经 `build_context_projection` 的非典型分支不再走运行时（`seed_cores` 只产出典型组合，造非典型需另写核心序列）；非典型"不适用"由手写投影用例 `test_a_noncanonical_combination_marks_the_confirmation_and_each_cell_not_applicable`覆盖。
+
+验证：
+- `tests/web/` 全部 8 个文件 + `tests/reports/test_noncanonical_reading.py`：109 passed，16.7 秒。
+- 两项必跑冒烟（flock）：2 passed，43.6 秒。
+- 改动文件 `ruff check`、`ruff format --check` 通过；`mypy src/pring_cycle/cockpit.py` 通过；4 个改动测试文件自身无 mypy 报错（报错均在其导入的其他测试模块，基线相同）。

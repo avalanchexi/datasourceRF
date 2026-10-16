@@ -289,28 +289,3 @@ def test_web_reads_column_windows_from_the_projection_s_frozen_model(tmp_path: P
     assert '"距 MA120"' in frozen and '"20 日斜率"' in frozen
     assert '"距 MA60"' in other and '"10 日斜率"' in other
     assert '"距 MA120"' not in other
-
-
-def test_the_table_scrolls_inside_its_own_container_so_the_page_does_not_overflow() -> None:
-    page = dashboard_page("/", _three_cores(), (), (), trend_rules=TrendRules())
-
-    def scroll_containers(component: object) -> list[html.Div]:
-        if isinstance(component, (list, tuple)):
-            return [found for child in component for found in scroll_containers(child)]
-        if not isinstance(component, Component):
-            return []
-        own = (
-            [component]
-            if isinstance(component, html.Div)
-            and getattr(component, "className", None) == "table-scroll"
-            and "core-table" in str(getattr(component.children, "className", ""))
-            else []
-        )
-        return own + scroll_containers(getattr(component, "children", None))
-
-    assert len(scroll_containers(page)) == 1
-    stylesheet = (
-        Path(__file__).parents[2] / "src" / "pring_cycle" / "assets" / "report.css"
-    ).read_text(encoding="utf-8")
-    assert ".table-scroll { overflow-x: auto; max-width: 100%;" in stylesheet
-    assert ".core-table td { white-space: nowrap; }" in stylesheet
