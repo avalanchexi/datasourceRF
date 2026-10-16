@@ -20,7 +20,7 @@ from pring_cycle.reports import ReportSnapshot
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS
 from pring_cycle.run_health import ProducerRun
 from pring_cycle.runs import RunRecord
-from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, stage_title
+from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, display_name, stage_title
 
 
 def dashboard_shell(
@@ -157,6 +157,7 @@ def dashboard_page(
             runs,
             reports,
             stage_events,
+            release_events,
             producer_run=producer_run,
             trend_rules=trend_rules,
         )
@@ -812,6 +813,21 @@ def _release_calendar_page(
     projection: ProjectionSet | None,
     release_events: Sequence[dict[str, object]],
 ) -> html.Div:
+    return html.Div(
+        [
+            _page_heading("发布日历", "RELEASE CALENDAR"),
+            *_release_calendar_body(projection, release_events),
+        ],
+        className="page-stack",
+    )
+
+
+def _release_calendar_body(
+    projection: ProjectionSet | None,
+    release_events: Sequence[dict[str, object]],
+) -> list[Any]:
+    """The calendar of the selected projection: its frozen events, else the retained ones
+    read for its model and cutoff."""
     document = _dataset(projection, "release_calendar")
     projected_events = document.get("events")
     rows = (
@@ -819,46 +835,42 @@ def _release_calendar_page(
         if isinstance(projected_events, list)
         else list(release_events)
     )
-    return html.Div(
-        [
-            _page_heading("发布日历", "RELEASE CALENDAR"),
-            html.P(
-                "日历上下文："
-                + projection.envelope.projection_set_id
-                + " · 分析截止 "
-                + projection.envelope.system_as_of.isoformat()
-                + (
-                    " · 使用投影内事件。"
-                    if isinstance(projected_events, list)
-                    else " · 按该模型与截止读取留存事件。"
-                )
-                if projection
-                else "尚无分析投影；独立日历按当前模型与查询时点读取。"
-            ),
-            html.P(
-                "预计窗口只用于调度；实际发布与系统首次可用时间分别记录。",
-                className="body-copy page-intro",
-            ),
-            html.Div(
-                [
-                    _compact_fact("预计窗口", "expected window"),
-                    _compact_fact("实际发布", "release_at"),
-                    _compact_fact("系统首次可用", "available_at"),
-                ],
-                className="calendar-legend",
-            ),
-            html.Ul(
-                [_release_event_row(item) for item in rows],
-                className="record-list",
+    return [
+        html.P(
+            "日历上下文："
+            + projection.envelope.projection_set_id
+            + " · 分析截止 "
+            + projection.envelope.system_as_of.isoformat()
+            + (
+                " · 使用投影内事件。"
+                if isinstance(projected_events, list)
+                else " · 按该模型与截止读取留存事件。"
             )
-            if rows
-            else _empty_state(
-                "当前窗口没有发布事件",
-                "预计窗口到达后，观察与等待状态会显示在这里。",
-            ),
-        ],
-        className="page-stack",
-    )
+            if projection
+            else "尚无分析投影；独立日历按当前模型与查询时点读取。"
+        ),
+        html.P(
+            "预计窗口只用于调度；实际发布与系统首次可用时间分别记录。",
+            className="body-copy page-intro",
+        ),
+        html.Div(
+            [
+                _compact_fact("预计窗口", "expected window"),
+                _compact_fact("实际发布", "release_at"),
+                _compact_fact("系统首次可用", "available_at"),
+            ],
+            className="calendar-legend",
+        ),
+        html.Ul(
+            [_release_event_row(item) for item in rows],
+            className="record-list",
+        )
+        if rows
+        else _empty_state(
+            "当前窗口没有发布事件",
+            "预计窗口到达后，观察与等待状态会显示在这里。",
+        ),
+    ]
 
 
 def _fixed_section_page(
@@ -1642,10 +1654,11 @@ def _warrant_line(item: dict[str, object]) -> str:
         if item.get("first") is not None
         else ""
     )
+    name = display_name("CN_FUTURES_WARRANTS", {"symbol": item.get("symbol")}).name
     return " · ".join(
         part
         for part in (
-            str(item.get("symbol")),
+            f"{name}（{item.get('symbol')}）" if name != item.get("symbol") else name,
             reading,
             f"{rate:+.1%}" if isinstance(rate, (int, float)) else "",
             _WARRANT_STATES.get(str(item.get("status")), ""),
@@ -2213,42 +2226,7 @@ _LEGACY_SECTION_REFERENCES = (("evidence_ids", "证据"), ("governance_refs", "�
 
 
 def _report_reader(report: ReportSnapshot) -> html.Div:
-    identity = html.Dl(
-        [
-            _compact_fact("报告身份", report.report_snapshot_id),
-            _compact_fact("投影身份", report.projection_set_id),
-            _compact_fact("正式阶段", _stage_label(report.current_stage)),
-            *_report_last_confirmed(report.body),
-            _compact_fact("截止点", report.report_cutoff.isoformat()),
-            _compact_fact(
-                "时效判定", freshness_statement(report.target_business_date, report.report_cutoff)
-            ),
-            _compact_fact("确定性输出", "已生成"),
-            _compact_fact("AI解释", "不可用" if report.adapter == "deterministic" else "已生成"),
-            _compact_fact(
-                "解读来源",
-                "确定性模板"
-                if report.adapter == "deterministic"
-                else "AI 解读 · " + report.adapter,
-            ),
-            _compact_fact(
-                "解释证据核查",
-                {
-                    "passed": "已核查支持与反证",
-                    "needs_attention": "存在无支持或矛盾叙述",
-                    "pending_evidence_review": "结构与结论已校验，语义待核查",
-                    "unavailable": "无AI解释",
-                }.get(str(report.explanation_verification.get("status")), "未记录核查"),
-            ),
-        ],
-        className="compact-facts",
-    )
-    basis = report.body.get("freshness_basis") if report.body_retained else None
-    head = [
-        *_correction_notes(report.corrections, "本报告的投影", "报告"),
-        identity,
-        *_calendar_fallback_notice(basis.get("calendar") if isinstance(basis, dict) else None),
-    ]
+    head = _report_head(report)
     if not report.body_retained:
         return html.Div(
             [*head, _empty_state("正文已不在保留期", "结构化身份与报告输入仍在留存期内保留。")],
@@ -2318,6 +2296,46 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
             ]
         )
     return html.Div([*head, *content], className="report-reader")
+
+
+def _report_head(report: ReportSnapshot) -> list[Any]:
+    """A report's identity facts with its correction and calendar notes."""
+    identity = html.Dl(
+        [
+            _compact_fact("报告身份", report.report_snapshot_id),
+            _compact_fact("投影身份", report.projection_set_id),
+            _compact_fact("正式阶段", _stage_label(report.current_stage)),
+            *_report_last_confirmed(report.body),
+            _compact_fact("截止点", report.report_cutoff.isoformat()),
+            _compact_fact(
+                "时效判定", freshness_statement(report.target_business_date, report.report_cutoff)
+            ),
+            _compact_fact("确定性输出", "已生成"),
+            _compact_fact("AI解释", "不可用" if report.adapter == "deterministic" else "已生成"),
+            _compact_fact(
+                "解读来源",
+                "确定性模板"
+                if report.adapter == "deterministic"
+                else "AI 解读 · " + report.adapter,
+            ),
+            _compact_fact(
+                "解释证据核查",
+                {
+                    "passed": "已核查支持与反证",
+                    "needs_attention": "存在无支持或矛盾叙述",
+                    "pending_evidence_review": "结构与结论已校验，语义待核查",
+                    "unavailable": "无AI解释",
+                }.get(str(report.explanation_verification.get("status")), "未记录核查"),
+            ),
+        ],
+        className="compact-facts",
+    )
+    basis = report.body.get("freshness_basis") if report.body_retained else None
+    return [
+        *_correction_notes(report.corrections, "本报告的投影", "报告"),
+        identity,
+        *_calendar_fallback_notice(basis.get("calendar") if isinstance(basis, dict) else None),
+    ]
 
 
 def _correction_notes(corrections: dict[str, Any], whose: str, kind: str) -> list[html.P]:

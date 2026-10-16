@@ -125,7 +125,8 @@ def test_a_noncanonical_combination_is_named_and_creates_no_extra_stage() -> Non
 
     assert "暂无正式阶段" in board
     assert (
-        "原因 非典型组合：债券牛市 · 股票熊市 · 商品牛市，不在六个典型组合内；不创建 Stage VII/VIII"
+        "原因 非典型组合 ：债券牛市 · 股票熊市 · 商品牛市，不在六个典型组合内；"
+        "不创建 Stage VII/VIII"
     ) in board
 
 
@@ -208,7 +209,7 @@ def test_an_unknown_reason_keeps_the_waiting_sentence() -> None:
     assert "原因 等待三类 P0 核心资产形成同一截止点的可用组合。" in board
 
 
-def test_transition_watch_says_none_only_when_every_30_day_candidate_agrees() -> None:
+def test_transition_watch_lists_only_a_30_day_candidate_against_the_current_state() -> None:
     agreed = _board(
         _projection(
             [_asset("bond", "bull"), _asset("stock", "bear"), _asset("commodity", "bull")],
@@ -218,7 +219,7 @@ def test_transition_watch_says_none_only_when_every_30_day_candidate_agrees() ->
     turning = _board(
         _projection(
             [
-                _asset("bond", "bull"),
+                _asset("bond", "bull", candidate_state="bear", candidate_days=2),
                 _asset(
                     "stock",
                     "bear",
@@ -231,13 +232,26 @@ def test_transition_watch_says_none_only_when_every_30_day_candidate_agrees() ->
             stage_reason="noncanonical_combination",
         )
     )
+    undirected = _board(
+        _projection(
+            [
+                _asset("bond", "bull", candidate_30d=None),
+                _asset("stock", "bear", candidate_30d=None),
+                _asset("commodity", "bull", candidate_30d=None),
+            ],
+            stage_reason="noncanonical_combination",
+        )
+    )
 
-    assert "转折观察 无（三核心 30 日候选均与当前状态同向）" in agreed
+    assert "转折观察 无（三核心 30 日候选均未与当前状态反向）" in agreed
     assert (
         "转折观察 股票 30 日候选方向牛市，与当前熊市相反；资产候选状态牛市 · 持续 3 日 / 门槛 8 日"
-        "；商品 30 日候选方向无 · 只作观察，不改变正式阶段"
+        " · 只作观察，不改变正式阶段"
     ) in turning
-    assert "同向" not in turning
+    # A missing direction is no turn, nor is an asset candidate the 30 days do not lean to.
+    assert "30 日候选方向无" not in turning
+    assert "债券 " not in turning.split("转折观察", 1)[1].split("核心沿用", 1)[0]
+    assert "转折观察 无（三核心 30 日候选均未与当前状态反向）" in undirected
 
 
 def test_a_candidate_without_its_duration_reads_not_provided_in_the_watch_and_the_table() -> None:

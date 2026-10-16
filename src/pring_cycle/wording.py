@@ -2,10 +2,14 @@
 
 The board, the stage history page and the report page all name core asset states,
 30-day candidate directions, asset candidates and formal stages through these
-mappings, so the glossary terms change together (GLOSSARY.md).
+mappings, so the glossary terms change together (GLOSSARY.md). Metrics and their members
+are named once here too, for the cockpit, the data chain and its Sankey alike.
 """
 
 from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import dataclass
 
 UNAVAILABLE = "不可用"
 NO_FORMAL_STAGE = "暂无正式阶段"
@@ -44,3 +48,202 @@ def stage_title(value: object) -> str:
     if value is None:
         return NO_FORMAL_STAGE
     return STAGE_TITLES.get(str(value).lower(), str(value))
+
+
+# The page's display-name table, by metric (P0–P2 of the registered catalog) and then by
+# member dimensions. The frozen catalog has no member layer and gives Chinese names to few
+# metrics, so this table names the members that would otherwise share one label; a catalog
+# ``name_cn`` other than the code still wins at the metric level (ticket 02).
+METRIC_NAMES = {
+    "CN_TRADE_CALENDAR": "交易日历",
+    "CN_RELEASE_SCHEDULE": "发布日历",
+    "SOURCE_OBSERVED_AVAILABILITY": "来源实际可得时点",
+    "CN_EQUITY_CORE_000985": "中证全指",
+    "CN_BOND_CORE_000012": "上证国债指数",
+    "CN_COMMODITY_CORE_NHII": "南华工业品指数",
+    "CN_EQ_CSI300": "沪深 300",
+    "CN_EQ_CSI500": "中证 500",
+    "CN_EQ_CSI1000": "中证 1000",
+    "CN_EQ_ADV_DEC": "涨跌家数",
+    "CN_EQ_AD_RATIO": "涨跌家数比",
+    "CN_EQ_ADV_AMOUNT_SHARE": "上涨成交额占比",
+    "CN_EQ_NEW_HIGH_LOW_90": "90 日新高新低",
+    "CN_EQ_NEW_HIGH_LOW_250": "250 日新高新低",
+    "CN_EQ_ABOVE_MA90": "站上 90 日均线占比",
+    "CN_EQ_ABOVE_MA250": "站上 250 日均线占比",
+    "CN_MARGIN_BALANCE_SSE_SZSE": "沪深两所融资余额与买入额",
+    "CN_INDEX_VALUATION": "指数估值",
+    "CN_BOND_FULL_PRICE_CNY030": "中债 030 全价",
+    "CN_BOND_10Y_930916": "10 年国债价格指数",
+    "CN_DR007": "DR007",
+    "CN_OMO_7D_RATE": "七天逆回购利率",
+    "CN_OMO_7D_AMOUNT": "七天逆回购净投放",
+    "CN_DR007_POLICY_SPREAD": "DR007 政策利差",
+    "CN_SHIBOR_ON_1W_3M": "SHIBOR",
+    "CN_LPR_1Y_5Y": "LPR",
+    "CN_RRR_EVENT": "存款准备金率调整",
+    "CN_TOOL_LIQUIDITY_MONTHLY": "月度工具投放",
+    "CN_COMMODITY_BROAD_NHCI": "南华综合指数",
+    "CN_COMMODITY_EX_HOG_BASKET": "商品篮子",
+    "CN_COMMODITY_SLEEVE_CONTRIBUTION": "商品篮子分项贡献",
+    "CN_FUTURES_WARRANTS": "期货注册仓单",
+    "CN_PMI_ACTIVITY": "制造业 PMI",
+    "CN_PMI_INVENTORY": "PMI 产成品库存",
+    "CN_PMI_PRICES": "PMI 价格",
+    "CN_ORDER_INVENTORY_SPREAD": "PMI 新订单与产成品库存差",
+    "CN_PRODUCTION_ORDER_SPREAD": "PMI 生产与新订单差",
+    "CN_CPI_HEADLINE": "居民消费价格",
+    "CN_CORE_CPI": "核心 CPI",
+    "CN_PPI": "工业生产者价格",
+    "CN_INDUSTRIAL_VA": "工业增加值",
+    "CN_INDUSTRIAL_FINANCE": "工业企业盈利",
+    "CN_FINISHED_GOODS_INVENTORY": "产成品存货",
+    "CN_INVENTORY_TURNOVER": "产成品周转天数",
+    "CN_CAPACITY_UTILIZATION": "产能利用率",
+    "CN_M1_M2": "M1/M2",
+    "CN_SF_TOTAL": "社融存量",
+    "CN_SF_COMPONENTS": "社融分项",
+    "CN_LOAN_STRUCTURE": "贷款结构",
+    "CN_CREDIT_IMPULSE": "信用脉冲",
+    "CN_GDP": "GDP",
+    "CN_USDCNY_CENTRAL_PARITY": "美元兑人民币中间价",
+    "CN_USDCNY_CLOSE_1630": "美元兑人民币 16:30 收盘价",
+    "CN_USDCNY_ECB_REFERENCE_CROSS": "ECB 美元兑人民币参考交叉汇率",
+    "EIA_BRENT_RBRTE": "Brent 原油",
+    "EIA_WTI_RWTC": "WTI 原油",
+    "UST10Y_NOMINAL_YIELD": "美国 10 年期国债收益率",
+    "UST2Y_NOMINAL_YIELD": "美国 2 年期国债收益率",
+    "UST_2S10S_SPREAD": "美债 10 年减 2 年利差",
+    "CBOE_VIX_INDEX": "VIX 波动率指数",
+    "NASDAQ_SOX_INDEX": "费城半导体指数",
+}
+_INDEXES = {"000300.SH": "沪深 300", "000905.SH": "中证 500", "000852.SH": "中证 1000"}
+_VALUATIONS = {"price_book": "市净率", "price_earnings": "市盈率", "turnover_rate": "换手率"}
+_GDP_AGGREGATES = {
+    "total": "GDP 总量",
+    "primary": "第一产业",
+    "secondary": "第二产业",
+    "tertiary": "第三产业",
+}
+_GDP_MEASURES = {"real_quarter_yoy": "实际季度同比", "nominal_ytd_level": "名义累计值"}
+_HIGH_LOW = {"new_highs": "新高家数", "new_lows": "新低家数"}
+_WARRANT_SYMBOLS = {
+    "CF": "棉花",
+    "TA": "PTA",
+    "PP": "聚丙烯",
+    "CU": "铜",
+    "RB": "螺纹钢",
+    "RU": "天然橡胶",
+    "SP": "纸浆",
+    "SC": "原油",
+}
+# Each member entry names the dimension values it matches; a row may carry more dimensions.
+MEMBER_NAMES: dict[str, tuple[tuple[dict[str, str], str], ...]] = {
+    "CN_EQ_ADV_DEC": tuple(
+        ({"measure": measure}, name)
+        for measure, name in (
+            ("advances", "上涨家数"),
+            ("declines", "下跌家数"),
+            ("flats", "平盘家数"),
+            ("net", "净上涨家数"),
+            ("participants", "参与交易家数"),
+        )
+    ),
+    **{
+        f"CN_EQ_NEW_HIGH_LOW_{days}": tuple(
+            ({"measure": measure}, f"{days} 日{name}") for measure, name in _HIGH_LOW.items()
+        )
+        for days in (90, 250)
+    },
+    "CN_INDEX_VALUATION": tuple(
+        ({"index": index, "measure": measure}, f"{index_name} {measure_name}")
+        for index, index_name in _INDEXES.items()
+        for measure, measure_name in _VALUATIONS.items()
+    ),
+    "CN_MARGIN_BALANCE_SSE_SZSE": (
+        ({"measure": "financing_balance"}, "融资余额"),
+        ({"measure": "financing_buy_amount"}, "融资买入额"),
+    ),
+    "CN_COMMODITY_SLEEVE_CONTRIBUTION": tuple(
+        ({"sleeve": sleeve}, name)
+        for sleeve, name in (
+            ("copper", "铜"),
+            ("crude_oil", "原油"),
+            ("polypropylene", "聚丙烯"),
+            ("pulp", "纸浆"),
+            ("rebar", "螺纹钢"),
+            ("rubber", "天然橡胶"),
+            ("textiles", "纺织（棉花与 PTA 合计）"),
+        )
+    ),
+    "CN_GDP": tuple(
+        (
+            {"aggregate": aggregate, "measure": measure},
+            aggregate_name + measure_name,
+        )
+        for aggregate, aggregate_name in _GDP_AGGREGATES.items()
+        for measure, measure_name in _GDP_MEASURES.items()
+    ),
+    "CN_FUTURES_WARRANTS": tuple(
+        ({"symbol": symbol}, name) for symbol, name in _WARRANT_SYMBOLS.items()
+    ),
+}
+# Request sources as the data chain and its Sankey name them; providers arrive as free text.
+SOURCE_NAMES = {
+    "official": "官方发布",
+    "tushare": "TuShare",
+    "tushare_news": "TuShare 资讯",
+    "tavily": "Tavily",
+    "exa": "Exa",
+    "ai_websearch": "AI 联网检索",
+    "local": "本地复用",
+    "U.S. Energy Information Administration": "美国能源信息署",
+    "European Central Bank": "欧洲央行",
+    "Cboe Global Markets": "Cboe",
+    "Nasdaq Global Indexes": "纳斯达克指数",
+}
+NO_CHINESE_NAME = "未提供中文名"
+
+
+@dataclass(frozen=True)
+class DisplayName:
+    """A metric or member as a reader sees it: Chinese name first, code second."""
+
+    name: str
+    code: str
+    provided: bool
+
+
+def display_name(
+    metric_id: object,
+    dimensions: Mapping[str, object] | None = None,
+    catalog_name: object = None,
+) -> DisplayName:
+    """Name a metric row: member table, then a catalog name, then the metric table, then code.
+
+    The code is the metric id with the dimension values that tell its members apart: those
+    of the matching member entry, or every value when no entry matches.
+    """
+    code = str(metric_id or "")
+    values = {str(key): str(value) for key, value in (dimensions or {}).items()}
+    member = max(
+        (
+            entry
+            for entry in MEMBER_NAMES.get(code, ())
+            if all(values.get(key) == value for key, value in entry[0].items())
+        ),
+        key=lambda entry: len(entry[0]),
+        default=None,
+    )
+    shown = (
+        [values[key] for key in member[0]] if member else [values[key] for key in sorted(values)]
+    )
+    full_code = " · ".join([code, " × ".join(shown)]) if shown else code
+    catalog = str(catalog_name) if catalog_name and str(catalog_name) != code else None
+    name = (member[1] if member else None) or catalog or METRIC_NAMES.get(code)
+    return DisplayName(name or code, full_code, name is not None)
+
+
+def source_name(channel: object) -> str:
+    """A request source's Chinese name, or the recorded value when none is mapped."""
+    return SOURCE_NAMES.get(str(channel), str(channel))

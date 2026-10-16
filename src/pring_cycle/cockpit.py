@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import datetime
 from typing import Any, cast
 from urllib.parse import urlencode
@@ -20,7 +21,14 @@ from pring_cycle.reports import ReportSnapshot
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS
 from pring_cycle.run_health import REQUEST_FAILURES, ProducerRun
 from pring_cycle.runs import RunRecord
-from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, stage_code
+from pring_cycle.wording import (
+    CORE_STATE_LABELS,
+    NO_CHINESE_NAME,
+    DisplayName,
+    core_state_label,
+    display_name,
+    stage_code,
+)
 
 SECTIONS = (
     ("conclusion", "周期识别结论"),
@@ -58,6 +66,35 @@ UNITS = {
     "usd_per_barrel": "美元/桶",
     "usd_per_troy_ounce": "美元/盎司",
 }
+# A metric whose source records a generic unit reads in its catalog unit: the 16:30 close
+# parser stamps "scalar" on a CNY-per-USD quote.
+METRIC_UNITS = {("CN_USDCNY_CLOSE_1630", "scalar"): "cny_per_usd"}
+
+
+def row_name(row: dict[str, Any], *, fallback: object = None) -> DisplayName:
+    """A projection row's display name, from its metric, member dimensions and catalog name.
+
+    ``fallback`` is a Chinese group label the projection already carries, used before the code.
+    """
+    name = display_name(row.get("metric_id"), obj(row.get("dimensions")), row.get("name_cn"))
+    return (
+        name if name.provided or not fallback else replace(name, name=str(fallback), provided=True)
+    )
+
+
+def name_cell(name: DisplayName) -> Any:
+    """The Chinese name alone for compact places; hovering shows the code."""
+    return html.Span(name.name, title=name.code)
+
+
+def name_note(name: DisplayName) -> list[Any]:
+    """The drawer's note when the name fell back to the code."""
+    return [] if name.provided else [html.P(NO_CHINESE_NAME, className="empty-note")]
+
+
+def with_metric_unit(row: dict[str, Any]) -> dict[str, Any]:
+    unit = METRIC_UNITS.get((str(row.get("metric_id")), str(row.get("unit"))))
+    return {**row, "unit": unit} if unit else row
 
 
 def objects(value: object) -> list[dict[str, Any]]:
@@ -332,6 +369,7 @@ def report_board(
     runs: Sequence[RunRecord],
     reports: Sequence[ReportSnapshot],
     stage_events: Sequence[dict[str, object]] = (),
+    release_events: Sequence[dict[str, object]] = (),
     *,
     producer_run: ProducerRun | None = None,
     trend_rules: TrendRules | None = None,
@@ -373,6 +411,7 @@ def report_board(
                 ],
                 className="conclusion-board",
             ),
+            gaps_drawer(projection),
             core_table(projection, trend_rules=trend_rules),
             html.P(
                 ["解读：", *reading_line(report, pinned, pending=report_pending)]
@@ -435,13 +474,18 @@ def report_board(
             html.H3("完整度与缺期"),
             coverage_table(obj(macro.get("coverage"))),
             *view._freshness_basis(projection),
-            view._gap_list(overview.get("gap_list")) if projection else html.P("尚无分析投影。"),
+            *(gap_preview(overview.get("gap_list")) if projection else [html.P("尚无分析投影。")]),
             html.P(
                 [
-                    html.A("发布日历", href="/release-calendar" + pinned),
+                    drawer_trigger(drawer_key("reading", "calendar"), "发布日历"),
                     " · ",
                     html.A("数据链路与证据", href="/data-chain" + pinned),
                 ]
+            ),
+            drawer_panel(
+                drawer_key("reading", "calendar"),
+                "发布日历",
+                view._release_calendar_body(projection, release_events),
             ),
             html.H3("本投影解读"),
             html.P(
@@ -453,7 +497,7 @@ def report_board(
             )
             if report_run
             else None,
-            view._report_reader(report) if report else html.P("报告尚未生成，或旧投影未提供解读。"),
+            *report_summary(report, pinned),
             html.Button(
                 "为本投影生成报告",
                 id="generate-report-command",
@@ -528,8 +572,10 @@ def conclusion_left(projection: ProjectionSet | None, trend_rules: TrendRules | 
     overview = view._dataset(projection, "cycle_overview")
     lookback = overview.get("last_confirmed_lookback")
     last_confirmed = overview.get("last_confirmed_stage")
+    difference = one_asset_difference_line(overview)
     rows = (
         ("原因", stage_reason_line(projection)),
+        *((("只差一项", difference),) if difference else ()),
         (
             "上次确认",
             view._last_confirmed_label(last_confirmed, lookback)
@@ -581,7 +627,7 @@ def _combination(cores: dict[str, dict[str, Any]]) -> str:
     )
 
 
-def stage_reason_line(projection: ProjectionSet | None) -> str:
+def stage_reason_line(projection: ProjectionSet | None) -> str | list[Any]:
     """Why the board shows this stage, in the three cores' own states (spec: reason line)."""
     overview = view._dataset(projection, "cycle_overview")
     cores = _cores(projection)
@@ -590,7 +636,10 @@ def stage_reason_line(projection: ProjectionSet | None) -> str:
         return f"典型组合：{_combination(cores)} → {stage_code(stage)}"
     reason = overview.get("stage_reason") or overview.get("stage_unavailable_reason")
     if reason == "noncanonical_combination":
-        return f"非典型组合：{_combination(cores)}，不在六个典型组合内；不创建 Stage VII/VIII"
+        return [
+            html.Strong("非典型组合"),
+            f"：{_combination(cores)}，不在六个典型组合内；不创建 Stage VII/VIII",
+        ]
     if reason in BLOCKED_REASONS:
         gaps = _core_gaps(overview)
         carried = set(_carried(overview))
@@ -601,9 +650,29 @@ def stage_reason_line(projection: ProjectionSet | None) -> str:
     return view._stage_explanation(overview)
 
 
+def one_asset_difference_line(overview: dict[str, object]) -> list[html.Div] | None:
+    """Each typical stage the noncanonical combination misses by one asset, one per line, as
+    the Worker published it; an older set without that basis shows no row and none is
+    derived here."""
+    comparisons = objects(obj(overview.get("noncanonical_basis")).get("comparisons"))
+    if not comparisons:
+        return None
+    return [
+        html.Div(
+            f"{stage_code(item.get('stage'))} "
+            f"差{CORE_NAMES.get(str(item.get('asset')), '未知资产')}："
+            f"当前{core_state_label(item.get('current_state'))} → "
+            f"要求{core_state_label(item.get('required_state'))}，30 日候选"
+            + (core_state_label(item.get("candidate_30d")) if item.get("candidate_30d") else "无")
+        )
+        for item in comparisons
+    ]
+
+
 def transition_watch_line(projection: ProjectionSet | None) -> str:
-    """Each core whose 30-day candidate or asset candidate leans off its state; it never
-    changes the formal stage (GLOSSARY: 转折观察, 30 日候选方向, 资产候选状态)."""
+    """Each core whose 30-day candidate points against its state, with its asset candidate;
+    it never changes the formal stage, and no direction is no turn (GLOSSARY: 转折观察,
+    30 日候选方向, 资产候选状态)."""
     published = view._dataset(projection, "cycle_overview").get("transition_watch")
     if isinstance(published, list) and published:
         return view._transition_watch(published) + " · 只作观察，不改变正式阶段"
@@ -613,32 +682,26 @@ def transition_watch_line(projection: ProjectionSet | None) -> str:
         core = cores.get(asset)
         if core is None or core.get("state") is None:
             continue
-        signs = []
         direction = core.get("candidate_30d")
-        if direction != core.get("state"):
-            signs.append(
-                "30 日候选方向"
-                + (core_state_label(direction) if direction is not None else "无")
-                + (
-                    f"，与当前{core_state_label(core.get('state'))}相反"
-                    if direction is not None
-                    else ""
-                )
-            )
+        if direction is None or direction == core.get("state"):
+            continue
+        signs = [
+            f"30 日候选方向{core_state_label(direction)}，"
+            f"与当前{core_state_label(core.get('state'))}相反"
+        ]
         if core.get("candidate_state") is not None:
             signs.append("资产候选状态" + asset_candidate(core))
-        if signs:
-            watched.append(f"{CORE_NAMES[asset]} " + "；".join(signs))
+        watched.append(f"{CORE_NAMES[asset]} " + "；".join(signs))
     if watched:
         return "；".join(watched) + " · 只作观察，不改变正式阶段"
     unread = [
         CORE_NAMES[asset] for asset in CORE_ORDER if cores.get(asset, {}).get("state") is None
     ]
     if not unread:
-        return "无（三核心 30 日候选均与当前状态同向）"
+        return "无（三核心 30 日候选均未与当前状态反向）"
     if len(unread) == len(CORE_ORDER):
         return "无（三核心尚无可用状态）"
-    return "无（" + "、".join(unread) + "状态不可用；其余核心 30 日候选与当前状态同向）"
+    return "无（" + "、".join(unread) + "状态不可用；其余核心 30 日候选未与当前状态反向）"
 
 
 def carry_forward_line(projection: ProjectionSet | None) -> str:
@@ -697,6 +760,13 @@ def _core_reading(
 
 
 RELATION_COUNTED = ("support", "counterevidence", "observation_only", "unconfirmed")
+# A cell's counts abbreviated so it never wraps; the full names stay on hover.
+RELATION_SHORT = {
+    "support": "支",
+    "counterevidence": "反",
+    "observation_only": "观",
+    "unconfirmed": "未",
+}
 LEGACY_MACRO_STATES = ("policy_direction", "credit_response", "overheat_state", "price_pressure")
 
 
@@ -711,63 +781,114 @@ def confirmation_heading(confirmation: dict[str, Any]) -> str:
     return f"不适用 · {summary.get('total')} 项关键指标 · 无正式阶段，不计数 · 规则 {rules}"
 
 
+def _dimension_total(dimension: dict[str, Any]) -> int | None:
+    """A connected dimension's key indicators; ``None`` while it is not connected."""
+    counts = obj(dimension.get("counts"))
+    if dimension.get("status") != "connected" or not counts:
+        return None
+    return len(objects(dimension.get("key_indicators"))) or sum(
+        view._integer(value) for value in counts.values()
+    )
+
+
 def dimension_cell(dimension: dict[str, Any], *, applicable: bool) -> html.Div:
     """A dimension's key indicators and their relations; never a probability."""
     label = view._DIMENSION_LABELS.get(str(dimension.get("dimension")), "维度")
     counts = obj(dimension.get("counts"))
-    if dimension.get("status") != "connected" or not counts:
+    total = _dimension_total(dimension)
+    if total is None:
         return html.Div([html.Strong(label), html.Span("尚未接入")], className="summary-cell")
-    total = len(objects(dimension.get("key_indicators"))) or sum(
-        view._integer(value) for value in counts.values()
-    )
+
+    def counted(labels: dict[str, str]) -> str:
+        return " · ".join(
+            f"{labels[relation]} {view._integer(counts.get(relation))}"
+            for relation in RELATION_COUNTED
+        )
+
     return html.Div(
         [
             html.Strong(label),
             html.Span(f"{total} 项" + ("" if applicable else " · 不适用")),
-            html.Span(
-                " · ".join(
-                    f"{view._RELATION_LABELS[relation]} {view._integer(counts.get(relation))}"
-                    for relation in RELATION_COUNTED
-                )
-            ),
+            html.Span(counted(RELATION_SHORT), title=counted(view._RELATION_LABELS)),
         ],
         className="summary-cell",
     )
 
 
-def price_consistency_line(consistency: dict[str, Any]) -> str:
-    """The three pairs' relative momentum, then the stock and basket breadth, in one line."""
+def dimension_totals_line(dimensions: list[dict[str, Any]]) -> str:
+    """A noncanonical combination's dimensions in one line: how many key indicators each
+    holds, none counted since no stage narrative is there to compare against."""
+    totals = [
+        view._DIMENSION_LABELS.get(str(dimension.get("dimension")), "维度")
+        + (" 尚未接入" if (total := _dimension_total(dimension)) is None else f" {total} 项")
+        for dimension in dimensions
+    ]
+    return " · ".join([*totals, "非典型组合无阶段叙事可比对，不计数"])
+
+
+def price_consistency_line(consistency: dict[str, Any]) -> str | list[Any]:
+    """The three pairs' relative momentum, then the stock and basket breadth, in one line;
+    each value read is set in bold."""
     if not consistency:
         return "该版本未提供"
-    pairs = " · ".join(
-        f"{pair.get('label')} {value:+.2f} 个百分点"
-        if isinstance(value := pair.get("value_pp"), (int, float))
-        else f"{pair.get('label')} 未确认"
-        for pair in objects(consistency.get("relative_momentum"))
-    )
-    breadths = []
+    pairs: list[Any] = []
+    for pair in objects(consistency.get("relative_momentum")):
+        pairs += [" · "] if pairs else []
+        value = pair.get("value_pp")
+        pairs += (
+            [f"{pair.get('label')} ", html.Strong(f"{value:+.2f} 个百分点")]
+            if isinstance(value, (int, float))
+            else [f"{pair.get('label')} 未确认"]
+        )
+    breadths: list[list[Any]] = []
     for key in ("stock_breadth", "basket_breadth"):
         item = obj(consistency.get(key))
         if not item:
             continue
         if not item.get("text"):
             missing = "、".join(str(gap) for gap in view._list_of(item.get("missing")))
-            breadths.append(f"{item.get('label')} 未确认，缺：{missing or '未记录'}")
+            breadths.append([f"{item.get('label')} 未确认，缺：{missing or '未记录'}"])
         elif key == "stock_breadth" and isinstance(item.get("share"), (int, float)):
-            breadths.append(f"{item.get('label')} {item['share']:.1f}%（{item['text']}）")
+            breadths.append(
+                [
+                    f"{item.get('label')} ",
+                    html.Strong(f"{item['share']:.1f}%"),
+                    f"（{item['text']}）",
+                ]
+            )
         elif key == "basket_breadth" and item.get("along") is not None:
             breadths.append(
-                f"{item.get('label')} {item['along']}/{item.get('of')} 个分项同向（{item['text']}）"
+                [
+                    f"{item.get('label')} ",
+                    html.Strong(f"{item['along']}/{item.get('of')}"),
+                    f" 个分项同向（{item['text']}）",
+                ]
             )
         else:
-            breadths.append(f"{item.get('label')} {item['text']}")
-    return "；".join(part for part in (pairs, *breadths) if part)
+            breadths.append([f"{item.get('label')} {item['text']}"])
+    parts = [part for part in (pairs, *breadths) if part]
+    return _merged(
+        [piece for index, part in enumerate(parts) for piece in (["；"] if index else []) + part]
+    )
+
+
+def _merged(pieces: list[Any]) -> list[Any]:
+    """Adjacent strings as one, so a line reads as one sentence around its bold values."""
+    merged: list[Any] = []
+    for piece in pieces:
+        if isinstance(piece, str) and merged and isinstance(merged[-1], str):
+            merged[-1] += piece
+        else:
+            merged.append(piece)
+    return merged
 
 
 UNCLASSIFIED_BY = {"insufficient": "三条线缺数或月份不齐", "inconsistent": "三条线方向不构成象限"}
 
 
-def inventory_quadrant_line(confirmation: dict[str, Any], inventory: dict[str, object]) -> str:
+def inventory_quadrant_line(
+    confirmation: dict[str, Any], inventory: dict[str, object]
+) -> str | list[Any]:
     """The quadrant with its statistical period and the three lines' directions, or why it
     is unclassified; read from the confirmation's quadrant member, else the inventory set."""
     member = next(
@@ -798,7 +919,7 @@ def inventory_quadrant_line(confirmation: dict[str, Any], inventory: dict[str, o
             )
         )
     quadrant = view._QUADRANT_LABELS.get(str(member.get("quadrant")), "未分类")
-    return f"{quadrant}（" + "；".join(parts) + "）"
+    return [html.Strong(quadrant), "（" + "；".join(parts) + "）"]
 
 
 def bond_attribution_line(note: dict[str, Any]) -> str:
@@ -809,17 +930,36 @@ def bond_attribution_line(note: dict[str, Any]) -> str:
     return f"{note.get('text')}" + (f"：{axes}" if axes else "") + "（附注，不计数）"
 
 
-def data_boundary_line(gaps: object, coverage: dict[str, Any], pinned: str) -> list[str | html.A]:
+GAPS_DRAWER = drawer_key("conclusion", "gaps")
+
+
+def gaps_drawer(projection: ProjectionSet | None) -> Any:
+    """The full gap list the data boundary row counts, in the drawer; none when no gap."""
+    gaps = view._dataset(projection, "cycle_overview").get("gap_list")
+    if not objects(gaps):
+        return None
+    return drawer_panel(GAPS_DRAWER, "数据边界：缺口全文", [view._gap_list(gaps)])
+
+
+def data_boundary_line(gaps: object, coverage: dict[str, Any], pinned: str) -> list[Any]:
     """The gap list's size and the final plan's model metric-periods not held, with the
     way on to section 07 and the data chain."""
-    missing = (
-        f"{view._integer(obj(obj(coverage.get('model')).get('counts')).get('missing'))} "
-        "个历史期未取到（最终计划，模型所需口径）"
+    missing: list[Any] = (
+        [
+            html.Strong(
+                str(view._integer(obj(obj(coverage.get("model")).get("counts")).get("missing")))
+            ),
+            " 个历史期未取到（最终计划，模型所需口径）",
+        ]
         if coverage.get("available")
-        else "历史期未取到：该版本未提供"
+        else ["历史期未取到：该版本未提供"]
     )
+    count = f"{len(objects(gaps))} 项缺口"
     return [
-        f"{len(objects(gaps))} 项缺口 · {missing} · 详见 ",
+        drawer_trigger(GAPS_DRAWER, count) if objects(gaps) else count,
+        " · ",
+        *missing,
+        " · 详见 ",
         html.A("⑦ 数据说明", href=pinned + "#reading"),
         " · ",
         html.A("数据链路", href="/data-chain" + pinned),
@@ -837,6 +977,10 @@ def conclusion_right(projection: ProjectionSet | None) -> Any:
     macro = view._dataset(projection, "macro")
     confirmation = obj(macro.get("confirmation"))
     applicable = bool(obj(confirmation.get("summary")).get("applicable"))
+    overview = view._dataset(projection, "cycle_overview")
+    noncanonical = (
+        overview.get("stage_reason") or overview.get("stage_unavailable_reason")
+    ) == "noncanonical_combination"
     rows: tuple[tuple[str, Any], ...] = (
         ("价格一致性", price_consistency_line(obj(macro.get("price_consistency")))),
         (
@@ -857,7 +1001,9 @@ def conclusion_right(projection: ProjectionSet | None) -> Any:
         [
             html.P("确认度", className="section-kicker"),
             html.H3(confirmation_heading(confirmation)),
-            html.Div(
+            html.P(dimension_totals_line(objects(confirmation.get("dimensions"))))
+            if confirmation and noncanonical
+            else html.Div(
                 [
                     dimension_cell(item, applicable=applicable)
                     for item in objects(confirmation.get("dimensions"))
@@ -929,6 +1075,77 @@ def reading_line(
         sentence.group(0) if sentence else paragraph,
         " ",
         html.A("全文", href=pinned + "#reading"),
+    ]
+
+
+def report_summary(report: ReportSnapshot | None, pinned: str) -> list[Any]:
+    """Section 07's reading of the board's report: the AI reading's first paragraph, or the
+    template note with the noncanonical reading; identity and facts open in a drawer."""
+    if report is None:
+        return [html.P("报告尚未生成，或旧投影未提供解读。")]
+    body = report.body if report.body_retained else {}
+    sections = objects(body.get("ai_explanation"))
+    if report.adapter == "deterministic":
+        summary: list[Any] = [
+            html.P(reading_line(report, pinned, pending=False)),
+            *(
+                html.Div(
+                    [
+                        html.Strong(str(item.get("title") or "未命名章节")),
+                        html.P(str(item.get("explanation") or ""), className="body-copy"),
+                    ]
+                )
+                for item in sections
+                if body.get("explanation_source") == "deterministic_template"
+            ),
+        ]
+    else:
+        summary = [
+            html.P("AI 解读 · " + report.adapter, className="secondary-copy"),
+            html.P(str(sections[0].get("explanation") or ""), className="body-copy")
+            if sections
+            else None,
+        ]
+    if not report.body_retained:
+        summary.append(html.P("正文已不在保留期；报告身份仍可在详情中核对。"))
+    key = drawer_key("reading", "report")
+    return [
+        *summary,
+        html.P(drawer_trigger(key, "查看报告详情 →")),
+        drawer_panel(key, "报告详情", report_details(report), code=report.report_snapshot_id),
+    ]
+
+
+def report_details(report: ReportSnapshot) -> list[Any]:
+    """The report's identity, the projection it read, its cutoff and timeliness, the AI
+    reading in full, and the structured facts it bound (three cores, verified results).
+    A template reading is already whole on the page."""
+    if not report.body_retained:
+        return [*view._report_head(report), html.P("正文已不在保留期。")]
+    body = report.body
+    return [
+        *view._report_head(report),
+        *(
+            html.Section(
+                [
+                    html.H3(str(item.get("title") or "未命名章节")),
+                    html.P(str(item.get("explanation") or ""), className="body-copy"),
+                ]
+            )
+            for item in objects(body.get("ai_explanation"))
+            if report.adapter != "deterministic"
+        ),
+        *(
+            html.Section(
+                [
+                    html.H3(title),
+                    html.Pre(view._display_value(body[field]), className="body-copy")
+                    if field in body
+                    else html.P("该报告未提供。"),
+                ]
+            )
+            for title, field in (("三核心", "core_states"), ("已验证结果", "verified_results"))
+        ),
     ]
 
 
@@ -1178,7 +1395,9 @@ def related_assets(macro: dict[str, object], asset: str, projection: ProjectionS
         for evidence in objects(member.get("evidence")) or [{}]:
             rows.append(
                 (
-                    member.get("label"),
+                    name_cell(row_name(evidence, fallback=member.get("label")))
+                    if evidence.get("metric_id")
+                    else member.get("label"),
                     value_link(
                         evidence.get("value"),
                         evidence.get("unit"),
@@ -1240,6 +1459,29 @@ def coverage_table(coverage: dict[str, Any]) -> Any:
     )
 
 
+GAP_PREVIEW = 5
+
+
+def gap_preview(value: object) -> list[Any]:
+    """The gap list once: its first rows on the page, every row in a drawer (spec 07)."""
+    listed = view._document_list(value)
+    gaps = [
+        item
+        for category in view.GAP_CATEGORY_LABELS
+        for item in listed
+        if item.get("category") == category
+    ]
+    if len(gaps) <= GAP_PREVIEW:
+        return [view._gap_list(gaps)]
+    key = drawer_key("reading", "gaps")
+    return [
+        html.P(f"缺口共 {len(gaps)} 条，以下为前 {GAP_PREVIEW} 条。", className="secondary-copy"),
+        view._gap_list(gaps[:GAP_PREVIEW]),
+        drawer_trigger(key, f"查看全部 {len(gaps)} 条缺口 →"),
+        drawer_panel(key, f"全部缺口（{len(gaps)}）", [view._gap_list(gaps)]),
+    ]
+
+
 def warrant_table(projection: ProjectionSet | None) -> Any:
     warrants = obj(view._dataset(projection, "inventory").get("registered_warrants"))
     if not warrants:
@@ -1255,7 +1497,9 @@ def warrant_table(projection: ProjectionSet | None) -> Any:
                 ("品种", "起点 / 单位", "终点 / 单位", "变化", "状态", "原始输入"),
                 [
                     (
-                        item.get("symbol"),
+                        name_cell(
+                            display_name("CN_FUTURES_WARRANTS", {"symbol": item.get("symbol")})
+                        ),
                         number(item.get("first"), item.get("unit")),
                         number(item.get("last"), item.get("unit")),
                         f"{item['change_rate']:+.2%}"
@@ -1636,13 +1880,12 @@ def _direction_arrow(value: object) -> str:
 
 
 def _overseas_card(item: dict[str, Any], key: str) -> Any:
-    metric_id = str(item.get("metric_id") or "")
-    name = str(item.get("name_cn") or metric_id)
+    name = row_name(item)
     return drawer_trigger(
         key,
         [
-            html.Strong(name),
-            html.Small(metric_id) if name != metric_id else None,
+            html.Strong(name.name),
+            html.Small(name.code) if name.code != name.name else None,
             html.Span(number(item.get("value"), item.get("unit")), className="card-value"),
             html.Span(str(item.get("period") or "—")),
             html.Span(_direction_arrow(item.get("direction"))),
@@ -1669,7 +1912,7 @@ def _source_link(reference: object) -> Any:
 
 
 def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet | None) -> Any:
-    metric_id = str(item.get("metric_id") or "")
+    name = row_name(item)
     display = obj(item.get("display"))
     fields: list[tuple[str, Any]] = [
         (
@@ -1711,8 +1954,9 @@ def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet |
     trend = context_trend(item, projection, "overseas")
     return drawer_panel(
         key,
-        str(item.get("name_cn") or metric_id),
+        name.name,
         [
+            *name_note(name),
             html.Dl(
                 [part for label, value in fields for part in (html.Dt(label), html.Dd(value))],
                 className="drawer-fields",
@@ -1720,12 +1964,12 @@ def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet |
             html.H3("走势与比较端点"),
             *([html.P(trend, className="empty-note")] if isinstance(trend, str) else trend),
         ],
-        code=metric_id,
+        code=name.code,
     )
 
 
 def overseas_cards(macro: dict[str, object], projection: ProjectionSet | None) -> Any:
-    rows = objects(macro.get("international_context"))
+    rows = [with_metric_unit(item) for item in objects(macro.get("international_context"))]
     if not rows:
         return html.P("本投影尚无海外与汇率事实。", className="empty-note")
     listed = sorted(
