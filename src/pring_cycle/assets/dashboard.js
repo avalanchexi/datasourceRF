@@ -11,6 +11,23 @@
 
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
+    paintFlowSankeys();
+  }
+
+  // The data chain's Sankey arrives in light-theme colours; repaint it from the theme's
+  // --flow-* variables, by the colour family each node and link records in the trace meta.
+  function paintFlowSankeys() {
+    const style = getComputedStyle(document.documentElement);
+    const colour = name => style.getPropertyValue("--flow-" + name).trim();
+    document.querySelectorAll(".flow-sankey .js-plotly-plot").forEach(function (graph) {
+      const trace = graph.data && graph.data[0];
+      if (!trace || !trace.meta || typeof window.Plotly?.restyle !== "function") return;
+      const links = trace.meta.link_tones.map(colour);
+      const nodes = trace.meta.node_columns.map(colour);
+      if ([...links, ...nodes].some(value => !value)) return;
+      if (String(trace.link.color) === String(links) && String(trace.node.color) === String(nodes)) return;
+      window.Plotly.restyle(graph, {"link.color": [links], "node.color": [nodes]}, [0]);
+    });
   }
 
   function reportProjection(button) {
@@ -67,6 +84,7 @@
       if (section) { section.scrollIntoView(); document.documentElement.dataset.locatedAnchor = anchorIdentity; }
     }
     markActiveReportSection();
+    paintFlowSankeys();
     document.querySelectorAll(".price-chart .js-plotly-plot").forEach(function (graph) {
       if (graph.dataset.evidenceBound || typeof graph.on !== "function") return;
       graph.dataset.evidenceBound = "true";
