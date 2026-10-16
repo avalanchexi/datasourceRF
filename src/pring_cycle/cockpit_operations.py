@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from typing import Any, cast
 from urllib.parse import urlencode
@@ -70,9 +70,136 @@ def label_value(value: object) -> str:
     return LABELS.get(str(value), view._state_label(value))
 
 
-def flow_node_label(node: str) -> str:
-    prefix, separator, value = node.partition(":")
-    return prefix + separator + label_value(value) if separator else label_value(node)
+# What a request came to, in Chinese, and the colour family its Sankey links take.
+FLOW_RESULTS = {
+    "accepted": ("已接纳", "success"),
+    "verified": ("已验证", "success"),
+    "validated": ("校验通过", "success"),
+    "candidate_source": ("候选来源", "candidate"),
+    "not_found": ("未找到", "neutral"),
+    "started": ("已开始", "neutral"),
+    "reserved": ("已预留", "neutral"),
+    "unknown_completion": ("完成情况未知", "neutral"),
+    "completed": ("已完成", "neutral"),
+    "received": ("已接收", "neutral"),
+    "failed": ("失败", "failure"),
+    "interrupted": ("已中断", "failure"),
+    "timeout": ("超时", "failure"),
+    "error": ("出错", "failure"),
+    "rejected": ("已拒绝", "failure"),
+}
+
+
+def flow_result(value: object) -> tuple[str, str]:
+    """A request result's Chinese name and colour family; unmapped values stay raw and grey."""
+    return FLOW_RESULTS.get(str(value), (str(value), "neutral"))
+
+
+# Sources sending fewer than two requests share one node, so the chart does not splinter.
+OTHER_SOURCE = "source"
+# Light-theme colours the figure starts with; dashboard.js repaints them from the theme's
+# --flow-* variables, by the colour family recorded in the trace's meta.
+FLOW_COLOURS = {
+    "success": "rgba(22, 131, 77, 0.4)",
+    "candidate": "rgba(209, 138, 22, 0.45)",
+    "neutral": "rgba(128, 134, 138, 0.35)",
+    "failure": "rgba(196, 50, 58, 0.4)",
+    "source": "#3d6d9b",
+    "phase": "#7b5ea7",
+    "result": "#176a66",
+}
+
+
+def flow_sankey(requests: Sequence[dict[str, Any]]) -> Any:
+    """Requests as source → phase → result, each node named in Chinese with its count.
+
+    Links are split by result so each takes the colour of what its requests came to.
+    """
+    sources = Counter(str(item["channel"]) for item in requests)
+    small = {source for source, count in sources.items() if count < 2}
+    folded = small if len(small) > 1 else set()
+    columns: list[Counter[str]] = [Counter(), Counter(), Counter()]
+    links: Counter[tuple[str, str, str]] = Counter()
+    for item in requests:
+        channel, result = str(item["channel"]), str(item["result"])
+        path = (
+            OTHER_SOURCE if channel in folded else "source:" + channel,
+            "phase:" + str(item["phase"]),
+            "result:" + result,
+        )
+        for column, node in zip(columns, path, strict=True):
+            column[node] += 1
+        links[path[0], path[1], result] += 1
+        links[path[1], path[2], result] += 1
+    names: dict[str, Callable[[object], str]] = {
+        "source": source_name,
+        "phase": label_value,
+        "result": lambda value: flow_result(value)[0],
+    }
+    nodes = [
+        node
+        for column in columns
+        for node, _ in sorted(
+            column.items(), key=lambda entry: (entry[0] == OTHER_SOURCE, -entry[1], entry[0])
+        )
+    ]
+    counts = {node: count for column in columns for node, count in column.items()}
+
+    def label(node: str) -> str:
+        if node == OTHER_SOURCE:
+            return f"其他（{len(folded)}） · {counts[node]}"
+        kind, _, value = node.partition(":")
+        return f"{names[kind](value)} · {counts[node]}"
+
+    def share(count: int) -> str:
+        return f"{count} 次请求 · 占比 {count / len(requests):.1%}"
+
+    def node_hover(node: str) -> str:
+        if node != OTHER_SOURCE:
+            return share(counts[node])
+        members = "、".join(source_name(source) for source in sources if source in folded)
+        return f"{members} · {share(counts[node])}"
+
+    node_columns = [node.partition(":")[0] for node in nodes]
+    link_tones = [flow_result(result)[1] for _, _, result in links]
+    return dcc.Graph(
+        figure={
+            "data": [
+                {
+                    "type": "sankey",
+                    "meta": {"node_columns": node_columns, "link_tones": link_tones},
+                    "node": {
+                        "label": [label(node) for node in nodes],
+                        "color": [FLOW_COLOURS[column] for column in node_columns],
+                        "customdata": [node_hover(node) for node in nodes],
+                        "hovertemplate": "%{label}<br>%{customdata}<extra></extra>",
+                        "pad": 16,
+                    },
+                    "link": {
+                        "source": [nodes.index(source) for source, _, _ in links],
+                        "target": [nodes.index(target) for _, target, _ in links],
+                        "value": list(links.values()),
+                        "color": [FLOW_COLOURS[tone] for tone in link_tones],
+                        "customdata": [
+                            f"{flow_result(result)[0]} · {share(value)}"
+                            for (_, _, result), value in links.items()
+                        ],
+                        "hovertemplate": (
+                            "%{source.label} → %{target.label}<br>%{customdata}<extra></extra>"
+                        ),
+                    },
+                }
+            ],
+            "layout": {
+                "height": 420,
+                "margin": {"l": 8, "r": 8, "t": 12, "b": 12},
+                "paper_bgcolor": "rgba(0,0,0,0)",
+                "font": {"color": "#788c96"},
+            },
+        },
+        config={"displayModeBar": False},
+        className="flow-sankey",
+    )
 
 
 def metric_names(metric_ids: Sequence[str]) -> list[Any]:
@@ -516,61 +643,34 @@ def data_chain(
             ),
         ]
     )
-    links = flow["links"]
-    if links:
-        nodes = list(
-            dict.fromkeys(node for link in links for node in (link["source"], link["target"]))
-        )
-        body.append(
-            dcc.Graph(
-                figure={
-                    "data": [
-                        {
-                            "type": "sankey",
-                            "node": {
-                                "label": [flow_node_label(node) for node in nodes],
-                                "color": "#278a96",
-                                "pad": 16,
-                            },
-                            "link": {
-                                "source": [nodes.index(item["source"]) for item in links],
-                                "target": [nodes.index(item["target"]) for item in links],
-                                "value": [item["value"] for item in links],
-                            },
-                        }
-                    ],
-                    "layout": {
-                        "height": 330,
-                        "paper_bgcolor": "rgba(0,0,0,0)",
-                        "font": {"color": "#788c96"},
-                    },
-                },
-                config={"displayModeBar": False},
-            )
-        )
+    if flow["requests"]:
+        body.append(flow_sankey(flow["requests"]))
     else:
         body.append(html.P("无匹配请求；清空筛选可返回全部记录。"))
     body.extend(
         [
-            table(
-                ("请求", "来源 / 环节", "结果", "指标", "来源行 / 入库声明"),
-                [
-                    (
-                        item["request_id"],
-                        [
-                            html.Span(source_name(item["channel"]), title=item["channel"]),
-                            " / " + label_value(item["phase"]),
-                        ],
-                        label_value(item["result"])
-                        + " · "
-                        + str(item.get("classification") or "—"),
-                        metric_names(item["metric_ids"]),
-                        number(item.get("source_record_count"))
-                        + " / "
-                        + number(item.get("claim_count")),
-                    )
-                    for item in flow["requests"]
-                ],
+            html.Div(
+                table(
+                    ("请求", "来源 / 环节", "结果", "指标", "来源行 / 入库声明"),
+                    [
+                        (
+                            item["request_id"],
+                            [
+                                html.Span(source_name(item["channel"]), title=item["channel"]),
+                                " / " + label_value(item["phase"]),
+                            ],
+                            flow_result(item["result"])[0]
+                            + " · "
+                            + str(item.get("classification") or "—"),
+                            metric_names(item["metric_ids"]),
+                            number(item.get("source_record_count"))
+                            + " / "
+                            + number(item.get("claim_count")),
+                        )
+                        for item in flow["requests"]
+                    ],
+                ),
+                className="request-table",
             ),
             html.H2("实际降级过程"),
             html.P(
