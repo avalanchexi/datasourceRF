@@ -3,6 +3,7 @@
 **范围**：[spec.md](spec.md) 与 [issues/](issues/) 01–07。
 **集成分支**：`conclusion-board`（基于 main `012f362`），集成 worktree `/home/tywin/worktrees/datasourceRF-cb`。主工作区 `/mnt/d/cursor/datasourceRF` 不动；全部票合入并验收后由用户决定并入 main。
 **终点**：01–07 全部 `done`（07 中需用户确认的项除外，标 ready-for-human）；集成分支经 Codex 代码审查、问题修复；本文件进度表与记忆已更新。
+**状态（2026-10-16 17 时）**：01–06 与审查修复 done，07 ready-for-human；集成分支未并入 main，等用户验收后决定。
 
 ## 任务图
 
@@ -45,5 +46,5 @@
 | 04 右栏 | done（conclusion_right；历史期未取到取最终计划模型所需口径 missing；旧模型投影写"该版本未提供确认汇总"并保留四项领域状态） | 492dd1d |
 | 05 三核心表九列 | done（九列、候选两行、state_tag；暂留 web._trend_rules 待 03 收拢；窄屏未实测留 07） | fc4696c |
 | 06 板底事实行 | done（reading_line 四分、run_facts_line；ReportSnapshot 增 adapter_outcomes；失败数口径 REQUEST_FAILURES；重新生成时仍显示已有报告） | 4238bdc |
-| 代码审查与修复 | 审查完成（review.md：Standards 3、Spec 3，无阻断）；修复中（review-fix-cb） | cb-rf |
-| 07 集成验收 | 阻塞（审查修复） | |
+| 代码审查与修复 | done（五条全修：上次确认缺回溯写"未提供"；asset_candidate 共用、缺天数不补 0；任务进行中写"报告生成中"（推翻票 06 选择）；删 CSS 断言改由 07 截图；右栏用例改经单日汇总入口） | 69c1529 |
+| 07 集成验收 | ready-for-human（Web 110 passed、冒烟通过；明暗 × 1440/908/390 截图与 Claude 参考并排；390 无整页溢出；外壳占位统一为顶栏七项（page_identity.py）；待用户：与方案 ① 逐项核对、关口 C） | 8cb069c |
