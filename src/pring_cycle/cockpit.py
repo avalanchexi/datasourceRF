@@ -66,6 +66,9 @@ UNITS = {
     "cny_per_usd": "元/美元",
     "usd_per_barrel": "美元/桶",
     "usd_per_troy_ounce": "美元/盎司",
+    "count": "家",
+    "multiple": "倍",
+    "ratio": "比值",
 }
 # A metric whose source records a generic unit reads in its catalog unit: the 16:30 close
 # parser stamps "scalar" on a CNY-per-USD quote.
@@ -163,7 +166,8 @@ def value_link(
     )
 
 
-def chart(display: dict[str, Any], projection: ProjectionSet, *, small: bool = False) -> Any:
+def chart(display: dict[str, Any], projection: ProjectionSet) -> Any:
+    """A card's 120-session price and MA120 lines, without the chart toolbar."""
     points = objects(display.get("points"))
     if not points:
         return html.P("旧投影未提供展示点列；新运行发布后可用。", className="empty-note")
@@ -197,61 +201,75 @@ def chart(display: dict[str, Any], projection: ProjectionSet, *, small: bool = F
             "hovertemplate": "%{x}<br>MA120 %{y:.2f}<extra></extra>",
         },
     ]
-    graph = dcc.Graph(
-        figure={
-            "data": traces,
-            "layout": {
-                "height": 74 if small else 275,
-                "margin": {"l": 2 if small else 55, "r": 8, "t": 6, "b": 2 if small else 40},
-                "paper_bgcolor": "rgba(0,0,0,0)",
-                "plot_bgcolor": "rgba(0,0,0,0)",
-                "font": {"color": "#788c96", "size": 11},
-                "showlegend": not small,
-                "legend": {"orientation": "h", "y": 1.12},
-                "xaxis": {"visible": not small, "type": "category", "nticks": 6},
-                "yaxis": {"visible": not small, "title": UNITS.get(str(display.get("unit")), "")},
-                "uirevision": projection.envelope.projection_set_id,
-            },
-        },
-        config={"displayModeBar": not small, "responsive": True, "displaylogo": False},
-        className="price-chart small-chart" if small else "price-chart",
-    )
-    if small:
-        return graph
     missing = sorted({str(item["ma120_reason"]) for item in points if item.get("ma120_reason")})
     return html.Div(
         [
-            graph,
+            dcc.Graph(
+                figure={
+                    "data": traces,
+                    "layout": {
+                        "height": 160,
+                        "margin": {"l": 44, "r": 6, "t": 6, "b": 24},
+                        "paper_bgcolor": "rgba(0,0,0,0)",
+                        "plot_bgcolor": "rgba(0,0,0,0)",
+                        "font": {"color": "#788c96", "size": 10},
+                        "showlegend": False,
+                        "xaxis": {
+                            "type": "category",
+                            "nticks": 4,
+                            "gridcolor": "rgba(120,140,150,0.18)",
+                        },
+                        "yaxis": {"gridcolor": "rgba(120,140,150,0.18)", "zeroline": False},
+                        "uirevision": projection.envelope.projection_set_id,
+                    },
+                },
+                config={"displayModeBar": False, "responsive": True, "displaylogo": False},
+                className="price-chart card-chart",
+            ),
             html.P(
-                "实际价格与 MA120 · 120 个交易日展示窗口；均线缺值："
+                "实际价格（实线）与 MA120（虚线）· 120 个交易日；均线缺值："
                 + ("、".join(REASONS.get(reason, reason) for reason in missing) or "无"),
                 className="secondary-copy",
             ),
-            html.Details(
-                [
-                    html.Summary("逐日数值与证据（图表等价表格）"),
-                    table(
-                        ("交易日", "实际价格", "MA120", "不可得原因"),
-                        [
-                            (
-                                item["date"],
-                                value_link(
-                                    item.get("value"),
-                                    display.get("unit"),
-                                    item.get("selected_claim_id"),
-                                    projection,
-                                ),
-                                number(item.get("ma120")),
-                                REASONS.get(
-                                    str(item.get("ma120_reason")), item.get("ma120_reason") or "—"
-                                ),
-                            )
-                            for item in points
-                        ],
-                    ),
-                ]
-            ),
         ]
+    )
+
+
+def daily_panel(
+    key: str, asset: dict[str, Any], display: dict[str, Any], projection: ProjectionSet
+) -> Any:
+    """The chart's equivalent table with each price's frozen evidence, and the noise band."""
+    points = objects(display.get("points"))
+    return drawer_panel(
+        key,
+        view._asset_label(str(asset.get("asset"))) + " · 逐日数值与证据",
+        [
+            html.P(
+                "噪声带："
+                + number(asset.get("noise_band_pct"), "percent")
+                + "；MA120 仅在完整 120 个实际交易日价格齐备时显示。"
+            ),
+            table(
+                ("交易日", "实际价格", "MA120", "不可得原因"),
+                [
+                    (
+                        item["date"],
+                        value_link(
+                            item.get("value"),
+                            display.get("unit"),
+                            item.get("selected_claim_id"),
+                            projection,
+                        ),
+                        number(item.get("ma120")),
+                        REASONS.get(str(item.get("ma120_reason")), item.get("ma120_reason") or "—"),
+                    )
+                    for item in points
+                ],
+            )
+            if points
+            else html.P("旧投影未提供展示点列；新运行发布后可用。", className="empty-note"),
+        ],
+        code=str(asset.get("metric_id") or "") or None,
     )
 
 
@@ -298,19 +316,28 @@ def candidate_cell(asset: dict[str, Any]) -> html.Div:
     )
 
 
-def core_table(
+def asset_cards(
     projection: ProjectionSet | None,
-    *,
-    section: str = "conclusion",
+    macro: dict[str, object],
     trend_rules: TrendRules | None = None,
 ) -> Any:
+    """Bond, stock and commodity side by side: each card heads with the asset's core reading,
+    then its 120-session chart and its observations; details open in the drawer."""
     if projection is None:
         return html.P("等待首次完整运行。", className="empty-note")
     dataset = projection.datasets["core_assets"]
     displays = obj(dataset.get("display"))
-    rows = []
-    for asset in objects(dataset.get("assets")):
-        display = obj(displays.get(str(asset.get("asset"))))
+    assets = sorted(
+        objects(dataset.get("assets")),
+        key=lambda item: (
+            CORE_ORDER.index(item["asset"]) if item.get("asset") in CORE_ORDER else len(CORE_ORDER)
+        ),
+    )
+    cards = []
+    panels = []
+    for asset in assets:
+        name = str(asset.get("asset"))
+        display = obj(displays.get(name))
         latest = next(
             (
                 point
@@ -319,49 +346,69 @@ def core_table(
             ),
             {},
         )
-        rows.append(
-            (
-                html.Div(
-                    [
-                        html.Strong(view._asset_label(str(asset.get("asset")))),
-                        html.Small(str(asset.get("metric_id") or "")),
-                    ]
-                ),
-                state_tag(asset.get("state")),
-                html.Div(
-                    [
-                        value_link(
-                            display.get("latest_value"),
-                            display.get("unit"),
-                            latest.get("selected_claim_id"),
-                            projection,
-                            section=section,
-                        ),
-                        html.Small(str(display.get("latest_date") or "旧投影未提供")),
-                    ]
-                ),
-                number(asset.get("distance_pct"), "percent"),
-                number(asset.get("slope_pct"), "percent"),
-                candidate_cell(asset),
-                change_cell(display.get("change_5")),
-                change_cell(display.get("change_120")),
-                chart(display, projection, small=True),
+        daily = drawer_key("assets", name, "daily")
+        observations, observation_panels = related_assets(macro, name, projection)
+        cards.append(
+            html.Article(
+                [
+                    html.Header(
+                        [
+                            html.Div(
+                                [
+                                    html.Strong(view._asset_label(name)),
+                                    html.Small(str(asset.get("metric_id") or "")),
+                                    state_tag(asset.get("state")),
+                                ],
+                                className="core-card-title",
+                            ),
+                            html.Div(
+                                [
+                                    value_link(
+                                        display.get("latest_value"),
+                                        display.get("unit"),
+                                        latest.get("selected_claim_id"),
+                                        projection,
+                                    ),
+                                    html.Small(str(display.get("latest_date") or "旧投影未提供")),
+                                ],
+                                className="card-value",
+                            ),
+                            _facts(
+                                (
+                                    f"距 MA{trend_rules.window_days}" if trend_rules else "距均线",
+                                    number(asset.get("distance_pct"), "percent"),
+                                ),
+                                (
+                                    f"{trend_rules.slope_days} 日斜率" if trend_rules else "斜率",
+                                    number(asset.get("slope_pct"), "percent"),
+                                ),
+                            ),
+                            candidate_cell(asset),
+                            _facts(
+                                ("近 5 日", change_cell(display.get("change_5"))),
+                                ("近 120 日", change_cell(display.get("change_120"))),
+                            ),
+                            drawer_trigger(daily, "逐日数值与证据", class_name="card-button"),
+                        ],
+                        className="core-card-head",
+                    ),
+                    chart(display, projection),
+                    html.H3("同类观察"),
+                    observations,
+                ],
+                id="asset-" + name,
+                className=f"core-card core-{name}",
             )
         )
-    return table(
-        (
-            "三核心",
-            "状态",
-            "最新",
-            f"距 MA{trend_rules.window_days}" if trend_rules else "距均线",
-            f"{trend_rules.slope_days} 日斜率" if trend_rules else "斜率",
-            "候选",
-            "近 5 日",
-            "近 120 日",
-            "120 日走势",
-        ),
-        rows,
-        class_name="report-table core-table",
+        panels += [daily_panel(daily, asset, display, projection), *observation_panels]
+    # Panels sit outside the cards so the drawer is fixed to the viewport.
+    return html.Div([html.Div(cards, className="core-cards"), *panels])
+
+
+def _facts(*pairs: tuple[str, Any]) -> html.Dl:
+    return html.Dl(
+        [part for label, value in pairs for part in (html.Dt(label), html.Dd(value))],
+        className="card-facts",
     )
 
 
@@ -379,7 +426,6 @@ def report_board(
     run facts; ``None`` (or a ``None`` summary) means the page must say it is unavailable."""
     overview = view._dataset(projection, "cycle_overview")
     macro = view._dataset(projection, "macro")
-    displays = obj(view._dataset(projection, "core_assets").get("display"))
     confirmation = obj(macro.get("confirmation"))
     matching = [
         report
@@ -413,7 +459,6 @@ def report_board(
                 className="conclusion-board",
             ),
             gaps_drawer(projection),
-            core_table(projection, trend_rules=trend_rules),
             html.P(
                 ["解读：", *reading_line(report, pinned, pending=report_pending)]
                 if projection
@@ -425,32 +470,12 @@ def report_board(
                 className="board-fact",
             ),
             html.A("查看运行摘要与数据边界 →", href="/runs" + pinned),
+            html.P(html.A("三核心详见 ② →", href=pinned + "#assets")),
         ],
         [
-            *[
-                html.Article(
-                    [
-                        html.H3(view._asset_label(asset)),
-                        chart(obj(displays.get(asset)), projection),
-                        html.P(
-                            "噪声带："
-                            + " · ".join(
-                                number(row.get("noise_band_pct"), "percent")
-                                for row in objects(
-                                    view._dataset(projection, "core_assets").get("assets")
-                                )
-                                if row.get("asset") == asset
-                            )
-                            + "；MA120 仅在完整 120 个实际交易日价格齐备时显示。"
-                        ),
-                        related_assets(macro, asset, projection),
-                    ],
-                    className="asset-block",
-                )
-                for asset in ("bond", "stock", "commodity")
-                if projection
-            ],
-            *view._price_sections(macro),
+            asset_cards(projection, macro, trend_rules),
+            *consistency_card(obj(macro.get("price_consistency"))),
+            *view._supply_demand_sections(macro),
             *view._attribution_sections(macro),
         ],
         [overseas_cards(macro, projection)],
@@ -464,7 +489,7 @@ def report_board(
         [
             html.P("正式阶段由债券、股票、商品的 120 日稳定方向映射；宏观事实只做事后确认。"),
             stage_bands(projection),
-            view._stage_history_page(projection, stage_events if projection is None else ()),
+            history_intervals(history_days(projection, stage_events)),
             html.A("本投影解读 →", href=pinned + "#reading"),
         ],
         [
@@ -878,6 +903,30 @@ def _merged(pieces: list[Any]) -> list[Any]:
         else:
             merged.append(piece)
     return merged
+
+
+def consistency_card(consistency: dict[str, Any]) -> list[Any]:
+    """The cores' price internal consistency below the cards: its line, details in the drawer."""
+    if not consistency:
+        return []
+    key = drawer_key("assets", "consistency")
+    title = "价格内部一致性（不计数）"
+    return [
+        html.Div(
+            [
+                html.H3(title),
+                html.P(price_consistency_line(consistency)),
+                drawer_trigger(key, "查看明细 →"),
+            ],
+            id="asset-consistency",
+            className="consistency-card",
+        ),
+        drawer_panel(
+            key,
+            title,
+            [html.Ul([html.Li(line) for line in view._consistency_lines(consistency)])],
+        ),
+    ]
 
 
 UNCLASSIFIED_BY = {"insufficient": "三条线缺数或月份不齐", "inconsistent": "三条线方向不构成象限"}
@@ -1543,7 +1592,10 @@ def line_cards(
     return html.Div([*cards, *panels], className="line-cards")
 
 
-def related_assets(macro: dict[str, object], asset: str, projection: ProjectionSet) -> Any:
+def related_assets(
+    macro: dict[str, object], asset: str, projection: ProjectionSet
+) -> tuple[Any, list[Any]]:
+    """A card's observations in four columns, and the drawer panel each row opens."""
     cores = objects(obj(macro.get("observation_interfaces")).get("cores"))
     members = [
         member
@@ -1552,46 +1604,47 @@ def related_assets(macro: dict[str, object], asset: str, projection: ProjectionS
         for member in objects(core.get("members"))
     ]
     if not members:
-        return html.P("当前模型未登记同类观察接口。", className="secondary-copy")
+        return html.P("当前模型未登记同类观察接口。", className="secondary-copy"), []
+    readings = [
+        (member, evidence)
+        for member in members
+        for evidence in objects(member.get("evidence")) or [{}]
+    ]
+    keys = _row_keys("assets", [evidence for _member, evidence in readings], prefix=(asset,))
     rows = []
-    for member in members:
-        for evidence in objects(member.get("evidence")) or [{}]:
-            rows.append(
-                (
-                    name_cell(row_name(evidence, fallback=member.get("label")))
-                    if evidence.get("metric_id")
-                    else member.get("label"),
-                    value_link(
-                        evidence.get("value"),
-                        evidence.get("unit"),
-                        evidence.get("selected_claim_id"),
-                        projection,
-                    ),
-                    evidence.get("period") or "—",
-                    change_cell(obj(obj(evidence.get("display")).get("change_5"))),
-                    change_cell(obj(obj(evidence.get("display")).get("change_120"))),
-                    context_chart(evidence, projection, "assets"),
-                    view._state_label(evidence.get("direction")),
-                    view._state_label(evidence.get("status")),
-                    view._state_label(member.get("reads_as"))
-                    if member.get("reads_as")
-                    else "仅观察，不计数",
-                )
+    panels = []
+    for (member, evidence), key in zip(readings, keys, strict=True):
+        name = (
+            row_name(evidence, fallback=member.get("label"))
+            if evidence.get("metric_id")
+            else DisplayName(str(member.get("label") or "—"), "", True)
+        )
+        rows.append(
+            (
+                drawer_trigger(key, name_cell(name), class_name="row-trigger"),
+                number(evidence.get("value"), evidence.get("unit")),
+                change_cell(obj(obj(evidence.get("display")).get("change_5"))),
+                _direction_arrow(evidence.get("direction")),
             )
-    return table(
-        (
-            "同类观察",
-            "值 / 单位",
-            "统计期",
-            "近 5 日",
-            "近 120 日",
-            "真实期次走势",
-            "方向",
-            "时效",
-            "用途（不重复计数）",
-        ),
-        rows,
-    )
+        )
+        panels.append(
+            _context_drawer(
+                evidence,
+                key,
+                projection,
+                name=name,
+                section="assets",
+                extra=(
+                    (
+                        "用途",
+                        view._state_label(member.get("reads_as"))
+                        if member.get("reads_as")
+                        else "仅观察，不计数",
+                    ),
+                ),
+            )
+        )
+    return table(("名称", "值", "近 5 日", "方向"), rows), panels
 
 
 def coverage_table(coverage: dict[str, Any]) -> Any:
@@ -1784,13 +1837,6 @@ def real_inventory_approximation(
     ]
 
 
-def context_chart(row: dict[str, Any], projection: ProjectionSet | None, section: str) -> Any:
-    trend = context_trend(row, projection, section)
-    if isinstance(trend, str):
-        return trend
-    return html.Details([html.Summary("走势 / 比较端点"), *trend])
-
-
 def context_trend(
     row: dict[str, Any], projection: ProjectionSet | None, section: str
 ) -> list[Any] | str:
@@ -1866,7 +1912,9 @@ HISTORY_LABELS = {
     "undetermined": "待定",
     "unknown": "未知",
     "noncanonical_combination": "非典型组合",
+    "canonical_combination": "典型组合",
     "insufficient_core_evidence": "核心不足",
+    **BLOCKED_REASONS,
 }
 
 
@@ -1875,13 +1923,31 @@ def history_label(value: object) -> str:
     return HISTORY_LABELS.get(text, view._stage_label(value) if text.startswith("stage_") else text)
 
 
+def lookback_note(lookback: object) -> list[Any]:
+    """The last confirmed stage looked back for before the window, and what it cost."""
+    if not isinstance(lookback, dict):
+        return []
+    return [
+        html.H3("窗口前的上一确认阶段"),
+        html.P(view._last_confirmed_label(lookback.get("stage"), lookback)),
+        html.P(
+            f"回溯 {lookback.get('years')} 年，区间请求 {lookback.get('core_requests')} 次、"
+            f"日历请求 {lookback.get('calendar_requests')} 次；"
+            "回溯的价格只用于找出上一确认阶段，不进入宏观确认度与模型输入。",
+            className="secondary-copy",
+        ),
+    ]
+
+
 def stage_bands(projection: ProjectionSet | None) -> Any:
-    display = obj(view._dataset(projection, "stage_history").get("display"))
+    document = view._dataset(projection, "stage_history")
+    display = obj(document.get("display"))
     days = objects(display.get("days"))
     if not days:
         return html.P("旧投影未提供对齐的交易日色带；历史事件仍可阅读。")
     kinds = ("official", "bond", "stock", "commodity")
     labels = ("正式阶段", "债券", "股票", "商品")
+    calendar = drawer_key("history-calendar")
     categories = list(dict.fromkeys(str(day[key]) for day in days for key in kinds))
     colors = [
         "#36566b",
@@ -1935,31 +2001,178 @@ def stage_bands(projection: ProjectionSet | None) -> Any:
                     for key, value in obj(display.get("counts")).items()
                 )
             ),
-            html.Details(
+            html.P(drawer_trigger(calendar, "交易日历与色带等价表格")),
+            drawer_panel(
+                calendar,
+                "交易日历与色带等价表格",
                 [
-                    html.Summary("交易日历与色带等价表格"),
+                    *lookback_note(document.get("last_confirmed_lookback")),
+                    html.H3("交易日与色带"),
                     table(
-                        ("交易日", *labels, "投影版本", "修正记录"),
+                        ("交易日", *labels, "投影版本", "更正的版本"),
                         [
                             (
                                 day["date"],
                                 *(history_label(day[key]) for key in kinds),
-                                html.A(
-                                    day["projection_set_id"],
-                                    href="/?"
-                                    + urlencode({"projection": day["projection_set_id"]})
-                                    + "#history",
-                                )
-                                if day.get("projection_set_id")
-                                else "未发布",
-                                str(day.get("corrects") or "—"),
+                                projection_link(day.get("projection_set_id")),
+                                projection_link(obj(day.get("corrects")).get("projection_set_id"))
+                                if day.get("corrects")
+                                else "—",
                             )
                             for day in days
                         ],
                     ),
-                ]
+                ],
             ),
         ]
+    )
+
+
+# The interval list covers the bands' window: the latest 120 trading days.
+HISTORY_WINDOW = 120
+
+
+def history_days(
+    projection: ProjectionSet | None, stage_events: Sequence[dict[str, object]]
+) -> list[dict[str, Any]]:
+    """The latest window's days, oldest first, each with its day's event when there is one.
+
+    The projection's aligned band days come first; a set without them (or no set, with the
+    read model's events) lists its events, a day's state its stage or the reason it has none.
+    """
+    document = view._dataset(projection, "stage_history")
+    events = {
+        str(item.get("business_date")): item
+        for item in objects(document.get("events") if projection else stage_events)
+    }
+    days = objects(obj(document.get("display")).get("days")) or [
+        {
+            "date": day,
+            "official": item.get("current_stage") or item.get("stage_reason") or "unpublished",
+            "projection_set_id": item.get("projection_set_id"),
+            "corrects": item.get("corrects"),
+        }
+        for day, item in sorted(events.items())
+    ]
+    return [{**events.get(str(day["date"]), {}), **day} for day in days][-HISTORY_WINDOW:]
+
+
+def history_intervals(days: Sequence[dict[str, Any]]) -> Any:
+    """Consecutive days of one state, a stage or the reason for none, as one row each."""
+    runs: list[list[dict[str, Any]]] = []
+    for day in days:
+        if runs and runs[-1][-1]["official"] == day["official"]:
+            runs[-1].append(day)
+        else:
+            runs.append([day])
+    heading = html.H3(f"阶段区间（最近 {HISTORY_WINDOW} 个交易日）")
+    if not runs:
+        return html.Div(
+            [
+                heading,
+                html.P(
+                    "尚无阶段事件；首次完整投影发布后，区间会显示在这里。", className="empty-note"
+                ),
+            ]
+        )
+    # Month and day read well while the window stays in one year.
+    short = len({str(day["date"])[:4] for day in days}) == 1
+
+    def span(run: list[dict[str, Any]]) -> str:
+        first, last = (str(run[0]["date"]), str(run[-1]["date"]))
+        if short:
+            first, last = first[5:], last[5:]
+        return first if len(run) == 1 else f"{first}～{last}"
+
+    keys = [drawer_key("history-interval", run[0]["date"]) for run in runs]
+    return html.Div(
+        [
+            heading,
+            html.Ul(
+                [
+                    html.Li(
+                        drawer_trigger(
+                            key,
+                            [
+                                html.Strong(span(run)),
+                                html.Span(history_label(run[0]["official"])),
+                                html.Span(f"{len(run)} 日"),
+                                *corrected_count(run),
+                            ],
+                            class_name="history-interval",
+                        )
+                    )
+                    for key, run in zip(keys, runs, strict=True)
+                ],
+                className="history-intervals",
+            ),
+            *(
+                drawer_panel(
+                    key,
+                    f"{history_label(run[0]['official'])} · {span(run)}",
+                    [html.Ul([history_day(day) for day in run], className="record-list")],
+                )
+                for key, run in zip(keys, runs, strict=True)
+            ),
+        ]
+    )
+
+
+def corrected_count(run: Sequence[dict[str, Any]]) -> list[html.Span]:
+    count = sum(isinstance(day.get("corrects"), dict) for day in run)
+    return [html.Span(f"含更正 {count} 日")] if count else []
+
+
+def projection_link(projection_set_id: object) -> Any:
+    """A day's own set, opened at its stage history: the page then reads that set alone."""
+    if not projection_set_id:
+        return "未发布"
+    return html.A(
+        str(projection_set_id),
+        href="/?" + urlencode({"projection": str(projection_set_id)}) + "#history",
+    )
+
+
+def history_day(day: dict[str, Any]) -> html.Li:
+    """One day of an interval: its state, its event's facts, the version it corrects and why."""
+    corrects = day.get("corrects")
+    gaps = day.get("gaps")
+    facts = (
+        [
+            "上一确认 "
+            + (
+                view._stage_label(day["last_confirmed_stage"])
+                if day.get("last_confirmed_stage")
+                else "尚无"
+            ),
+            "原因 " + history_label(day.get("stage_reason") or "未记录"),
+            "；".join(view._gap_label(str(value)) for value in gaps)
+            if isinstance(gaps, list) and gaps
+            else "无 P0 缺口",
+            f"模型 {day.get('model_version_id') or '见投影详情'}",
+        ]
+        if "business_date" in day
+        else []
+    )
+    return html.Li(
+        [
+            html.Strong(f"{day['date']} · {history_label(day['official'])}"),
+            html.Span(" · ".join(facts), className="secondary-copy") if facts else None,
+            html.Span(
+                [
+                    "更正版本：更正 ",
+                    projection_link(corrects.get("projection_set_id")),
+                    "（"
+                    + (view._stage_correction_note(corrects) or str(corrects.get("reason")))
+                    + "）",
+                ],
+                className="secondary-copy",
+            )
+            if isinstance(corrects, dict)
+            else None,
+            html.Span(["投影 ", projection_link(day.get("projection_set_id"))]),
+        ],
+        className="record-row",
     )
 
 
@@ -2018,8 +2231,16 @@ def _source_link(reference: object) -> Any:
     return html.A(label, href=label) if label.startswith(("https://", "http://")) else label
 
 
-def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet | None) -> Any:
-    name = row_name(item)
+def _context_drawer(
+    item: dict[str, Any],
+    key: str,
+    projection: ProjectionSet | None,
+    *,
+    name: DisplayName,
+    section: str,
+    extra: Sequence[tuple[str, Any]] = (),
+) -> Any:
+    """Every field of one context row, its evidence and its trend, as a drawer panel."""
     display = obj(item.get("display"))
     fields: list[tuple[str, Any]] = [
         (
@@ -2029,7 +2250,7 @@ def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet |
                 item.get("unit"),
                 item.get("selected_claim_id"),
                 projection,
-                section="overseas",
+                section=section,
             ),
         ),
         (
@@ -2041,16 +2262,13 @@ def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet |
         ("近 5 日", _change_text(display.get("change_5"))),
         ("近 120 日", _change_text(display.get("change_120"))),
         ("时效", view._state_label(item.get("status"))),
-        ("最近获取", view._state_label(item.get("acquisition_status"))),
-        ("采用来源", _source_link(item.get("source_reference"))),
+        *extra,
         (
             "证据",
             [
                 html.A(
                     "查看固定版本证据 →",
-                    href=evidence_href(
-                        projection, str(item["selected_claim_id"]), section="overseas"
-                    ),
+                    href=evidence_href(projection, str(item["selected_claim_id"]), section=section),
                 )
                 if projection and item.get("selected_claim_id")
                 else "该版本未提供",
@@ -2058,7 +2276,7 @@ def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet |
             ],
         ),
     ]
-    trend = context_trend(item, projection, "overseas")
+    trend = context_trend(item, projection, section)
     return drawer_panel(
         key,
         name.name,
@@ -2071,7 +2289,21 @@ def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet |
             html.H3("走势与比较端点"),
             *([html.P(trend, className="empty-note")] if isinstance(trend, str) else trend),
         ],
-        code=name.code,
+        code=name.code or None,
+    )
+
+
+def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet | None) -> Any:
+    return _context_drawer(
+        item,
+        key,
+        projection,
+        name=row_name(item),
+        section="overseas",
+        extra=(
+            ("最近获取", view._state_label(item.get("acquisition_status"))),
+            ("采用来源", _source_link(item.get("source_reference"))),
+        ),
     )
 
 
@@ -2089,7 +2321,7 @@ def overseas_cards(macro: dict[str, object], projection: ProjectionSet | None) -
         if item.get("metric_id") not in OVERSEAS_METRICS
         and item.get("metric_id") not in OVERSEAS_ELSEWHERE
     ]
-    keys = _overseas_keys([*listed, *others])
+    keys = _row_keys("overseas", [*listed, *others])
     return html.Div(
         [
             *[_overseas_card(item, key) for item, key in zip(listed, keys, strict=False)],
@@ -2115,13 +2347,18 @@ def overseas_cards(macro: dict[str, object], projection: ProjectionSet | None) -
     )
 
 
-def _overseas_keys(rows: Sequence[dict[str, Any]]) -> list[str]:
+def _row_keys(
+    section: str, rows: Sequence[dict[str, Any]], *, prefix: Sequence[str] = ()
+) -> list[str]:
     """One drawer key per row: the metric and its member dimensions, numbered if repeated."""
     keys: list[str] = []
     for item in rows:
         dimensions = obj(item.get("dimensions"))
         key = drawer_key(
-            "overseas", item.get("metric_id"), *(dimensions[name] for name in sorted(dimensions))
+            section,
+            *prefix,
+            item.get("metric_id"),
+            *(dimensions[name] for name in sorted(dimensions)),
         )
         keys.append(key if key not in keys else f"{key}-{len(keys) + 1}")
     return keys
