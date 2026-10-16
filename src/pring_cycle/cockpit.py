@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import datetime
 from typing import Any, cast
 from urllib.parse import urlencode
@@ -20,7 +21,14 @@ from pring_cycle.reports import ReportSnapshot
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS
 from pring_cycle.run_health import REQUEST_FAILURES, ProducerRun
 from pring_cycle.runs import RunRecord
-from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, stage_code
+from pring_cycle.wording import (
+    CORE_STATE_LABELS,
+    NO_CHINESE_NAME,
+    DisplayName,
+    core_state_label,
+    display_name,
+    stage_code,
+)
 
 SECTIONS = (
     ("conclusion", "周期识别结论"),
@@ -58,6 +66,35 @@ UNITS = {
     "usd_per_barrel": "美元/桶",
     "usd_per_troy_ounce": "美元/盎司",
 }
+# A metric whose source records a generic unit reads in its catalog unit: the 16:30 close
+# parser stamps "scalar" on a CNY-per-USD quote.
+METRIC_UNITS = {("CN_USDCNY_CLOSE_1630", "scalar"): "cny_per_usd"}
+
+
+def row_name(row: dict[str, Any], *, fallback: object = None) -> DisplayName:
+    """A projection row's display name, from its metric, member dimensions and catalog name.
+
+    ``fallback`` is a Chinese group label the projection already carries, used before the code.
+    """
+    name = display_name(row.get("metric_id"), obj(row.get("dimensions")), row.get("name_cn"))
+    return (
+        name if name.provided or not fallback else replace(name, name=str(fallback), provided=True)
+    )
+
+
+def name_cell(name: DisplayName) -> Any:
+    """The Chinese name alone for compact places; hovering shows the code."""
+    return html.Span(name.name, title=name.code)
+
+
+def name_note(name: DisplayName) -> list[Any]:
+    """The drawer's note when the name fell back to the code."""
+    return [] if name.provided else [html.P(NO_CHINESE_NAME, className="empty-note")]
+
+
+def with_metric_unit(row: dict[str, Any]) -> dict[str, Any]:
+    unit = METRIC_UNITS.get((str(row.get("metric_id")), str(row.get("unit"))))
+    return {**row, "unit": unit} if unit else row
 
 
 def objects(value: object) -> list[dict[str, Any]]:
@@ -1178,7 +1215,9 @@ def related_assets(macro: dict[str, object], asset: str, projection: ProjectionS
         for evidence in objects(member.get("evidence")) or [{}]:
             rows.append(
                 (
-                    member.get("label"),
+                    name_cell(row_name(evidence, fallback=member.get("label")))
+                    if evidence.get("metric_id")
+                    else member.get("label"),
                     value_link(
                         evidence.get("value"),
                         evidence.get("unit"),
@@ -1255,7 +1294,9 @@ def warrant_table(projection: ProjectionSet | None) -> Any:
                 ("品种", "起点 / 单位", "终点 / 单位", "变化", "状态", "原始输入"),
                 [
                     (
-                        item.get("symbol"),
+                        name_cell(
+                            display_name("CN_FUTURES_WARRANTS", {"symbol": item.get("symbol")})
+                        ),
                         number(item.get("first"), item.get("unit")),
                         number(item.get("last"), item.get("unit")),
                         f"{item['change_rate']:+.2%}"
@@ -1488,13 +1529,12 @@ def _direction_arrow(value: object) -> str:
 
 
 def _overseas_card(item: dict[str, Any], key: str) -> Any:
-    metric_id = str(item.get("metric_id") or "")
-    name = str(item.get("name_cn") or metric_id)
+    name = row_name(item)
     return drawer_trigger(
         key,
         [
-            html.Strong(name),
-            html.Small(metric_id) if name != metric_id else None,
+            html.Strong(name.name),
+            html.Small(name.code) if name.code != name.name else None,
             html.Span(number(item.get("value"), item.get("unit")), className="card-value"),
             html.Span(str(item.get("period") or "—")),
             html.Span(_direction_arrow(item.get("direction"))),
@@ -1521,7 +1561,7 @@ def _source_link(reference: object) -> Any:
 
 
 def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet | None) -> Any:
-    metric_id = str(item.get("metric_id") or "")
+    name = row_name(item)
     display = obj(item.get("display"))
     fields: list[tuple[str, Any]] = [
         (
@@ -1563,8 +1603,9 @@ def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet |
     trend = context_trend(item, projection, "overseas")
     return drawer_panel(
         key,
-        str(item.get("name_cn") or metric_id),
+        name.name,
         [
+            *name_note(name),
             html.Dl(
                 [part for label, value in fields for part in (html.Dt(label), html.Dd(value))],
                 className="drawer-fields",
@@ -1572,12 +1613,12 @@ def _overseas_drawer(item: dict[str, Any], key: str, projection: ProjectionSet |
             html.H3("走势与比较端点"),
             *([html.P(trend, className="empty-note")] if isinstance(trend, str) else trend),
         ],
-        code=metric_id,
+        code=name.code,
     )
 
 
 def overseas_cards(macro: dict[str, object], projection: ProjectionSet | None) -> Any:
-    rows = objects(macro.get("international_context"))
+    rows = [with_metric_unit(item) for item in objects(macro.get("international_context"))]
     if not rows:
         return html.P("本投影尚无海外与汇率事实。", className="empty-note")
     listed = sorted(

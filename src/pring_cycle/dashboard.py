@@ -20,7 +20,7 @@ from pring_cycle.reports import ReportSnapshot
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS
 from pring_cycle.run_health import ProducerRun
 from pring_cycle.runs import RunRecord
-from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, stage_title
+from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, display_name, stage_title
 
 
 def dashboard_shell(
@@ -1642,10 +1642,11 @@ def _warrant_line(item: dict[str, object]) -> str:
         if item.get("first") is not None
         else ""
     )
+    name = display_name("CN_FUTURES_WARRANTS", {"symbol": item.get("symbol")}).name
     return " · ".join(
         part
         for part in (
-            str(item.get("symbol")),
+            f"{name}（{item.get('symbol')}）" if name != item.get("symbol") else name,
             reading,
             f"{rate:+.1%}" if isinstance(rate, (int, float)) else "",
             _WARRANT_STATES.get(str(item.get("status")), ""),

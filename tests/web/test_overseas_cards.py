@@ -89,9 +89,9 @@ def test_overseas_cards_follow_the_page_list_order_and_show_only_the_core_readin
     cards = [_words(card) for card in _cards(_overseas_projection(rows))]
 
     assert cards == [
-        "CN_USDCNY_CENTRAL_PARITY 7.10 元/美元 2026-10-15 ↑ 上升 近 5 日 —",
-        "UST10Y_NOMINAL_YIELD 5.19 % 2026-10-14 ↓ 下降 近 5 日 -8.00 基点",
-        "EIA_WTI_RWTC 61.20 美元/桶 2026-10-14 ↓ 下降 近 5 日 —",
+        "美元兑人民币中间价 CN_USDCNY_CENTRAL_PARITY 7.10 元/美元 2026-10-15 ↑ 上升 近 5 日 —",
+        "美国 10 年期国债收益率 UST10Y_NOMINAL_YIELD 5.19 % 2026-10-14 ↓ 下降 近 5 日 -8.00 基点",
+        "WTI 原油 EIA_WTI_RWTC 61.20 美元/桶 2026-10-14 ↓ 下降 近 5 日 —",
     ]
 
 
@@ -110,7 +110,8 @@ def test_cny030_and_gdp_stay_out_while_unlisted_rows_go_to_other_background_metr
 
     assert "CN_BOND_FULL_PRICE_CNY030" not in section
     assert "CN_GDP" not in section
-    assert [card.split()[0] for card in cards] == ["UST10Y_NOMINAL_YIELD", "JP_10Y_YIELD"]
+    assert len(cards) == 2
+    assert cards[0].startswith("美国 10 年期国债收益率 UST10Y_NOMINAL_YIELD")
     assert section.index("UST10Y_NOMINAL_YIELD") < section.index("其他背景指标")
     assert section.index("其他背景指标") < section.index("JP_10Y_YIELD")
     assert cards[1] == "JP_10Y_YIELD 1.62 % 2026-10-13 ↑ 上升 近 5 日 —"
