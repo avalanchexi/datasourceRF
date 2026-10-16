@@ -9,6 +9,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from dash.development.base_component import Component
+
 from pring_cycle.dashboard import dashboard_page
 from pring_cycle.projections import ProjectionSet
 from tests.integration.test_confirmation_publish import confirmed
@@ -71,6 +73,18 @@ def _confirmation(applicable: bool) -> dict[str, Any]:
     }
 
 
+def _titles(component: object) -> list[str]:
+    """The hover texts under a component, as a reader sees them on pointing."""
+    if isinstance(component, (list, tuple)):
+        return [title for child in component for title in _titles(child)]
+    if not isinstance(component, Component):
+        return []
+    title = getattr(component, "title", None)
+    return ([title] if isinstance(title, str) else []) + _titles(
+        getattr(component, "children", None)
+    )
+
+
 def _typical(**macro: Any) -> ProjectionSet:
     return _projection(
         [_asset("bond", "bull"), _asset("stock", "bull"), _asset("commodity", "bear")],
@@ -93,25 +107,43 @@ def test_the_confirmation_heading_and_cells_count_key_indicators_for_a_typical_s
     board = _board(_typical())
 
     assert "确认度 可评估 · 8 项关键指标 · 规则 macro-confirmation-v0001" in board
-    assert "政策 3 项 支持 2 · 反证 0 · 仅观察 0 · 未确认 1" in board
-    assert "信用 2 项 支持 0 · 反证 1 · 仅观察 1 · 未确认 0" in board
-    assert "过热 1 项 支持 1 · 反证 0 · 仅观察 0 · 未确认 0" in board
-    assert "物价 2 项 支持 0 · 反证 1 · 仅观察 0 · 未确认 1" in board
+    assert "政策 3 项 支 2 · 反 0 · 观 0 · 未 1" in board
+    assert "信用 2 项 支 0 · 反 1 · 观 1 · 未 0" in board
+    assert "过热 1 项 支 1 · 反 0 · 观 0 · 未 0" in board
+    assert "物价 2 项 支 0 · 反 1 · 观 0 · 未 1" in board
     assert "库存 尚未接入" in board
     assert "不适用" not in board
+    # The abbreviated counts keep their full names on hover.
+    assert "支持 2 · 反证 0 · 仅观察 0 · 未确认 1" in _titles(_conclusion(_typical()))
     cells = ["政策 3 项", "信用 2 项", "过热 1 项", "物价 2 项", "库存 尚未接入"]
     assert [board.index(cell) for cell in cells] == sorted(board.index(cell) for cell in cells)
 
 
-def test_a_noncanonical_combination_marks_the_confirmation_and_each_cell_not_applicable() -> None:
+def test_a_noncanonical_combination_collapses_the_five_cells_into_one_uncounted_line() -> None:
     board = _board(_noncanonical())
 
     assert (
         "确认度 不适用 · 8 项关键指标 · 无正式阶段，不计数 · 规则 macro-confirmation-v0001"
     ) in board
-    assert "政策 3 项 · 不适用 支持 0 · 反证 0 · 仅观察 0 · 未确认 0" in board
-    assert "物价 2 项 · 不适用 支持 0 · 反证 0 · 仅观察 0 · 未确认 0" in board
-    assert "库存 尚未接入" in board
+    assert (
+        "政策 3 项 · 信用 2 项 · 过热 1 项 · 物价 2 项 · 库存 尚未接入 · "
+        "非典型组合无阶段叙事可比对，不计数"
+    ) in board
+    assert board.count("不适用") == 1
+    assert "支 0" not in board and "支持 0" not in board
+
+
+def test_a_day_held_for_core_data_keeps_the_five_cells_marked_not_applicable() -> None:
+    board = _board(
+        _projection(
+            [_asset("bond", "bull"), _asset("stock", "bear"), _asset("commodity", None)],
+            stage_reason="core_data_pending",
+            macro={"confirmation": _confirmation(False)},
+        )
+    )
+
+    assert "政策 3 项 · 不适用 支 0 · 反 0 · 观 0 · 未 0" in board
+    assert "非典型组合无阶段叙事可比对" not in board
 
 
 PRICE_CONSISTENCY = {
@@ -157,7 +189,7 @@ def test_the_price_consistency_row_inlines_momentum_and_both_breadths() -> None:
 
     assert (
         "价格一致性 商品对债 +1.23 个百分点 · 股票对债 -0.50 个百分点 · 股票对商品 未确认；"
-        "股市广度（站上 90 日均线个股占比） 40.0%（上涨集中于较少个股）；"
+        "股市广度（站上 90 日均线个股占比） 40.0% （上涨集中于较少个股）；"
         "商品篮子分项广度 3/7 个分项同向（上涨集中于少数分项）"
     ) in board
     assert "股市广度（站上 90 日均线个股占比） 未确认，缺：CN_EQ_ABOVE_MA90" in unconfirmed
@@ -210,9 +242,9 @@ def test_the_inventory_row_states_the_quadrant_its_period_and_three_lines() -> N
         )
     )
 
-    assert "库存象限 主动去库存（统计期 2026-08；需求下降、生产下降、库存下降）" in classified
+    assert "库存象限 主动去库存 （统计期 2026-08；需求下降、生产下降、库存下降）" in classified
     assert (
-        "库存象限 未分类（统计期 2026-08；未分类原因：三条线缺数或月份不齐；"
+        "库存象限 未分类 （统计期 2026-08；未分类原因：三条线缺数或月份不齐；"
         "需求上升、生产方向未知、库存上升）"
     ) in unclassified
     assert "库存象限 该版本未提供" in _board(_typical())
@@ -313,8 +345,8 @@ def test_the_right_column_reads_the_confirmation_the_day_summary_publishes(
 
     assert "确认度 可评估 · 17 项关键指标 · 规则 macro-confirmation-v0001" in board
     # The PMI supports; the other four overheat indicators, held nowhere, are unconfirmed.
-    assert "过热 5 项 支持 1 · 反证 0 · 仅观察 0 · 未确认 4" in board
-    assert "库存象限 未分类（统计期 未提供；未分类原因：三条线缺数或月份不齐" in board
+    assert "过热 5 项 支 1 · 反 0 · 观 0 · 未 4" in board
+    assert "库存象限 未分类 （统计期 未提供；未分类原因：三条线缺数或月份不齐" in board
     assert "债券归因 推动力不明" in board
     assert "数据边界 0 项缺口 · 历史期未取到：该版本未提供" in board
     rows = ("确认度 ", "价格一致性 ", "库存象限 ", "债券归因 ", "数据边界 ")
