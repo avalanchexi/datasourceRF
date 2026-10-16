@@ -148,3 +148,32 @@ html, body { font-size: 14px; }
 .overseas-others h3 { grid-column: 1 / -1; margin: 0; }
 @media (max-width: 1100px) { .overseas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .overseas-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* 数据链路桑基图：连线按请求结果四色、节点按列分色；dashboard.js 依主题读这些变量重绘。 */
+:root[data-theme="light"],
+:root:not([data-theme]) {
+  --flow-success: rgba(22, 131, 77, 0.4);
+  --flow-candidate: rgba(209, 138, 22, 0.45);
+  --flow-neutral: rgba(128, 134, 138, 0.35);
+  --flow-failure: rgba(196, 50, 58, 0.4);
+  --flow-source: #3d6d9b;
+  --flow-phase: #7b5ea7;
+  --flow-result: #176a66;
+}
+:root[data-theme="dark"] {
+  --flow-success: rgba(75, 212, 155, 0.45);
+  --flow-candidate: rgba(242, 173, 70, 0.5);
+  --flow-neutral: rgba(157, 170, 184, 0.35);
+  --flow-failure: rgba(255, 104, 111, 0.5);
+  --flow-source: #4b97ff;
+  --flow-phase: #b78af5;
+  --flow-result: #5ce1ed;
+}
+.flow-sankey .node-label { fill: var(--ink-body) !important; text-shadow: none !important; }
+.request-table .table-scroll { max-height: 480px; overflow-y: auto; }
+.request-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: linear-gradient(var(--surface-muted), var(--surface-muted)), var(--surface-canvas);
+}

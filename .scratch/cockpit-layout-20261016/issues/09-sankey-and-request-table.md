@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] 节点标签 = 中文名 · 请求数，去掉"来源:"等前缀；来源名用票 02 显示名
 - [ ] 结果中文与四色归类集中一处：绿 accepted / verified / validated；琥珀 candidate_source；灰 not_found / started / reserved / unknown_completion / completed；红 failed / interrupted / timeout / error / rejected；未映射值显示原值、归灰
