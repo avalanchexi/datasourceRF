@@ -14,6 +14,7 @@ from dash import dcc, html
 from pring_cycle import dashboard as view
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
+from pring_cycle.run_health import ProducerRun
 from pring_cycle.runs import RunRecord
 from pring_cycle.wording import CORE_STATE_LABELS
 
@@ -290,7 +291,11 @@ def report_board(
     runs: Sequence[RunRecord],
     reports: Sequence[ReportSnapshot],
     stage_events: Sequence[dict[str, object]] = (),
+    *,
+    producer_run: ProducerRun | None = None,
 ) -> html.Div:
+    """``producer_run`` carries the producing run's persisted health summary for the board's
+    run facts; ``None`` (or a ``None`` summary) means the page must say it is unavailable."""
     overview = view._dataset(projection, "cycle_overview")
     macro = view._dataset(projection, "macro")
     displays = obj(view._dataset(projection, "core_assets").get("display"))
@@ -1066,22 +1071,37 @@ def local_time(value: datetime) -> str:
     return value.astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M:%S 北京时间")
 
 
-def identity_strip(projection: ProjectionSet | None) -> list[Any]:
+_COMPLETENESS = {"complete": "完整", "degraded": "降级"}
+
+
+def identity_strip(
+    projection: ProjectionSet | None,
+    *,
+    producer: ProducerRun | None,
+    rendered_at: datetime,
+) -> list[Any]:
+    """The seven identity fields of the page; all belong to ``projection``, never the pointer."""
+    run = producer.run_id if producer else "未提供"
+    generated = local_time(rendered_at)
     if projection is None:
-        return [html.Span("等待首次完整运行")]
+        return [
+            view._metadata("目标交易日", "尚无"),
+            view._metadata("模型版本", "尚无"),
+            view._metadata("投影", "等待首次完整运行"),
+            view._metadata("完整度", "尚无"),
+            view._metadata("分析截止", "尚无"),
+            view._metadata("运行", run),
+            view._metadata("页面生成", generated),
+        ]
     envelope = projection.envelope
     return [
         view._metadata("目标交易日", envelope.target_business_date),
+        view._metadata("模型版本", envelope.model_version_id),
+        view._metadata("投影", envelope.projection_set_id),
+        view._metadata("完整度", _COMPLETENESS.get(envelope.completeness, envelope.completeness)),
         view._metadata("分析截止", local_time(envelope.system_as_of)),
-        html.Details(
-            [
-                html.Summary(envelope.projection_set_id),
-                html.P(f"模型 {envelope.model_version_id} · 完整度 {envelope.completeness}"),
-                html.P(f"分析生成 {local_time(envelope.generated_at)}"),
-                html.P(f"证据快照 {envelope.evidence_snapshot_id}"),
-                html.P(f"窗口 {envelope.evidence_window_start} → {envelope.evidence_window_end}"),
-            ]
-        ),
+        view._metadata("运行", run),
+        view._metadata("页面生成", generated),
     ]
 
 

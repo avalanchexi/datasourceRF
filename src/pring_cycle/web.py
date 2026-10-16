@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import threading
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime
@@ -35,7 +35,7 @@ from pring_cycle.navigation import DASHBOARD_NAVIGATION, LEGACY_ROUTES
 from pring_cycle.projections import ProjectionSet, ProjectionSetRepository
 from pring_cycle.release_calendar import current_lpr_period, lpr_release_calendar
 from pring_cycle.reports import ReportRepository, ReportSnapshot
-from pring_cycle.run_health import RunHealth, comparison, filtered_flow
+from pring_cycle.run_health import ProducerRun, RunHealth, comparison, filtered_flow
 from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import (
     RuntimeNotInitializedError,
@@ -612,7 +612,17 @@ def _load_dashboard(
                 )
                 reports = _reports(paths)
                 identity = projection.envelope.projection_set_id if projection else None
-                signature = [pathname, search, identity]
+                produced_by = _producer_run(paths, projection, runs)
+                producer = (
+                    ProducerRun(
+                        produced_by.run_id, RunHealth(paths.database).latest(produced_by.run_id)
+                    )
+                    if produced_by
+                    else None
+                )
+                strip = identity_strip(projection, producer=producer, rendered_at=datetime.now(UTC))
+                # The producer's summary can land after the page first renders.
+                signature = [pathname, search, identity, repr(producer)]
                 signature.append(repr(reports))
                 signature.append(
                     repr(
@@ -632,8 +642,9 @@ def _load_dashboard(
                 if pathname in {"/runs", "/data-chain"}:
                     signature.append(repr(RunHealth(paths.database).history()))
                 fingerprint = hashlib.sha256(repr(signature).encode()).hexdigest()
+                # Unchanged views keep their bar too, so "页面生成" stays the actual render time.
                 if previous == fingerprint and pathname not in {"/runs", "/data-chain"}:
-                    return no_update, interval, identity_strip(projection), no_update, ""
+                    return no_update, interval, no_update, no_update, ""
                 if pathname in {"/runs", "/data-chain"}:
                     from pring_cycle.cockpit_operations import data_chain, runs_workspace
 
@@ -650,26 +661,13 @@ def _load_dashboard(
                         (run for run in candidates if run.run_id == query.get("run")), None
                     )
                     if selected is None and not query.get("run"):
-                        producer_id = (
-                            ProjectionSetRepository(paths.database).producer_run_id(
-                                projection.envelope.projection_set_id
-                            )
-                            if projection
+                        produced = (
+                            _producer_run(paths, projection, candidates)
+                            if pathname == "/data-chain" or query.get("projection")
                             else None
                         )
-                        produced = [
-                            run
-                            for run in candidates
-                            if (pathname == "/data-chain" or query.get("projection"))
-                            and projection
-                            and (
-                                run.run_id == producer_id
-                                or run.projection_set_id == projection.envelope.projection_set_id
-                            )
-                            and run.command_type in {"manual_full", "scheduled_full"}
-                        ]
                         selected = (
-                            produced[0]
+                            produced
                             if produced
                             else candidates[0]
                             if candidates and not query.get("projection")
@@ -690,10 +688,10 @@ def _load_dashboard(
                     # Request receipts can change while the run stays in one step.
                     fingerprint = hashlib.sha256(repr((fingerprint, summary)).encode()).hexdigest()
                     if previous == fingerprint:
-                        return no_update, interval, identity_strip(projection), no_update, ""
+                        return no_update, interval, no_update, no_update, ""
                     if pathname == "/runs":
                         page = runs_workspace(runs, summary, health.history(), query)
-                        return page, interval, identity_strip(projection), fingerprint, ""
+                        return page, interval, strip, fingerprint, ""
                     try:
                         document = (
                             _frozen_evidence(
@@ -726,8 +724,9 @@ def _load_dashboard(
                         reports,
                         (),
                         _release_calendar_events(paths, projection),
+                        producer_run=producer,
                     )
-                return page, interval, identity_strip(projection), fingerprint, ""
+                return page, interval, strip, fingerprint, ""
             except (
                 Exception
             ) as error:  # Preserve the last complete view; never mix partial datasets.
@@ -766,6 +765,24 @@ def _current_projection(paths: RuntimePaths) -> ProjectionSet | None:
         return ProjectionSetRepository(paths.database).current()
     except (LookupError, OSError):
         return None
+
+
+def _producer_run(
+    paths: RuntimePaths, projection: ProjectionSet | None, runs: Sequence[RunRecord]
+) -> RunRecord | None:
+    """The full run among ``runs`` that produced ``projection``, or none; never another run.
+
+    The writing batch comes first, since a run also owns the days it backfilled; projections
+    published before batches existed fall back to the run that linked them.
+    """
+    if projection is None:
+        return None
+    identity = projection.envelope.projection_set_id
+    batch = ProjectionSetRepository(paths.database).producer_run_id(identity)
+    full = [run for run in runs if run.command_type in {"manual_full", "scheduled_full"}]
+    return next((run for run in full if run.run_id == batch), None) or next(
+        (run for run in full if run.projection_set_id == identity), None
+    )
 
 
 def _runs(paths: RuntimePaths) -> tuple[RunRecord, ...]:

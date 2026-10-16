@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections import Counter
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,18 @@ def _elapsed(start: str | None, end: str | None) -> float | None:
         return None
     seconds = (datetime.fromisoformat(end) - datetime.fromisoformat(start)).total_seconds()
     return seconds if seconds >= 0 else None
+
+
+@dataclass(frozen=True)
+class ProducerRun:
+    """The full run that produced a projection, as pages read it.
+
+    ``summary`` is that run's persisted health summary, or ``None`` when the run has not
+    finished or predates summaries; pages say so rather than inventing figures.
+    """
+
+    run_id: str
+    summary: dict[str, Any] | None
 
 
 class RunHealth:

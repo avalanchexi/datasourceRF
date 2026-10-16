@@ -17,8 +17,10 @@ import pytest
 import uvicorn
 
 from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
+from pring_cycle.batches import processing_batch
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.projections import ProjectionSetRepository
+from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.web import create_web_application
 from tests.integration.test_core_carry_forward import CUTOFF, TARGET, seed_cores
@@ -212,10 +214,33 @@ def test_wildcard_access_configuration_is_rejected(tmp_path: Path) -> None:
         create_web_application(paths, 8050)
 
 
+def _full_run(paths: RuntimePaths, name: str) -> str:
+    return (
+        RunRepository(paths.database)
+        .submit_manual_full(
+            target_business_date=TARGET.isoformat(),
+            client_request_id=name,
+            model_version_id="model-v0001",
+            system_as_of=CUTOFF,
+        )
+        .run_id
+    )
+
+
+def _identity_bar(base: str, search: str) -> str:
+    strip = rendered_page(base, "/", search)["projection-strip"]["children"]
+    return json.dumps(strip, ensure_ascii=False)
+
+
 def test_pinned_projection_does_not_mix_with_a_new_current_pointer(tmp_path: Path) -> None:
     paths = runtime(tmp_path)
     seed_cores(paths)
+    runs = RunRepository(paths.database)
+    first_run = _full_run(paths, "first-full")
     first = target_projection(paths)
+    # Published before batches existed: only the run's own link names its producer.
+    runs.link_projection(first_run, first.envelope.projection_set_id)
+    runs.cancel(first_run)  # terminal, so its health summary is persisted
     with serving(paths) as base:
         status, current = get(base + "/api/v1/projections/current")
         assert status == 200
@@ -225,7 +250,9 @@ def test_pinned_projection_does_not_mix_with_a_new_current_pointer(tmp_path: Pat
             name: {**data, "projection_set_id": second.projection_set_id}
             for name, data in first.datasets.items()
         }
-        ProjectionSetRepository(paths.database).publish(second, datasets)
+        second_run = _full_run(paths, "second-full")
+        with processing_batch(second_run):  # e.g. a backfilled day: the batch alone names it
+            ProjectionSetRepository(paths.database).publish(second, datasets)
 
         status, core = get(base + f"/api/v1/projections/{identity}/core_assets")
         assert status == 200
@@ -236,6 +263,26 @@ def test_pinned_projection_does_not_mix_with_a_new_current_pointer(tmp_path: Pat
         assert status == 200
         assert entire["envelope"] == core["envelope"]
         assert get(base + "/api/v1/projections/no-such-projection")[0] == 404
+
+        pinned = _identity_bar(base, f"?projection={identity}")
+        assert identity in pinned and first_run in pinned
+        assert "projection-new-current" not in pinned and second_run not in pinned
+        latest = _identity_bar(base, "")
+        assert "projection-new-current" in latest and second_run in latest
+        assert first_run not in latest
+
+        orphan = replace(first.envelope, projection_set_id="projection-without-run")
+        ProjectionSetRepository(paths.database).publish(
+            orphan,
+            {
+                name: {**data, "projection_set_id": orphan.projection_set_id}
+                for name, data in first.datasets.items()
+            },
+            as_current=False,
+        )
+        unknown = _identity_bar(base, "?projection=projection-without-run")
+        assert "未提供" in unknown
+        assert first_run not in unknown and second_run not in unknown
 
 
 def test_evidence_opens_the_exact_version_drawn_by_the_projection(tmp_path: Path) -> None:

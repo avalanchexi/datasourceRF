@@ -1,7 +1,13 @@
 from dataclasses import replace
+from datetime import UTC, datetime
 from pathlib import Path
 
+from dash import html
+
+from pring_cycle.cockpit import identity_strip
 from pring_cycle.dashboard import dashboard_page
+from pring_cycle.projections import ProjectionSet
+from pring_cycle.run_health import ProducerRun
 from tests.integration.test_core_carry_forward import seed_cores
 from tests.integration.test_day_summary import target_projection
 from tests.integration.test_worker_execution import runtime
@@ -31,6 +37,53 @@ def test_board_orders_seven_sections_and_links_values_to_frozen_evidence(tmp_pat
     assert links
     assert all(projection.envelope.projection_set_id in href for href in links)
     assert "旧投影未提供展示点列" not in text
+
+
+IDENTITY_LABELS = ("目标交易日", "模型版本", "投影", "完整度", "分析截止", "运行", "页面生成")
+RENDERED_AT = datetime(2026, 10, 16, 1, 2, 3, tzinfo=UTC)
+
+
+def _identity(projection: ProjectionSet | None, producer: ProducerRun | None = None) -> str:
+    strip = identity_strip(projection, producer=producer, rendered_at=RENDERED_AT)
+    return " ".join(_text(html.Div(strip)).split())
+
+
+def test_identity_bar_names_the_projection_its_producing_run_and_render_time(
+    tmp_path: Path,
+) -> None:
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    projection = target_projection(paths)
+    text = _identity(projection, ProducerRun("run-produced-it", None))
+    assert [text.index(label) for label in IDENTITY_LABELS] == sorted(
+        text.index(label) for label in IDENTITY_LABELS
+    )
+    assert "目标交易日 2026-08-28" in text
+    assert "模型版本 model-v0001" in text
+    assert f"投影 {projection.envelope.projection_set_id}" in text
+    assert "分析截止 2026-08-28 21:00:00 北京时间" in text
+    assert "运行 run-produced-it" in text
+    assert "页面生成 2026-10-16 09:02:03 北京时间" in text
+    degraded = replace(projection, envelope=replace(projection.envelope, completeness="degraded"))
+    complete = replace(projection, envelope=replace(projection.envelope, completeness="complete"))
+    assert "完整度 降级" in _identity(degraded)
+    assert "完整度 完整" in _identity(complete)
+
+
+def test_identity_bar_says_not_provided_when_no_producing_run_is_known(tmp_path: Path) -> None:
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    projection = target_projection(paths)
+    assert "运行 未提供" in _identity(projection)
+
+
+def test_empty_library_identity_bar_is_readable_without_invented_identity() -> None:
+    text = _identity(None)
+    assert all(label in text for label in IDENTITY_LABELS)
+    assert "等待首次完整运行" in text
+    assert "运行 未提供" in text
+    assert "model-v" not in text and "projection-" not in text
+    assert "页面生成 2026-10-16 09:02:03 北京时间" in text
 
 
 def test_empty_board_remains_readable_without_fabricated_prices() -> None:

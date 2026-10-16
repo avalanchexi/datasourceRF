@@ -51,7 +51,11 @@ html, body { font-size: 14px; }
 .evidence-workspace { max-width: 1280px; margin: auto; overflow-wrap: anywhere; }
 .evidence-workspace details { border-left: 2px solid var(--accent); padding: 12px 20px; }
 .evidence-workspace a[download] { margin-right: 20px; }
-.projection-strip details { font-size: 11px; overflow-wrap: anywhere; }
+/* Seven identity fields; long identifiers wrap instead of being cut off. */
+.projection-strip { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 6px 8px; }
+.projection-strip .metadata-pair { padding-left: 8px; }
+.projection-strip .metadata-label { font-size: 11px; letter-spacing: 0.02em; }
+.projection-strip .metadata-value { font-size: 12px; white-space: normal; overflow-wrap: anywhere; }
 .confirmation-summary { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }
 .summary-cell { padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-panel); }
 .summary-cell p { margin-bottom: 0; }
@@ -100,7 +104,7 @@ html, body { font-size: 14px; }
 @media (max-width: 560px) {
   .conclusion-board { grid-template-columns: minmax(0,1fr); }
   .conclusion-board > div + div { border-left: 0; border-top: 1px solid var(--line); padding: 12px 0 0; }
-  .projection-strip { grid-template-columns: minmax(0,1fr); }
+  .projection-strip { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .primary-nav { padding: 8px; }
   .primary-nav .nav-link { padding: 8px 12px; }
   .measure-row { grid-template-columns: minmax(70px, 1fr) minmax(0, 1.4fr) 70px; gap: 6px; }

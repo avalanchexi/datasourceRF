@@ -16,6 +16,7 @@ from pring_cycle.navigation import DASHBOARD_NAVIGATION
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS
+from pring_cycle.run_health import ProducerRun
 from pring_cycle.runs import RunRecord
 from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, stage_title
 
@@ -140,12 +141,16 @@ def dashboard_page(
     reports: Sequence[ReportSnapshot],
     stage_events: Sequence[dict[str, object]] = (),
     release_events: Sequence[dict[str, object]] = (),
+    *,
+    producer_run: ProducerRun | None = None,
 ) -> html.Div:
+    """``producer_run`` is the full run that produced ``projection`` with its persisted
+    health summary; ``None`` when no such run is known."""
     route = pathname or "/"
     if route in {"/", "/core-assets", "/macro", "/inventory", "/stage-history"}:
         from pring_cycle.cockpit import report_board
 
-        return report_board(projection, runs, reports, stage_events)
+        return report_board(projection, runs, reports, stage_events, producer_run=producer_run)
     if route == "/release-calendar":
         return _release_calendar_page(projection, release_events)
     if route == "/reports":
