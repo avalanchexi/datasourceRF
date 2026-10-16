@@ -44,6 +44,7 @@ def _projection(
     assets: list[dict[str, Any]],
     *,
     model_version_id: str = "model-v0015",
+    macro: dict[str, Any] | None = None,
     **overview: Any,
 ) -> ProjectionSet:
     moment = datetime(2026, 9, 30, 13, tzinfo=UTC)
@@ -72,7 +73,7 @@ def _projection(
                 **overview,
             },
             "core_assets": {"assets": assets},
-            "macro": {},
+            "macro": macro or {},
             "inventory": {},
             "release_calendar": {},
             "stage_history": {},
@@ -80,7 +81,7 @@ def _projection(
     )
 
 
-def _board(projection: ProjectionSet | None, trend_rules: TrendRules | None = None) -> str:
+def _conclusion(projection: ProjectionSet | None, trend_rules: TrendRules | None = None) -> object:
     page = dashboard_page("/", projection, (), (), trend_rules=trend_rules)
 
     def section(component: object) -> object:
@@ -94,7 +95,11 @@ def _board(projection: ProjectionSet | None, trend_rules: TrendRules | None = No
                     return found
         return None
 
-    return " ".join(_text(section(page)).split())
+    return section(page)
+
+
+def _board(projection: ProjectionSet | None, trend_rules: TrendRules | None = None) -> str:
+    return " ".join(_text(_conclusion(projection, trend_rules)).split())
 
 
 def test_a_typical_combination_names_the_three_states_and_the_stage_they_map_to() -> None:

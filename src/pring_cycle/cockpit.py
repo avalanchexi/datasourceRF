@@ -364,26 +364,7 @@ def report_board(
             html.Div(
                 [
                     conclusion_left(projection, trend_rules),
-                    html.Div(
-                        [
-                            html.H3("五维确认度（关键指标计数，非概率）"),
-                            confirmation_summary(macro),
-                            html.P(
-                                "库存象限："
-                                + view._state_label(
-                                    view._dataset(projection, "inventory").get("quadrant")
-                                )
-                            ),
-                            html.Details(
-                                [html.Summary("价格内部一致性"), *view._price_sections(macro)]
-                            ),
-                            *[
-                                html.P(line, className="secondary-copy")
-                                for line in view._attribution_lines(macro, brief=True)
-                            ],
-                        ],
-                        className="board-right",
-                    ),
+                    conclusion_right(projection),
                 ],
                 className="conclusion-board",
             ),
@@ -711,40 +692,185 @@ def _core_reading(
     return f"{name}受阻：{cause}" + (f"，最新 {latest}" if latest else "")
 
 
-def confirmation_summary(macro: dict[str, object]) -> Any:
-    confirmation = obj(macro.get("confirmation"))
+RELATION_COUNTED = ("support", "counterevidence", "observation_only", "unconfirmed")
+LEGACY_MACRO_STATES = ("policy_direction", "credit_response", "overheat_state", "price_pressure")
+
+
+def confirmation_heading(confirmation: dict[str, Any]) -> str:
+    """Whether the confirmation is assessed, over how many key indicators, by which rules."""
     summary = obj(confirmation.get("summary"))
     if not summary:
-        return view._macro_summary(macro)
-    counts = obj(summary.get("counts"))
+        return "该版本未提供确认汇总"
+    rules = confirmation.get("macro_rules_version") or "版本未提供"
+    if summary.get("applicable"):
+        return f"可评估 · {summary.get('total')} 项关键指标 · 规则 {rules}"
+    return f"不适用 · {summary.get('total')} 项关键指标 · 无正式阶段，不计数 · 规则 {rules}"
+
+
+def dimension_cell(dimension: dict[str, Any], *, applicable: bool) -> html.Div:
+    """A dimension's key indicators and their relations; never a probability."""
+    label = view._DIMENSION_LABELS.get(str(dimension.get("dimension")), "维度")
+    counts = obj(dimension.get("counts"))
+    if dimension.get("status") != "connected" or not counts:
+        return html.Div([html.Strong(label), html.Span("尚未接入")], className="summary-cell")
+    total = len(objects(dimension.get("key_indicators"))) or sum(
+        view._integer(value) for value in counts.values()
+    )
     return html.Div(
         [
-            html.P(
-                "确认度不适用：本次无正式阶段；各项事实仍可阅读。"
-                if not summary.get("applicable")
-                else " · ".join(
-                    f"{view._RELATION_LABELS.get(key, key)} {value} 项"
-                    for key, value in counts.items()
+            html.Strong(label),
+            html.Span(f"{total} 项" + ("" if applicable else " · 不适用")),
+            html.Span(
+                " · ".join(
+                    f"{view._RELATION_LABELS[relation]} {view._integer(counts.get(relation))}"
+                    for relation in RELATION_COUNTED
                 )
-                + f" · 共 {summary.get('total')} 项"
             ),
+        ],
+        className="summary-cell",
+    )
+
+
+def price_consistency_line(consistency: dict[str, Any]) -> str:
+    """The three pairs' relative momentum, then the stock and basket breadth, in one line."""
+    if not consistency:
+        return "该版本未提供"
+    pairs = " · ".join(
+        f"{pair.get('label')} {value:+.2f} 个百分点"
+        if isinstance(value := pair.get("value_pp"), (int, float))
+        else f"{pair.get('label')} 未确认"
+        for pair in objects(consistency.get("relative_momentum"))
+    )
+    breadths = []
+    for key in ("stock_breadth", "basket_breadth"):
+        item = obj(consistency.get(key))
+        if not item:
+            continue
+        if not item.get("text"):
+            missing = "、".join(str(gap) for gap in view._list_of(item.get("missing")))
+            breadths.append(f"{item.get('label')} 未确认，缺：{missing or '未记录'}")
+        elif key == "stock_breadth" and isinstance(item.get("share"), (int, float)):
+            breadths.append(f"{item.get('label')} {item['share']:.1f}%（{item['text']}）")
+        elif key == "basket_breadth" and item.get("along") is not None:
+            breadths.append(
+                f"{item.get('label')} {item['along']}/{item.get('of')} 个分项同向（{item['text']}）"
+            )
+        else:
+            breadths.append(f"{item.get('label')} {item['text']}")
+    return "；".join(part for part in (pairs, *breadths) if part)
+
+
+UNCLASSIFIED_BY = {"insufficient": "三条线缺数或月份不齐", "inconsistent": "三条线方向不构成象限"}
+
+
+def inventory_quadrant_line(confirmation: dict[str, Any], inventory: dict[str, object]) -> str:
+    """The quadrant with its statistical period and the three lines' directions, or why it
+    is unclassified; read from the confirmation's quadrant member, else the inventory set."""
+    member = next(
+        (
+            member
+            for dimension in objects(confirmation.get("dimensions"))
+            if dimension.get("dimension") == "inventory"
+            for item in objects(dimension.get("key_indicators"))
+            for member in objects(item.get("members"))
+            if "quadrant" in member
+        ),
+        dict(inventory),
+    )
+    if not member.get("quadrant"):
+        return "该版本未提供"
+    period = member.get("period") or member.get("statistical_period") or "未提供"
+    parts = [f"统计期 {period}"]
+    because = UNCLASSIFIED_BY.get(str(member.get("unclassified_by")))
+    if because:
+        parts.append(f"未分类原因：{because}")
+    lines = obj(member.get("lines"))
+    if lines:
+        parts.append(
+            "、".join(
+                label
+                + view._DIRECTION_LABELS.get(str(obj(lines.get(line)).get("direction")), "方向未知")
+                for line, label in view._LINE_LABELS.items()
+            )
+        )
+    quadrant = view._QUADRANT_LABELS.get(str(member.get("quadrant")), "未分类")
+    return f"{quadrant}（" + "；".join(parts) + "）"
+
+
+def bond_attribution_line(note: dict[str, Any]) -> str:
+    """What drives the bond, by each axis's reading; a note beside it, never counted."""
+    if not note:
+        return "该版本未提供"
+    axes = "、".join(f"{axis.get('label')}{axis.get('text')}" for axis in objects(note.get("axes")))
+    return f"{note.get('text')}" + (f"：{axes}" if axes else "") + "（附注，不计数）"
+
+
+def data_boundary_line(gaps: object, coverage: dict[str, Any], pinned: str) -> list[str | html.A]:
+    """The gap list's size and the final plan's model metric-periods not held, with the
+    way on to section 07 and the data chain."""
+    missing = (
+        f"{view._integer(obj(obj(coverage.get('model')).get('counts')).get('missing'))} "
+        "个历史期未取到（最终计划，模型所需口径）"
+        if coverage.get("available")
+        else "历史期未取到：该版本未提供"
+    )
+    return [
+        f"{len(objects(gaps))} 项缺口 · {missing} · 详见 ",
+        html.A("⑦ 数据说明", href=pinned + "#reading"),
+        " · ",
+        html.A("数据链路", href="/data-chain" + pinned),
+    ]
+
+
+def conclusion_right(projection: ProjectionSet | None) -> Any:
+    """The board's right column: the confirmation over the five dimensions, then the
+    notes a reader sets against the stage, each in one line."""
+    if projection is None:
+        return html.Div(
+            [html.P("确认度", className="section-kicker"), html.H3("等待首次完整运行")],
+            className="board-right",
+        )
+    macro = view._dataset(projection, "macro")
+    confirmation = obj(macro.get("confirmation"))
+    applicable = bool(obj(confirmation.get("summary")).get("applicable"))
+    rows: tuple[tuple[str, Any], ...] = (
+        ("价格一致性", price_consistency_line(obj(macro.get("price_consistency")))),
+        (
+            "库存象限",
+            inventory_quadrant_line(confirmation, view._dataset(projection, "inventory")),
+        ),
+        ("债券归因", bond_attribution_line(obj(macro.get("bond_attribution")))),
+        (
+            "数据边界",
+            data_boundary_line(
+                view._dataset(projection, "cycle_overview").get("gap_list"),
+                obj(macro.get("coverage")),
+                "?" + urlencode({"projection": projection.envelope.projection_set_id}),
+            ),
+        ),
+    )
+    return html.Div(
+        [
+            html.P("确认度", className="section-kicker"),
+            html.H3(confirmation_heading(confirmation)),
             html.Div(
                 [
-                    html.Div(
-                        [
-                            html.Strong(
-                                view._DIMENSION_LABELS.get(str(item.get("dimension")), "维度")
-                            ),
-                            html.P(view._dimension_counts(item)),
-                        ],
-                        className="summary-cell",
-                    )
+                    dimension_cell(item, applicable=applicable)
                     for item in objects(confirmation.get("dimensions"))
                 ],
                 className="confirmation-summary",
+            )
+            if confirmation
+            # A model before the confirmation structure published four domain states.
+            else view._macro_summary(macro)
+            if any(key in macro for key in LEGACY_MACRO_STATES)
+            else None,
+            html.Dl(
+                [item for label, value in rows for item in (html.Dt(label), html.Dd(value))],
+                className="board-rows",
             ),
-            html.Details([html.Summary("逐项确认关系"), view._macro_summary(macro)]),
-        ]
+        ],
+        className="board-right",
     )
 
 

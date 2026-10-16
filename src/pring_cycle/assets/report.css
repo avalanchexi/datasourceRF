@@ -62,8 +62,12 @@ html, body { font-size: 14px; }
 .projection-strip .metadata-pair { padding-left: 8px; }
 .projection-strip .metadata-label { font-size: 11px; letter-spacing: 0.02em; }
 .projection-strip .metadata-value { font-size: 12px; white-space: normal; overflow-wrap: anywhere; }
-.confirmation-summary { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }
-.summary-cell { padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-panel); }
+.confirmation-summary { display: grid; grid-template-columns: repeat(auto-fit,minmax(92px,1fr)); gap: 6px; }
+.summary-cell { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-panel); font-size: 11.5px; color: var(--ink-muted); }
+.summary-cell strong, .summary-cell span { display: block; }
+.summary-cell strong + span { color: var(--ink-strong); font-size: 13px; font-weight: 600; }
+.board-right h3 { margin: 2px 0 8px; }
+.board-right .board-rows { margin-top: 12px; }
 .summary-cell p { margin-bottom: 0; }
 .operations-workspace { max-width: 1380px; margin: auto; }
 .operations-workspace > h1 { font-size: 20px; margin: 4px 0 8px; }
