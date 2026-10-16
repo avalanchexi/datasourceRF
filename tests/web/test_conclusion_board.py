@@ -240,22 +240,24 @@ def test_transition_watch_says_none_only_when_every_30_day_candidate_agrees() ->
     assert "同向" not in turning
 
 
-def test_a_candidate_without_its_duration_reads_not_provided_in_the_watch_and_the_table() -> None:
+def test_a_candidate_without_its_duration_reads_not_provided_in_the_watch_and_the_card() -> None:
+    from tests.web.test_overseas_cards import _by_id, _words
+
     stock = _asset("stock", "bear", candidate_30d="bull", candidate_state="bull")
     del stock["candidate_days"], stock["persistence_required"]
-    board = _board(
-        _projection(
-            [_asset("bond", "bull"), stock, _asset("commodity", "bull")],
-            stage_reason="noncanonical_combination",
-        )
+    projection = _projection(
+        [_asset("bond", "bull"), stock, _asset("commodity", "bull")],
+        stage_reason="noncanonical_combination",
     )
+    board = _board(projection)
+    card = _words(_by_id(dashboard_page("/", projection, (), ()), "asset-stock"))
 
     assert (
         "转折观察 股票 30 日候选方向牛市，与当前熊市相反；"
         "资产候选状态牛市 · 持续 未提供 / 门槛 未提供 · 只作观察"
     ) in board
-    assert "30 日候选方向 牛市 资产候选状态 牛市 · 持续 未提供 / 门槛 未提供" in board
-    assert "持续 0 日" not in board and "未提供 日" not in board
+    assert "30 日候选方向 牛市 资产候选状态 牛市 · 持续 未提供 / 门槛 未提供" in card
+    assert all("持续 0 日" not in text and "未提供 日" not in text for text in (board, card))
 
 
 def test_last_confirmed_keeps_its_lookback_note_and_carry_forward_names_the_held_core() -> None:

@@ -1235,30 +1235,32 @@ def _price_sections(document: dict[str, object]) -> list[html.Section]:
                 className="content-section",
             )
         )
-    note = _object_document(document.get("supply_demand"))
-    if note:
-        lines = [
-            str(note.get("headline")),
-            str(note.get("text")),
-            *(
-                str(note[key])
-                for key in ("supply_suspicion", "registered_warrants")
-                if note.get(key)
-            ),
-            str(note.get("boundary")),
-        ]
-        if note.get("missing"):
-            lines.append("缺：" + "、".join(str(item) for item in _list_of(note["missing"])))
-        sections.append(
-            html.Section(
-                [
-                    _section_heading("商品供需附注（不计数）", "SUPPLY AND DEMAND · NOTE ONLY"),
-                    *(html.P(line, className="body-copy") for line in lines),
-                ],
-                className="content-section",
-            )
-        )
+    sections.extend(_supply_demand_sections(document))
     return sections
+
+
+def _supply_demand_sections(document: dict[str, object]) -> list[html.Section]:
+    """The commodity supply-demand note, never counted."""
+    note = _object_document(document.get("supply_demand"))
+    if not note:
+        return []
+    lines = [
+        str(note.get("headline")),
+        str(note.get("text")),
+        *(str(note[key]) for key in ("supply_suspicion", "registered_warrants") if note.get(key)),
+        str(note.get("boundary")),
+    ]
+    if note.get("missing"):
+        lines.append("缺：" + "、".join(str(item) for item in _list_of(note["missing"])))
+    return [
+        html.Section(
+            [
+                _section_heading("商品供需附注（不计数）", "SUPPLY AND DEMAND · NOTE ONLY"),
+                *(html.P(line, className="body-copy") for line in lines),
+            ],
+            className="content-section",
+        )
+    ]
 
 
 def _attribution_sections(document: dict[str, object]) -> list[html.Section]:
