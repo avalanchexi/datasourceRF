@@ -245,6 +245,7 @@ REASON_LABELS = {
     "restricted_license": "授权受限，不取数也不检索",
     "period_not_requested": "未请求",
     "listing_not_covered": "官方列表未覆盖",
+    "historical_periods_missing": "历史缺期",
     "not_computed": "未计算",
     "missing_inputs": "缺少输入",
     "incomparable_gdp_vintages": "GDP 前后版本不可比",

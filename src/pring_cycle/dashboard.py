@@ -23,6 +23,7 @@ from pring_cycle.runs import RunRecord
 from pring_cycle.wording import (
     CORE_STATE_LABELS,
     core_state_label,
+    display_name,
     metric_label,
     reason_label,
     stage_change_label,
@@ -418,6 +419,49 @@ def _not_requested(value: object) -> str:
     )
 
 
+def _member_name(member: object) -> str:
+    """A plan's missing member by its Chinese name and the values telling it apart: a
+    warrant symbol is recorded ``<metric>:symbol_missing:<symbol>``, another member
+    ``<metric>:<dimensions as JSON>``."""
+    metric_id, _, rest = str(member).partition(":")
+    kind, _, symbol = rest.partition(":")
+    try:
+        dimensions = {"symbol": symbol} if kind == "symbol_missing" else json.loads(rest)
+    except ValueError:
+        return str(member)
+    if not isinstance(dimensions, dict):
+        return str(member)
+    name = display_name(metric_id, dimensions)
+    values = "、".join(str(value) for value in dimensions.values())
+    if not name.provided:
+        return values or str(member)
+    return f"{name.name}（{values}）" if values else name.name
+
+
+def _missing_periods(value: object, *, detailed: bool) -> str:
+    """The periods the final plan could not complete for another reason than a gate or a
+    listing, such as a warrant symbol's historical day (worker gaps 04): a count and span
+    on the page, each period with the members it lacks in the drawer."""
+    periods = _document_list(value)
+    if not periods:
+        return ""
+    if detailed:
+        return "；历史缺期 " + "；".join(
+            f"{item.get('period')} 缺 "
+            + "、".join(_member_name(member) for member in _document_members(item))
+            for item in periods
+        )
+    days = [str(item.get("period")) for item in periods]
+    members = sum(len(_document_members(item)) for item in periods)
+    span = days[0] if len(days) == 1 else f"{min(days)} 至 {max(days)}"
+    return f"；历史缺期 {len(days)} 期共缺 {members} 个成员（{span}）"
+
+
+def _document_members(item: dict[str, Any]) -> list[object]:
+    members = item.get("missing_members")
+    return list(members) if isinstance(members, list) else []
+
+
 LISTING_LABELS = {
     "https://www.stats.gov.cn/sj/zxfb/": "统计局最新发布",
     "https://www.stats.gov.cn/sj/zxfbhjd/": "统计局发布和解读",
@@ -497,8 +541,9 @@ def _calendar_fallback_notice(value: object) -> list[html.P]:
     ]
 
 
-def _gap_list(value: object) -> html.Div:
-    """One row per gap, grouped under its category, in the order the batch listed them."""
+def _gap_list(value: object, *, detailed: bool = True) -> html.Div:
+    """One row per gap, grouped under its category, in the order the batch listed them;
+    without ``detailed``, a historical period's members are left to the drawer."""
     gaps = _document_list(value)
     if not gaps:
         return html.Div(html.P("本次运行没有缺口。", className="body-copy"))
@@ -510,7 +555,7 @@ def _gap_list(value: object) -> html.Div:
                 html.Div(
                     [
                         html.H3(f"{label}（{len(rows)}）"),
-                        html.Ul([html.Li(_gap_row(item, category)) for item in rows]),
+                        html.Ul([html.Li(_gap_row(item, category, detailed)) for item in rows]),
                     ],
                     className="gap-group",
                 )
@@ -519,10 +564,10 @@ def _gap_list(value: object) -> html.Div:
 
 
 # A row reason its period details already state: they stand in for it.
-_REASONS_IN_DETAILS = {"period_not_requested", "listing_not_covered"}
+_REASONS_IN_DETAILS = {"period_not_requested", "listing_not_covered", "historical_periods_missing"}
 
 
-def _gap_row(item: dict[str, Any], category: str) -> str:
+def _gap_row(item: dict[str, Any], category: str, detailed: bool = True) -> str:
     """One gap: the metric by its Chinese name, why in Chinese, then its details."""
     reason = str(item.get("reason"))
     details = (
@@ -530,13 +575,15 @@ def _gap_row(item: dict[str, Any], category: str) -> str:
         + _failed_members(item.get("failed_members"))
         + _not_requested(item.get("not_requested"))
         + _not_covered(item.get("not_covered"))
+        + _missing_periods(item.get("missing_periods"), detailed=detailed)
         + ("；来源复核失败" if item.get("source_failures") and category != "source_failed" else "")
         + ("；来源同时冲突" if item.get("conflicts") and category != "source_conflict" else "")
         + ("；未配置额外网页检索补缺" if item.get("no_web_fallback") else "")
     )
     head = (
         ""
-        if reason in _REASONS_IN_DETAILS and (item.get("not_requested") or item.get("not_covered"))
+        if reason in _REASONS_IN_DETAILS
+        and (item.get("not_requested") or item.get("not_covered") or item.get("missing_periods"))
         else reason_label(reason)
         + (
             f"（应有期 {item.get('due_period')}，持有 {item.get('held_period')}）"

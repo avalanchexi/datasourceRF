@@ -1948,7 +1948,8 @@ GAP_PREVIEW = 5
 
 
 def gap_preview(value: object) -> list[Any]:
-    """The gap list once: its first rows on the page, every row in a drawer (spec 07)."""
+    """The gap list once: its first rows on the page, every row in a drawer (spec 07); a
+    historical period's members are in the drawer alone (worker gaps 04)."""
     listed = view._document_list(value)
     gaps = [
         item
@@ -1957,10 +1958,17 @@ def gap_preview(value: object) -> list[Any]:
         if item.get("category") == category
     ]
     if len(gaps) <= GAP_PREVIEW:
-        return [view._gap_list(gaps)]
+        return [
+            view._gap_list(gaps, detailed=False),
+            *(
+                [drawer_trigger(GAPS_DRAWER, "缺期明细 →")]
+                if any(item.get("missing_periods") for item in gaps)
+                else []
+            ),
+        ]
     return [
         html.P(f"缺口共 {len(gaps)} 条，以下为前 {GAP_PREVIEW} 条。", className="secondary-copy"),
-        view._gap_list(gaps[:GAP_PREVIEW]),
+        view._gap_list(gaps[:GAP_PREVIEW], detailed=False),
         # The panel is the one gaps_drawer renders beside the conclusion board.
         drawer_trigger(GAPS_DRAWER, f"查看全部 {len(gaps)} 条缺口 →"),
     ]
