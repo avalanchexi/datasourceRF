@@ -374,6 +374,8 @@ GAP_CATEGORY_LABELS = {
     "source_conflict": "来源冲突",
     # Lists published before gap sources #04 still carry the old category.
     "no_searchable_source": "无可检索来源",
+    # Not owed yet: listed apart and last, never a missing period (worker gaps 03).
+    "awaiting_release": "等待发布",
 }
 
 
@@ -415,6 +417,24 @@ def _not_requested(value: object) -> str:
         )
         + f"（{reason_label(reason)}）"
         for reason, periods in by_reason.items()
+    )
+
+
+def _awaiting_release(value: object) -> str:
+    """The periods whose release has not come, by when it is out and on what basis."""
+    by_release: dict[tuple[str, str], list[str]] = {}
+    for item in _document_list(value):
+        key = (str(item.get("next_release_date") or ""), str(item.get("basis") or ""))
+        by_release.setdefault(key, []).append(str(item.get("period")))
+    return "".join(
+        "；等待发布 "
+        + (
+            periods[0]
+            if len(periods) == 1
+            else f"{len(periods)} 期 {min(periods)} 至 {max(periods)}"
+        )
+        + (f"（下次发布 {release}，{reason_label(basis)}）" if release else "")
+        for (release, basis), periods in by_release.items()
     )
 
 
@@ -519,7 +539,7 @@ def _gap_list(value: object) -> html.Div:
 
 
 # A row reason its period details already state: they stand in for it.
-_REASONS_IN_DETAILS = {"period_not_requested", "listing_not_covered"}
+_REASONS_IN_DETAILS = {"period_not_requested", "listing_not_covered", "awaiting_release"}
 
 
 def _gap_row(item: dict[str, Any], category: str) -> str:
@@ -530,13 +550,15 @@ def _gap_row(item: dict[str, Any], category: str) -> str:
         + _failed_members(item.get("failed_members"))
         + _not_requested(item.get("not_requested"))
         + _not_covered(item.get("not_covered"))
+        + _awaiting_release(item.get("awaiting_release"))
         + ("；来源复核失败" if item.get("source_failures") and category != "source_failed" else "")
         + ("；来源同时冲突" if item.get("conflicts") and category != "source_conflict" else "")
         + ("；未配置额外网页检索补缺" if item.get("no_web_fallback") else "")
     )
     head = (
         ""
-        if reason in _REASONS_IN_DETAILS and (item.get("not_requested") or item.get("not_covered"))
+        if reason in _REASONS_IN_DETAILS
+        and any(item.get(key) for key in ("not_requested", "not_covered", "awaiting_release"))
         else reason_label(reason)
         + (
             f"（应有期 {item.get('due_period')}，持有 {item.get('held_period')}）"
