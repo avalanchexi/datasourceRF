@@ -34,13 +34,23 @@ def unique_key(key: str, taken: Collection[str]) -> str:
     return candidate
 
 
-def drawer_trigger(key: str, children: Any, *, class_name: str = "") -> html.A:
-    """A link that opens the panel rendered under ``key``; the whole link is clickable."""
+def drawer_trigger(
+    key: str, children: Any, *, class_name: str = "", title: str | None = None
+) -> html.A:
+    """A link that opens the panel rendered under ``key``; the whole link is clickable.
+    ``title`` is its hover text."""
     return html.A(
         children,
         href="#" + PREFIX + key,
         className=" ".join(("drawer-trigger", class_name)).strip(),
-        **cast(Any, {"aria-haspopup": "dialog", "aria-controls": PREFIX + key}),
+        **cast(
+            Any,
+            {
+                "aria-haspopup": "dialog",
+                "aria-controls": PREFIX + key,
+                **({"title": title} if title else {}),
+            },
+        ),
     )
 
 

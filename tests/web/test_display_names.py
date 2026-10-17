@@ -71,7 +71,7 @@ def _member(label: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _observation_names(members: list[dict[str, Any]]) -> list[tuple[str, str]]:
-    """The 02 stock card's observation rows as (name shown, code on hover)."""
+    """The 02 stock card's observation rows as (name shown, hover text: full name and code)."""
     projection = _projection(
         [_asset("bond", "bull"), _asset("stock", "bear"), _asset("commodity", "bull")],
         macro={"observation_interfaces": {"cores": [{"core": "stock", "members": members}]}},
@@ -103,10 +103,10 @@ def test_members_of_one_metric_get_names_that_tell_them_apart() -> None:
     names = _observation_names([_member("估值", valuation), _member("市场广度：涨跌家数", breadth)])
 
     assert names == [
-        ("沪深 300 市净率", "CN_INDEX_VALUATION · 000300.SH × price_book"),
-        ("中证 500 换手率", "CN_INDEX_VALUATION · 000905.SH × turnover_rate"),
-        ("上涨家数", "CN_EQ_ADV_DEC · advances"),
-        ("下跌家数", "CN_EQ_ADV_DEC · declines"),
+        ("沪深 300 市净率", "沪深 300 市净率\nCN_INDEX_VALUATION · 000300.SH × price_book"),
+        ("中证 500 换手率", "中证 500 换手率\nCN_INDEX_VALUATION · 000905.SH × turnover_rate"),
+        ("上涨家数", "上涨家数\nCN_EQ_ADV_DEC · advances"),
+        ("下跌家数", "下跌家数\nCN_EQ_ADV_DEC · declines"),
     ]
 
 
@@ -125,15 +125,15 @@ def test_the_financing_buy_amount_is_no_longer_called_the_balance() -> None:
     names = _observation_names([_member("融资余额", margin)])
 
     assert names == [
-        ("融资余额", "CN_MARGIN_BALANCE_SSE_SZSE · financing_balance"),
-        ("融资买入额", "CN_MARGIN_BALANCE_SSE_SZSE · financing_buy_amount"),
+        ("融资余额", "融资余额\nCN_MARGIN_BALANCE_SSE_SZSE · financing_balance"),
+        ("融资买入额", "融资买入额\nCN_MARGIN_BALANCE_SSE_SZSE · financing_buy_amount"),
     ]
 
 
 def test_an_unmapped_observation_keeps_its_interface_label_before_the_code() -> None:
     names = _observation_names([_member("北向资金", [_row("CN_NORTHBOUND_FLOW", 12.0, "percent")])])
 
-    assert names == [("北向资金", "CN_NORTHBOUND_FLOW")]
+    assert names == [("北向资金", "北向资金\nCN_NORTHBOUND_FLOW")]
 
 
 def test_the_1630_close_reads_in_yuan_per_dollar_rather_than_a_bare_scalar() -> None:

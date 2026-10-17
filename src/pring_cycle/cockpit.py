@@ -232,6 +232,9 @@ def chart(display: dict[str, Any], projection: ProjectionSet) -> Any:
                     },
                 },
                 config={"displayModeBar": False, "responsive": True, "displaylogo": False},
+                # Responsive mode sets height 100%, which a stretched grid or flex card
+                # resolves against its track and collapses; the card's chart is 160px.
+                style={"height": "160px"},
                 className="price-chart card-chart",
             ),
             html.P(
@@ -425,7 +428,7 @@ def asset_cards(
                     ),
                     chart(display, projection),
                     html.H3("同类观察"),
-                    observations,
+                    html.Div(observations, className="card-observations"),
                 ],
                 id="asset-" + name,
                 className=f"core-card core-{name}",
@@ -505,9 +508,8 @@ def report_board(
         ],
         [
             asset_cards(projection, macro, trend_rules),
-            *consistency_card(obj(macro.get("price_consistency"))),
+            *asset_notes(macro),
             *view._supply_demand_sections(macro),
-            *view._attribution_sections(macro),
         ],
         [overseas_cards(macro, projection)],
         [
@@ -945,28 +947,62 @@ def _merged(pieces: list[Any]) -> list[Any]:
     return merged
 
 
-def consistency_card(consistency: dict[str, Any]) -> list[Any]:
-    """The cores' price internal consistency below the cards: its line, details in the drawer."""
-    if not consistency:
-        return []
-    key = drawer_key("assets", "consistency")
-    title = "价格内部一致性（不计数）"
-    return [
-        html.Div(
-            [
-                html.H3(title),
-                html.P(price_consistency_line(consistency)),
-                drawer_trigger(key, "查看明细 →"),
-            ],
-            id="asset-consistency",
-            className="consistency-card",
-        ),
-        drawer_panel(
-            key,
-            title,
-            [html.Ul([html.Li(line) for line in view._consistency_lines(consistency)])],
-        ),
+def asset_notes(macro: dict[str, object]) -> list[Any]:
+    """Below the cards, side by side: the cores' price internal consistency and the bond's
+    attribution, each its core line on the page and its details in the drawer."""
+    notes = [
+        note
+        for note in (
+            consistency_card(obj(macro.get("price_consistency"))),
+            attribution_card(obj(macro.get("bond_attribution"))),
+        )
+        if note
     ]
+    if not notes:
+        return []
+    # Panels sit outside the cards so the drawer is fixed to the viewport.
+    return [
+        html.Div([card for card, _panel in notes], className="asset-notes"),
+        *(panel for _card, panel in notes),
+    ]
+
+
+def _note_card(name: str, title: str, line: Any, details: list[Any]) -> tuple[Any, Any]:
+    key = drawer_key("assets", name)
+    return (
+        html.Div(
+            [html.H3(title), html.P(line), drawer_trigger(key, "查看明细 →")],
+            id="asset-" + name,
+            className="note-card",
+        ),
+        drawer_panel(key, title, details),
+    )
+
+
+def consistency_card(consistency: dict[str, Any]) -> tuple[Any, Any] | None:
+    """The cores' price internal consistency: its line, details in the drawer."""
+    if not consistency:
+        return None
+    return _note_card(
+        "consistency",
+        "价格内部一致性（不计数）",
+        price_consistency_line(consistency),
+        [html.Ul([html.Li(line) for line in view._consistency_lines(consistency)])],
+    )
+
+
+def attribution_card(note: dict[str, Any]) -> tuple[Any, Any] | None:
+    """What drives the bond: the driver with the bond's price and each axis on the page;
+    why it is unclear, the signals read and the notes in the drawer."""
+    lines = view._attribution_lines({"bond_attribution": note})
+    if not lines:
+        return None
+    return _note_card(
+        "attribution",
+        "债券归因（不计数）",
+        lines[0],
+        [html.P(line) for line in lines],
+    )
 
 
 UNCLASSIFIED_BY = {"insufficient": "三条线缺数或月份不齐", "inconsistent": "三条线方向不构成象限"}
@@ -1830,7 +1866,14 @@ def related_assets(
         )
         rows.append(
             (
-                drawer_trigger(key, name_cell(name), class_name="row-trigger"),
+                # A long name is cut to one line; hovering shows it whole with its code.
+                # The link covers its row, so the title sits on the link.
+                drawer_trigger(
+                    key,
+                    name.name,
+                    class_name="row-trigger",
+                    title="\n".join(part for part in (name.name, name.code) if part),
+                ),
                 number(evidence.get("value"), evidence.get("unit")),
                 change_cell(window_change(evidence, "change_5")),
                 _direction_arrow(evidence.get("direction")),

@@ -502,3 +502,67 @@ def test_web_reads_column_windows_from_the_projection_s_frozen_model(tmp_path: P
     # A pinned projection's cards and drawers link only to that projection's evidence.
     assert "projection=projection-other-windows&version=" in other
     assert "projection=" + first.envelope.projection_set_id + "&version=" not in other
+
+
+BOND_ATTRIBUTION = {
+    "label": "债券归因",
+    "bond_text": "债券价格上行",
+    "axes": [
+        {
+            "label": "政策维度",
+            "text": "宽松",
+            "signals": [{"label": "7 天逆回购利率", "value": "down"}],
+        }
+    ],
+    "text": "政策或流动性推动",
+    "reasons": [{"text": "基本面维度未确认"}],
+    "notes": ["期限溢价归因未确认"],
+    "boundary": "债券状态旁的解释附注，不计入确认度",
+}
+
+
+def test_bond_attribution_sits_beside_price_consistency_as_a_card_with_its_rest_in_the_drawer() -> (
+    None
+):
+    from tests.web.test_conclusion_board_right import PRICE_CONSISTENCY
+
+    projection = _three_cores()
+    projection = replace(
+        projection,
+        datasets={
+            **projection.datasets,
+            "macro": {
+                "price_consistency": PRICE_CONSISTENCY,
+                "bond_attribution": BOND_ATTRIBUTION,
+            },
+        },
+    )
+    page = dashboard_page("/", projection, (), ())
+    section = _by_id(page, "assets")
+    (attribution,) = _find(section, lambda item: getattr(item, "id", None) == "asset-attribution")
+    (details,) = _triggers(attribution)
+    text = _words(section)
+
+    assert text.index("价格内部一致性（不计数）") < text.index("债券归因（不计数）")
+    assert _words(attribution) == (
+        "债券归因（不计数） 债券价格上行；政策维度宽松 → 政策或流动性推动 查看明细 →"
+    )
+    assert "BOND TREND ATTRIBUTION" not in text
+    assert _words(_panel(page, details)) == (
+        "债券归因（不计数） 关闭 债券价格上行；政策维度宽松 → 政策或流动性推动 "
+        "基本面维度未确认 政策维度：7 天逆回购利率 下降 期限溢价归因未确认 "
+        "债券状态旁的解释附注，不计入确认度"
+    )
+
+
+def test_an_observation_name_shows_its_full_name_and_code_on_hover() -> None:
+    page = dashboard_page(
+        "/",
+        _with_observations([{"label": "市场广度：涨跌家数", "evidence": [ADVANCES]}]),
+        (),
+        (),
+    )
+    (row,) = [item for item in _triggers(_by_id(page, "asset-stock")) if _text(item) == "上涨家数"]
+
+    # The link covers its row, so the hover title sits on the link itself.
+    assert getattr(row, "title", None) == "上涨家数\nCN_EQ_ADV_DEC · advances"
