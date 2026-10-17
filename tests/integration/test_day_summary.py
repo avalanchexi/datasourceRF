@@ -22,9 +22,12 @@ from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.trading_calendar import TradingCalendar
 from tests.integration.test_backfill import cpi_periods, query, summary
-from tests.integration.test_core_carry_forward import CUTOFF, TARGET, seed_cores, sessions
+from tests.integration.test_confirmation_cumulative_quarterly import AMOUNT, LESS, LOAN_PAIRS, loan
+from tests.integration.test_confirmation_monthly_indicators import append
+from tests.integration.test_confirmation_publish import MODEL, publish, register_confirmation_model
+from tests.integration.test_core_carry_forward import CORES, CUTOFF, TARGET, seed_cores, sessions
 from tests.integration.test_decertified_main_chain import claim
-from tests.integration.test_worker_execution import runtime
+from tests.integration.test_worker_execution import runtime, seed_independent_calendar
 from tests.web.test_dashboard_contract import _text
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -796,3 +799,57 @@ def test_a_revision_held_only_after_the_day_keeps_the_value_it_revises(
     inputs = frozen_inputs(paths, projection)
     assert july in inputs
     assert revision not in inputs
+
+
+def test_stage_ii_loans_less_with_their_momentum_not_known_are_unconfirmed_and_say_so(
+    tmp_path: Path,
+) -> None:
+    # Bonds and stocks rising, commodities falling: stage II.
+    paths = runtime(tmp_path)
+    days = sessions()
+    seed_independent_calendar(paths, days)
+    repository = EvidenceRepository(paths.database)
+    cores = []
+    for index, observed in enumerate(days):
+        for asset, metric_id in CORES.items():
+            api_name, code = CORE_API_IDENTITIES[metric_id]
+            cores.append(
+                claim(
+                    metric_id,
+                    observed,
+                    400.0 - index if asset == "commodity" else 100.0 + index,
+                    unit="index_points",
+                    provider="tushare",
+                    reference=f"tushare:{api_name}:{code}:{observed}",
+                )
+            )
+    repository.append_source_claims(tuple(cores))
+    register_confirmation_model(paths, ("CN_LOAN_STRUCTURE",))
+    # July's long-term loans less than a year before; no month before is read, so whether
+    # they were less by more or by less than June's is not known.
+    for pair in LOAN_PAIRS:
+        append(
+            repository,
+            "CN_LOAN_STRUCTURE",
+            loan(*pair),
+            LESS,
+            months=("2025-06", "2025-07", "2026-06", "2026-07"),
+            unit=AMOUNT,
+            definition_version="metric-catalog-v0001",
+        )
+
+    projection = publish(paths, MODEL)
+
+    assert stage(projection)[0] == "stage_ii"
+    confirmation: Any = projection.datasets["macro"]["confirmation"]
+    loans = next(
+        item
+        for dimension in confirmation["dimensions"]
+        for item in dimension["key_indicators"]
+        if item["key"] == "loans"
+    )
+    assert loans["members"][0]["direction"] == "down"
+    assert loans["relation"] == "unconfirmed"
+    assert loans["missing"] == [
+        "borrower=enterprise,measure=ytd_increment,tenor=long_term:unknown_momentum"
+    ]
