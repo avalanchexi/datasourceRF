@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -379,13 +379,20 @@ GAP_CATEGORY_LABELS = {
 }
 
 
+def candidate_reason(item: Mapping[str, object]) -> str:
+    """Why a candidate was not adopted; one the negative cache held back also with the
+    first cause, why the request it was held for failed (worker gaps 01)."""
+    cause = item.get("first_cause")
+    return reason_label(item.get("reason")) + (f"，首因 {reason_label(cause)}" if cause else "")
+
+
 def _candidate_reasons(value: object) -> str:
     """Each rejected candidate URL with why it was not adopted (ticket 19)."""
     candidates = _document_list(value)
     if not candidates:
         return ""
     return "；候选 " + "；".join(
-        f"{item.get('url')}（{reason_label(item.get('reason'))}）" for item in candidates
+        f"{item.get('url')}（{candidate_reason(item)}）" for item in candidates
     )
 
 

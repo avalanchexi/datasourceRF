@@ -625,6 +625,14 @@ NEWS_RULES: dict[str, tuple[NewsRule, ...]] = {
             r"人民币汇率中间价为[：:]?\s*1美元对人民币" + _NUM + "元",
             ("day",),
         ),
+        # The media's wording ("财联社10月15日电，人民币兑美元中间价报6.7253"): the dollar's
+        # fixing in yuan, either way round the pair is named; not a yuan's worth in dollars.
+        _rule(
+            "CN_USDCNY_CENTRAL_PARITY",
+            {"currency_pair": "USD/CNY", "quote_direction": "CNY per USD"},
+            r"(?:人民币[兑对]美元|美元[兑对]人民币)中间价报\s*" + _NUM + r"(?![\d.]|\s*美元)",
+            ("day",),
+        ),
     ),
     # An RRR change is dated by the effective day written before it ("决定于5月15日下调…");
     # its scopes are the official notice parser's (ADR-0028).

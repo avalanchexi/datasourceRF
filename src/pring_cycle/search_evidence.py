@@ -350,6 +350,9 @@ FETCH_FAILED = "fetch_failed"
 # The page parsed, but the model input for the gap is still not complete.
 INCOMPLETE_MODEL_INPUT = "incomplete_model_input"
 RETRIEVAL_BLOCKED = "retrieval_blocked"
+# Held back by the negative cache an earlier request of the gap set (worker gaps 01): the
+# validation's download request is that earlier one, whose outcome is the first cause.
+NEGATIVE_CACHE_ACTIVE = "negative_cache_active"
 # A whitelisted media page was found, but no sentence matched the family's news rules.
 RULE_NOT_MATCHED = "rule_not_matched"
 # Verdicts on the page itself: a later check in the same run would reach the same one.
@@ -376,7 +379,7 @@ def candidate_rejection_reason(error: BaseException) -> str:
         return FETCH_FAILED
     if isinstance(error, RetrievalBudgetBlocked):
         # Never fetched: the ledger held the request back (cache or budget).
-        return RETRIEVAL_BLOCKED
+        return NEGATIVE_CACHE_ACTIVE if str(error) == NEGATIVE_CACHE_ACTIVE else RETRIEVAL_BLOCKED
     message = str(error)
     if message.endswith(("_not_official", "_redirect_identity_changed")) or message in {
         "official_context_metric_family_unknown",
@@ -1027,6 +1030,7 @@ def verify_search_candidates(
         claim_ids: list[str] = []
         errors: list[str] = []
         acquisitions: list[str] = []
+        cached: list[str] = []
 
         def admit(
             parsed: ParsedLprRelease | ParsedOfficialContextRelease, *, summary: str = summary
@@ -1052,6 +1056,7 @@ def verify_search_candidates(
             claim_ids: list[str] = claim_ids,
             errors: list[str] = errors,
             acquisitions: list[str] = acquisitions,
+            cached: list[str] = cached,
             summary: str = summary,
         ) -> RetrievalAdapterResponse:
             def started(acquisition_id: str) -> None:
@@ -1124,6 +1129,10 @@ def verify_search_candidates(
                     claim_ids.extend(context_refreshed.claim_ids)
             except (OSError, TypeError, ValueError) as error:
                 errors.append(candidate_rejection_reason(error))
+                if errors[-1] == NEGATIVE_CACHE_ACTIVE and isinstance(
+                    error, RetrievalBudgetBlocked
+                ):
+                    cached.extend(filter(None, [error.reused_request_id]))
                 raise
             return RetrievalAdapterResponse(
                 "candidate_source", evidence=url, classification="document_validated"
@@ -1160,7 +1169,7 @@ def verify_search_candidates(
                     outcome,
                     reason,
                     utc_now().isoformat(),
-                    response.physical_request_id,
+                    response.physical_request_id or next(iter(cached), None),
                     json.dumps(claim_ids),
                     json.dumps(selection.selected_claim_ids),
                     json.dumps(selection.missing_members),

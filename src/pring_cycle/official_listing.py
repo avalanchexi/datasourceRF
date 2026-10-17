@@ -16,6 +16,7 @@ def release_listing(family: str, source_url: str) -> str | None:
     of its registered listings; None when it is not (a release page itself, say).
 
     The tool liquidity column is read through its index page: its directory answers 403.
+    The central parity's column lists each day's announcement, the day in its path.
     The PBC statistics directory lists each year's tables, not releases, and the
     department's page only the latest few; the monthly financial statistics report, which
     carries money, loans and social financing, is listed page by page in its column.
@@ -27,6 +28,8 @@ def release_listing(family: str, source_url: str) -> str | None:
         return source_url if path == _OMO_LISTING else None
     if family == "pbc_tool_liquidity_monthly":
         return urljoin(source_url, "index.html") if path in _TOOL_LIQUIDITY_LISTING else None
+    if family == "pbc_usdcny_central_parity":
+        return urljoin(source_url, "index.html") if path in _CENTRAL_PARITY_LISTING else None
     if family in _PBC_REPORT_FAMILIES and path in _PBC_REPORT_LISTINGS:
         return urljoin(source_url, _PBC_REPORT_COLUMN)
     return None
@@ -74,6 +77,10 @@ _NBS_FAMILIES = {
 _TOOL_LIQUIDITY_LISTING = {
     "/zhengcehuobisi/125207/125213/5727710/",
     "/zhengcehuobisi/125207/125213/5727710/index.html",
+}
+_CENTRAL_PARITY_LISTING = {
+    "/zhengcehuobisi/125207/125217/125925/",
+    "/zhengcehuobisi/125207/125217/125925/index.html",
 }
 # The families whose figures the PBC's monthly financial statistics report carries.
 _PBC_REPORT_FAMILIES = {"pbc_money", "pbc_social_financing", "pbc_loan_structure"}

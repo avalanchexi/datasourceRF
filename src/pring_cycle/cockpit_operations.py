@@ -743,7 +743,7 @@ def data_chain(
                             (
                                 item.get("candidate_id") or item.get("validation_id"),
                                 item.get("outcome"),
-                                item.get("classification"),
+                                view.candidate_reason(item),
                                 ", ".join(item.get("selected_claim_ids", [])),
                             )
                             for item in objects(

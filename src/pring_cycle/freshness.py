@@ -736,12 +736,14 @@ def _failed_candidates(
     database: Path, run_id: str, held: Mapping[str, object]
 ) -> dict[str, list[dict[str, str]]]:
     """Per metric, up to three distinct candidate URLs the batch rejected for a period it
-    still lacks, with reasons.
+    still lacks, with reasons; one the negative cache held back also with the first cause,
+    why the earlier request it was held for failed (worker gaps 01).
 
     A rejected candidate speaks for its own period alone: one the final plan completed (with
     every member), or, a period the plan did not require, one ``held`` since, leaves the
     metric's other gaps as they are (run findings 1002 ticket 05).
     """
+    from pring_cycle.retrieval_ledger import first_cause
     from pring_cycle.storage import database_connection
 
     with database_connection(database) as connection:
@@ -749,10 +751,12 @@ def _failed_candidates(
             "SELECT 1 FROM sqlite_master WHERE name='retrieval_candidate_validation'"
         ).fetchone():
             return {}
-        rows = connection.execute(
+        connection.row_factory = sqlite3.Row
+        validations = connection.execute(
             """
-            SELECT json_extract(g.identity_json, '$.metric_id'),
-                   json_extract(g.identity_json, '$.period'), v.candidate_url, v.reason
+            SELECT json_extract(g.identity_json, '$.metric_id') AS metric_id,
+                   json_extract(g.identity_json, '$.period') AS period, v.candidate_url,
+                   v.reason, v.download_request_id
             FROM retrieval_candidate_validation v, json_each(v.gap_ids_json) j
             JOIN retrieval_gap g ON g.gap_id = j.value
             WHERE v.run_id=? AND v.outcome='not_model_usable'
@@ -761,6 +765,7 @@ def _failed_candidates(
             """,
             (run_id,),
         ).fetchall()
+        rows = [(row, first_cause(connection, row)) for row in validations]
         plan = (
             connection.execute(
                 "SELECT document_json FROM full_run_gap_plan WHERE run_id=? AND phase='final'",
@@ -775,16 +780,16 @@ def _failed_candidates(
         (str(item["metric_id"]), str(item["period"])): bool(item["complete"])
         for item in (json.loads(plan[0])["gaps"] if plan else ())
     }
-    failed: dict[str, dict[str, str]] = {}
-    for metric_id, period, url, reason in rows:
-        key = (str(metric_id), str(period))
+    failed: dict[str, dict[str, dict[str, str]]] = {}
+    for row, cause in rows:
+        key = (str(row["metric_id"]), str(row["period"]))
         if complete.get(key, _held_through(held.get(key[0]), key[1])):
             continue
-        failed.setdefault(key[0], {})[str(url)] = str(reason)
-    return {
-        metric_id: [{"url": url, "reason": reason} for url, reason in list(urls.items())[:3]]
-        for metric_id, urls in failed.items()
-    }
+        url = str(row["candidate_url"])
+        failed.setdefault(key[0], {})[url] = {"url": url, "reason": str(row["reason"])}
+        if cause is not None:
+            failed[key[0]][url]["first_cause"] = cause
+    return {metric_id: list(urls.values())[:3] for metric_id, urls in failed.items()}
 
 
 def _held_through(held: object, period: str) -> bool:
