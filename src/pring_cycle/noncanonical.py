@@ -6,7 +6,7 @@ from typing import Any
 
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.domain.stage import single_asset_differences
-from pring_cycle.wording import core_state_label
+from pring_cycle.wording import core_state_label, stage_name
 
 TITLE = "非典型组合解读"
 PROMPT_VERSION = "report-prompt-v0010"
@@ -39,7 +39,8 @@ def build_basis(assets: list[dict[str, Any]], last_confirmed_stage: str | None) 
 
 
 def _stage(value: str | None) -> str:
-    return "阶段 " + value.removeprefix("stage_").upper() if value else "暂无"
+    """A stage in the fixed sentences, named as the prompt asks the prose to (第三阶段)."""
+    return stage_name(value) if value else "暂无"
 
 
 def fact_sentences(basis: dict[str, Any]) -> list[str]:

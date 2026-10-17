@@ -120,7 +120,7 @@ def test_new_report_and_home_show_reading_with_honest_source(
     home = _text(dashboard_page("/", published, (), (snapshot,)))
     assert TITLE in home
     assert ("AI 解读" if ai_available else "确定性模板") in home
-    assert "与阶段 V只差债券一项" in home
+    assert "与第五阶段只差债券一项" in home
     assert "暂无正式阶段" in home
     assert snapshot.current_stage is None
     # A report from another immutable projection must never appear on today's home.
@@ -166,6 +166,26 @@ def test_pages_use_glossary_wording_for_canonical_and_noncanonical_projections(
             assert word not in text, (route, word)
 
 
+def test_reading_naming_stages_in_chinese_is_accepted_as_the_prompt_asks(
+    tmp_path: Path,
+) -> None:
+    # The prompt asks the prose for 第三阶段, so the fixed fact sentences read the same way.
+    source = report_input_from_projection(projection(tmp_path, ("bull", "bear", "bull")))
+    output = document(source)
+    explanation = output["sections"][0]["explanation"]
+    assert "与第五阶段只差债券一项" in explanation
+    assert "上一确认阶段：第三阶段，仅作历史上下文。" in explanation
+    assert "阶段 V" not in explanation and "阶段 III" not in explanation
+    repository = ReportRepository.create(tmp_path / "reports.sqlite3")
+    result = ReportService(
+        repository, (FakeAdapter("codex_cli", AdapterResponse.succeeded(output)),)
+    ).generate(source)
+    assert result.status == "completed"
+    snapshot = repository.get(result.report_snapshot_id)
+    assert snapshot.body["explanation_source"] == "ai"
+    assert "untranslated_codes" not in snapshot.body
+
+
 @pytest.mark.parametrize(
     "change",
     [
@@ -175,6 +195,7 @@ def test_pages_use_glossary_wording_for_canonical_and_noncanonical_projections(
         "missing_section",
         "duplicate_section",
         "inclined_stage",
+        "inclined_chinese_stage",
         "nearest_stage",
         "extra_false_fact",
         "no_observation",
@@ -197,6 +218,8 @@ def test_invalid_reading_is_rejected_and_falls_back(tmp_path: Path, change: str)
         output["sections"].append(dict(section))
     elif change == "inclined_stage":
         section["explanation"] += "目前倾向处于阶段 III。"
+    elif change == "inclined_chinese_stage":
+        section["explanation"] += "目前倾向第三阶段。"
     elif change == "nearest_stage":
         section["explanation"] += "最接近阶段 III。"
     elif change == "extra_false_fact":
@@ -218,6 +241,11 @@ def test_invalid_reading_is_rejected_and_falls_back(tmp_path: Path, change: str)
         attempt.process_audit.get("rejection")
         for attempt in repository.attempts(result.report_snapshot_id)
     )
+    if change.startswith("inclined"):
+        assert {
+            attempt.process_audit["rejection"]["check"]
+            for attempt in repository.attempts(result.report_snapshot_id)
+        } == {"noncanonical_stated_stage"}
     snapshot = repository.get(result.report_snapshot_id)
     assert snapshot.body["explanation_source"] == "deterministic_template"
     assert snapshot.body["ai_explanation"][0]["explanation"] == "".join(
