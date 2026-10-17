@@ -81,9 +81,9 @@ def test_consecutive_days_of_one_state_merge_and_a_change_of_state_breaks_the_in
     rows = [_words(trigger) for trigger, _panel in _intervals(projection)]
 
     assert rows == [
-        "04-27～04-29 第三阶段 · Stage III 3 日",
+        "04-27～04-29 第三阶段 3 日",
         "04-30～05-06 非典型组合 2 日",
-        "05-07 第三阶段 · Stage III 1 日",
+        "05-07 第三阶段 1 日",
     ]
 
 
@@ -136,7 +136,7 @@ def test_the_interval_list_covers_the_latest_120_trading_days() -> None:
 
     rows = [_words(trigger) for trigger, _panel in _intervals(projection)]
 
-    assert rows == [f"{weekdays[5][5:]}～{weekdays[-1][5:]} 第三阶段 · Stage III 120 日"]
+    assert rows == [f"{weekdays[5][5:]}～{weekdays[-1][5:]} 第三阶段 120 日"]
     section = _text(_section(dashboard_page("/", projection, (), ())))
     assert "阶段区间（最近 120 个交易日）" in section
     # The bands still count every day the set aligned, reasons in words.
@@ -164,7 +164,7 @@ def test_the_trading_day_table_opens_in_a_drawer_and_the_page_lists_no_daily_eve
     text = _words(panel)
 
     assert _words(trigger) == "交易日历与色带等价表格"
-    assert text.index("2026-04-27 第三阶段 · Stage III 牛市 熊市 牛市") < text.index("2026-04-28")
+    assert text.index("2026-04-27 第三阶段 牛市 熊市 牛市") < text.index("2026-04-28")
     assert "/?projection=projection-2026-04-28#history" in _hrefs(panel)
     assert "/?projection=projection-old-04-28#history" in _hrefs(panel)
     # No day opens in place, and the old daily event list is gone from the section.
@@ -205,7 +205,7 @@ def test_a_pinned_set_lists_its_own_history_not_the_read_models_later_days() -> 
     ((trigger, panel),) = _intervals(pinned, later)
     section = _section(dashboard_page("/", pinned, (), (), later))
 
-    assert _words(trigger) == "04-27～04-28 第三阶段 · Stage III 2 日"
+    assert _words(trigger) == "04-27～04-28 第三阶段 2 日"
     assert "原因 典型组合" in _words(panel)
     assert "projection-later-04-28" not in _text(section)
     assert "2026-04-29" not in _text(section)
@@ -232,3 +232,87 @@ def test_the_lookback_before_the_window_sits_atop_the_trading_day_drawer() -> No
     assert "第二阶段 · Stage II（回溯得出，最近一次在 2026-01-15）" in text
     assert "回溯 5 年，区间请求 3 次、日历请求 2 次" in text
     assert _words(page).count("窗口前的上一确认阶段") == 1
+
+
+def test_intervals_and_day_counts_name_a_stage_once_in_chinese_and_its_drawer_adds_the_code() -> (
+    None
+):
+    projection = _history(
+        [
+            _day("2026-04-27", "core_data_pending"),
+            _day("2026-04-28", "stage_iii"),
+            _day("2026-04-29", "stage_iii"),
+        ]
+    )
+    page = dashboard_page("/", projection, (), ())
+
+    rows = [(_words(trigger), panel) for trigger, panel in _intervals(projection)]
+    (stage_panel,) = [panel for words, panel in rows if "第三阶段" in words]
+    (heading,) = _find(stage_panel, lambda item: type(item).__name__ == "H2")
+
+    assert [words for words, _panel in rows] == [
+        "04-27 核心数据待处理 1 日",
+        "04-28～04-29 第三阶段 2 日",
+    ]
+    assert "正式阶段日数：核心数据待处理 1 日 · 第三阶段 2 日" in _words(_section(page))
+    assert _words(heading) == "第三阶段 · 04-28～04-29"
+    assert "Stage III" in _words(stage_panel.children[0])
+
+
+def _is_panel(item: object) -> bool:
+    return getattr(item, "role", None) == "dialog"
+
+
+def _sides(projection: ProjectionSet | None, events: tuple[dict[str, Any], ...] = ()) -> Any:
+    """Section 06's two sides, bands then intervals, and the drawers that follow them."""
+    section = _section(dashboard_page("/", projection, (), (), events))
+    _header, layout, *rest = section.children
+    bands, intervals = layout.children
+    return bands, intervals, rest
+
+
+def test_the_bands_and_the_interval_list_sit_side_by_side_with_their_drawers_after_both() -> None:
+    projection = _history([_day("2026-04-27", "stage_iii"), _day("2026-04-28", "stage_iii")])
+
+    bands, intervals, rest = _sides(projection)
+
+    assert _words(bands).startswith("正式阶段由债券、股票、商品的 120 日稳定方向映射")
+    assert _words(bands).endswith("正式阶段日数：第三阶段 2 日 交易日历与色带等价表格")
+    assert _words(intervals) == "阶段区间（最近 120 个交易日） 04-27～04-28 第三阶段 2 日"
+    # The drawers sit outside both sides, so a fixed panel opens against the viewport.
+    assert not _find(bands, _is_panel) and not _find(intervals, _is_panel)
+    assert [_words(item.children[0]) for item in rest if _is_panel(item)] == [
+        "交易日历与色带等价表格 关闭",
+        "第三阶段 · 04-27～04-28 Stage III 关闭",
+    ]
+    assert _words(rest[-1]) == "本投影解读 →"
+
+
+def test_a_set_without_bands_says_so_on_the_left_and_still_lists_its_intervals() -> None:
+    projection = replace(
+        _history([]),
+        datasets={
+            **_history([]).datasets,
+            "stage_history": {
+                "events": [
+                    {
+                        "business_date": "2026-10-14",
+                        "current_stage": None,
+                        "stage_reason": "noncanonical_combination",
+                        "projection_set_id": "projection-2026-10-14",
+                    },
+                    {
+                        "business_date": "2026-10-15",
+                        "current_stage": None,
+                        "stage_reason": "noncanonical_combination",
+                        "projection_set_id": "projection-2026-10-15",
+                    },
+                ]
+            },
+        },
+    )
+
+    bands, intervals, _rest = _sides(projection)
+
+    assert "旧投影未提供对齐的交易日色带；历史事件仍可阅读。" in _words(bands)
+    assert _words(intervals) == "阶段区间（最近 120 个交易日） 10-14～10-15 非典型组合 2 日"

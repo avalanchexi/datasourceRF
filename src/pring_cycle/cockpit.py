@@ -32,6 +32,7 @@ from pring_cycle.wording import (
     core_state_label,
     display_name,
     stage_code,
+    stage_name,
 )
 
 SECTIONS = (
@@ -495,9 +496,7 @@ def report_board(
         else [view._macro_page(projection)],
         inventory_section(confirmation, projection),
         [
-            html.P("正式阶段由债券、股票、商品的 120 日稳定方向映射；宏观事实只做事后确认。"),
-            stage_bands(projection),
-            history_intervals(history_days(projection, stage_events)),
+            *stage_history(projection, stage_events),
             html.A("本投影解读 →", href=pinned + "#reading"),
         ],
         [
@@ -2078,8 +2077,9 @@ HISTORY_LABELS = {
 
 
 def history_label(value: object) -> str:
+    """A day's state in Chinese once: a stage's code stays in its drawer's title."""
     text = str(value)
-    return HISTORY_LABELS.get(text, view._stage_label(value) if text.startswith("stage_") else text)
+    return HISTORY_LABELS.get(text, stage_name(value) if text.startswith("stage_") else text)
 
 
 def lookback_note(lookback: object) -> list[Any]:
@@ -2098,16 +2098,50 @@ def lookback_note(lookback: object) -> list[Any]:
     ]
 
 
-def stage_bands(projection: ProjectionSet | None) -> Any:
+def stage_history(
+    projection: ProjectionSet | None, stage_events: Sequence[dict[str, object]]
+) -> list[Any]:
+    """Section 06: the bands beside their intervals, then the drawers both sides open."""
+    bands, band_panels = stage_bands(projection)
+    intervals, interval_panels = history_intervals(history_days(projection, stage_events))
+    return [
+        html.Div(
+            [
+                html.Div(
+                    [
+                        html.P(
+                            "正式阶段由债券、股票、商品的 120 日稳定方向映射；"
+                            "宏观事实只做事后确认。"
+                        ),
+                        *bands,
+                    ],
+                    className="history-side",
+                ),
+                html.Div(intervals, className="history-side history-list"),
+            ],
+            className="history-layout",
+        ),
+        *band_panels,
+        *interval_panels,
+    ]
+
+
+def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]:
+    """The four bands with their day counts, and the trading-day table's drawer."""
     document = view._dataset(projection, "stage_history")
     display = obj(document.get("display"))
     days = objects(display.get("days"))
     if not days:
-        return html.P("旧投影未提供对齐的交易日色带；历史事件仍可阅读。")
+        return [html.P("旧投影未提供对齐的交易日色带；历史事件仍可阅读。")], []
     kinds = ("official", "bond", "stock", "commodity")
     labels = ("正式阶段", "债券", "股票", "商品")
     calendar = drawer_key("history-calendar")
     categories = list(dict.fromkeys(str(day[key]) for day in days for key in kinds))
+    # A few upright ticks fit the bands' column at any width; within one year month and day
+    # say enough, and the hover still names the full date.
+    dates = [str(day["date"]) for day in days]
+    one_year = len({date[:4] for date in dates}) == 1
+    ticks = dates[:: -(-len(dates) // (6 if one_year else 4))]
     colors = [
         "#36566b",
         "#278a96",
@@ -2144,13 +2178,18 @@ def stage_bands(projection: ProjectionSet | None) -> Any:
                 "paper_bgcolor": "rgba(0,0,0,0)",
                 "plot_bgcolor": "rgba(0,0,0,0)",
                 "font": {"color": "#788c96"},
-                "xaxis": {"type": "category", "nticks": 8},
+                "xaxis": {
+                    "type": "category",
+                    "tickvals": ticks,
+                    "ticktext": [date[5:] if one_year else date for date in ticks],
+                    "tickangle": 0,
+                },
                 "yaxis": {"autorange": "reversed"},
             },
         },
         config={"displayModeBar": False},
     )
-    return html.Div(
+    return (
         [
             graph,
             html.P(
@@ -2161,6 +2200,8 @@ def stage_bands(projection: ProjectionSet | None) -> Any:
                 )
             ),
             html.P(drawer_trigger(calendar, "交易日历与色带等价表格")),
+        ],
+        [
             drawer_panel(
                 calendar,
                 "交易日历与色带等价表格",
@@ -2182,8 +2223,8 @@ def stage_bands(projection: ProjectionSet | None) -> Any:
                         ],
                     ),
                 ],
-            ),
-        ]
+            )
+        ],
     )
 
 
@@ -2216,8 +2257,9 @@ def history_days(
     return [{**events.get(str(day["date"]), {}), **day} for day in days][-HISTORY_WINDOW:]
 
 
-def history_intervals(days: Sequence[dict[str, Any]]) -> Any:
-    """Consecutive days of one state, a stage or the reason for none, as one row each."""
+def history_intervals(days: Sequence[dict[str, Any]]) -> tuple[list[Any], list[Any]]:
+    """Consecutive days of one state, a stage or the reason for none, as one row each, and
+    the drawers listing each interval's days."""
     runs: list[list[dict[str, Any]]] = []
     for day in days:
         if runs and runs[-1][-1]["official"] == day["official"]:
@@ -2226,14 +2268,10 @@ def history_intervals(days: Sequence[dict[str, Any]]) -> Any:
             runs.append([day])
     heading = html.H3(f"阶段区间（最近 {HISTORY_WINDOW} 个交易日）")
     if not runs:
-        return html.Div(
-            [
-                heading,
-                html.P(
-                    "尚无阶段事件；首次完整投影发布后，区间会显示在这里。", className="empty-note"
-                ),
-            ]
-        )
+        return [
+            heading,
+            html.P("尚无阶段事件；首次完整投影发布后，区间会显示在这里。", className="empty-note"),
+        ], []
     # Month and day read well while the window stays in one year.
     short = len({str(day["date"])[:4] for day in days}) == 1
 
@@ -2244,7 +2282,7 @@ def history_intervals(days: Sequence[dict[str, Any]]) -> Any:
         return first if len(run) == 1 else f"{first}～{last}"
 
     keys = [drawer_key("history-interval", run[0]["date"]) for run in runs]
-    return html.Div(
+    return (
         [
             heading,
             html.Ul(
@@ -2265,15 +2303,18 @@ def history_intervals(days: Sequence[dict[str, Any]]) -> Any:
                 ],
                 className="history-intervals",
             ),
-            *(
-                drawer_panel(
-                    key,
-                    f"{history_label(run[0]['official'])} · {span(run)}",
-                    [html.Ul([history_day(day) for day in run], className="record-list")],
-                )
-                for key, run in zip(keys, runs, strict=True)
-            ),
-        ]
+        ],
+        [
+            drawer_panel(
+                key,
+                f"{history_label(run[0]['official'])} · {span(run)}",
+                [html.Ul([history_day(day) for day in run], className="record-list")],
+                code=stage_code(run[0]["official"])
+                if str(run[0]["official"]).startswith("stage_")
+                else None,
+            )
+            for key, run in zip(keys, runs, strict=True)
+        ],
     )
 
 
