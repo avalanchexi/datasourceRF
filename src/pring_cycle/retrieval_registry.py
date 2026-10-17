@@ -79,10 +79,19 @@ def _nbs(
 
 
 def _pbc(
-    query_template: str, *metric_ids: str, earlier: EarlierRelease | None = None
+    query_template: str,
+    *metric_ids: str,
+    earlier: EarlierRelease | None = None,
+    title_variants: tuple[str, ...] = (),
 ) -> RetrievalFamily:
     return RetrievalFamily(
-        "中国人民银行", (_PBC,), metric_ids, "official_context", query_template, earlier=earlier
+        "中国人民银行",
+        (_PBC,),
+        metric_ids,
+        "official_context",
+        query_template,
+        title_variants=title_variants,
+        earlier=earlier,
     )
 
 
@@ -137,9 +146,11 @@ RETRIEVAL_FAMILIES: dict[str, RetrievalFamily] = {
     ),
     "pbc_loan_structure": _pbc("{year}年{month}月金融统计数据报告 人民币贷款", "CN_LOAN_STRUCTURE"),
     "pbc_money": _pbc("{year}年{month}月金融统计数据报告", "CN_M1_M2"),
+    # The column titles each day's "…中国外汇交易中心受权公布人民币汇率中间价公告".
     "pbc_usdcny_central_parity": _pbc(
         "{date}人民币汇率中间价公告",
         "CN_USDCNY_CENTRAL_PARITY",
+        title_variants=("{date}中国外汇交易中心受权公布人民币汇率中间价公告",),
     ),
     "chinamoney_lpr": RetrievalFamily(
         "中国货币网",

@@ -32,9 +32,19 @@ if TYPE_CHECKING:
 
 
 class RetrievalBudgetBlocked(ValueError):
-    def __init__(self, classification: str, *, cache_hit: bool = False) -> None:
+    """A request held back; one held by the negative cache names the earlier request of
+    the same gap whose outcome set it, when there is one (``reused_request_id``)."""
+
+    def __init__(
+        self,
+        classification: str,
+        *,
+        cache_hit: bool = False,
+        reused_request_id: str | None = None,
+    ) -> None:
         super().__init__(classification)
         self.cache_hit = cache_hit
+        self.reused_request_id = reused_request_id
 
 
 def utc_now() -> datetime:
@@ -204,7 +214,11 @@ class RetrievalLedger:
                     (json.dumps(decision.budget), run_id),
                 )
         if decision.blocked:
-            raise RetrievalBudgetBlocked(decision.blocked, cache_hit=decision.cache_hit)
+            raise RetrievalBudgetBlocked(
+                decision.blocked,
+                cache_hit=decision.cache_hit,
+                reused_request_id=decision.reused_request_id,
+            )
         return request_id
 
     def _decision(
@@ -785,6 +799,7 @@ class RetrievalLedger:
             "SELECT * FROM retrieval_candidate_validation WHERE run_id=? ORDER BY rowid", (run_id,)
         ):
             item = dict(row)
+            item["first_cause"] = first_cause(connection, row)
             for field in (
                 "gap_ids",
                 "claim_ids",
@@ -885,6 +900,22 @@ def _cache_expiry(
     if outcome == "not_found" or classification == "semantic_validation_failed":
         return now + timedelta(hours=24 if priority == "P2" else 6)
     return None
+
+
+def first_cause(connection: sqlite3.Connection, validation: sqlite3.Row) -> str | None:
+    """Why the request the negative cache held a candidate back for failed first: its
+    receipt's refusal, else the request's classification (worker gaps 01). None for a
+    candidate not held back so, or held by a cache no request of its gap set."""
+    if validation["reason"] != "negative_cache_active" or not validation["download_request_id"]:
+        return None
+    row = connection.execute(
+        "SELECT coalesce(a.rejection_reason, a.ingest_rejection_reason, p.classification) "
+        "FROM retrieval_physical_request p "
+        "LEFT JOIN acquisition_request a ON a.acquisition_id = p.acquisition_id "
+        "WHERE p.request_id=?",
+        (validation["download_request_id"],),
+    ).fetchone()
+    return str(row[0]) if row and row[0] else None
 
 
 def interrupt_retrieval_requests(connection: sqlite3.Connection, run_id: str) -> None:
