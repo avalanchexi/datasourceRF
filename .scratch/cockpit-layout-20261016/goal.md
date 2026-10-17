@@ -61,3 +61,27 @@
 | 09 桑基图 | done（FLOW_RESULTS 一处映射四色；flow_sankey 中文名·数、其他（N）、悬停占比；主题变量 restyle；请求表限高 480 吸顶） | 26f8313、9383800 |
 | 审查与修复 | done（S1–S4、P2、P4、P5 修；P1 不改、P3 接受；集成 3 例旧文案断言改写；家数整数、仓单千分位） | 3a86b37、1eb0d17、1828c2d |
 | 10 集成验收 | ready-for-human（首页 1440 总高 22,467→5,396；82 个抽屉全可开关；全套 2676 过 / 1 败，该例为删观察接口列表后的过时断言，已改写复跑通过；8067/8068 已换新代码；待用户逐段确认） | 9970350 |
+
+---
+
+# 第二轮：验收后调整（2026-10-17 实施）
+
+**范围**：[spec-adjust-20261017.md](spec-adjust-20261017.md) 与票 11–15；决定见 decisions.md 第五轮（25–30）；⑦ 根因见 `../worker-gap-fixes-20261017/investigation.md`。
+**集成分支**仍为 `cockpit-layout`；票 worktree `/home/tywin/worktrees/datasourceRF-cl-<票号>`（11–14 已建并对齐 340d2e2）。
+**任务图**：11、12、13、14 并行 → 15 集成验收。13 合入后 B 批次 02–04 解锁（B 合入 `cockpit-layout` 最新）。
+**规程**：沿用上文"单票执行规程"1–10 与"约束"，差异如下：
+- 第 2 步"读"改为：票文件、`spec-adjust-20261017.md`、decisions.md 第五轮、共享材料 `notes/cockpit-layout/`（drawer-usage.md、names-facts.md、serve_example.py）、`docs/agents/testing.md`、`GLOSSARY.md`（"正式阶段"已改称"价格阶段"，代码标识符 `formal_stage` 不改）。
+- 第 6 步浏览器自检可交 Codex（`docs/agents/codex-delegation.md` 第五节：`-s workspace-write`、`-C` 指向 scratchpad 下本票独立空目录）；起站、停站由子代理自己按 PID 做。端口 `81<票号>`。
+- 第 8 步 Comments 小标题写"### 2026-10-17 实施"。
+- 11、12 有上一位实施者未提交的半成品（已保留在 worktree），先 `git diff` 读懂再续做，不对可重做。
+- 同改 `cockpit.py`、`report.css`、`wording.py` 时只动本段相关规则、不改共用选择器；合并冲突由主 agent 处理。
+
+## 第二轮进度
+
+| 票 | 状态 | 分支／提交 |
+|---|---|---|
+| 11 ② 三卡等高 | 实施中 | cl-11 |
+| 12 ⑥ 左右布局 | 实施中 | cl-12 |
+| 13 ⑦ 原因码中文与说明 | 实施中 | cl-13 |
+| 14 遗留 a、c–f | 实施中 | cl-14 |
+| 15 集成验收 | 等 11–14 | — |
