@@ -158,6 +158,20 @@ _WARRANT_SYMBOLS = {
     "SP": "纸浆",
     "SC": "原油",
 }
+# Social financing's measures, and the components of its stock as the PBC's report names them.
+_SF_MEASURES = {"stock_end": "期末存量", "ytd_increment": "累计增量", "stock_yoy": "存量同比"}
+_SF_COMPONENTS = {
+    "renminbi_loans": "人民币贷款",
+    "foreign_currency_loans_rmb": "外币贷款（折合人民币）",
+    "entrusted_loans": "委托贷款",
+    "trust_loans": "信托贷款",
+    "undiscounted_bank_acceptances": "未贴现银行承兑汇票",
+    "corporate_bonds": "企业债券",
+    "government_bonds": "政府债券",
+    "nonfinancial_enterprise_equity": "非金融企业境内股票融资",
+    "depository_abs": "存款类金融机构资产支持证券",
+    "loan_writeoffs": "贷款核销",
+}
 # Each member entry names the dimension values it matches; a row may carry more dimensions.
 MEMBER_NAMES: dict[str, tuple[tuple[dict[str, str], str], ...]] = {
     "CN_EQ_ADV_DEC": tuple(
@@ -208,10 +222,11 @@ MEMBER_NAMES: dict[str, tuple[tuple[dict[str, str], str], ...]] = {
     "CN_FUTURES_WARRANTS": tuple(
         ({"symbol": symbol}, name) for symbol, name in _WARRANT_SYMBOLS.items()
     ),
-    "CN_SF_TOTAL": (
-        ({"measure": "stock_end"}, "期末存量"),
-        ({"measure": "ytd_increment"}, "累计增量"),
-        ({"measure": "stock_yoy"}, "存量同比"),
+    "CN_SF_TOTAL": tuple(({"measure": measure}, name) for measure, name in _SF_MEASURES.items()),
+    "CN_SF_COMPONENTS": tuple(
+        ({"component": component, "measure": measure}, component_name + measure_name)
+        for component, component_name in _SF_COMPONENTS.items()
+        for measure, measure_name in _SF_MEASURES.items()
     ),
 }
 # Request sources as the data chain and its Sankey name them; providers arrive as free text.
