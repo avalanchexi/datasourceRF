@@ -235,13 +235,17 @@ ADVANCES = {
     "selected_claim_id": "claim-advances",
     "observation_id": "observation-advances",
     "display": {
+        "unit": "count",
         "points": [
-            {"date": "2026-09-29", "value": 1200.0, "selected_claim_id": "claim-advances-29"},
+            {"date": "2026-09-23", "value": 1200.0, "selected_claim_id": "claim-advances-23"},
+            {"date": "2026-09-29", "value": 1100.0, "selected_claim_id": "claim-advances-29"},
             {"date": "2026-09-30", "value": 978.0, "selected_claim_id": "claim-advances"},
         ],
+        # The projection compares counts as a return; the page reads them as a difference.
         "change_5": {
-            "value": -222.0,
-            "unit": "count",
+            "value": -18.5,
+            "kind": "return",
+            "unit": "percent",
             "start_date": "2026-09-23",
             "end_date": "2026-09-30",
         },
@@ -282,6 +286,68 @@ def test_observations_show_four_columns_and_each_row_opens_every_field() -> None
         "/data-chain?projection=projection-cores&version=claim-advances&return=assets#evidence"
         in _hrefs(_panel(page, row))
     )
+
+
+def _breadth(measure: str, start: float, end: float, change: float | None) -> dict[str, object]:
+    return {
+        **ADVANCES,
+        "dimensions": {"measure": measure, "universe": "point_in_time_traded_a_shares"},
+        "value": end,
+        "display": {
+            "unit": "count",
+            "points": [
+                {"date": "2026-09-30", "value": start, "selected_claim_id": "claim-start"},
+                {"date": "2026-10-14", "value": end, "selected_claim_id": "claim-end"},
+            ],
+            "change_5": {
+                "value": change,
+                "kind": "return",
+                "unit": "percent",
+                "start_date": "2026-09-30",
+                "end_date": "2026-10-14",
+                "reason": None if change is not None else "zero_baseline",
+            },
+        },
+    }
+
+
+def test_counts_of_companies_read_their_5_day_change_in_companies_not_percent() -> None:
+    rows = [
+        _breadth("net", -258.0, -3518.0, 1263.57),
+        _breadth("participants", 5560.0, 5562.0, 0.04),
+        _breadth("flats", 0.0, 88.0, None),
+    ]
+    page = dashboard_page(
+        "/", _with_observations([{"label": "市场广度：涨跌家数", "evidence": rows}]), (), ()
+    )
+    card = _words(_by_id(page, "asset-stock")).split("同类观察", 1)[1]
+    (net,) = [
+        item for item in _triggers(_by_id(page, "asset-stock")) if _text(item) == "净上涨家数"
+    ]
+
+    assert "净上涨家数 -3,518 家 -3,260 家" in card
+    assert "参与交易家数 5,562 家 +2 家" in card
+    assert "平盘家数 88 家 +88 家" in card
+    assert "%" not in card
+    assert "近 5 日 -3,260 家（2026-09-30 → 2026-10-14）" in _words(_panel(page, net))
+
+
+def test_a_count_whose_window_start_is_missing_shows_no_percent() -> None:
+    row = _breadth("advances", 2566.0, 978.0, -61.89)
+    display = dict(row["display"])  # type: ignore[arg-type]
+    display["points"] = display["points"][1:]
+    page = dashboard_page(
+        "/",
+        _with_observations(
+            [{"label": "市场广度：涨跌家数", "evidence": [{**row, "display": display}]}]
+        ),
+        (),
+        (),
+    )
+    card = _words(_by_id(page, "asset-stock")).split("同类观察", 1)[1]
+
+    assert "上涨家数 978 家 —" in card
+    assert "%" not in card
 
 
 def test_unregistered_observations_and_a_bond_price_reading_say_what_they_are() -> None:
