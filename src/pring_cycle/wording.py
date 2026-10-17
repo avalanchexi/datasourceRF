@@ -284,6 +284,7 @@ REASON_LABELS = {
     # gaps 01); "negative_cache_active" itself is above.
     "official_context_usdcny_quote_missing": "官方页未见美元中间价",
     "official_context_period_identity_mismatch": "官方页日期与所需期不符",
+    "official_context_source_http_status_invalid": "官方页返回异常状态",
 }
 NO_CHINESE_NAME = "未提供中文名"
 NO_MEMBER_NAME = "未提供成员中文名"

@@ -32,8 +32,9 @@ if TYPE_CHECKING:
 
 
 class RetrievalBudgetBlocked(ValueError):
-    """A request held back; one held by the negative cache names the earlier request of
-    the same gap whose outcome set it, when there is one (``reused_request_id``)."""
+    """A request held back; one held by the negative cache names the earlier request whose
+    outcome set it (``reused_request_id``): the same gap's when there is one, else the one
+    of another gap that holds the host or the page back."""
 
     def __init__(
         self,
@@ -236,6 +237,7 @@ class RetrievalLedger:
         next_eligible = None
         reused_request_id = None
         reused_event_keys: set[str] = set()
+        held_for: str | None = None
         gaps = connection.execute(
             "SELECT gap_id, event_key, identity_json FROM retrieval_run_gap "
             "JOIN retrieval_gap USING(gap_id) WHERE run_id=?",
@@ -361,6 +363,10 @@ class RetrievalLedger:
                 if prior_keys & event_keys:
                     reused_request_id = item["request_id"]
                     reused_event_keys = prior_keys
+                elif held_for is None:
+                    # Another gap's request whose failure holds the host or the page back:
+                    # named as the first cause, not bound to this gap (worker gaps 01).
+                    held_for = item["request_id"]
         event_counts = dict.fromkeys(event_keys, 0)
         for item in this_run:
             prior_keys = {
@@ -399,6 +405,7 @@ class RetrievalLedger:
             blocked = "quota_exhausted"
         if blocked is None and cache_hit:
             blocked = "negative_cache_active"
+            reused_request_id = reused_request_id or held_for
         if blocked in {"run_limit", "event_run_limit"}:
             next_eligible = None
         if row["status"] in {"cancelled", "interrupted", "action_required", "failed", "completed"}:

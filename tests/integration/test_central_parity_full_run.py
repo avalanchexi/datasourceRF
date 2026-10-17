@@ -65,9 +65,11 @@ def parity_run(
     official: dict[str, bytes],
     search_results: list[str],
     pages: dict[str, bytes],
+    throttled: bool = False,
 ) -> tuple[RuntimePaths, str, str]:
     """A full run for 10-15 holding 10-14's parity; its official pages, search results
-    and media pages are the ones given, every other address fails as offline."""
+    and media pages are the ones given, every other address fails as offline, or, with
+    ``throttled``, a PBC page answers 429."""
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     request, _ = prepared_request(paths)
@@ -103,6 +105,8 @@ def parity_run(
 
     def fetch_official(url: str) -> FetchedOfficialContextDocument:
         if url not in official:
+            if throttled and "pbc.gov.cn" in url:
+                return FetchedOfficialContextDocument(b"", "text/html", url, 429)
             raise OSError("fixture_official_page_unavailable")
         return FetchedOfficialContextDocument(official[url], "text/html", url, 200)
 
@@ -235,3 +239,36 @@ def test_a_candidate_the_negative_cache_holds_back_names_the_first_cause(
     run = RunRepository(paths.database).get(run_id)
     page = _text(data_chain([run], run, {"gaps": [], "requests": []}, {"run": run_id}, None))
     assert "被负缓存拦下，首因 官方页日期与所需期不符" in page
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_candidate_a_host_wide_cache_holds_back_names_the_first_cause(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The PBC throttles a page another gap asked for first: its 429 holds back every PBC
+    page for a while, the parity's own requests and the column search came back with among
+    them. The column's hold still names why that earlier request failed."""
+    paths, run_id, _ = parity_run(
+        tmp_path,
+        monkeypatch,
+        capsys,
+        official={},
+        search_results=[LISTING],
+        pages={},
+        throttled=True,
+    )
+
+    from pring_cycle.cockpit_operations import data_chain
+    from tests.web.test_dashboard_contract import _text
+
+    (gap,) = parity_gaps(paths, run_id)
+    assert gap["candidates"] == [
+        {
+            "url": LISTING,
+            "reason": "negative_cache_active",
+            "first_cause": "official_context_source_http_status_invalid",
+        }
+    ]
+    run = RunRepository(paths.database).get(run_id)
+    page = _text(data_chain([run], run, {"gaps": [], "requests": []}, {"run": run_id}, None))
+    assert "被负缓存拦下，首因 官方页返回异常状态" in page
