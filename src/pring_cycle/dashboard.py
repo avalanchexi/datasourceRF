@@ -23,6 +23,7 @@ from pring_cycle.runs import RunRecord
 from pring_cycle.wording import (
     CORE_STATE_LABELS,
     core_state_label,
+    display_name,
     metric_label,
     reason_label,
     stage_change_label,
@@ -418,6 +419,29 @@ def _not_requested(value: object) -> str:
     )
 
 
+def _members_missing(value: object) -> str:
+    """Each period of a release partly held: the members taken and those still missing
+    (worker gaps 02), each by its Chinese name."""
+    return "".join(
+        f"；{item.get('period')} 已取得 {_member_names(item.get('held_members'))}，"
+        f"仍缺 {_member_names(item.get('missing_members'))}"
+        for item in _document_list(value)
+    )
+
+
+def _member_names(value: object) -> str:
+    """Members as selection keys them (``metric:{dimensions}``), by their Chinese names."""
+    names = []
+    for key in value if isinstance(value, list) else []:
+        metric_id, _, dimensions = str(key).partition(":")
+        try:
+            parsed = json.loads(dimensions) if dimensions else {}
+        except ValueError:
+            parsed = {}
+        names.append(display_name(metric_id, parsed if isinstance(parsed, dict) else {}).name)
+    return "、".join(names)
+
+
 LISTING_LABELS = {
     "https://www.stats.gov.cn/sj/zxfb/": "统计局最新发布",
     "https://www.stats.gov.cn/sj/zxfbhjd/": "统计局发布和解读",
@@ -519,7 +543,7 @@ def _gap_list(value: object) -> html.Div:
 
 
 # A row reason its period details already state: they stand in for it.
-_REASONS_IN_DETAILS = {"period_not_requested", "listing_not_covered"}
+_REASONS_IN_DETAILS = {"period_not_requested", "listing_not_covered", "members_missing"}
 
 
 def _gap_row(item: dict[str, Any], category: str) -> str:
@@ -530,13 +554,15 @@ def _gap_row(item: dict[str, Any], category: str) -> str:
         + _failed_members(item.get("failed_members"))
         + _not_requested(item.get("not_requested"))
         + _not_covered(item.get("not_covered"))
+        + _members_missing(item.get("members_missing"))
         + ("；来源复核失败" if item.get("source_failures") and category != "source_failed" else "")
         + ("；来源同时冲突" if item.get("conflicts") and category != "source_conflict" else "")
         + ("；未配置额外网页检索补缺" if item.get("no_web_fallback") else "")
     )
     head = (
         ""
-        if reason in _REASONS_IN_DETAILS and (item.get("not_requested") or item.get("not_covered"))
+        if reason in _REASONS_IN_DETAILS
+        and (item.get("not_requested") or item.get("not_covered") or item.get("members_missing"))
         else reason_label(reason)
         + (
             f"（应有期 {item.get('due_period')}，持有 {item.get('held_period')}）"

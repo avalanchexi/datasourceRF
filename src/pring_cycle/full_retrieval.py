@@ -182,7 +182,9 @@ class FullRunRetrieval:
 
     def _gate(self, run: RunRecord, scope: RetrievalScope, version: str) -> tuple[str, bool]:
         """The scope's release status, and whether only its official listing may establish
-        it: an earlier session is not searched, but its listing is still read."""
+        it: an earlier session is not searched, but its listing is still read. So is a
+        release its estimate does not yet make due, once a run, in case it came out early
+        (worker gaps 02: the PBC's financial statistics come out days before the estimate)."""
         from pring_cycle.worker import EARLIER_SESSION, _retrieval_release_status
 
         # Publication is bounded to what the target day's summary could know of.
@@ -196,6 +198,7 @@ class FullRunRetrieval:
             latest_only=True,
         )
         discover_release = release in {
+            "awaiting_release",
             "unknown_release_configuration",
             EARLIER_SESSION,
         } and _has_release_listing(scope)
@@ -874,6 +877,12 @@ class FullRunRetrieval:
                     "complete": selection.complete,
                     "selected_claim_ids": list(selection.selected_claim_ids),
                     "missing_members": list(selection.missing_members),
+                    # What of a period still missing is held, for the gap list to say.
+                    **(
+                        {"held_members": list(selection.held_members)}
+                        if not selection.complete and selection.held_members
+                        else {}
+                    ),
                     **(
                         {"release_gate": gated[(metric, period)]}
                         if not selection.complete and (metric, period) in gated

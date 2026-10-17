@@ -1005,7 +1005,9 @@ def add_projection_gaps(
     official listing stopped short of gets ``not_covered``, each period with the listing,
     where its reading stopped (``page_limit``: the run's pages of the site were read), the
     pages read and the earliest entry they list: not listed as far as read, which is not
-    "none" (lookback L05). The list keeps one row
+    "none" (lookback L05). A metric's newest planned period held in part gets
+    ``members_missing``: the members held beside those still missing (worker gaps 02). The
+    list keeps one row
     per metric: a metric not listed yet is added as ``derived_failed``, ``source_failed``,
     ``source_conflict`` or, never requested, ``missing``.
     """
@@ -1071,6 +1073,8 @@ def add_projection_gaps(
             )
     for metric_id, periods in not_covered.items():
         entry(metric_id, "missing", "listing_not_covered")["not_covered"] = periods
+    for metric_id, periods in _members_missing(plan_gaps).items():
+        entry(metric_id, "missing", "members_missing")["members_missing"] = periods
     for requirement in derived_requirements:
         metric_id = str(requirement["metric_id"])
         parents = requirement.get("required_input_periods")
@@ -1140,6 +1144,29 @@ def add_projection_gaps(
             gap["held_period"] = items[-1]["period"]
         gap["conflicts"] = items
     return sort_gaps(listed.values())
+
+
+def _members_missing(
+    plan_gaps: Iterable[Mapping[str, object]],
+) -> dict[str, list[dict[str, object]]]:
+    """Each metric's newest planned period the run holds part of but not all: the members
+    held and those still missing (worker gaps 02: September's social financing stock and flow
+    held, its official stock growth not). Earlier periods are listed as history."""
+    gaps = list(plan_gaps)
+    newest: dict[str, str] = {}
+    for gap in gaps:
+        metric_id, period = str(gap["metric_id"]), str(gap.get("period"))
+        newest[metric_id] = max(newest.get(metric_id, period), period)
+    found: dict[str, list[dict[str, object]]] = {}
+    for gap in gaps:
+        metric_id = str(gap["metric_id"])
+        held, missing = _members(gap.get("held_members")), _members(gap.get("missing_members"))
+        if gap.get("complete", True) or not held or str(gap.get("period")) != newest[metric_id]:
+            continue
+        found.setdefault(metric_id, []).append(
+            {"period": gap.get("period"), "held_members": held, "missing_members": missing}
+        )
+    return found
 
 
 def _by_member(

@@ -208,6 +208,11 @@ MEMBER_NAMES: dict[str, tuple[tuple[dict[str, str], str], ...]] = {
     "CN_FUTURES_WARRANTS": tuple(
         ({"symbol": symbol}, name) for symbol, name in _WARRANT_SYMBOLS.items()
     ),
+    "CN_SF_TOTAL": (
+        ({"measure": "stock_end"}, "期末存量"),
+        ({"measure": "ytd_increment"}, "累计增量"),
+        ({"measure": "stock_yoy"}, "存量同比"),
+    ),
 }
 # Request sources as the data chain and its Sankey name them; providers arrive as free text.
 # A registered source code (``tushare:index_daily``) is named by its provider, before the colon.
@@ -245,6 +250,7 @@ REASON_LABELS = {
     "restricted_license": "授权受限，不取数也不检索",
     "period_not_requested": "未请求",
     "listing_not_covered": "官方列表未覆盖",
+    "members_missing": "部分成员未取得",
     "not_computed": "未计算",
     "missing_inputs": "缺少输入",
     "incomparable_gdp_vintages": "GDP 前后版本不可比",

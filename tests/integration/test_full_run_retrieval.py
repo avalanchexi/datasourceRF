@@ -525,6 +525,68 @@ def test_a_period_the_release_gate_skips_is_recorded_and_listed_with_why(
     }
 
 
+def test_a_release_partly_held_lists_the_members_taken_and_those_still_missing(
+    tmp_path: Path,
+) -> None:
+    """Worker gaps 02: a release the run holds part of is requested, not held back, and what
+    it still lacks is listed with what it holds, not as a period never requested."""
+    paths, runs = prepare(tmp_path)
+    seed_core_history(paths)
+    known = datetime(2026, 8, 14, 10, tzinfo=UTC)
+    EvidenceRepository(paths.database).append_source_claim(
+        SourceClaimInput(
+            metric_id="CN_SF_TOTAL",
+            definition_version="metric-catalog-v0001",
+            period_kind="month",
+            period_start="2026-07-01",
+            period_end="2026-07-31",
+            dimensions={"measure": "stock_end"},
+            value=4600000.0,
+            value_state=EvidenceValueState.REPORTED_VALUE,
+            unit="hundred_million_cny",
+            provider="tushare",
+            source_reference="tushare:sf_month:202607",
+            release_event_id="fixture:sf_month:2026-07",
+            release_at=known,
+            public_available_at=known,
+            fetched_at=known,
+            available_at=known,
+            quality_status="validated",
+        )
+    )
+    run = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="partly-held-release",
+        model_version_id="model-v0001",
+        system_as_of=datetime.now(UTC),
+    )
+    process_pending_run(paths, report_adapters=())
+
+    stored = runs.get(run.run_id)
+    assert stored.status == "completed", stored.error_classification
+    (july,) = (
+        gap
+        for gap in runs.full_retrieval_plan(run.run_id)["final"]["gaps"]
+        if gap["metric_id"] == "CN_SF_TOTAL" and gap["period"] == "2026-07"
+    )
+    assert july["complete"] is False
+    assert "release_gate" not in july
+    projection = ProjectionSetRepository(paths.database).current()
+    (listed,) = (
+        gap
+        for gap in projection.datasets["cycle_overview"]["gap_list"]
+        if gap["metric_id"] == "CN_SF_TOTAL"
+    )
+    assert listed["members_missing"] == [
+        {
+            "period": "2026-07",
+            "held_members": ['CN_SF_TOTAL:{"measure": "stock_end"}'],
+            "missing_members": ['CN_SF_TOTAL:{"measure": "ytd_increment"}'],
+        }
+    ]
+    assert "2026-07" not in [item["period"] for item in listed.get("not_requested", [])]
+
+
 @pytest.mark.parametrize("gated_first", [True, False])
 def test_scopes_sharing_a_release_event_keep_their_own_release_gate(
     tmp_path: Path, gated_first: bool

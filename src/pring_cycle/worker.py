@@ -1060,11 +1060,44 @@ def _retrieval_release_status(
     A summary's cutoff (``public_as_of``) knows what is public by it of periods through its
     day, never past ``now`` (ADR-0041 2026-10-13).
     """
+    states = retrieval_release_states(
+        paths,
+        scope,
+        now,
+        definition_version=definition_version,
+        public_as_of=public_as_of,
+        latest_only=latest_only,
+        reads=reads,
+    )
+    for state in ("awaiting_release", "unknown_release_configuration", EARLIER_SESSION):
+        if state in states.values():
+            return state
+    return "released"
+
+
+def retrieval_release_states(
+    paths: RuntimePaths,
+    scope: RetrievalScope,
+    now: datetime,
+    *,
+    definition_version: str,
+    public_as_of: datetime | SummaryCutoff | None = None,
+    latest_only: bool = False,
+    reads: SeriesReads | None = None,
+) -> dict[str, str]:
+    """Each of the scope's metrics' release status, judged metric by metric.
+
+    A scope is one release of one period: a validated claim of any of its metrics known by
+    the cutoff shows the release out, so the estimate holds none of the others back
+    (worker gaps 02: TuShare's social financing total in hand, the PBC's stock growth and
+    components of the same report waited a week for the estimate).
+    """
     series = reads or SeriesReads(EvidenceRepository(paths.database))
     cutoff = SummaryCutoff.of(public_as_of if public_as_of is not None else now)
     if cutoff.public_as_of > now:
         cutoff = replace(cutoff, public_as_of=now)
-    states: list[str] = []
+    states: dict[str, str] = {}
+    held: set[str] = set()
     for metric_id in scope.metric_ids:
         points = series(
             metric_id,
@@ -1081,7 +1114,8 @@ def _retrieval_release_status(
             )
             for point in points
         ):
-            states.append("released")
+            states[metric_id] = "released"
+            held.add(metric_id)
         elif metric_id == "CN_LPR_1Y_5Y":
             from pring_cycle.official_listing import period_last_day
             from pring_cycle.release_calendar import lpr_release_expectation
@@ -1090,15 +1124,17 @@ def _retrieval_release_status(
             fixed = cutoff.knows(
                 date.fromisoformat(period_last_day(scope.period)), expectation.window_start
             )
-            states.append("released" if fixed else "awaiting_release")
+            states[metric_id] = "released" if fixed else "awaiting_release"
         else:
-            states.append(
-                _registered_release_state(metric_id, scope.period, cutoff, latest_only=latest_only)
+            states[metric_id] = _registered_release_state(
+                metric_id, scope.period, cutoff, latest_only=latest_only
             )
-    for state in ("awaiting_release", "unknown_release_configuration", EARLIER_SESSION):
-        if state in states:
-            return state
-    return "released"
+    if held:
+        return {
+            metric_id: "released" if state == "awaiting_release" else state
+            for metric_id, state in states.items()
+        }
+    return states
 
 
 # A daily series' session before its newest released one, which a full run does not search.
