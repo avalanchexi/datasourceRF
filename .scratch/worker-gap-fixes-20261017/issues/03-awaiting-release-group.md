@@ -39,3 +39,7 @@
 ### 2026-10-18 主 agent
 
 `tests/web/test_awaiting_release_group.py` 与集成测试同名，同次收集报 import file mismatch；已改名为 `tests/web/test_reading_awaiting_release_group.py`。
+
+### 2026-10-18 审查修复（wg-07）
+
+审查 Spec 1：上文遗留"登记滞后已到期、但原件写明下次发布日未到"的期，现只在缺口清单与完整度层归入"等待发布"（basis 原件下次发布日），门禁不改（84da04b）。审查 Spec 2：新一期等待发布时，上一期部分缺成员仍列出（同一提交）。详见 [../acceptance.md](../acceptance.md)。

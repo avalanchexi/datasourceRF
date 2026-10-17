@@ -45,3 +45,7 @@
 - 首因只在负缓存由同一缺口的较早请求设下时可得；按主机设下或旧版负缓存表命中时没有首因，只显示"被负缓存拦下"。
 - AI 检索候选的拦截原因也随 `candidate_rejection_reason` 区分出 `negative_cache_active`，但未记首因（本票只接了检索候选校验路径）。
 
+
+### 2026-10-18 审查修复（wg-07）
+
+审查 Spec 4：别的缺口的请求设下的主机级负缓存（或同页 403）拦下候选时，判定把那次请求记为首因来源（不绑到本缺口、不改表结构）；`official_context_source_http_status_invalid` 加中文（3c825aa）。详见 [../acceptance.md](../acceptance.md)。
