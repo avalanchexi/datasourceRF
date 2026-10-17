@@ -60,7 +60,7 @@ def stage_code(value: object) -> str:
 
 
 def stage_name(value: object) -> str:
-    """A formal stage's Chinese name alone (第三阶段): report prose, and where its code would repeat it."""
+    """A formal stage's Chinese name alone (第三阶段), as report prose names it."""
     return STAGE_TITLES.get(str(value).lower(), str(value)).partition(" · ")[0]
 
 
