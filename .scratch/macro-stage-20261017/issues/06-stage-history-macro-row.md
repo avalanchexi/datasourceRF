@@ -1,0 +1,11 @@
+# 06: ⑥ 阶段史加宏观判断
+
+**What to build:** 宏观判断阶段逐日记入阶段史（决定 5）：补算日同规则、各按可见截止点；v0016 生效日前不倒推；⑥ 色带新增"宏观判断"一行，区间列表含该行区间（"介于"与"证据不足"有各自颜色与文字）。规格 [../spec.md](../spec.md)，决定 [../decisions.md](../decisions.md)，调查 [../investigation.md](../investigation.md)，ADR-0043。
+
+**Blocked by:** 02
+
+**Status:** ready-for-agent
+
+- [ ] 单日汇总测试：补算日只用当日可见数据；生效日前无宏观判断记录
+- [ ] `dashboard_page` 断言 ⑥ 新行与区间文本
+- [ ] 两项必跑冒烟通过
