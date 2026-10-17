@@ -28,10 +28,13 @@ from pring_cycle.wording import (
     CORE_STATE_LABELS,
     NO_CHINESE_NAME,
     NO_MEMBER_NAME,
+    NONCANONICAL_NO_STAGE,
     DisplayName,
     core_state_label,
     display_name,
+    stage_change_label,
     stage_code,
+    stage_name,
 )
 
 SECTIONS = (
@@ -232,6 +235,9 @@ def chart(display: dict[str, Any], projection: ProjectionSet) -> Any:
                     },
                 },
                 config={"displayModeBar": False, "responsive": True, "displaylogo": False},
+                # Responsive mode sets height 100%, which a stretched grid or flex card
+                # resolves against its track and collapses; the card's chart is 160px.
+                style={"height": "160px"},
                 className="price-chart card-chart",
             ),
             html.P(
@@ -281,13 +287,36 @@ def daily_panel(
     )
 
 
+def window_change(row: dict[str, Any], window: str) -> dict[str, Any]:
+    """A row's change over ``window`` (``change_5`` / ``change_120``) as the page reads it.
+
+    A count of companies reads as the difference in 家 between the window's two ends, taken
+    from the projection's own points, never as the projection's percent return.
+    """
+    display = obj(row.get("display"))
+    change = obj(display.get(window))
+    if (display.get("unit") or row.get("unit")) != "count" or not change:
+        return change
+    values = {point.get("date"): point.get("value") for point in objects(display.get("points"))}
+    start, end = values.get(change.get("start_date")), values.get(change.get("end_date"))
+    if not isinstance(start, (int, float)) or not isinstance(end, (int, float)):
+        return {**change, "value": None, "reason": change.get("reason") or "window_session_missing"}
+    return {**change, "value": end - start, "kind": "difference", "unit": "count"}
+
+
+def change_number(change: dict[str, Any]) -> str:
+    """A change's value with its unit; a difference in 家 carries its sign."""
+    text = number(change["value"], change.get("unit"))
+    return "+" + text if change.get("unit") == "count" and change["value"] > 0 else text
+
+
 def change_cell(value: object) -> Any:
     change = obj(value)
     if change.get("value") is None:
         reason = str(change.get("reason") or "旧投影未提供")
         return html.Span("—", title=REASONS.get(reason, reason))
     return html.Span(
-        number(change["value"], change.get("unit")),
+        change_number(change),
         title=f"{change.get('start_date')} → {change.get('end_date')}",
     )
 
@@ -402,7 +431,7 @@ def asset_cards(
                     ),
                     chart(display, projection),
                     html.H3("同类观察"),
-                    observations,
+                    html.Div(observations, className="card-observations"),
                 ],
                 id="asset-" + name,
                 className=f"core-card core-{name}",
@@ -482,9 +511,8 @@ def report_board(
         ],
         [
             asset_cards(projection, macro, trend_rules),
-            *consistency_card(obj(macro.get("price_consistency"))),
+            *asset_notes(macro),
             *view._supply_demand_sections(macro),
-            *view._attribution_sections(macro),
         ],
         [overseas_cards(macro, projection)],
         [
@@ -492,17 +520,20 @@ def report_board(
             confirmation_cards(confirmation, macro, projection),
         ]
         if confirmation
+        else [confirmation_cards(confirmation, macro, projection)]
+        if projection is None
         else [view._macro_page(projection)],
         inventory_section(confirmation, projection),
         [
-            html.P("正式阶段由债券、股票、商品的 120 日稳定方向映射；宏观事实只做事后确认。"),
-            stage_bands(projection),
-            history_intervals(history_days(projection, stage_events)),
+            *stage_history(projection, stage_events),
             html.A("本投影解读 →", href=pinned + "#reading"),
         ],
         [
             html.H3("完整度与缺期"),
-            coverage_table(obj(macro.get("coverage"))),
+            # A set published before coverage was projected cannot show it (ticket 13).
+            coverage_table(
+                obj(macro.get("coverage")), "两种完整度口径：该投影生成时尚未提供此统计。"
+            ),
             *view._freshness_basis(projection),
             *(gap_preview(overview.get("gap_list")) if projection else [html.P("尚无分析投影。")]),
             html.P(
@@ -920,28 +951,62 @@ def _merged(pieces: list[Any]) -> list[Any]:
     return merged
 
 
-def consistency_card(consistency: dict[str, Any]) -> list[Any]:
-    """The cores' price internal consistency below the cards: its line, details in the drawer."""
-    if not consistency:
-        return []
-    key = drawer_key("assets", "consistency")
-    title = "价格内部一致性（不计数）"
-    return [
-        html.Div(
-            [
-                html.H3(title),
-                html.P(price_consistency_line(consistency)),
-                drawer_trigger(key, "查看明细 →"),
-            ],
-            id="asset-consistency",
-            className="consistency-card",
-        ),
-        drawer_panel(
-            key,
-            title,
-            [html.Ul([html.Li(line) for line in view._consistency_lines(consistency)])],
-        ),
+def asset_notes(macro: dict[str, object]) -> list[Any]:
+    """Below the cards, side by side: the cores' price internal consistency and the bond's
+    attribution, each its core line on the page and its details in the drawer."""
+    notes = [
+        note
+        for note in (
+            consistency_card(obj(macro.get("price_consistency"))),
+            attribution_card(obj(macro.get("bond_attribution"))),
+        )
+        if note
     ]
+    if not notes:
+        return []
+    # Panels sit outside the cards so the drawer is fixed to the viewport.
+    return [
+        html.Div([card for card, _panel in notes], className="asset-notes"),
+        *(panel for _card, panel in notes),
+    ]
+
+
+def _note_card(name: str, title: str, line: Any, details: list[Any]) -> tuple[Any, Any]:
+    key = drawer_key("assets", name)
+    return (
+        html.Div(
+            [html.H3(title), html.P(line), drawer_trigger(key, "查看明细 →")],
+            id="asset-" + name,
+            className="note-card",
+        ),
+        drawer_panel(key, title, details),
+    )
+
+
+def consistency_card(consistency: dict[str, Any]) -> tuple[Any, Any] | None:
+    """The cores' price internal consistency: its line, details in the drawer."""
+    if not consistency:
+        return None
+    return _note_card(
+        "consistency",
+        "价格内部一致性（不计数）",
+        price_consistency_line(consistency),
+        [html.Ul([html.Li(line) for line in view._consistency_lines(consistency)])],
+    )
+
+
+def attribution_card(note: dict[str, Any]) -> tuple[Any, Any] | None:
+    """What drives the bond: the driver with the bond's price and each axis on the page;
+    why it is unclear, the signals read and the notes in the drawer."""
+    lines = view._attribution_lines({"bond_attribution": note})
+    if not lines:
+        return None
+    return _note_card(
+        "attribution",
+        "债券归因（不计数）",
+        lines[0],
+        [html.P(line) for line in lines],
+    )
 
 
 UNCLASSIFIED_BY = {"insufficient": "三条线缺数或月份不齐", "inconsistent": "三条线方向不构成象限"}
@@ -1159,10 +1224,15 @@ def report_summary(report: ReportSnapshot | None, pinned: str) -> list[Any]:
             ),
         ]
     else:
+        stage = obj(obj(body.get("verified_results")).get("formal_stage"))
         summary = [
             html.P("AI 解读 · " + report.adapter, className="secondary-copy"),
             html.P(str(sections[0].get("explanation") or ""), className="body-copy")
             if sections
+            else None,
+            # An AI reading may call a noncanonical day's empty stage a gap; it is no data gap.
+            html.P("阶段变化：" + NONCANONICAL_NO_STAGE, className="secondary-copy")
+            if stage_change_label(stage.get("change"), stage.get("reason")) == NONCANONICAL_NO_STAGE
             else None,
         ]
     if not report.body_retained:
@@ -1505,7 +1575,18 @@ def _indicator_drawer(
 def confirmation_cards(
     confirmation: dict[str, Any], macro: dict[str, object], projection: ProjectionSet | None
 ) -> Any:
-    """Five dimension cards, one row per key indicator; each row opens its drawer."""
+    """Five dimension cards, one row per key indicator; each row opens its drawer.
+
+    Before the first run there is no projection: each card waits for it under its name.
+    """
+    if projection is None:
+        return html.Div(
+            [
+                html.Article([html.H3(label), html.P(FIRST_RUN)], className="dimension-card")
+                for label in view._DIMENSION_LABELS.values()
+            ],
+            className="dimension-grid",
+        )
     applicable = confirmation.get("applicable") is True
     dimensions = objects(confirmation.get("dimensions"))
     items: list[dict[str, Any]] = []
@@ -1543,12 +1624,25 @@ def confirmation_cards(
 
 
 LINE_CARDS = (("demand", "需求"), ("production", "生产"), ("inventory", "库存"))
+FIRST_RUN = "等待首次完整运行。"
 LINE_ROLES = {"line": "主线成员", "auxiliary": "辅助成员"}
 
 
 def inventory_section(confirmation: dict[str, Any], projection: ProjectionSet | None) -> list[Any]:
     """Section 05: the quadrant card, the three lines' cards, the warrants in one line; each
     member once, its auxiliaries and the warrant table in drawers."""
+    if projection is None:
+        return [
+            html.Div(
+                [
+                    html.P("库存象限", className="section-kicker"),
+                    html.Strong("—", className="card-value"),
+                    html.Span(FIRST_RUN),
+                ],
+                className="quadrant-card",
+            ),
+            line_cards([], {}, None, missing=FIRST_RUN),
+        ]
     document = view._dataset(projection, "inventory")
     if document.get("output_structure") != CONFIRMATION_STRUCTURE:
         return [view._inventory_page(projection)]
@@ -1699,8 +1793,13 @@ def line_cards(
     members: list[dict[str, Any]],
     cards_by_label: dict[str, dict[str, Any]],
     projection: ProjectionSet | None,
+    *,
+    missing: str = "本投影未提供该线读取",
 ) -> Any:
-    """One card per line with its main member; the drawer holds every member of the line."""
+    """One card per line with its main member; the drawer holds every member of the line.
+
+    A line without members says ``missing`` instead.
+    """
     cards: list[Any] = []
     panels: list[Any] = []
     for line, label in LINE_CARDS:
@@ -1709,7 +1808,7 @@ def line_cards(
             key=lambda member: member.get("role") != "line",
         )
         if not listed:
-            cards.append(html.Div([html.Strong(label), html.Span("本投影未提供该线读取")]))
+            cards.append(html.Div([html.Strong(label), html.Span(missing)], className="line-card"))
             continue
         main = listed[0]
         name = _member_name(main, label)
@@ -1776,9 +1875,16 @@ def related_assets(
         )
         rows.append(
             (
-                drawer_trigger(key, name_cell(name), class_name="row-trigger"),
+                # A long name is cut to one line; hovering shows it whole with its code.
+                # The link covers its row, so the title sits on the link.
+                drawer_trigger(
+                    key,
+                    name.name,
+                    class_name="row-trigger",
+                    title="\n".join(part for part in (name.name, name.code) if part),
+                ),
                 number(evidence.get("value"), evidence.get("unit")),
-                change_cell(obj(obj(evidence.get("display")).get("change_5"))),
+                change_cell(window_change(evidence, "change_5")),
                 _direction_arrow(evidence.get("direction")),
             )
         )
@@ -1807,9 +1913,12 @@ def related_assets(
     return table(("名称", "值", "近 5 日", "方向"), rows), panels
 
 
-def coverage_table(coverage: dict[str, Any]) -> Any:
+def coverage_table(
+    coverage: dict[str, Any], absent: str = "该版本未提供最终需求计划的两种完整度口径。"
+) -> Any:
+    """The final plan's two coverage measures; ``absent`` says why a summary has none."""
     if not coverage.get("available"):
-        return html.P("该版本未提供最终需求计划的两种完整度口径。")
+        return html.P(absent)
     return html.Div(
         [
             html.P(
@@ -2078,8 +2187,9 @@ HISTORY_LABELS = {
 
 
 def history_label(value: object) -> str:
+    """A day's state in Chinese once: a stage's code stays in its drawer's title."""
     text = str(value)
-    return HISTORY_LABELS.get(text, view._stage_label(value) if text.startswith("stage_") else text)
+    return HISTORY_LABELS.get(text, stage_name(value) if text.startswith("stage_") else text)
 
 
 def lookback_note(lookback: object) -> list[Any]:
@@ -2098,16 +2208,50 @@ def lookback_note(lookback: object) -> list[Any]:
     ]
 
 
-def stage_bands(projection: ProjectionSet | None) -> Any:
+def stage_history(
+    projection: ProjectionSet | None, stage_events: Sequence[dict[str, object]]
+) -> list[Any]:
+    """Section 06: the bands beside their intervals, then the drawers both sides open."""
+    bands, band_panels = stage_bands(projection)
+    intervals, interval_panels = history_intervals(history_days(projection, stage_events))
+    return [
+        html.Div(
+            [
+                html.Div(
+                    [
+                        html.P(
+                            "正式阶段由债券、股票、商品的 120 日稳定方向映射；"
+                            "宏观事实只做事后确认。"
+                        ),
+                        *bands,
+                    ],
+                    className="history-side",
+                ),
+                html.Div(intervals, className="history-side history-list"),
+            ],
+            className="history-layout",
+        ),
+        *band_panels,
+        *interval_panels,
+    ]
+
+
+def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]:
+    """The four bands with their day counts, and the trading-day table's drawer."""
     document = view._dataset(projection, "stage_history")
     display = obj(document.get("display"))
     days = objects(display.get("days"))
     if not days:
-        return html.P("旧投影未提供对齐的交易日色带；历史事件仍可阅读。")
+        return [html.P("旧投影未提供对齐的交易日色带；历史事件仍可阅读。")], []
     kinds = ("official", "bond", "stock", "commodity")
     labels = ("正式阶段", "债券", "股票", "商品")
     calendar = drawer_key("history-calendar")
     categories = list(dict.fromkeys(str(day[key]) for day in days for key in kinds))
+    # A few upright ticks fit the bands' column at any width; within one year month and day
+    # say enough, and the hover still names the full date.
+    dates = [str(day["date"]) for day in days]
+    one_year = len({date[:4] for date in dates}) == 1
+    ticks = dates[:: -(-len(dates) // (6 if one_year else 4))]
     colors = [
         "#36566b",
         "#278a96",
@@ -2144,13 +2288,18 @@ def stage_bands(projection: ProjectionSet | None) -> Any:
                 "paper_bgcolor": "rgba(0,0,0,0)",
                 "plot_bgcolor": "rgba(0,0,0,0)",
                 "font": {"color": "#788c96"},
-                "xaxis": {"type": "category", "nticks": 8},
+                "xaxis": {
+                    "type": "category",
+                    "tickvals": ticks,
+                    "ticktext": [date[5:] if one_year else date for date in ticks],
+                    "tickangle": 0,
+                },
                 "yaxis": {"autorange": "reversed"},
             },
         },
         config={"displayModeBar": False},
     )
-    return html.Div(
+    return (
         [
             graph,
             html.P(
@@ -2161,6 +2310,8 @@ def stage_bands(projection: ProjectionSet | None) -> Any:
                 )
             ),
             html.P(drawer_trigger(calendar, "交易日历与色带等价表格")),
+        ],
+        [
             drawer_panel(
                 calendar,
                 "交易日历与色带等价表格",
@@ -2182,8 +2333,8 @@ def stage_bands(projection: ProjectionSet | None) -> Any:
                         ],
                     ),
                 ],
-            ),
-        ]
+            )
+        ],
     )
 
 
@@ -2216,8 +2367,9 @@ def history_days(
     return [{**events.get(str(day["date"]), {}), **day} for day in days][-HISTORY_WINDOW:]
 
 
-def history_intervals(days: Sequence[dict[str, Any]]) -> Any:
-    """Consecutive days of one state, a stage or the reason for none, as one row each."""
+def history_intervals(days: Sequence[dict[str, Any]]) -> tuple[list[Any], list[Any]]:
+    """Consecutive days of one state, a stage or the reason for none, as one row each, and
+    the drawers listing each interval's days."""
     runs: list[list[dict[str, Any]]] = []
     for day in days:
         if runs and runs[-1][-1]["official"] == day["official"]:
@@ -2226,14 +2378,10 @@ def history_intervals(days: Sequence[dict[str, Any]]) -> Any:
             runs.append([day])
     heading = html.H3(f"阶段区间（最近 {HISTORY_WINDOW} 个交易日）")
     if not runs:
-        return html.Div(
-            [
-                heading,
-                html.P(
-                    "尚无阶段事件；首次完整投影发布后，区间会显示在这里。", className="empty-note"
-                ),
-            ]
-        )
+        return [
+            heading,
+            html.P("尚无阶段事件；首次完整投影发布后，区间会显示在这里。", className="empty-note"),
+        ], []
     # Month and day read well while the window stays in one year.
     short = len({str(day["date"])[:4] for day in days}) == 1
 
@@ -2244,7 +2392,7 @@ def history_intervals(days: Sequence[dict[str, Any]]) -> Any:
         return first if len(run) == 1 else f"{first}～{last}"
 
     keys = [drawer_key("history-interval", run[0]["date"]) for run in runs]
-    return html.Div(
+    return (
         [
             heading,
             html.Ul(
@@ -2265,15 +2413,18 @@ def history_intervals(days: Sequence[dict[str, Any]]) -> Any:
                 ],
                 className="history-intervals",
             ),
-            *(
-                drawer_panel(
-                    key,
-                    f"{history_label(run[0]['official'])} · {span(run)}",
-                    [html.Ul([history_day(day) for day in run], className="record-list")],
-                )
-                for key, run in zip(keys, runs, strict=True)
-            ),
-        ]
+        ],
+        [
+            drawer_panel(
+                key,
+                f"{history_label(run[0]['official'])} · {span(run)}",
+                [html.Ul([history_day(day) for day in run], className="record-list")],
+                code=stage_code(run[0]["official"])
+                if str(run[0]["official"]).startswith("stage_")
+                else None,
+            )
+            for key, run in zip(keys, runs, strict=True)
+        ],
     )
 
 
@@ -2380,7 +2531,7 @@ def _change_text(value: object) -> str:
         reason = str(change.get("reason") or "旧投影未提供")
         return f"—（{REASONS.get(reason, reason)}）"
     return (
-        number(change["value"], change.get("unit"))
+        change_number(change)
         + f"（{change.get('start_date') or '—'} → {change.get('end_date') or '—'}）"
     )
 
@@ -2400,7 +2551,6 @@ def _context_drawer(
     extra: Sequence[tuple[str, Any]] = (),
 ) -> Any:
     """Every field of one context row, its evidence and its trend, as a drawer panel."""
-    display = obj(item.get("display"))
     fields: list[tuple[str, Any]] = [
         (
             "最新值",
@@ -2418,8 +2568,8 @@ def _context_drawer(
             + view._state_label(item.get("frequency") or "未提供"),
         ),
         ("方向", _direction_arrow(item.get("direction"))),
-        ("近 5 日", _change_text(display.get("change_5"))),
-        ("近 120 日", _change_text(display.get("change_120"))),
+        ("近 5 日", _change_text(window_change(item, "change_5"))),
+        ("近 120 日", _change_text(window_change(item, "change_120"))),
         ("时效", view._state_label(item.get("status"))),
         *extra,
         (

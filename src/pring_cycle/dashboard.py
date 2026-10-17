@@ -20,7 +20,14 @@ from pring_cycle.reports import ReportSnapshot
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS
 from pring_cycle.run_health import ProducerRun
 from pring_cycle.runs import RunRecord
-from pring_cycle.wording import CORE_STATE_LABELS, core_state_label, stage_title
+from pring_cycle.wording import (
+    CORE_STATE_LABELS,
+    core_state_label,
+    metric_label,
+    reason_label,
+    stage_change_label,
+    stage_title,
+)
 
 
 def dashboard_shell(
@@ -370,29 +377,13 @@ GAP_CATEGORY_LABELS = {
 }
 
 
-CANDIDATE_REASON_LABELS = {
-    "not_whitelisted": "不在白名单",
-    "parse_failed": "解析失败",
-    "period_mismatch": "统计期不符",
-    "no_publication_date": "无发布日期",
-    "date_after_cutoff": "日期晚于截止时点",
-    "search_value_mismatch": "与搜索结果不一致",
-    "fetch_failed": "抓取失败",
-    "incomplete_model_input": "数值不完整",
-    "retrieval_blocked": "请求被缓存或预算拦下",
-    "rule_not_matched": "解析规则未命中",
-}
-
-
 def _candidate_reasons(value: object) -> str:
     """Each rejected candidate URL with why it was not adopted (ticket 19)."""
     candidates = _document_list(value)
     if not candidates:
         return ""
     return "；候选 " + "；".join(
-        f"{item.get('url')}（"
-        f"{CANDIDATE_REASON_LABELS.get(str(item.get('reason')), item.get('reason'))}）"
-        for item in candidates
+        f"{item.get('url')}（{reason_label(item.get('reason'))}）" for item in candidates
     )
 
 
@@ -404,16 +395,9 @@ def _failed_members(value: object) -> str:
     return "；失败品种 " + "；".join(
         f"{item.get('symbol')}"
         + (f" {item['business_date']}" if item.get("business_date") else "")
-        + f"（{item.get('reason')}）"
+        + f"（{reason_label(item.get('reason'))}）"
         for item in members
     )
-
-
-RELEASE_GATE_LABELS = {
-    "earlier_session_not_searched": "较早交易日不逐日检索",
-    "unknown_release_configuration": "发布规则未登记",
-    "awaiting_release": "等待发布",
-}
 
 
 def _not_requested(value: object) -> str:
@@ -429,7 +413,7 @@ def _not_requested(value: object) -> str:
             if len(periods) == 1
             else f"{len(periods)} 期 {min(periods)} 至 {max(periods)}"
         )
-        + f"（{RELEASE_GATE_LABELS.get(reason, reason)}）"
+        + f"（{reason_label(reason)}）"
         for reason, periods in by_reason.items()
     )
 
@@ -444,12 +428,6 @@ LISTING_LABELS = {
     "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/index.html": (
         "人民银行各项工具流动性投放情况"
     ),
-}
-LISTING_STOP_LABELS = {
-    "page_limit": "本轮该站列表页额度用完",
-    "repeated_page": "翻到重复页",
-    "unreadable_page": "列表页多次读取失败",
-    "last_page": "栏目已到底",
 }
 
 
@@ -476,9 +454,13 @@ def _not_covered(value: object) -> str:
             else f"{len(periods)} 期 {min(periods)} 至 {max(periods)}"
         )
         + f"（{LISTING_LABELS.get(listing, listing)}，"
-        + f"{LISTING_STOP_LABELS.get(stopped, stopped)}；已读 {pages} 页，最早读到 {oldest}）"
+        + f"{reason_label(stopped)}；已读 {pages} 页，最早读到 {oldest}）"
         for (listing, stopped, pages, oldest), periods in by_stop.items()
     )
+
+
+# Why the two days can differ, beside them (ticket 13).
+FRESHNESS_BASIS_NOTE = "目标日决定分析日期，时效按运行冻结时点判断。"
 
 
 def _freshness_basis(projection: ProjectionSet | None) -> list[html.P]:
@@ -494,7 +476,7 @@ def _freshness_basis(projection: ProjectionSet | None) -> list[html.P]:
     )
     statement = freshness_statement(projection.envelope.target_business_date, judged)
     return [
-        html.P(statement, className="secondary-copy"),
+        html.P(statement + "。" + FRESHNESS_BASIS_NOTE, className="secondary-copy"),
         *_calendar_fallback_notice(
             _dataset(projection, "cycle_overview").get("freshness_calendar")
         ),
@@ -528,42 +510,44 @@ def _gap_list(value: object) -> html.Div:
                 html.Div(
                     [
                         html.H3(f"{label}（{len(rows)}）"),
-                        html.Ul(
-                            [
-                                html.Li(
-                                    f"{item.get('priority')} {item.get('metric_id')}："
-                                    f"{item.get('reason')}"
-                                    + (
-                                        f"（应有期 {item.get('due_period')}，"
-                                        f"持有 {item.get('held_period')}）"
-                                        if item.get("due_period")
-                                        else ""
-                                    )
-                                    + _candidate_reasons(item.get("candidates"))
-                                    + _failed_members(item.get("failed_members"))
-                                    + _not_requested(item.get("not_requested"))
-                                    + _not_covered(item.get("not_covered"))
-                                    + (
-                                        "；来源复核失败"
-                                        if item.get("source_failures")
-                                        and category != "source_failed"
-                                        else ""
-                                    )
-                                    + (
-                                        "；来源同时冲突"
-                                        if item.get("conflicts") and category != "source_conflict"
-                                        else ""
-                                    )
-                                    + ("；无网页补缺渠道" if item.get("no_web_fallback") else "")
-                                )
-                                for item in rows
-                            ]
-                        ),
+                        html.Ul([html.Li(_gap_row(item, category)) for item in rows]),
                     ],
                     className="gap-group",
                 )
             )
     return html.Div(groups, className="gap-list")
+
+
+# A row reason its period details already state: they stand in for it.
+_REASONS_IN_DETAILS = {"period_not_requested", "listing_not_covered"}
+
+
+def _gap_row(item: dict[str, Any], category: str) -> str:
+    """One gap: the metric by its Chinese name, why in Chinese, then its details."""
+    reason = str(item.get("reason"))
+    details = (
+        _candidate_reasons(item.get("candidates"))
+        + _failed_members(item.get("failed_members"))
+        + _not_requested(item.get("not_requested"))
+        + _not_covered(item.get("not_covered"))
+        + ("；来源复核失败" if item.get("source_failures") and category != "source_failed" else "")
+        + ("；来源同时冲突" if item.get("conflicts") and category != "source_conflict" else "")
+        + ("；未配置额外网页检索补缺" if item.get("no_web_fallback") else "")
+    )
+    head = (
+        ""
+        if reason in _REASONS_IN_DETAILS and (item.get("not_requested") or item.get("not_covered"))
+        else reason_label(reason)
+        + (
+            f"（应有期 {item.get('due_period')}，持有 {item.get('held_period')}）"
+            if item.get("due_period")
+            else ""
+        )
+    )
+    return (
+        f"{item.get('priority')} {metric_label(item.get('metric_id'))}："
+        f"{head + details if head else details.removeprefix('；')}"
+    )
 
 
 def _core_assets_page(projection: ProjectionSet | None) -> html.Div:
@@ -1932,7 +1916,7 @@ def _release_event_row(item: dict[str, object]) -> html.Li:
                         f"最近获取 {item.get('latest_fetched_at', '尚未获取')}",
                         f"下一检查 {next_check}",
                         f"关联观测 {item.get('observation_count', 0)}",
-                        f"状态 {item.get('status', 'unknown')}",
+                        f"状态 {reason_label(item.get('status', 'unknown'))}",
                     )
                 ),
                 className="secondary-copy",
@@ -2182,6 +2166,7 @@ def _report_head(report: ReportSnapshot) -> list[Any]:
             _compact_fact("报告身份", report.report_snapshot_id),
             _compact_fact("投影身份", report.projection_set_id),
             _compact_fact("正式阶段", _stage_label(report.current_stage)),
+            *_report_stage_change(report.body),
             *_report_last_confirmed(report.body),
             _compact_fact("截止点", report.report_cutoff.isoformat()),
             _compact_fact(
@@ -2444,6 +2429,17 @@ def _last_confirmed_label(stage: object, lookback: object) -> str:
         reach = f"{lookback.get('searched_from')}～{lookback.get('searched_through')}"
         return f"尚无（已回溯 {lookback.get('years')} 年，{reach} 无正式阶段）"
     return f"尚无（回溯失败：{lookback.get('failure') or '未记录原因'}）"
+
+
+def _report_stage_change(body: dict[str, Any]) -> list[html.Div]:
+    results = body.get("verified_results")
+    stage = results.get("formal_stage") if isinstance(results, dict) else None
+    label = (
+        stage_change_label(stage.get("change"), stage.get("reason"))
+        if isinstance(stage, dict)
+        else None
+    )
+    return [_compact_fact("阶段变化", label)] if label else []
 
 
 def _report_last_confirmed(body: dict[str, Any]) -> list[html.Div]:

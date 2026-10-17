@@ -3,7 +3,8 @@
 The board, the stage history page and the report page all name core asset states,
 30-day candidate directions, asset candidates and formal stages through these
 mappings, so the glossary terms change together (GLOSSARY.md). Metrics and their members
-are named once here too, for the cockpit, the data chain and its Sankey alike.
+are named once here too, for the cockpit, the data chain and its Sankey alike, and so are the
+reasons a gap list records.
 """
 
 from __future__ import annotations
@@ -31,6 +32,21 @@ STAGE_TITLES = {
 }
 
 
+# How a report's formal stage changed on its day, as its verified results record it.
+STAGE_CHANGE_LABELS = {"formal": "形成正式阶段", "gap": NO_FORMAL_STAGE}
+NONCANONICAL_NO_STAGE = "非典型组合，暂无正式阶段"
+
+
+def stage_change_label(change: object, reason: object) -> str | None:
+    """A day's stage change in reader's words: a noncanonical combination's ``gap`` event is
+    a result with no formal stage, not missing core data (ticket 13)."""
+    if change is None:
+        return None
+    if change == "gap" and reason == "noncanonical_combination":
+        return NONCANONICAL_NO_STAGE
+    return STAGE_CHANGE_LABELS.get(str(change), str(change))
+
+
 def core_state_label(value: object) -> str:
     """A core asset state, 30-day candidate direction or asset candidate as 牛市 / 熊市."""
     if value is None:
@@ -44,7 +60,7 @@ def stage_code(value: object) -> str:
 
 
 def stage_name(value: object) -> str:
-    """A formal stage's Chinese name, as report prose names it (第三阶段)."""
+    """A formal stage's Chinese name alone (第三阶段): report prose, and where its code would repeat it."""
     return STAGE_TITLES.get(str(value).lower(), str(value)).partition(" · ")[0]
 
 
@@ -215,6 +231,46 @@ SOURCE_NAMES = {
     "nasdaq": "纳斯达克指数",
     "derived": "派生计算",
 }
+# Why a metric period is a gap, as the gap list records it: the row's own reason, the release
+# gate that kept a period from being requested, where an official listing's reading stopped,
+# and why a search candidate was not adopted. One table for every place that shows them, so a
+# new code is one row here; an unmapped code is shown as recorded (ticket 13).
+REASON_LABELS = {
+    # A gap row's reason.
+    "not_held": "未持有",
+    "one_period_behind_carried": "落后一期，沿用上一期",
+    "two_or_more_periods_behind": "落后两期及以上",
+    "backtrack_incomplete": "回溯未完成（来源失败）",
+    "freshness_not_registered": "未登记时效规则",
+    "restricted_license": "授权受限，不取数也不检索",
+    "period_not_requested": "未请求",
+    "listing_not_covered": "官方列表未覆盖",
+    "not_computed": "未计算",
+    "missing_inputs": "缺少输入",
+    "incomparable_gdp_vintages": "GDP 前后版本不可比",
+    "acquisition_time_invalid": "取数时点无效",
+    # The release gate's reason for a period it kept from being requested.
+    "awaiting_release": "等待发布",
+    "earlier_session_not_searched": "较早交易日不逐日检索",
+    "unknown_release_configuration": "发布规则未登记",
+    "negative_cache_active": "被负缓存拦下",
+    # Where an official listing's reading stopped.
+    "page_limit": "本轮该站列表页额度用完",
+    "repeated_page": "翻到重复页",
+    "unreadable_page": "列表页多次读取失败",
+    "last_page": "栏目已到底",
+    # Why a search candidate was not adopted.
+    "not_whitelisted": "不在白名单",
+    "parse_failed": "解析失败",
+    "period_mismatch": "统计期不符",
+    "no_publication_date": "无发布日期",
+    "date_after_cutoff": "日期晚于截止时点",
+    "search_value_mismatch": "与搜索结果不一致",
+    "fetch_failed": "抓取失败",
+    "incomplete_model_input": "数值不完整",
+    "retrieval_blocked": "请求被缓存或预算拦下",
+    "rule_not_matched": "解析规则未命中",
+}
 NO_CHINESE_NAME = "未提供中文名"
 NO_MEMBER_NAME = "未提供成员中文名"
 
@@ -258,6 +314,17 @@ def display_name(
     catalog = str(catalog_name) if catalog_name and str(catalog_name) != code else None
     name = (member[1] if member else None) or catalog or METRIC_NAMES.get(code)
     return DisplayName(name or code, full_code, name is not None)
+
+
+def reason_label(code: object) -> str:
+    """A gap reason in Chinese, or the recorded code when none is mapped."""
+    return REASON_LABELS.get(str(code), str(code))
+
+
+def metric_label(metric_id: object) -> str:
+    """A metric in running text: its Chinese name with the code after it, or the code alone."""
+    name = display_name(metric_id)
+    return f"{name.name}（{name.code}）" if name.provided else name.code
 
 
 def source_name(channel: object) -> str:

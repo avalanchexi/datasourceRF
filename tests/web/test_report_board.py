@@ -154,3 +154,21 @@ def test_run_charts_keep_unknown_time_and_count_physical_requests_once() -> None
     assert "请求按环节" in text
     assert "三核心取数 2 次" in text
     assert "背景指标取数 1 次" in text
+
+
+def test_an_empty_library_shows_the_dimension_and_inventory_cards_waiting_for_a_run() -> None:
+    from tests.web.test_inventory_section import _shown
+    from tests.web.test_overseas_cards import _by_id
+
+    page = dashboard_page("/", None, (), ())
+    confirmation = " ".join(_shown(_by_id(page, "confirmation")).split())
+    inventory = " ".join(_shown(_by_id(page, "inventory")).split())
+
+    assert confirmation == (
+        "04 宏观事后确认 政策 等待首次完整运行。 信用 等待首次完整运行。 "
+        "过热 等待首次完整运行。 物价 等待首次完整运行。 库存 等待首次完整运行。"
+    )
+    assert inventory == (
+        "05 库存周期 库存象限 — 等待首次完整运行。 需求 等待首次完整运行。 "
+        "生产 等待首次完整运行。 库存 等待首次完整运行。"
+    )

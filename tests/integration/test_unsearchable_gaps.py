@@ -98,4 +98,4 @@ def test_unsearchable_gaps_are_not_searched_and_are_listed_apart(
     assert "CN_LPR_1Y_5Y" not in gaps
     from pring_cycle.dashboard import _home_page
 
-    assert "无网页补缺渠道" in str(_home_page(projection))
+    assert "未配置额外网页检索补缺" in str(_home_page(projection))

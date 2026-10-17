@@ -139,7 +139,7 @@ def flow_sankey(requests: Sequence[dict[str, Any]]) -> Any:
 
     def label(node: str) -> str:
         if node == OTHER_SOURCE:
-            return f"其他（{len(folded)}） · {counts[node]}"
+            return f"其他 {len(folded)} 个来源 · {counts[node]}"
         kind, _, value = node.partition(":")
         return f"{names[kind](value)} · {counts[node]}"
 
@@ -717,19 +717,22 @@ def data_chain(
             html.P("最终计划尚未形成；以下为初始需求，不能视作最终完整度。")
             if not summary.get("final_plan_available")
             else None,
-            table(
-                ("指标", "期", "状态", "缺失维度", "门禁 / 原因", "关联请求数"),
-                [
-                    (
-                        item["metric_id"],
-                        item["period"],
-                        DIAGNOSES.get(item["diagnosis"], item["diagnosis"]),
-                        ", ".join(item.get("missing_members", [])) or "—",
-                        str(item.get("release_gate") or item.get("listing_not_covered") or "—"),
-                        len(item["request_ids"]),
-                    )
-                    for item in page_requirements
-                ],
+            html.Div(
+                table(
+                    ("指标", "期", "状态", "缺失维度", "门禁 / 原因", "关联请求数"),
+                    [
+                        (
+                            item["metric_id"],
+                            item["period"],
+                            DIAGNOSES.get(item["diagnosis"], item["diagnosis"]),
+                            ", ".join(item.get("missing_members", [])) or "—",
+                            str(item.get("release_gate") or item.get("listing_not_covered") or "—"),
+                            len(item["request_ids"]),
+                        )
+                        for item in page_requirements
+                    ],
+                ),
+                className="requirement-table",
             ),
             html.Details(
                 [

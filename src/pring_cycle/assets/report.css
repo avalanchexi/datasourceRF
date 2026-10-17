@@ -145,7 +145,8 @@ html, body { font-size: 14px; }
 .overseas-others { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 10px; border: 1px dashed var(--line); border-radius: 8px; }
 .overseas-others h3 { grid-column: 1 / -1; margin: 0; }
 @media (max-width: 1100px) { .overseas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .overseas-grid { grid-template-columns: minmax(0, 1fr); } }
+/* Phones keep two cards per row, the other context cards included. */
+@media (max-width: 560px) { .overseas-others { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* 05: the quadrant card, the three lines' cards side by side, the warrants in one line. */
 .quadrant-card { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; background: var(--surface-panel); color: var(--ink-body); font-size: 13px; }
 .quadrant-card .section-kicker { margin: 0; }
@@ -153,6 +154,8 @@ html, body { font-size: 14px; }
 .line-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .line-card { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-panel); color: var(--ink-body); font-size: 12.5px; text-decoration: none; font-variant-numeric: tabular-nums; }
 .line-card:hover, .line-card:focus-visible { border-color: var(--accent); }
+/* A line without a reading is a plain card, not a drawer trigger. */
+div.line-card:hover { border-color: var(--line); }
 .line-card strong { color: var(--ink-strong); font-size: 13px; }
 .line-card small { color: var(--ink-muted); font-family: monospace; font-size: 11px; overflow-wrap: anywhere; }
 .line-card .card-value { color: var(--ink-strong); font-size: 18px; font-weight: 650; }
@@ -180,12 +183,27 @@ html, body { font-size: 14px; }
 .history-interval strong { color: var(--ink-strong); white-space: nowrap; }
 .history-interval span:nth-child(3) { text-align: right; }
 .history-interval span:nth-child(4) { color: var(--ink-muted); font-size: 12px; }
+.history-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.history-side { min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-panel); }
+.history-side > p:first-child, .history-list h3 { margin-top: 0; }
+.history-side > :last-child { margin-bottom: 0; }
+.history-list .history-intervals { margin: 0; border-width: 1px 0 0; border-radius: 0; background: none; }
+/* Wide screens: bands on the left (3/5), intervals on the right (2/5). The list adds no
+   height of its own (size containment), so both cards end with the bands and the list
+   scrolls inside its card; the row's floor keeps a bandless set's list readable. */
+@media (min-width: 1000px) {
+  .history-layout { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-rows: minmax(300px, auto); }
+  .history-list { display: flex; flex-direction: column; contain: size; }
+  .history-list .history-intervals { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+  .history-list .history-interval { grid-template-columns: max-content minmax(0, 1fr) max-content; gap: 2px 12px; }
+  .history-list .history-interval span:nth-child(4) { grid-column: 2 / -1; }
+}
 .drawer-body .record-row { display: flex; flex-direction: column; gap: 2px; }
 .drawer-body .report-table td:first-child { white-space: nowrap; }
 @media (max-width: 560px) { .history-interval { display: flex; flex-wrap: wrap; gap: 2px 10px; } .history-interval span:nth-child(4) { flex-basis: 100%; } }
 /* 02: three asset cards side by side; observations scroll inside the card; details open in the drawer. */
-.core-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
-.core-card { min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--asset-bond); border-radius: 8px; background: var(--surface-panel); }
+.core-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+.core-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--asset-bond); border-radius: 8px; background: var(--surface-panel); }
 .core-card.core-stock { border-left-color: var(--asset-equity); }
 .core-card.core-commodity { border-left-color: var(--asset-commodity); }
 .core-card-head { display: grid; gap: 6px; font-size: 12.5px; color: var(--ink-body); }
@@ -200,21 +218,39 @@ html, body { font-size: 14px; }
 .card-facts dd { margin: 0; color: var(--ink-strong); }
 .card-button { justify-self: start; padding: 3px 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--accent); font-size: 12px; text-decoration: none; }
 .card-button:hover, .card-button:focus-visible { border-color: var(--accent); }
-.core-card .card-chart { height: 160px; }
 .core-card .secondary-copy { margin: 2px 0 0; color: var(--ink-muted); font-size: 11.5px; line-height: 1.5; }
-.report-section .core-card h3 { margin: 12px 0 4px; font-size: 13px; }
-.core-card .table-scroll { max-height: 320px; overflow-y: auto; margin: 4px 0 0; }
+.report-section .core-card h3 { margin: 6px 0 0; font-size: 13px; }
+/* The observations box is the same 320px in every card: few rows leave room inside it, many scroll. */
+.core-card .card-observations { height: 320px; overflow-y: auto; margin-top: 4px; border: 1px solid var(--line); }
+.core-card .card-observations .table-scroll { overflow: visible; margin: 0; border: 0; }
+.core-card .card-observations > .secondary-copy { margin: 8px; }
 .core-card thead th { position: sticky; top: 0; z-index: 1; }
 .core-card .report-table td:not(:first-child) { white-space: nowrap; }
+/* The values keep their width; the name takes what is left and a long one is cut to one line,
+   its title showing it whole. */
+.core-card .report-table td, .core-card .report-table th { padding-left: 6px; padding-right: 6px; }
+.core-card .report-table td:first-child { width: 100%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The name link stretches over its row, so the whole row opens the drawer. */
 .core-card tbody tr { position: relative; }
 .row-trigger { color: var(--ink-strong); text-decoration: none; }
 .row-trigger::after { content: ""; position: absolute; inset: 0; }
 .row-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.consistency-card { max-width: 760px; margin: 12px 0; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-panel); }
-.report-section .consistency-card h3 { margin: 0 0 4px; font-size: 13px; }
-.report-section .consistency-card p { margin: 0 0 6px; }
-@media (max-width: 999.98px) { .core-cards { grid-template-columns: minmax(0, 1fr); } }
+.note-card { display: flex; flex-direction: column; min-width: 0; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-panel); }
+.report-section .note-card h3 { margin: 0 0 4px; font-size: 13px; }
+.report-section .note-card p { margin: 0 0 6px; }
+.note-card .drawer-trigger { margin-top: auto; align-self: flex-start; }
+/* Price consistency and the bond attribution side by side, equal in height. */
+.asset-notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: stretch; margin: 12px 0; }
+/* Wide, the cards share nine row tracks, so each band (title, value, two fact rows, candidates,
+   changes, button, chart, heading, observations) lines up across them and the bottoms meet. */
+@supports (grid-template-rows: subgrid) {
+  @media (min-width: 1000px) {
+    .core-cards { grid-template-rows: repeat(9, auto); row-gap: 6px; }
+    .core-card { display: grid; grid-row: span 9; grid-template-rows: subgrid; gap: 6px; }
+    .core-card-head { grid-row: span 6; grid-template-rows: subgrid; }
+  }
+}
+@media (max-width: 999.98px) { .core-cards, .asset-notes { grid-template-columns: minmax(0, 1fr); } }
 
 /* 数据链路桑基图：连线按请求结果四色、节点按列分色；dashboard.js 依主题读这些变量重绘。 */
 :root[data-theme="light"],
@@ -239,6 +275,14 @@ html, body { font-size: 14px; }
 .flow-sankey .node-label { fill: var(--ink-body) !important; text-shadow: none !important; }
 .request-table .table-scroll { max-height: 480px; overflow-y: auto; }
 .request-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: linear-gradient(var(--surface-muted), var(--surface-muted)), var(--surface-canvas);
+}
+/* The catalog's per-period requirements scroll inside the same 480px as the request table. */
+.requirement-table .table-scroll { max-height: 480px; overflow-y: auto; }
+.requirement-table thead th {
   position: sticky;
   top: 0;
   z-index: 1;
