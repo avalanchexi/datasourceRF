@@ -28,13 +28,15 @@ from pring_cycle.noncanonical import (
 )
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.storage import database_connection, ensure_wal
+from pring_cycle.wording import STAGE_TITLES, display_name, source_name, stage_name
 
 REPORT_SCHEMA_VERSION = "report-schema-v0004"
-PROMPT_CONTRACT_VERSION = "report-prompt-v0004"
+# Prose names codes by their Chinese display names since v0008 (decision 5).
+PROMPT_CONTRACT_VERSION = "report-prompt-v0008"
 # A projection's dimension summary (ADR-0037) is reported under its own contract: its
 # relations and counts are conclusions the AI must echo, as the labels before them were.
 CONFIRMATION_REPORT_SCHEMA_VERSION = "report-schema-v0005"
-CONFIRMATION_PROMPT_CONTRACT_VERSION = "report-prompt-v0005"
+CONFIRMATION_PROMPT_CONTRACT_VERSION = "report-prompt-v0009"
 
 
 @dataclass(frozen=True)
@@ -46,6 +48,8 @@ class ReportInput:
     series or evidence identifiers: tracing is the projection's and the batch's job.
     ``conclusions`` is what the AI must echo unchanged; ``gap_list`` is kept for the
     report reader and is not sent to the AI, which sees the gap summary instead.
+    ``display_names`` gives the Chinese name of each stage, metric and source code the
+    input carries, for the prose; the codes themselves stay for validation (decision 5).
     It is stored in the ``evidence_bundle`` table under ``bundle_id``, as before.
     """
 
@@ -62,6 +66,7 @@ class ReportInput:
     conclusions: dict[str, Any] = field(default_factory=dict)
     results: dict[str, Any] = field(default_factory=dict)
     gap_list: list[Any] = field(default_factory=list)
+    display_names: dict[str, dict[str, str]] = field(default_factory=dict)
     schema_version: str = REPORT_SCHEMA_VERSION
     prompt_version: str = PROMPT_CONTRACT_VERSION
 
@@ -83,6 +88,7 @@ class ReportInput:
         gap_list: list[Any] | None = None,
     ) -> ReportInput:
         schema_version, prompt_version = _contract(conclusions or {}, results)
+        display_names = _display_names(current_stage, conclusions, results)
         identity = {
             "projection_set_id": projection_set_id,
             "target_business_date": target_business_date,
@@ -96,6 +102,7 @@ class ReportInput:
             "conclusions": conclusions or {},
             "results": results or {},
             "gap_list": gap_list or [],
+            "display_names": display_names,
             "schema_version": schema_version,
             "prompt_version": prompt_version,
         }
@@ -113,6 +120,7 @@ class ReportInput:
             conclusions=conclusions or {},
             results=results or {},
             gap_list=gap_list or [],
+            display_names=display_names,
             schema_version=schema_version,
             prompt_version=prompt_version,
         )
@@ -530,6 +538,31 @@ def _contract(
     if results and isinstance(results.get("noncanonical_basis"), dict):
         prompt = NONCANONICAL_PROMPT_VERSION
     return schema, prompt
+
+
+def _display_names(*values: Any) -> dict[str, dict[str, str]]:
+    """The Chinese name of each stage, metric and source code among ``values``' strings;
+    an anomaly (``gap:CN_X``) names its metric after the colon."""
+    names: dict[str, dict[str, str]] = {"stages": {}, "metrics": {}, "sources": {}}
+
+    def visit(value: Any) -> None:
+        if isinstance(value, dict):
+            for item in value.values():
+                visit(item)
+        elif isinstance(value, list | tuple):
+            for item in value:
+                visit(item)
+        elif isinstance(value, str):
+            if value.lower() in STAGE_TITLES:
+                names["stages"][value] = stage_name(value)
+            for code in (value, value.partition(":")[2]):
+                if (metric := display_name(code)).provided:
+                    names["metrics"][code] = metric.name
+            if source_name(value) != value and value not in names["metrics"]:
+                names["sources"][value] = source_name(value)
+
+    visit(values)
+    return {kind: dict(sorted(codes.items())) for kind, codes in names.items()}
 
 
 def _list(value: object) -> list[Any]:
@@ -1059,6 +1092,9 @@ class ReportService:
                     "semantic_support": "not_reviewed",
                     "output_hash": output_hash,
                 }
+                # Raw codes left in the prose are marked, never a failure (decision 5).
+                if codes := _untranslated_codes(bundle, response.document["sections"]):
+                    body["untranslated_codes"] = codes
                 snapshot = self._repository.save_snapshot(
                     report_snapshot_id=report_snapshot_id,
                     client_request_id=request_id,
@@ -1144,6 +1180,9 @@ class CliReportAdapter:
                     "conclusions 须与报告输入的 conclusions 完全一致。"
                     + confirmation
                     + "涉及具体数值时写明数据来源；有异常（核心沿用、缺口、落后、冲突）时如实说明。"
+                    "正文提及阶段、指标与数据来源时用 report_input.display_names 给出的中文名"
+                    "（如“第三阶段”“中证全指”），"
+                    "不写原始代号（如 stage_iii、tushare:index_daily）。"
                     "每个section的explanation必须是非空的单段文字，不含换行或段落分隔符；"
                     "多段解释须拆为多个section。"
                 ),
@@ -1315,17 +1354,20 @@ def _preflight_bundle(bundle: ReportInput) -> None:
 
 _ROMAN_STAGES = {"I": "stage_i", "II": "stage_ii", "III": "stage_iii"}
 _ROMAN_STAGES |= {"IV": "stage_iv", "V": "stage_v", "VI": "stage_vi"}
-# "当前阶段为阶段II", "目前处于 Stage IV": a paragraph stating the current formal stage.
+# Prose names a stage by its Chinese name since the report prompt v0008 (decision 5).
+_ROMAN_STAGES |= dict(zip("一二三四五六", _ROMAN_STAGES.values(), strict=True))
+# "当前阶段为阶段II", "目前处于 Stage IV", "当前处于第三阶段": a paragraph stating the current
+# formal stage.
 _STATED_STAGE = re.compile(
-    r"(?:当前|目前|现在)(?:正式)?(?:阶段(?:为|是)|处于)\s*(?:正式)?(?:阶段|Stage\s*)?"
-    r"(VI|IV|V|III|II|I)(?![A-Za-z])"
+    r"(?:当前|目前|现在)(?:正式)?(?:阶段(?:为|是)|处于)\s*(?:正式)?"
+    r"(?:(?:阶段|Stage\s*)?(VI|IV|V|III|II|I)(?![A-Za-z])|第([一二三四五六])阶段)"
 )
 
 
 def _stated_stages(section: dict[str, Any]) -> set[str]:
     """The formal stages a paragraph says the market is in now."""
     text = f"{section['title']}。{section['explanation']}"
-    return {_ROMAN_STAGES[match] for match in _STATED_STAGE.findall(text)}
+    return {_ROMAN_STAGES[roman or chinese] for roman, chinese in _STATED_STAGE.findall(text)}
 
 
 _RELATION_WORDS = {
@@ -1668,6 +1710,17 @@ def _validate_ai_document(
     ):
         return reject("schema_validation_failed", "noncanonical_section_count", "sections")
     return "succeeded"
+
+
+def _untranslated_codes(bundle: ReportInput, sections: list[dict[str, Any]]) -> list[str]:
+    """The stage, metric and source codes the prose writes as such, not by their names."""
+    codes = {code for names in bundle.display_names.values() for code in names} | set(STAGE_TITLES)
+    text = "。".join(section["title"] + "。" + section["explanation"] for section in sections)
+    return sorted(
+        code
+        for code in codes
+        if re.search(rf"(?<![A-Za-z0-9_:]){re.escape(code)}(?![A-Za-z0-9_:])", text)
+    )
 
 
 def _report_snapshot(row: sqlite3.Row) -> ReportSnapshot:

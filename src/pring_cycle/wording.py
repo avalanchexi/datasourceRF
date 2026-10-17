@@ -43,6 +43,11 @@ def stage_code(value: object) -> str:
     return STAGE_TITLES.get(str(value).lower(), str(value)).rpartition(" · ")[2]
 
 
+def stage_name(value: object) -> str:
+    """A formal stage's Chinese name, as report prose names it (第三阶段)."""
+    return STAGE_TITLES.get(str(value).lower(), str(value)).partition(" · ")[0]
+
+
 def stage_title(value: object) -> str:
     """A formal stage title; an empty current stage is a result, not a pending judgement."""
     if value is None:
@@ -189,6 +194,7 @@ MEMBER_NAMES: dict[str, tuple[tuple[dict[str, str], str], ...]] = {
     ),
 }
 # Request sources as the data chain and its Sankey name them; providers arrive as free text.
+# A registered source code (``tushare:index_daily``) is named by its provider, before the colon.
 SOURCE_NAMES = {
     "official": "官方发布",
     "tushare": "TuShare",
@@ -201,6 +207,13 @@ SOURCE_NAMES = {
     "European Central Bank": "欧洲央行",
     "Cboe Global Markets": "Cboe",
     "Nasdaq Global Indexes": "纳斯达克指数",
+    "pbc": "中国人民银行",
+    "chinamoney": "中国货币网",
+    "eia": "美国能源信息署",
+    "ecb": "欧洲央行",
+    "cboe": "Cboe",
+    "nasdaq": "纳斯达克指数",
+    "derived": "派生计算",
 }
 NO_CHINESE_NAME = "未提供中文名"
 NO_MEMBER_NAME = "未提供成员中文名"
@@ -249,4 +262,5 @@ def display_name(
 
 def source_name(channel: object) -> str:
     """A request source's Chinese name, or the recorded value when none is mapped."""
-    return SOURCE_NAMES.get(str(channel), str(channel))
+    value = str(channel)
+    return SOURCE_NAMES.get(value) or SOURCE_NAMES.get(value.partition(":")[0], value)

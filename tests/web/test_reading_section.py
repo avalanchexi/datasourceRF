@@ -193,6 +193,22 @@ def test_an_ai_summary_is_the_first_paragraph_of_the_latest_same_projection_repo
     assert "报告身份 report-projection-board-2" in panel and "第二段。" in panel
 
 
+def test_report_details_mark_a_reading_that_kept_raw_codes() -> None:
+    projection = _gaps_projection([])
+    identity = projection.envelope.projection_set_id
+    coded = {
+        **_ai_body("沿 stage_iii 解读（来源：tushare:index_daily）。"),
+        "untranslated_codes": ["stage_iii", "tushare:index_daily"],
+    }
+
+    marked = _reading(projection, reports=(_report(identity, body=coded),))
+    clean = _reading(projection, reports=(_report(identity, body=_ai_body("沿第三阶段解读。")),))
+
+    panel = _panel(marked, _trigger(marked, "查看报告详情"))
+    assert "含未翻译代号：stage_iii、tushare:index_daily" in panel
+    assert "未翻译代号" not in _panel(clean, _trigger(clean, "查看报告详情"))
+
+
 def test_without_a_report_the_section_says_so_and_keeps_generate_and_history() -> None:
     section = _reading(_gaps_projection([]))
     visible = _words(_visible(section))

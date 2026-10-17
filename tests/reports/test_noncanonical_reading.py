@@ -88,7 +88,7 @@ def test_worker_lists_every_single_asset_difference_without_classifying(
     assert all(row["candidate_state"] is None for row in basis["comparisons"])
     source = report_input_from_projection(published)
     assert source.results["noncanonical_basis"] == basis
-    assert source.prompt_version == "report-prompt-v0007"
+    assert source.prompt_version == "report-prompt-v0010"
     assert "候选熊市 0 天" not in "".join(fact_sentences(basis))
 
 
@@ -237,7 +237,7 @@ def test_cli_prompt_contains_frozen_reading_contract(
     def generate(name: str, prompt: str, schema: Any, **kwargs: Any) -> Any:
         data = json.loads(prompt)
         assert name == adapter
-        assert data["execution_contract"]["prompt_version"] == "report-prompt-v0007"
+        assert data["execution_contract"]["prompt_version"] == "report-prompt-v0010"
         contract = data["noncanonical_reading_contract"]
         assert contract["title"] == TITLE
         assert len(contract["required_fact_sentences"]) == 5
@@ -277,7 +277,7 @@ def test_noncanonical_reading_preserves_not_applicable_confirmation(tmp_path: Pa
     assert result.status == "completed"
     snapshot = repository.get(result.report_snapshot_id)
     assert snapshot.schema_version == "report-schema-v0005"
-    assert snapshot.prompt_version == "report-prompt-v0007"
+    assert snapshot.prompt_version == "report-prompt-v0010"
     assert snapshot.body["conclusions"] == source.conclusions
 
 
@@ -302,7 +302,7 @@ def test_old_noncanonical_input_keeps_its_old_snapshot_and_contract(tmp_path: Pa
     service = ReportService(repository, ())
     historical = service.generate(old, client_request_id="old")
     before = repository.get(historical.report_snapshot_id)
-    assert before.prompt_version == "report-prompt-v0004"
+    assert before.prompt_version == "report-prompt-v0008"
     assert "ai_explanation" not in before.body
     service.generate(source, client_request_id="new")
     assert repository.get(historical.report_snapshot_id).body == before.body

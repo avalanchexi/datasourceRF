@@ -9,7 +9,7 @@ from pring_cycle.domain.stage import single_asset_differences
 from pring_cycle.wording import core_state_label
 
 TITLE = "非典型组合解读"
-PROMPT_VERSION = "report-prompt-v0007"
+PROMPT_VERSION = "report-prompt-v0010"
 _ASSETS = {"bond": "债券", "stock": "股票", "commodity": "商品"}
 _STATES = {"bull": core_state_label("bull"), "bear": core_state_label("bear"), None: "无"}
 

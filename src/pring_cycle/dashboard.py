@@ -2204,6 +2204,14 @@ def _report_head(report: ReportSnapshot) -> list[Any]:
                     "unavailable": "无AI解释",
                 }.get(str(report.explanation_verification.get("status")), "未记录核查"),
             ),
+            # The prose kept raw codes: saved as written, marked here (decision 5).
+            *(
+                [_compact_fact("正文代号", "含未翻译代号：" + "、".join(map(str, codes)))]
+                if report.body_retained
+                and isinstance(codes := report.body.get("untranslated_codes"), list)
+                and codes
+                else []
+            ),
         ],
         className="compact-facts",
     )
