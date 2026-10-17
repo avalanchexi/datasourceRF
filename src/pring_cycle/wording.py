@@ -255,6 +255,9 @@ REASON_LABELS = {
     "earlier_session_not_searched": "较早交易日不逐日检索",
     "unknown_release_configuration": "发布规则未登记",
     "negative_cache_active": "被负缓存拦下",
+    # What a period awaiting release takes its next release date from (worker gaps 03).
+    "source_next_release_date": "来源原件写明",
+    "registered_release_lag": "按登记发布滞后推算",
     # Where an official listing's reading stopped.
     "page_limit": "本轮该站列表页额度用完",
     "repeated_page": "翻到重复页",

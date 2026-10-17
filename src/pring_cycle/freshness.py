@@ -828,6 +828,7 @@ _GAP_ORDER = (
     "derived_failed",
     "source_failed",
     "source_conflict",
+    "awaiting_release",
 )
 
 
@@ -1007,7 +1008,10 @@ def add_projection_gaps(
     observations whose sources disagree gets ``conflicts``, each with the reason the
     comparison gave (ADR-0033), also when the selected claim failed too. A period the
     run plan could not complete and the release gate kept from being requested gets its
-    metric ``not_requested``, each period with the gate's reason (lookback L01); one its
+    metric ``not_requested``, each period with the gate's reason (lookback L01), except a
+    period whose release has not come: that is ``awaiting_release``, each period with the
+    next release date its source's original states, else the registered release lag's, and
+    is neither missing nor a coverage gap (worker gaps 03); one its
     official listing stopped short of gets ``not_covered``, each period with the listing,
     where its reading stopped (``page_limit``: the run's pages of the site were read), the
     pages read and the earliest entry they list: not listed as far as read, which is not
@@ -1016,7 +1020,9 @@ def add_projection_gaps(
     metric ``missing_periods``, each with the members it lacks, such as a warrant symbol's
     historical day (worker gaps 04). The list keeps one row
     per metric: a metric not listed yet is added as ``derived_failed``, ``source_failed``,
-    ``source_conflict`` or, never requested, ``missing``.
+    ``source_conflict`` or, never requested, ``missing``; a metric with nothing but periods
+    awaiting release as ``awaiting_release``, and one listed otherwise keeps its category,
+    noting them.
     """
     from pring_cycle.retrieval_registry import is_searchable_gap
 
@@ -1049,6 +1055,13 @@ def add_projection_gaps(
     listed = {str(gap["metric_id"]): dict(gap) for gap in gaps}
     # What each timeliness row holds, before the projection's additions to the list.
     listed_held = {metric_id: gap.get("held_period") for metric_id, gap in listed.items()}
+    # The next release the source's original states, as its latest acquisition recorded.
+    next_releases = {
+        str(row["metric_id"]): str(acquisition["next_release_date"])
+        for row in rows
+        if isinstance(acquisition := row.get("latest_acquisition"), Mapping)
+        and acquisition.get("next_release_date")
+    }
 
     def entry(metric_id: str, category: str, reason: str) -> dict[str, object]:
         return listed.setdefault(
@@ -1068,8 +1081,13 @@ def add_projection_gaps(
     plan_gaps = list(plan_gaps)
     incomplete = [gap for gap in plan_gaps if not gap.get("complete", True)]
     not_requested: dict[str, list[dict[str, object]]] = {}
+    awaiting: dict[str, list[dict[str, object]]] = {}
     for gap in incomplete:
-        if gap.get("release_gate") is not None:
+        if gap.get("release_gate") == "awaiting_release":
+            awaiting.setdefault(str(gap["metric_id"]), []).append(
+                _awaiting_release(gap, next_releases)
+            )
+        elif gap.get("release_gate") is not None:
             not_requested.setdefault(str(gap["metric_id"]), []).append(
                 {"period": gap.get("period"), "reason": gap["release_gate"]}
             )
@@ -1154,6 +1172,20 @@ def add_projection_gaps(
     historical = _historical_periods(plan_gaps, listed_held, held_periods or {}, listed)
     for metric_id, periods in historical.items():
         entry(metric_id, "missing", "historical_periods_missing")["missing_periods"] = periods
+    for metric_id, periods in awaiting.items():
+        if metric_id in listed:
+            listed[metric_id]["awaiting_release"] = periods
+        else:
+            listed[metric_id] = {
+                "metric_id": metric_id,
+                "priority": priorities.get(metric_id),
+                "category": "awaiting_release",
+                "reason": "awaiting_release",
+                "due_period": None,
+                "held_period": None,
+                "periods_behind": None,
+                "awaiting_release": periods,
+            }
     return sort_gaps(listed.values())
 
 
@@ -1214,6 +1246,31 @@ def _holds_later(held: object, period: str) -> bool:
     if "-Q" in period:
         period = f"{period[:4]}-{int(period[-1]) * 3:02d}"
     return isinstance(held, str) and held[: len(period)] > period
+
+
+def _awaiting_release(
+    gap: Mapping[str, object], next_releases: Mapping[str, str]
+) -> dict[str, object]:
+    """A period awaiting release, with when it is out: the next release its source's original
+    states when that is after the period, else the registered release lag's."""
+    metric_id, period = str(gap["metric_id"]), str(gap.get("period"))
+    stated = next_releases.get(metric_id)
+    if stated is not None and stated > period:
+        return {"period": period, "next_release_date": stated, "basis": "source_next_release_date"}
+    rule = FRESHNESS_REGISTRY.get(metric_id)
+    if rule is None or rule.frequency == "event":
+        return {"period": period}
+    if "-Q" in period:
+        first = date(int(period[:4]), int(period[-1]) * 3 - 2, 1)
+    else:
+        first = date.fromisoformat(period + "-01" if len(period) == 7 else period)
+    calendar = current_calendar()
+    released = release_at(rule, period_end(rule.frequency, first, calendar), calendar)
+    return {
+        "period": period,
+        "next_release_date": released.date().isoformat(),
+        "basis": "registered_release_lag",
+    }
 
 
 def _by_member(

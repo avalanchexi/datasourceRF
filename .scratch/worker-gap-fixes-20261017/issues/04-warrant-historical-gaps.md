@@ -35,3 +35,9 @@
 
 **遗留**
 - 目标日当期缺成员（持有期即该期、计划未完成）仍可能计入"其他缺失"而缺口清单不单列（如仓单目标日某品种缺失由 `failed_members` 说明的情形之外）；本票未改。
+
+### 2026-10-18 合入 worker-gaps ae015ce（B03 等待发布分组）
+
+- 冲突在 `freshness.add_projection_gaps` 与 `dashboard._gap_row`，两边行为都保留：历史缺期先归组，等待发布随后附在同一行或单独成 `awaiting_release` 行；历史缺期排除一切带 `release_gate` 的期，所以等待发布期既不算历史缺期，也不算完整度"其他缺失"（`coverage_display` 计入 `release_gated`）。行首原因在明细已写出时省略，四种明细（未请求、列表未覆盖、等待发布、历史缺期）同等对待。
+- 重装后复跑受影响 19 个文件 213 passed（504 秒）＋ `tests/web/test_awaiting_release_group.py` 3 passed；两项必跑冒烟 2 passed（41 秒）；`test_worker_registered_catalog.py` 2 passed（358 秒）。
+- 注意：B03 的 `tests/integration/test_awaiting_release_group.py` 与 `tests/web/test_awaiting_release_group.py` 同名，在同一次 pytest 调用里收集会报 import file mismatch（退出码 2），须分开跑或改名。

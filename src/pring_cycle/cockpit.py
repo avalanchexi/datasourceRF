@@ -1070,7 +1070,8 @@ def gaps_drawer(projection: ProjectionSet | None) -> Any:
 
 def data_boundary_line(gaps: object, coverage: dict[str, Any], pinned: str) -> list[Any]:
     """The gap list's size and the final plan's model metric-periods not held, with the
-    way on to section 07 and the data chain."""
+    way on to section 07 and the data chain. A metric awaiting release is no gap: it is
+    counted apart (worker gaps 03)."""
     missing: list[Any] = (
         [
             html.Strong(
@@ -1081,7 +1082,10 @@ def data_boundary_line(gaps: object, coverage: dict[str, Any], pinned: str) -> l
         if coverage.get("available")
         else ["历史期未取到：该版本未提供"]
     )
-    count = f"{len(objects(gaps))} 项缺口"
+    awaiting = sum(item.get("category") == "awaiting_release" for item in objects(gaps))
+    count = f"{len(objects(gaps)) - awaiting} 项缺口" + (
+        f"（另 {awaiting} 项等待发布）" if awaiting else ""
+    )
     return [
         drawer_trigger(GAPS_DRAWER, count) if objects(gaps) else count,
         " · ",
