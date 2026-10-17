@@ -145,7 +145,8 @@ html, body { font-size: 14px; }
 .overseas-others { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 10px; border: 1px dashed var(--line); border-radius: 8px; }
 .overseas-others h3 { grid-column: 1 / -1; margin: 0; }
 @media (max-width: 1100px) { .overseas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .overseas-grid { grid-template-columns: minmax(0, 1fr); } }
+/* Phones keep two cards per row, the other context cards included. */
+@media (max-width: 560px) { .overseas-others { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* 05: the quadrant card, the three lines' cards side by side, the warrants in one line. */
 .quadrant-card { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; background: var(--surface-panel); color: var(--ink-body); font-size: 13px; }
 .quadrant-card .section-kicker { margin: 0; }
@@ -153,6 +154,8 @@ html, body { font-size: 14px; }
 .line-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .line-card { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-panel); color: var(--ink-body); font-size: 12.5px; text-decoration: none; font-variant-numeric: tabular-nums; }
 .line-card:hover, .line-card:focus-visible { border-color: var(--accent); }
+/* A line without a reading is a plain card, not a drawer trigger. */
+div.line-card:hover { border-color: var(--line); }
 .line-card strong { color: var(--ink-strong); font-size: 13px; }
 .line-card small { color: var(--ink-muted); font-family: monospace; font-size: 11px; overflow-wrap: anywhere; }
 .line-card .card-value { color: var(--ink-strong); font-size: 18px; font-weight: 650; }
@@ -239,6 +242,14 @@ html, body { font-size: 14px; }
 .flow-sankey .node-label { fill: var(--ink-body) !important; text-shadow: none !important; }
 .request-table .table-scroll { max-height: 480px; overflow-y: auto; }
 .request-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: linear-gradient(var(--surface-muted), var(--surface-muted)), var(--surface-canvas);
+}
+/* The catalog's per-period requirements scroll inside the same 480px as the request table. */
+.requirement-table .table-scroll { max-height: 480px; overflow-y: auto; }
+.requirement-table thead th {
   position: sticky;
   top: 0;
   z-index: 1;

@@ -2,7 +2,7 @@
 
 Requests flow source → phase → result. Nodes read as a Chinese name and a request count,
 links are coloured by what the request came to, and sources with a single request are
-folded into one "其他（N）" node so the chart does not splinter.
+folded into one "其他 N 个来源" node so the chart does not splinter.
 """
 
 from __future__ import annotations
@@ -97,9 +97,9 @@ def test_sources_with_a_single_request_fold_into_one_other_node(tmp_path: Path) 
     labels = trace["node"]["label"]
     links = trace["link"]
 
-    assert labels[:2] == ["TuShare · 3", "其他（3） · 3"]
+    assert labels[:2] == ["TuShare · 3", "其他 3 个来源 · 3"]
     assert not any("国家统计局" in label or "欧洲央行" in label for label in labels)
-    other = labels.index("其他（3） · 3")
+    other = labels.index("其他 3 个来源 · 3")
     assert sorted(
         (labels[target], value)
         for source, target, value in zip(
@@ -226,7 +226,7 @@ def test_hovering_a_link_or_node_shows_its_requests_and_share(tmp_path: Path) ->
     assert "%{customdata}" in trace["node"]["hovertemplate"]
     assert "%{customdata}" in links["hovertemplate"]
     assert node_hover["TuShare · 5"] == "5 次请求 · 占比 50.0%"
-    assert node_hover["其他（2） · 2"] == "国家统计局、欧洲央行 · 2 次请求 · 占比 20.0%"
+    assert node_hover["其他 2 个来源 · 2"] == "国家统计局、欧洲央行 · 2 次请求 · 占比 20.0%"
     assert link_hover["官方发布 · 3", "补缺 · 5"] == "候选来源 · 3 次请求 · 占比 30.0%"
     assert link_hover["补缺 · 5", "失败 · 1"] == "失败 · 1 次请求 · 占比 10.0%"
 

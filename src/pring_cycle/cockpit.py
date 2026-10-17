@@ -281,13 +281,36 @@ def daily_panel(
     )
 
 
+def window_change(row: dict[str, Any], window: str) -> dict[str, Any]:
+    """A row's change over ``window`` (``change_5`` / ``change_120``) as the page reads it.
+
+    A count of companies reads as the difference in 家 between the window's two ends, taken
+    from the projection's own points, never as the projection's percent return.
+    """
+    display = obj(row.get("display"))
+    change = obj(display.get(window))
+    if (display.get("unit") or row.get("unit")) != "count" or not change:
+        return change
+    values = {point.get("date"): point.get("value") for point in objects(display.get("points"))}
+    start, end = values.get(change.get("start_date")), values.get(change.get("end_date"))
+    if not isinstance(start, (int, float)) or not isinstance(end, (int, float)):
+        return {**change, "value": None, "reason": change.get("reason") or "window_session_missing"}
+    return {**change, "value": end - start, "kind": "difference", "unit": "count"}
+
+
+def change_number(change: dict[str, Any]) -> str:
+    """A change's value with its unit; a difference in 家 carries its sign."""
+    text = number(change["value"], change.get("unit"))
+    return "+" + text if change.get("unit") == "count" and change["value"] > 0 else text
+
+
 def change_cell(value: object) -> Any:
     change = obj(value)
     if change.get("value") is None:
         reason = str(change.get("reason") or "旧投影未提供")
         return html.Span("—", title=REASONS.get(reason, reason))
     return html.Span(
-        number(change["value"], change.get("unit")),
+        change_number(change),
         title=f"{change.get('start_date')} → {change.get('end_date')}",
     )
 
@@ -492,6 +515,8 @@ def report_board(
             confirmation_cards(confirmation, macro, projection),
         ]
         if confirmation
+        else [confirmation_cards(confirmation, macro, projection)]
+        if projection is None
         else [view._macro_page(projection)],
         inventory_section(confirmation, projection),
         [
@@ -1505,7 +1530,18 @@ def _indicator_drawer(
 def confirmation_cards(
     confirmation: dict[str, Any], macro: dict[str, object], projection: ProjectionSet | None
 ) -> Any:
-    """Five dimension cards, one row per key indicator; each row opens its drawer."""
+    """Five dimension cards, one row per key indicator; each row opens its drawer.
+
+    Before the first run there is no projection: each card waits for it under its name.
+    """
+    if projection is None:
+        return html.Div(
+            [
+                html.Article([html.H3(label), html.P(FIRST_RUN)], className="dimension-card")
+                for label in view._DIMENSION_LABELS.values()
+            ],
+            className="dimension-grid",
+        )
     applicable = confirmation.get("applicable") is True
     dimensions = objects(confirmation.get("dimensions"))
     items: list[dict[str, Any]] = []
@@ -1543,12 +1579,25 @@ def confirmation_cards(
 
 
 LINE_CARDS = (("demand", "需求"), ("production", "生产"), ("inventory", "库存"))
+FIRST_RUN = "等待首次完整运行。"
 LINE_ROLES = {"line": "主线成员", "auxiliary": "辅助成员"}
 
 
 def inventory_section(confirmation: dict[str, Any], projection: ProjectionSet | None) -> list[Any]:
     """Section 05: the quadrant card, the three lines' cards, the warrants in one line; each
     member once, its auxiliaries and the warrant table in drawers."""
+    if projection is None:
+        return [
+            html.Div(
+                [
+                    html.P("库存象限", className="section-kicker"),
+                    html.Strong("—", className="card-value"),
+                    html.Span(FIRST_RUN),
+                ],
+                className="quadrant-card",
+            ),
+            line_cards([], {}, None, missing=FIRST_RUN),
+        ]
     document = view._dataset(projection, "inventory")
     if document.get("output_structure") != CONFIRMATION_STRUCTURE:
         return [view._inventory_page(projection)]
@@ -1699,8 +1748,13 @@ def line_cards(
     members: list[dict[str, Any]],
     cards_by_label: dict[str, dict[str, Any]],
     projection: ProjectionSet | None,
+    *,
+    missing: str = "本投影未提供该线读取",
 ) -> Any:
-    """One card per line with its main member; the drawer holds every member of the line."""
+    """One card per line with its main member; the drawer holds every member of the line.
+
+    A line without members says ``missing`` instead.
+    """
     cards: list[Any] = []
     panels: list[Any] = []
     for line, label in LINE_CARDS:
@@ -1709,7 +1763,7 @@ def line_cards(
             key=lambda member: member.get("role") != "line",
         )
         if not listed:
-            cards.append(html.Div([html.Strong(label), html.Span("本投影未提供该线读取")]))
+            cards.append(html.Div([html.Strong(label), html.Span(missing)], className="line-card"))
             continue
         main = listed[0]
         name = _member_name(main, label)
@@ -1778,7 +1832,7 @@ def related_assets(
             (
                 drawer_trigger(key, name_cell(name), class_name="row-trigger"),
                 number(evidence.get("value"), evidence.get("unit")),
-                change_cell(obj(obj(evidence.get("display")).get("change_5"))),
+                change_cell(window_change(evidence, "change_5")),
                 _direction_arrow(evidence.get("direction")),
             )
         )
@@ -2380,7 +2434,7 @@ def _change_text(value: object) -> str:
         reason = str(change.get("reason") or "旧投影未提供")
         return f"—（{REASONS.get(reason, reason)}）"
     return (
-        number(change["value"], change.get("unit"))
+        change_number(change)
         + f"（{change.get('start_date') or '—'} → {change.get('end_date') or '—'}）"
     )
 
@@ -2400,7 +2454,6 @@ def _context_drawer(
     extra: Sequence[tuple[str, Any]] = (),
 ) -> Any:
     """Every field of one context row, its evidence and its trend, as a drawer panel."""
-    display = obj(item.get("display"))
     fields: list[tuple[str, Any]] = [
         (
             "最新值",
@@ -2418,8 +2471,8 @@ def _context_drawer(
             + view._state_label(item.get("frequency") or "未提供"),
         ),
         ("方向", _direction_arrow(item.get("direction"))),
-        ("近 5 日", _change_text(display.get("change_5"))),
-        ("近 120 日", _change_text(display.get("change_120"))),
+        ("近 5 日", _change_text(window_change(item, "change_5"))),
+        ("近 120 日", _change_text(window_change(item, "change_120"))),
         ("时效", view._state_label(item.get("status"))),
         *extra,
         (
