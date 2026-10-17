@@ -43,6 +43,11 @@ def stage_code(value: object) -> str:
     return STAGE_TITLES.get(str(value).lower(), str(value)).rpartition(" · ")[2]
 
 
+def stage_name(value: object) -> str:
+    """A formal stage's Chinese name alone, where its code would repeat it (decision 13)."""
+    return STAGE_TITLES.get(str(value).lower(), str(value)).partition(" · ")[0]
+
+
 def stage_title(value: object) -> str:
     """A formal stage title; an empty current stage is a result, not a pending judgement."""
     if value is None:
