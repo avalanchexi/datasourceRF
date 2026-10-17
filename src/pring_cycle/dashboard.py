@@ -451,6 +451,49 @@ def _member_names(value: object) -> str:
     return "、".join(names)
 
 
+def _member_name(member: object) -> str:
+    """A plan's missing member by its Chinese name and the values telling it apart: a
+    warrant symbol is recorded ``<metric>:symbol_missing:<symbol>``, another member
+    ``<metric>:<dimensions as JSON>``."""
+    metric_id, _, rest = str(member).partition(":")
+    kind, _, symbol = rest.partition(":")
+    try:
+        dimensions = {"symbol": symbol} if kind == "symbol_missing" else json.loads(rest)
+    except ValueError:
+        return str(member)
+    if not isinstance(dimensions, dict):
+        return str(member)
+    name = display_name(metric_id, dimensions)
+    values = "、".join(str(value) for value in dimensions.values())
+    if not name.provided:
+        return values or str(member)
+    return f"{name.name}（{values}）" if values else name.name
+
+
+def _missing_periods(value: object, *, detailed: bool) -> str:
+    """The periods the final plan could not complete for another reason than a gate or a
+    listing, such as a warrant symbol's historical day (worker gaps 04): a count and span
+    on the page, each period with the members it lacks in the drawer."""
+    periods = _document_list(value)
+    if not periods:
+        return ""
+    if detailed:
+        return "；历史缺期 " + "；".join(
+            f"{item.get('period')} 缺 "
+            + "、".join(_member_name(member) for member in _document_members(item))
+            for item in periods
+        )
+    days = [str(item.get("period")) for item in periods]
+    members = sum(len(_document_members(item)) for item in periods)
+    span = days[0] if len(days) == 1 else f"{min(days)} 至 {max(days)}"
+    return f"；历史缺期 {len(days)} 期共缺 {members} 个成员（{span}）"
+
+
+def _document_members(item: dict[str, Any]) -> list[object]:
+    members = item.get("missing_members")
+    return list(members) if isinstance(members, list) else []
+
+
 def _awaiting_release(value: object) -> str:
     """The periods whose release has not come, by when it is out and on what basis."""
     by_release: dict[tuple[str, str], list[str]] = {}
@@ -548,8 +591,9 @@ def _calendar_fallback_notice(value: object) -> list[html.P]:
     ]
 
 
-def _gap_list(value: object) -> html.Div:
-    """One row per gap, grouped under its category, in the order the batch listed them."""
+def _gap_list(value: object, *, detailed: bool = True) -> html.Div:
+    """One row per gap, grouped under its category, in the order the batch listed them;
+    without ``detailed``, a historical period's members are left to the drawer."""
     gaps = _document_list(value)
     if not gaps:
         return html.Div(html.P("本次运行没有缺口。", className="body-copy"))
@@ -561,7 +605,7 @@ def _gap_list(value: object) -> html.Div:
                 html.Div(
                     [
                         html.H3(f"{label}（{len(rows)}）"),
-                        html.Ul([html.Li(_gap_row(item, category)) for item in rows]),
+                        html.Ul([html.Li(_gap_row(item, category, detailed)) for item in rows]),
                     ],
                     className="gap-group",
                 )
@@ -575,10 +619,11 @@ _REASONS_IN_DETAILS = {
     "listing_not_covered",
     "awaiting_release",
     "members_missing",
+    "historical_periods_missing",
 }
 
 
-def _gap_row(item: dict[str, Any], category: str) -> str:
+def _gap_row(item: dict[str, Any], category: str, detailed: bool = True) -> str:
     """One gap: the metric by its Chinese name, why in Chinese, then its details."""
     reason = str(item.get("reason"))
     details = (
@@ -587,6 +632,7 @@ def _gap_row(item: dict[str, Any], category: str) -> str:
         + _not_requested(item.get("not_requested"))
         + _not_covered(item.get("not_covered"))
         + _members_missing(item.get("members_missing"))
+        + _missing_periods(item.get("missing_periods"), detailed=detailed)
         + _awaiting_release(item.get("awaiting_release"))
         + ("；来源复核失败" if item.get("source_failures") and category != "source_failed" else "")
         + ("；来源同时冲突" if item.get("conflicts") and category != "source_conflict" else "")
@@ -597,7 +643,13 @@ def _gap_row(item: dict[str, Any], category: str) -> str:
         if reason in _REASONS_IN_DETAILS
         and any(
             item.get(key)
-            for key in ("not_requested", "not_covered", "awaiting_release", "members_missing")
+            for key in (
+                "not_requested",
+                "not_covered",
+                "awaiting_release",
+                "missing_periods",
+                "members_missing",
+            )
         )
         else reason_label(reason)
         + (

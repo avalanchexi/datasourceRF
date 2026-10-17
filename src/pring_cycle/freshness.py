@@ -992,6 +992,7 @@ def add_projection_gaps(
     derived_requirements: Iterable[Mapping[str, object]],
     plan_gaps: Iterable[Mapping[str, object]],
     definitions: Iterable[MetricDefinition],
+    held_periods: Mapping[str, object] | None = None,
 ) -> list[dict[str, object]]:
     """Add what only the computed projection shows, which timeliness cannot see (ticket 09).
 
@@ -1014,7 +1015,10 @@ def add_projection_gaps(
     official listing stopped short of gets ``not_covered``, each period with the listing,
     where its reading stopped (``page_limit``: the run's pages of the site were read), the
     pages read and the earliest entry they list: not listed as far as read, which is not
-    "none" (lookback L05). A metric's newest planned period held in part gets
+    "none" (lookback L05). Any other period the plan could not complete although a later
+    one is held (``held_periods``, the run's timeliness) or the plan completed it gets its
+    metric ``missing_periods``, each with the members it lacks, such as a warrant symbol's
+    historical day (worker gaps 04). A metric's newest planned period held in part gets
     ``members_missing``: the members held beside those still missing (worker gaps 02). The
     list keeps one row
     per metric: a metric not listed yet is added as ``derived_failed``, ``source_failed``,
@@ -1051,6 +1055,8 @@ def add_projection_gaps(
     for document in documents:
         walk(document, None)
     listed = {str(gap["metric_id"]): dict(gap) for gap in gaps}
+    # What each timeliness row holds, before the projection's additions to the list.
+    listed_held = {metric_id: gap.get("held_period") for metric_id, gap in listed.items()}
     # The next release the source's original states, as its latest acquisition recorded.
     next_releases = {
         str(row["metric_id"]): str(acquisition["next_release_date"])
@@ -1074,6 +1080,7 @@ def add_projection_gaps(
             },
         )
 
+    plan_gaps = list(plan_gaps)
     incomplete = [gap for gap in plan_gaps if not gap.get("complete", True)]
     not_requested: dict[str, list[dict[str, object]]] = {}
     awaiting: dict[str, list[dict[str, object]]] = {}
@@ -1166,6 +1173,9 @@ def add_projection_gaps(
         if gap["category"] == "source_conflict":
             gap["held_period"] = items[-1]["period"]
         gap["conflicts"] = items
+    historical = _historical_periods(plan_gaps, listed_held, held_periods or {}, listed)
+    for metric_id, periods in historical.items():
+        entry(metric_id, "missing", "historical_periods_missing")["missing_periods"] = periods
     for metric_id, periods in awaiting.items():
         if metric_id in listed:
             listed[metric_id]["awaiting_release"] = periods
@@ -1204,6 +1214,65 @@ def _members_missing(
             {"period": gap.get("period"), "held_members": held, "missing_members": missing}
         )
     return found
+
+
+def _historical_periods(
+    plan_gaps: Iterable[Mapping[str, object]],
+    listed_held: Mapping[str, object],
+    held_periods: Mapping[str, object],
+    listed: Mapping[str, Mapping[str, object]],
+) -> dict[str, list[dict[str, object]]]:
+    """Per metric, each period the final plan could not complete although a later one is
+    held or the plan completed it, with the members it lacks (worker gaps 04): a warrant
+    symbol's day, say. Before the latest period held, not a period still to come.
+
+    Not a period a gate kept from being requested or a listing did not reach, both listed
+    with their own reason; not one past the period the metric's timeliness row holds, which
+    that row speaks for; not one a formula's missing inputs already name.
+    """
+    plan = list(plan_gaps)
+    latest: dict[str, str] = {}
+    for gap in plan:
+        if gap.get("complete", True):
+            metric_id = str(gap["metric_id"])
+            latest[metric_id] = max(latest.get(metric_id, ""), str(gap.get("period")))
+    named = {
+        (str(item.get("metric_id")), str(item.get("period")))
+        for row in listed.values()
+        for item in _members(row.get("missing_inputs"))
+        if isinstance(item, Mapping)
+    }
+    historical: dict[str, list[dict[str, object]]] = {}
+    for gap in plan:
+        metric_id, period = str(gap["metric_id"]), str(gap.get("period"))
+        if (
+            gap.get("complete", True)
+            or gap.get("release_gate") is not None
+            or isinstance(gap.get("listing_not_covered"), Mapping)
+            # Not a period still to come: neither the plan nor timeliness holds a later one.
+            or (
+                latest.get(metric_id, "") <= period
+                and not _holds_later(held_periods.get(metric_id), period)
+            )
+            # A period past the one a timeliness row holds is that row's to speak for.
+            or (metric_id in listed_held and not _held_through(listed_held[metric_id], period))
+            or (metric_id, period) in named
+        ):
+            continue
+        historical.setdefault(metric_id, []).append(
+            {"period": period, "missing_members": _members(gap.get("missing_members"))}
+        )
+    return {
+        metric_id: sorted(periods, key=lambda item: str(item["period"]))
+        for metric_id, periods in historical.items()
+    }
+
+
+def _holds_later(held: object, period: str) -> bool:
+    """Whether a held period end is later than a retrieval period: a day, month or quarter."""
+    if "-Q" in period:
+        period = f"{period[:4]}-{int(period[-1]) * 3:02d}"
+    return isinstance(held, str) and held[: len(period)] > period
 
 
 def _awaiting_release(

@@ -251,6 +251,7 @@ REASON_LABELS = {
     "period_not_requested": "未请求",
     "listing_not_covered": "官方列表未覆盖",
     "members_missing": "部分成员未取得",
+    "historical_periods_missing": "历史缺期",
     "not_computed": "未计算",
     "missing_inputs": "缺少输入",
     "incomparable_gdp_vintages": "GDP 前后版本不可比",
