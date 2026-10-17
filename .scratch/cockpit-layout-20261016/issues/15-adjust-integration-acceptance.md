@@ -7,7 +7,7 @@
 **Status:** ready-for-human
 
 - [x] 全套测试通过（或失败逐条说明并处理）；两项必跑冒烟通过（全套 2694 passed；冒烟 2 passed）
-- [ ] Codex 截图与实测数值记入 acceptance.md，主 agent 抽查关键截图
+- [x] Codex 截图与实测数值记入 acceptance.md，主 agent 抽查关键截图
 - [x] 8067、8068 已换新代码并可访问（dev-venv-cl15，PID 1365489、1365491）
 - [x] acceptance.md 有本轮逐段确认清单，等用户勾选
 
@@ -28,3 +28,7 @@
 - 票 11 验收框"908 宽底边齐平"与规格"<1000px 堆叠"矛盾，已由主 agent 问用户；908 实测为三卡堆叠，本票未改断点与该框。
 - 10-15 AI 正文仍有"阶段变化记为缺口"、`stage_iii` 等，属 B 批次 05。
 - "主 agent 抽查关键截图"一框留给主 agent 勾。
+
+### 2026-10-18 主 agent 核验
+
+抽看 `screenshots/adjust-20261017/1014-history-light-1440.jpg`（⑥ 两栏顶底齐平、阶段名只写中文）、`1015-reading-light-1440.jpg`（⑦ 原因码中文、说明句、非典型一行）及 cl11 的 `1015-assets-light-1440.png`（② 三卡等高），与实测一致。全套 2694 passed（cl15/full.log）。合入 cockpit-layout（ee437b4）。
