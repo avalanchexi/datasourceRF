@@ -128,6 +128,26 @@ def test_a_noncanonical_ai_reading_is_stated_as_no_formal_stage_not_as_a_gap() -
     assert "阶段变化 非典型组合，暂无正式阶段" in panel
 
 
+def test_a_noncanonical_template_reading_is_stated_as_no_formal_stage() -> None:
+    projection = _gaps_projection([])
+    body = {
+        "ai_explanation": [{"title": "非典型组合", "explanation": "模板事实句。"}],
+        "explanation_source": "deterministic_template",
+        "verified_results": {
+            "formal_stage": {"value": None, "change": "gap", "reason": "noncanonical_combination"}
+        },
+    }
+
+    section = _reading(
+        projection,
+        reports=(
+            _report(projection.envelope.projection_set_id, adapter="deterministic", body=body),
+        ),
+    )
+
+    assert "阶段变化：非典型组合，暂无正式阶段" in _words(_visible(section))
+
+
 def test_a_canonical_ai_reading_adds_no_stage_change_note() -> None:
     projection = _gaps_projection([])
     body = {

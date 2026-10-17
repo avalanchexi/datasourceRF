@@ -37,12 +37,17 @@ STAGE_CHANGE_LABELS = {"formal": "形成正式阶段", "gap": NO_FORMAL_STAGE}
 NONCANONICAL_NO_STAGE = "非典型组合，暂无正式阶段"
 
 
+def noncanonical_stage_change(change: object, reason: object) -> bool:
+    """Whether a day's ``gap`` stage change is a noncanonical combination's result with no
+    formal stage, not missing core data (ticket 13)."""
+    return change == "gap" and reason == "noncanonical_combination"
+
+
 def stage_change_label(change: object, reason: object) -> str | None:
-    """A day's stage change in reader's words: a noncanonical combination's ``gap`` event is
-    a result with no formal stage, not missing core data (ticket 13)."""
+    """A day's stage change in reader's words."""
     if change is None:
         return None
-    if change == "gap" and reason == "noncanonical_combination":
+    if noncanonical_stage_change(change, reason):
         return NONCANONICAL_NO_STAGE
     return STAGE_CHANGE_LABELS.get(str(change), str(change))
 
@@ -241,6 +246,8 @@ REASON_LABELS = {
     "missing_inputs": "缺少输入",
     "incomparable_gdp_vintages": "GDP 前后版本不可比",
     "acquisition_time_invalid": "取数时点无效",
+    # Why a count of companies has no 120-day difference on the page.
+    "count_window_outside_points": "点列只含 120 个交易日，无法算 120 日家数差",
     # The release gate's reason for a period it kept from being requested.
     "awaiting_release": "等待发布",
     "earlier_session_not_searched": "较早交易日不逐日检索",

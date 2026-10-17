@@ -32,7 +32,8 @@ from pring_cycle.wording import (
     DisplayName,
     core_state_label,
     display_name,
-    stage_change_label,
+    noncanonical_stage_change,
+    reason_label,
     stage_code,
     stage_name,
 )
@@ -298,6 +299,9 @@ def window_change(row: dict[str, Any], window: str) -> dict[str, Any]:
     if (display.get("unit") or row.get("unit")) != "count" or not change:
         return change
     values = {point.get("date"): point.get("value") for point in objects(display.get("points"))}
+    if window == "change_120" and change.get("start_date") and change["start_date"] not in values:
+        # The points hold 120 sessions, so the 120-day window's start is never among them.
+        return {**change, "value": None, "reason": "count_window_outside_points"}
     start, end = values.get(change.get("start_date")), values.get(change.get("end_date"))
     if not isinstance(start, (int, float)) or not isinstance(end, (int, float)):
         return {**change, "value": None, "reason": change.get("reason") or "window_session_missing"}
@@ -314,7 +318,7 @@ def change_cell(value: object) -> Any:
     change = obj(value)
     if change.get("value") is None:
         reason = str(change.get("reason") or "旧投影未提供")
-        return html.Span("—", title=REASONS.get(reason, reason))
+        return html.Span("—", title=REASONS.get(reason) or reason_label(reason))
     return html.Span(
         change_number(change),
         title=f"{change.get('start_date')} → {change.get('end_date')}",
@@ -1209,6 +1213,13 @@ def report_summary(report: ReportSnapshot | None, pinned: str) -> list[Any]:
         return [html.P("报告尚未生成，或旧投影未提供解读。")]
     body = report.body if report.body_retained else {}
     sections = objects(body.get("ai_explanation"))
+    stage = obj(obj(body.get("verified_results")).get("formal_stage"))
+    # A reading may call a noncanonical day's empty stage a gap; it is no data gap.
+    stage_note = (
+        html.P("阶段变化：" + NONCANONICAL_NO_STAGE, className="secondary-copy")
+        if noncanonical_stage_change(stage.get("change"), stage.get("reason"))
+        else None
+    )
     if report.adapter == "deterministic":
         summary: list[Any] = [
             html.P(reading_line(report, pinned, pending=False)),
@@ -1222,18 +1233,15 @@ def report_summary(report: ReportSnapshot | None, pinned: str) -> list[Any]:
                 for item in sections
                 if body.get("explanation_source") == "deterministic_template"
             ),
+            stage_note,
         ]
     else:
-        stage = obj(obj(body.get("verified_results")).get("formal_stage"))
         summary = [
             html.P("AI 解读 · " + report.adapter, className="secondary-copy"),
             html.P(str(sections[0].get("explanation") or ""), className="body-copy")
             if sections
             else None,
-            # An AI reading may call a noncanonical day's empty stage a gap; it is no data gap.
-            html.P("阶段变化：" + NONCANONICAL_NO_STAGE, className="secondary-copy")
-            if stage_change_label(stage.get("change"), stage.get("reason")) == NONCANONICAL_NO_STAGE
-            else None,
+            stage_note,
         ]
     if not report.body_retained:
         summary.append(html.P("正文已不在保留期；报告身份仍可在详情中核对。"))
@@ -2179,7 +2187,7 @@ HISTORY_LABELS = {
     **CORE_STATE_LABELS,
     "undetermined": "待定",
     "unknown": "未知",
-    "noncanonical_combination": "非典型组合",
+    "noncanonical_combination": NONCANONICAL_NO_STAGE,
     "canonical_combination": "典型组合",
     "insufficient_core_evidence": "核心不足",
     **BLOCKED_REASONS,
@@ -2529,7 +2537,7 @@ def _change_text(value: object) -> str:
     change = obj(value)
     if change.get("value") is None:
         reason = str(change.get("reason") or "旧投影未提供")
-        return f"—（{REASONS.get(reason, reason)}）"
+        return f"—（{REASONS.get(reason) or reason_label(reason)}）"
     return (
         change_number(change)
         + f"（{change.get('start_date') or '—'} → {change.get('end_date') or '—'}）"

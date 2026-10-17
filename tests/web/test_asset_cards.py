@@ -566,3 +566,32 @@ def test_an_observation_name_shows_its_full_name_and_code_on_hover() -> None:
 
     # The link covers its row, so the hover title sits on the link itself.
     assert getattr(row, "title", None) == "上涨家数\nCN_EQ_ADV_DEC · advances"
+
+
+def test_a_count_120_day_change_says_why_it_has_no_difference() -> None:
+    # The points hold 120 sessions, so the 120-day window's start is never among them.
+    row = _breadth("advances", 2566.0, 978.0, -61.89)
+    display = {
+        **row["display"],  # type: ignore[dict-item]
+        "change_120": {
+            "value": 12.5,
+            "kind": "return",
+            "unit": "percent",
+            "start_date": "2026-04-17",
+            "end_date": "2026-10-14",
+        },
+    }
+    page = dashboard_page(
+        "/",
+        _with_observations(
+            [{"label": "市场广度：涨跌家数", "evidence": [{**row, "display": display}]}]
+        ),
+        (),
+        (),
+    )
+    (advances,) = [
+        item for item in _triggers(_by_id(page, "asset-stock")) if _text(item) == "上涨家数"
+    ]
+    panel = _words(_panel(page, advances))
+
+    assert "近 120 日 —（点列只含 120 个交易日，无法算 120 日家数差）" in panel

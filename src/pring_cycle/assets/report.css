@@ -273,15 +273,10 @@ div.line-card:hover { border-color: var(--line); }
   --flow-result: #5ce1ed;
 }
 .flow-sankey .node-label { fill: var(--ink-body) !important; text-shadow: none !important; }
-.request-table .table-scroll { max-height: 480px; overflow-y: auto; }
-.request-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: linear-gradient(var(--surface-muted), var(--surface-muted)), var(--surface-canvas);
-}
-/* The catalog's per-period requirements scroll inside the same 480px as the request table. */
+/* The request table and the catalog's per-period requirements scroll inside the same 480px. */
+.request-table .table-scroll,
 .requirement-table .table-scroll { max-height: 480px; overflow-y: auto; }
+.request-table thead th,
 .requirement-table thead th {
   position: sticky;
   top: 0;

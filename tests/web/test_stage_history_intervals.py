@@ -82,7 +82,7 @@ def test_consecutive_days_of_one_state_merge_and_a_change_of_state_breaks_the_in
 
     assert rows == [
         "04-27～04-29 第三阶段 3 日",
-        "04-30～05-06 非典型组合 2 日",
+        "04-30～05-06 非典型组合，暂无正式阶段 2 日",
         "05-07 第三阶段 1 日",
     ]
 
@@ -115,8 +115,10 @@ def test_an_interval_drawer_lists_each_day_with_its_correction_version_and_proje
     ((trigger, panel),) = _intervals(projection)
     text = _words(panel)
 
-    assert _words(trigger) == "04-27～04-28 非典型组合 2 日 含更正 1 日"
-    assert text.index("2026-04-27 · 非典型组合") < text.index("2026-04-28 · 非典型组合")
+    assert _words(trigger) == "04-27～04-28 非典型组合，暂无正式阶段 2 日 含更正 1 日"
+    assert text.index("2026-04-27 · 非典型组合，暂无正式阶段") < text.index(
+        "2026-04-28 · 非典型组合，暂无正式阶段"
+    )
     assert text.count("更正版本") == 1
     assert "更正版本：更正 projection-old-04-28 （核心历史口径变更；只更正核心与正式阶段" in text
     assert "上一确认 第三阶段 · Stage III" in text
@@ -315,4 +317,7 @@ def test_a_set_without_bands_says_so_on_the_left_and_still_lists_its_intervals()
     bands, intervals, _rest = _sides(projection)
 
     assert "旧投影未提供对齐的交易日色带；历史事件仍可阅读。" in _words(bands)
-    assert _words(intervals) == "阶段区间（最近 120 个交易日） 10-14～10-15 非典型组合 2 日"
+    assert (
+        _words(intervals)
+        == "阶段区间（最近 120 个交易日） 10-14～10-15 非典型组合，暂无正式阶段 2 日"
+    )
