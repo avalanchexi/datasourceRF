@@ -124,7 +124,8 @@ def test_the_data_boundary_opens_the_full_gap_list_in_the_drawer() -> None:
     (gaps,) = [item for item in triggers if _words(item) == "2 项缺口"]
     drawer = _words(_by_id(section, str(getattr(gaps, "href", "")).removeprefix("#")))
     assert drawer.startswith("全部缺口（2）")
-    assert "P1 CN_DR007" in drawer and "P2 UST10Y_NOMINAL_YIELD" in drawer
+    assert "P1 DR007（CN_DR007）" in drawer
+    assert "P2 美国 10 年期国债收益率（UST10Y_NOMINAL_YIELD）" in drawer
     assert "时效缺口（1）" in drawer and "缺失（1）" in drawer
     # The board keeps the one line and its way on to section 07 and the data chain.
     assert "数据边界 2 项缺口 · 5 个历史期未取到（最终计划，模型所需口径） · 详见" in _board(

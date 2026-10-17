@@ -28,9 +28,11 @@ from pring_cycle.wording import (
     CORE_STATE_LABELS,
     NO_CHINESE_NAME,
     NO_MEMBER_NAME,
+    NONCANONICAL_NO_STAGE,
     DisplayName,
     core_state_label,
     display_name,
+    stage_change_label,
     stage_code,
     stage_name,
 )
@@ -528,7 +530,10 @@ def report_board(
         ],
         [
             html.H3("完整度与缺期"),
-            coverage_table(obj(macro.get("coverage"))),
+            # A set published before coverage was projected cannot show it (ticket 13).
+            coverage_table(
+                obj(macro.get("coverage")), "两种完整度口径：该投影生成时尚未提供此统计。"
+            ),
             *view._freshness_basis(projection),
             *(gap_preview(overview.get("gap_list")) if projection else [html.P("尚无分析投影。")]),
             html.P(
@@ -1219,10 +1224,15 @@ def report_summary(report: ReportSnapshot | None, pinned: str) -> list[Any]:
             ),
         ]
     else:
+        stage = obj(obj(body.get("verified_results")).get("formal_stage"))
         summary = [
             html.P("AI 解读 · " + report.adapter, className="secondary-copy"),
             html.P(str(sections[0].get("explanation") or ""), className="body-copy")
             if sections
+            else None,
+            # An AI reading may call a noncanonical day's empty stage a gap; it is no data gap.
+            html.P("阶段变化：" + NONCANONICAL_NO_STAGE, className="secondary-copy")
+            if stage_change_label(stage.get("change"), stage.get("reason")) == NONCANONICAL_NO_STAGE
             else None,
         ]
     if not report.body_retained:
@@ -1903,9 +1913,12 @@ def related_assets(
     return table(("名称", "值", "近 5 日", "方向"), rows), panels
 
 
-def coverage_table(coverage: dict[str, Any]) -> Any:
+def coverage_table(
+    coverage: dict[str, Any], absent: str = "该版本未提供最终需求计划的两种完整度口径。"
+) -> Any:
+    """The final plan's two coverage measures; ``absent`` says why a summary has none."""
     if not coverage.get("available"):
-        return html.P("该版本未提供最终需求计划的两种完整度口径。")
+        return html.P(absent)
     return html.Div(
         [
             html.P(

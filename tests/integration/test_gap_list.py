@@ -218,7 +218,7 @@ def test_page_and_report_show_the_same_gap_list(published: tuple[RuntimePaths, A
     page = str(_home_page(projection))
 
     assert report.body["gap_list"] == projection.datasets["cycle_overview"]["gap_list"]
-    for label in ("缺口清单", "无网页补缺渠道", "时效缺口", "未配置时效", "CN_EQ_CSI500"):
+    for label in ("缺口清单", "未配置额外网页检索补缺", "时效缺口", "未配置时效", "CN_EQ_CSI500"):
         assert label in page
 
 

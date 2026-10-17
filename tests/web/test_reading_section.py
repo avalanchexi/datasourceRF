@@ -87,7 +87,7 @@ def test_gaps_are_listed_once_and_five_at_most_with_the_rest_in_a_drawer() -> No
     trigger = _trigger(section, "查看全部")
     assert "7" in _text(trigger)
     panel = _panel(page, trigger)
-    assert all(f"P1 METRIC_{index}：period_not_requested" in panel for index in range(1, 8))
+    assert all(f"P1 METRIC_{index}：未请求" in panel for index in range(1, 8))
 
 
 def test_the_data_boundary_and_section_07_open_the_same_gap_drawer() -> None:
@@ -114,7 +114,7 @@ def test_five_gaps_or_fewer_need_no_drawer() -> None:
     )
     visible = _words(_visible(section))
 
-    assert visible.count("CN_SF_TOTAL：") == 1 and visible.count("EIA_WTI_RWTC：") == 1
+    assert visible.count("CN_SF_TOTAL）：") == 1 and visible.count("EIA_WTI_RWTC）：") == 1
     assert "查看全部" not in visible
 
 
@@ -142,7 +142,7 @@ def test_a_template_reading_does_not_repeat_the_gaps_its_report_bound() -> None:
 
     section = _reading(projection, reports=(_template_report(projection, gaps),))
 
-    assert _words(_text(section)).count("CN_SF_TOTAL：") == 1
+    assert _words(_text(section)).count("CN_SF_TOTAL）：") == 1
 
 
 def test_a_template_report_summary_is_the_note_and_the_noncanonical_reading() -> None:
