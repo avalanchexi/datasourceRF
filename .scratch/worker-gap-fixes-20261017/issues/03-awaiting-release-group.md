@@ -35,3 +35,7 @@
 - 完整度表列名仍为"门禁 / 等待发布"，未把等待发布与其他门禁拆成两列。
 
 - 并入 worker-gaps 1b335db（含 B01）后重装复跑：网页 9 个文件 82 例通过；集成 57 例通过 161 s；两项冒烟通过 44 s。
+
+### 2026-10-18 主 agent
+
+`tests/web/test_awaiting_release_group.py` 与集成测试同名，同次收集报 import file mismatch；已改名为 `tests/web/test_reading_awaiting_release_group.py`。
