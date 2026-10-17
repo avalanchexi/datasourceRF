@@ -792,11 +792,18 @@ def _failed_candidates(
     return {metric_id: list(urls.values())[:3] for metric_id, urls in failed.items()}
 
 
-def _held_through(held: object, period: str) -> bool:
-    """Whether a held period end reaches a retrieval period: a day, a month or a quarter."""
+def _held_against(held: object, period: str) -> tuple[str, str] | None:
+    """A held period end and a retrieval period (a day, a month or a quarter, as its last
+    month) cut to the same length, to compare; none when nothing is held."""
     if "-Q" in period:
         period = f"{period[:4]}-{int(period[-1]) * 3:02d}"
-    return isinstance(held, str) and held[: len(period)] >= period
+    return (held[: len(period)], period) if isinstance(held, str) else None
+
+
+def _held_through(held: object, period: str) -> bool:
+    """Whether a held period end reaches a retrieval period."""
+    compared = _held_against(held, period)
+    return compared is not None and compared[0] >= compared[1]
 
 
 def backtracked(database: Path, run_id: str) -> dict[str, str]:
@@ -980,6 +987,66 @@ def sort_gaps(gaps: Iterable[dict[str, object]]) -> list[dict[str, object]]:
     )
 
 
+def stated_next_releases(documents: Iterable[object]) -> dict[str, str]:
+    """Per metric, the next release its source's original states, as the latest acquisition
+    of its row in the projection's documents recorded (EIA's history pages)."""
+    found: dict[str, str] = {}
+
+    def walk(value: object) -> None:
+        if isinstance(value, Mapping):
+            acquisition = value.get("latest_acquisition")
+            if (
+                isinstance(metric_id := value.get("metric_id"), str)
+                and isinstance(acquisition, Mapping)
+                and acquisition.get("next_release_date")
+            ):
+                found[metric_id] = str(acquisition["next_release_date"])
+            for child in value.values():
+                walk(child)
+        elif isinstance(value, list | tuple):
+            for child in value:
+                walk(child)
+
+    walk(list(documents))
+    return found
+
+
+def awaiting_stated_release(
+    plan_gaps: Iterable[Mapping[str, object]],
+    documents: Iterable[object],
+    *,
+    held_periods: Mapping[str, object],
+    judged_at: datetime,
+) -> tuple[dict[str, object], ...]:
+    """The final plan's periods, each one requested and not had that its source's original
+    says is not out yet marked ``awaiting_release``: past the period the run holds, with the
+    next release the original states on or after the day judged on (in Beijing; the source's
+    own day is not later). The estimate let it through; the gate is not changed, only how the
+    gap list and coverage group it (worker gaps 03, spec story 9)."""
+    stated = stated_next_releases(documents)
+    judged_on = judged_at.astimezone(SHANGHAI).date().isoformat()
+    marked: list[dict[str, object]] = []
+    for gap in plan_gaps:
+        row = dict(gap)
+        metric_id, period = str(gap["metric_id"]), str(gap.get("period"))
+        release = stated.get(metric_id)
+        if (
+            not gap.get("complete", True)
+            and gap.get("release_gate") is None
+            and release is not None
+            and release >= judged_on
+            and release > period
+            and not _held_through(held_periods.get(metric_id), period)
+        ):
+            row["awaiting_release"] = {
+                "period": period,
+                "next_release_date": release,
+                "basis": "source_next_release_date",
+            }
+        marked.append(row)
+    return tuple(marked)
+
+
 # A formula document that names no metric of its own.
 _FORMULA_DOCUMENTS = {"real_inventory_approximation": "CN_REAL_FINISHED_GOODS_INVENTORY_PROXY"}
 _USABLE_DERIVED_STATUSES = frozenset({"current", "stale", "available", "disabled_by_model"})
@@ -1058,12 +1125,7 @@ def add_projection_gaps(
     # What each timeliness row holds, before the projection's additions to the list.
     listed_held = {metric_id: gap.get("held_period") for metric_id, gap in listed.items()}
     # The next release the source's original states, as its latest acquisition recorded.
-    next_releases = {
-        str(row["metric_id"]): str(acquisition["next_release_date"])
-        for row in rows
-        if isinstance(acquisition := row.get("latest_acquisition"), Mapping)
-        and acquisition.get("next_release_date")
-    }
+    next_releases = stated_next_releases(rows)
 
     def entry(metric_id: str, category: str, reason: str) -> dict[str, object]:
         return listed.setdefault(
@@ -1085,7 +1147,9 @@ def add_projection_gaps(
     not_requested: dict[str, list[dict[str, object]]] = {}
     awaiting: dict[str, list[dict[str, object]]] = {}
     for gap in incomplete:
-        if gap.get("release_gate") == "awaiting_release":
+        if isinstance(stated := gap.get("awaiting_release"), Mapping):
+            awaiting.setdefault(str(gap["metric_id"]), []).append(dict(stated))
+        elif gap.get("release_gate") == "awaiting_release":
             awaiting.setdefault(str(gap["metric_id"]), []).append(
                 _awaiting_release(gap, next_releases)
             )
@@ -1196,19 +1260,23 @@ def add_projection_gaps(
 def _members_missing(
     plan_gaps: Iterable[Mapping[str, object]],
 ) -> dict[str, list[dict[str, object]]]:
-    """Each metric's newest planned period the run holds part of but not all: the members
-    held and those still missing (worker gaps 02: September's social financing stock and flow
-    held, its official stock growth not). Earlier periods are listed as history."""
+    """Each metric's newest planned period requested that the run holds part of but not all:
+    the members held and those still missing (worker gaps 02: September's social financing
+    stock and flow held, its official stock growth not). Earlier periods are listed as
+    history. A newer period the gate kept back or awaiting release is listed with its own
+    reason, and is no newer one here, which would leave this one in neither list."""
     gaps = list(plan_gaps)
     newest: dict[str, str] = {}
     for gap in gaps:
+        if gap.get("release_gate") is not None or "awaiting_release" in gap:
+            continue
         metric_id, period = str(gap["metric_id"]), str(gap.get("period"))
         newest[metric_id] = max(newest.get(metric_id, period), period)
     found: dict[str, list[dict[str, object]]] = {}
     for gap in gaps:
         metric_id = str(gap["metric_id"])
         held, missing = _members(gap.get("held_members")), _members(gap.get("missing_members"))
-        if gap.get("complete", True) or not held or str(gap.get("period")) != newest[metric_id]:
+        if gap.get("complete", True) or not held or str(gap.get("period")) != newest.get(metric_id):
             continue
         found.setdefault(metric_id, []).append(
             {"period": gap.get("period"), "held_members": held, "missing_members": missing}
@@ -1248,6 +1316,7 @@ def _historical_periods(
         if (
             gap.get("complete", True)
             or gap.get("release_gate") is not None
+            or "awaiting_release" in gap
             or isinstance(gap.get("listing_not_covered"), Mapping)
             # Not a period still to come: neither the plan nor timeliness holds a later one.
             or (
@@ -1269,10 +1338,9 @@ def _historical_periods(
 
 
 def _holds_later(held: object, period: str) -> bool:
-    """Whether a held period end is later than a retrieval period: a day, month or quarter."""
-    if "-Q" in period:
-        period = f"{period[:4]}-{int(period[-1]) * 3:02d}"
-    return isinstance(held, str) and held[: len(period)] > period
+    """Whether a held period end is later than a retrieval period."""
+    compared = _held_against(held, period)
+    return compared is not None and compared[0] > compared[1]
 
 
 def _awaiting_release(

@@ -438,31 +438,38 @@ def _members_missing(value: object) -> str:
     )
 
 
+def _decoded_member(member: object) -> tuple[str, dict[str, Any]] | None:
+    """A plan's member key as its metric and the dimensions telling it apart: a warrant
+    symbol is recorded ``<metric>:symbol_missing:<symbol>``, another member
+    ``<metric>:<dimensions as JSON>``; none when it reads as neither."""
+    metric_id, _, rest = str(member).partition(":")
+    kind, _, symbol = rest.partition(":")
+    if kind == "symbol_missing":
+        return metric_id, {"symbol": symbol}
+    try:
+        dimensions = json.loads(rest) if rest else {}
+    except ValueError:
+        return None
+    return (metric_id, dimensions) if isinstance(dimensions, dict) else None
+
+
 def _member_names(value: object) -> str:
-    """Members as selection keys them (``metric:{dimensions}``), by their Chinese names."""
+    """Members as the plan keys them, by their Chinese names; one unreadable by its
+    metric's."""
     names = []
     for key in value if isinstance(value, list) else []:
-        metric_id, _, dimensions = str(key).partition(":")
-        try:
-            parsed = json.loads(dimensions) if dimensions else {}
-        except ValueError:
-            parsed = {}
-        names.append(display_name(metric_id, parsed if isinstance(parsed, dict) else {}).name)
+        metric_id, dimensions = _decoded_member(key) or (str(key).partition(":")[0], {})
+        names.append(display_name(metric_id, dimensions).name)
     return "、".join(names)
 
 
 def _member_name(member: object) -> str:
-    """A plan's missing member by its Chinese name and the values telling it apart: a
-    warrant symbol is recorded ``<metric>:symbol_missing:<symbol>``, another member
-    ``<metric>:<dimensions as JSON>``."""
-    metric_id, _, rest = str(member).partition(":")
-    kind, _, symbol = rest.partition(":")
-    try:
-        dimensions = {"symbol": symbol} if kind == "symbol_missing" else json.loads(rest)
-    except ValueError:
+    """A plan's missing member by its Chinese name and the values telling it apart; one
+    unreadable as recorded."""
+    decoded = _decoded_member(member)
+    if decoded is None:
         return str(member)
-    if not isinstance(dimensions, dict):
-        return str(member)
+    metric_id, dimensions = decoded
     name = display_name(metric_id, dimensions)
     values = "、".join(str(value) for value in dimensions.values())
     if not name.provided:

@@ -62,7 +62,12 @@ from pring_cycle.domain.trend import (
     trend_rules_from_manifest,
 )
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
-from pring_cycle.freshness import add_projection_gaps, release_schedule_scope, use_release_schedule
+from pring_cycle.freshness import (
+    add_projection_gaps,
+    awaiting_stated_release,
+    release_schedule_scope,
+    use_release_schedule,
+)
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import (
     CARRIED_FORWARD,
@@ -285,7 +290,15 @@ class DaySummaries:
                 model_metrics.update(
                     item.metric_id for item in self._model.definitions if item.priority == "P1"
                 )
-            context.macro["coverage"] = coverage_display(run_materials.plan_gaps, model_metrics)
+            # A requested period its source's original says is not out yet is awaiting
+            # release in both the coverage and the gap list.
+            plan_gaps = awaiting_stated_release(
+                run_materials.plan_gaps,
+                (context.macro, context.inventory),
+                held_periods=run_materials.held_periods,
+                judged_at=system_as_of,
+            )
+            context.macro["coverage"] = coverage_display(plan_gaps, model_metrics)
             backfilled = self._backfill(
                 backfill_window,
                 target=day,
@@ -325,7 +338,7 @@ class DaySummaries:
                         run_materials.freshness_gaps,
                         (context.macro, context.inventory),
                         derived_requirements=run_materials.derived_requirements,
-                        plan_gaps=run_materials.plan_gaps,
+                        plan_gaps=plan_gaps,
                         held_periods=run_materials.held_periods,
                         definitions=self._model.definitions,
                     )
