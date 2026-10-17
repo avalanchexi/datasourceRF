@@ -60,7 +60,7 @@ def stage_code(value: object) -> str:
 
 
 def stage_name(value: object) -> str:
-    """A formal stage's Chinese name alone (第三阶段): report prose, and where its code would repeat it."""
+    """A formal stage's Chinese name alone (第三阶段), as report prose names it."""
     return STAGE_TITLES.get(str(value).lower(), str(value)).partition(" · ")[0]
 
 
@@ -271,6 +271,10 @@ REASON_LABELS = {
     "incomplete_model_input": "数值不完整",
     "retrieval_blocked": "请求被缓存或预算拦下",
     "rule_not_matched": "解析规则未命中",
+    # Why the request a negative cache holds a candidate back for first failed (worker
+    # gaps 01); "negative_cache_active" itself is above.
+    "official_context_usdcny_quote_missing": "官方页未见美元中间价",
+    "official_context_period_identity_mismatch": "官方页日期与所需期不符",
 }
 NO_CHINESE_NAME = "未提供中文名"
 NO_MEMBER_NAME = "未提供成员中文名"
