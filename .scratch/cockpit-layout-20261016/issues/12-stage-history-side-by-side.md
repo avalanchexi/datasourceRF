@@ -60,4 +60,4 @@
 - 相关集成 `test_day_summary.py`、`test_core_history_correction.py`、`test_candidate_duration.py` 30 passed（465s，含排队等锁）。
 - 两项必跑冒烟 2 passed（49.4s）。
 - 改动文件 `ruff check`、`ruff format --check` 通过；`mypy` 本票文件无报错。
-- `git merge cockpit-layout`：已是最新（db39431），无需重跑。
+- `git merge cockpit-layout`（并入票 14 的 70563bf，无冲突，合并提交 9fa9b1a）→ 重装 venv → 复跑：`tests/web` 158 passed（21.4s）；两项冒烟 2 passed（71.1s）。
