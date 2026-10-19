@@ -16,6 +16,7 @@
 |---|---|---|
 | 01 CLI 写入 | done（ddbba45，快进合入 main） | ticket-gl01／gl-01 |
 | 03 回看重展 | done（gl-03，待主 agent 核验合入） | ticket-gl03／gl-03 |
-| 02、04 | 待派 | — |
+| 04 指数范围 | 进行中（23:1x 派出） | ticket-gl04／gl-04 |
+| 02 | 待派 | — |
 | 06 | needs-triage | — |
 | 07 | ready-for-human | — |
