@@ -73,6 +73,9 @@ MACRO_SIGNAL_GROUPS = {
 }
 MACRO_MATURITIES = {"sprout": "萌芽", "forming": "成形", "confirmed": "确认"}
 MACRO_ASSETS = {"bond": "债券", "stock": "股票", "commodity": "商品"}
+# The price verification row and its drawer (macro stage ticket 06).
+MACRO_VERIFICATION = "价格验证"
+MACRO_BOARD_NOTES = "旁注"
 
 
 # How a report's formal stage changed on its day, as its verified results record it.

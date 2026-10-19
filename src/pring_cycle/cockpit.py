@@ -27,6 +27,7 @@ from pring_cycle.wording import (
     _GDP_AGGREGATES,
     _GDP_MEASURES,
     CORE_STATE_LABELS,
+    MACRO_BOARD_NOTES,
     MACRO_SAME_SOURCE,
     MACRO_SIGNAL_LIST,
     NO_CHINESE_NAME,
@@ -504,6 +505,7 @@ def report_board(
                 className="conclusion-board",
             ),
             gaps_drawer(projection),
+            price_verification_drawer(projection, trend_rules),
             html.P(
                 ["解读：", *reading_line(report, pinned, pending=report_pending)]
                 if projection
@@ -652,33 +654,20 @@ CORE_READABLE = {"validated", "carried_forward_one_session"}
 def conclusion_left(projection: ProjectionSet | None, trend_rules: TrendRules | None) -> Any:
     """The board's left column: the formal stage and the five rows a reader checks it by."""
     overview = view._dataset(projection, "cycle_overview")
-    lookback = overview.get("last_confirmed_lookback")
-    last_confirmed = overview.get("last_confirmed_stage")
-    difference = one_asset_difference_line(overview)
-    rows = (
-        ("原因", stage_reason_line(projection)),
-        *((("只差一项", difference),) if difference else ()),
-        (
-            "上次确认",
-            view._last_confirmed_label(last_confirmed, lookback)
-            if last_confirmed is not None or isinstance(lookback, dict)
-            # A set without a lookback record never says none (spec: 不回填).
-            else ("无" if projection is None else "未提供"),
-        ),
-        ("转折观察", transition_watch_line(projection)),
-        ("核心沿用", carry_forward_line(projection)),
-        ("判法", method_line(projection, trend_rules)),
-    )
-    stage_label = view._stage_label(overview.get("current_stage"))
     if (judgement := macro_board.judgement(overview)) is not None:
-        # The macro judgement heads the board; the price stage verifies it (ADR-0043). The
-        # turn watch is merged into its signal list (macro stage ticket 04).
-        rows = tuple((label, value) for label, value in rows if label != "转折观察")
-        return macro_board.conclusion_left(judgement, stage_label, rows)
+        # The macro judgement heads the board; the price stage verifies it in one row, its
+        # own rows in that row's drawer (ADR-0043, macro stage tickets 02, 06).
+        return macro_board.conclusion_left(judgement)
+    rows = price_stage_rows(
+        projection,
+        trend_rules,
+        one_asset_difference_line(overview),
+        watch=transition_watch_line(projection),
+    )
     return html.Div(
         [
             html.P("正式阶段", className="section-kicker"),
-            html.H2(stage_label, className="stage-value"),
+            html.H2(view._stage_label(overview.get("current_stage")), className="stage-value"),
             # An older set is shown as it was: no judgement is made on the page.
             *([html.P(NO_MACRO_JUDGEMENT, className="empty-note")] if projection else []),
             html.Dl(
@@ -688,6 +677,71 @@ def conclusion_left(projection: ProjectionSet | None, trend_rules: TrendRules | 
         ],
         className="board-left",
     )
+
+
+def price_stage_rows(
+    projection: ProjectionSet | None,
+    trend_rules: TrendRules | None,
+    difference: list[html.Div] | None,
+    *,
+    watch: str | None = None,
+) -> tuple[tuple[str, Any], ...]:
+    """The rows a reader checks the price stage by: its reason, the one-asset ``difference``
+    when there is one, the last confirmed stage, an older set's turn ``watch``, the cores
+    carried forward and the method."""
+    overview = view._dataset(projection, "cycle_overview")
+    lookback = overview.get("last_confirmed_lookback")
+    last_confirmed = overview.get("last_confirmed_stage")
+    return (
+        ("原因", stage_reason_line(projection)),
+        *((("只差一项", difference),) if difference else ()),
+        (
+            "上次确认",
+            view._last_confirmed_label(last_confirmed, lookback)
+            if last_confirmed is not None or isinstance(lookback, dict)
+            # A set without a lookback record never says none (spec: 不回填).
+            else ("无" if projection is None else "未提供"),
+        ),
+        *((("转折观察", watch),) if watch is not None else ()),
+        ("核心沿用", carry_forward_line(projection)),
+        ("判法", method_line(projection, trend_rules)),
+    )
+
+
+def price_verification_drawer(
+    projection: ProjectionSet | None, trend_rules: TrendRules | None
+) -> Any:
+    """The price verification row's drawer (macro stage ticket 06): the price stage's rows,
+    the one-asset comparisons the verification carries and, with a price stage only, the
+    confirmation, counted against that stage (decision 11). None for an older set."""
+    judgement = macro_board.judgement(view._dataset(projection, "cycle_overview"))
+    if judgement is None:
+        return None
+    verification = obj(judgement.get("price_verification"))
+    rows = price_stage_rows(
+        projection,
+        trend_rules,
+        one_asset_difference_rows(objects(verification.get("comparisons"))),
+    )
+    confirmation = obj(view._dataset(projection, "macro").get("confirmation"))
+    stage = verification.get("price_stage")
+    applicable = bool(obj(confirmation.get("summary")).get("applicable"))
+    counted = (
+        [
+            html.H3(f"确认度（对价格阶段{stage_name(stage)}）"),
+            html.P(confirmation_heading(confirmation)),
+            html.Div(
+                [
+                    dimension_cell(item, applicable=applicable)
+                    for item in objects(confirmation.get("dimensions"))
+                ],
+                className="confirmation-summary",
+            ),
+        ]
+        if stage is not None and confirmation
+        else []
+    )
+    return macro_board.verification_panel(judgement, rows, counted)
 
 
 def _cores(projection: ProjectionSet | None) -> dict[str, dict[str, Any]]:
@@ -751,7 +805,13 @@ def one_asset_difference_line(overview: dict[str, object]) -> list[html.Div] | N
     """Each typical stage the noncanonical combination misses by one asset, one per line, as
     the Worker published it; an older set without that basis shows no row and none is
     derived here."""
-    comparisons = objects(obj(overview.get("noncanonical_basis")).get("comparisons"))
+    return one_asset_difference_rows(
+        objects(obj(overview.get("noncanonical_basis")).get("comparisons"))
+    )
+
+
+def one_asset_difference_rows(comparisons: list[dict[str, Any]]) -> list[html.Div] | None:
+    """Each published one-asset comparison in one line; none without one."""
     if not comparisons:
         return None
     return [
@@ -1197,6 +1257,16 @@ def conclusion_right(projection: ProjectionSet | None) -> Any:
             ),
         ),
     )
+    listed = html.Dl(
+        [item for label, value in rows for item in (html.Dt(label), html.Dd(value))],
+        className="board-rows",
+    )
+    if macro_board.judgement(view._dataset(projection, "cycle_overview")) is not None:
+        # The confirmation is read in the price verification drawer (decision 11).
+        return html.Div(
+            [html.P(MACRO_BOARD_NOTES, className="section-kicker"), listed],
+            className="board-right",
+        )
     return html.Div(
         [
             html.P("确认度", className="section-kicker"),
@@ -1215,10 +1285,7 @@ def conclusion_right(projection: ProjectionSet | None) -> Any:
             else view._macro_summary(macro)
             if any(key in macro for key in LEGACY_MACRO_STATES)
             else None,
-            html.Dl(
-                [item for label, value in rows for item in (html.Dt(label), html.Dd(value))],
-                className="board-rows",
-            ),
+            listed,
         ],
         className="board-right",
     )

@@ -23,9 +23,12 @@ def test_the_board_heads_with_the_judgement_and_its_step_from_the_last_confirmed
     assert (
         "宏观判断 宏观判断：第五阶段（明确，5 维中 4 维吻合）· 相对上次确认第三阶段 前进 2 步"
     ) in board
-    # The price stage stays below it, as the cores map it.
-    assert "价格阶段 第三阶段 · Stage III" in board
-    assert "典型组合：债券牛市 · 股票牛市 · 商品牛市 → Stage III" in board
+    # The price stage verifies it below (ticket 06), its rows in the row's drawer.
+    assert (
+        "价格验证 价格阶段：第三阶段（债券牛市 · 股票牛市 · 商品牛市） · "
+        "第五阶段预期：债券熊市 · 股票熊市 · 商品牛市 · 债券、股票偏离"
+    ) in board
+    assert "原因 典型组合：债券牛市 · 股票牛市 · 商品牛市 → Stage III" in board
     assert NO_JUDGEMENT not in board
 
 
