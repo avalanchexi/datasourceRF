@@ -32,6 +32,7 @@ from pring_cycle.retrieval import RUN_SEARCH_LIMITS
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.trading_calendar import TradingCalendar
+from tests.conftest import install_runtime_clock
 from tests.fixtures.model_registration import prepared_request, save, submit
 from tests.integration.test_central_parity_official_listing import (
     ANNOUNCEMENT_1015,
@@ -46,6 +47,15 @@ LISTING = COLUMN + "index.html"
 CLS = "https://www.cls.cn/detail/2505221"
 PARITY = "CN_USDCNY_CENTRAL_PARITY"
 MEMBER = {"currency_pair": "USD/CNY", "quote_direction": "CNY per USD"}
+# The 10-15 run's frozen cutoff (10-16 16:08:36 Beijing).
+RUN_CUTOFF = datetime(2026, 10, 16, 8, 8, 36, tzinfo=UTC)
+
+
+@pytest.fixture
+def run_clock(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) -> None:
+    """The run's own cutoff: on a later day the parity due would be a later session than
+    10-15, and holding 10-15 would list a freshness gap."""
+    install_runtime_clock(monkeypatch, request, RUN_CUTOFF)
 
 
 def sessions() -> list[date]:
@@ -166,7 +176,7 @@ def parity_gaps(paths: RuntimePaths, run_id: str) -> list[dict[str, object]]:
     ]
 
 
-@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.usefixtures("run_clock")
 def test_the_day_s_announcement_on_the_pbc_column_completes_the_day(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -186,7 +196,7 @@ def test_the_day_s_announcement_on_the_pbc_column_completes_the_day(
     assert parity_gaps(paths, run_id) == []
 
 
-@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.usefixtures("run_clock")
 def test_cls_s_wording_found_by_search_completes_the_day(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -204,7 +214,7 @@ def test_cls_s_wording_found_by_search_completes_the_day(
     assert parity_gaps(paths, run_id) == []
 
 
-@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.usefixtures("run_clock")
 def test_a_candidate_the_negative_cache_holds_back_names_the_first_cause(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -241,7 +251,7 @@ def test_a_candidate_the_negative_cache_holds_back_names_the_first_cause(
     assert "被负缓存拦下，首因 官方页日期与所需期不符" in page
 
 
-@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.usefixtures("run_clock")
 def test_a_candidate_a_host_wide_cache_holds_back_names_the_first_cause(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
