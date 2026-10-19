@@ -382,6 +382,18 @@ class ProjectionSetRepository:
             return None
         return str(row["day"]), json.loads(str(row["document_json"]))["macro_judgement"]
 
+    def macro_effective_from(self) -> str | None:
+        """The business day the macro judgement rules took effect on, as the judgements
+        published since record it; None before any was published (decisions 5, 33)."""
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT min(json_extract(document_json, '$.macro_judgement.effective_from'))
+                FROM analytical_dataset WHERE dataset_name = 'cycle_overview'
+                """
+            ).fetchone()
+        return None if row is None or row[0] is None else str(row[0])
+
     def last_confirmed_stage(self, *, on_or_before: str) -> str | None:
         """The stage of the latest day on or before ``on_or_before`` that had one.
 
@@ -659,6 +671,7 @@ def validate_analytical_projection(
         if structure != CONFIRMATION_STRUCTURE:
             raise ValueError("projection_macro_judgement_invalid")
         validate_macro_judgement(overview["macro_judgement"])
+        _validate_macro_effective(overview["macro_judgement"], envelope.target_business_date)
         validate_macro_signals(overview["macro_judgement"])
         validate_price_verification(
             overview["macro_judgement"],
@@ -674,6 +687,17 @@ def validate_analytical_projection(
     if not isinstance(release_events, list) or not isinstance(stage_events, list):
         raise ValueError("projection_event_dataset_invalid")
     _validate_macro_record(overview, stage_events, envelope.target_business_date)
+
+
+def _validate_macro_effective(block: object, day: str) -> None:
+    """A day judges the macro stage only from the day its rules took effect on (decision 5)."""
+    effective = block.get("effective_from") if isinstance(block, dict) else None
+    try:
+        before = date.fromisoformat(str(effective)) > date.fromisoformat(day)
+    except ValueError:
+        before = True
+    if before:
+        raise ValueError("projection_macro_judgement_invalid")
 
 
 def _validate_macro_record(

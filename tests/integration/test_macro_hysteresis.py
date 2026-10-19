@@ -37,8 +37,10 @@ from tests.integration.test_macro_judgement import (
     CATALOG,
     MODEL,
     judgement,
+    publish_from,
     register_macro_model,
     seed_macro,
+    take_effect,
 )
 from tests.integration.test_worker_execution import runtime
 
@@ -155,8 +157,9 @@ def test_a_new_judgement_replaces_the_conclusion_on_its_10th_session(tmp_path: P
     paths = macro_day(tmp_path)
     window = last(12)
     revise_credit(paths, SF_REVISED, on=-10)
-    # A first run summarizes the window's first six days; the next one counts on from
-    # what they published, and summarizes the rest.
+    # The rules take effect on the window's first day; a run summarizes the next five,
+    # and the next one counts on from what they published, and summarizes the rest.
+    take_effect(paths, window[0])
     DaySummaries(
         EvidenceRepository(paths.database),
         ProjectionSetRepository(paths.database),
@@ -217,7 +220,7 @@ def test_a_run_broken_on_its_9th_session_is_cleared_and_counts_again_from_one(
     revise_credit(paths, SF_JULY, on=-2)
     revise_credit(paths, SF_REVISED, on=-1)
 
-    publish(paths, MODEL, window)
+    publish_from(paths, window)
 
     assert [state(paths, day) for day in window] == [
         ("stage_v", "stage_v", "explicit", "initial", None, 0),
@@ -268,7 +271,7 @@ def test_a_change_of_confidence_alone_is_no_new_judgement(tmp_path: Path) -> Non
     window = last(2)
     revise_credit(paths, SF_REVISED, on=-1)
 
-    publish(paths, MODEL, window)
+    publish_from(paths, window)
 
     assert [state(paths, day) for day in window] == [
         ("stage_v", "stage_v", "explicit", "initial", None, 0),
@@ -282,7 +285,7 @@ def test_a_weak_judgement_never_replaces_an_explicit_one(tmp_path: Path) -> None
     window = last(12)
     withhold(paths, on=-11)
 
-    publish(paths, MODEL, window)
+    publish_from(paths, window)
 
     # Decision 44: eleven sessions of stage III, weak, count nothing against stage V.
     assert [state(paths, day) for day in window] == [
@@ -318,7 +321,7 @@ def test_a_hysteresis_out_of_keeping_with_its_judgement_is_not_published(
 ) -> None:
     paths = macro_day(tmp_path)
     revise_credit(paths, SF_REVISED, on=-2)
-    projection = publish(paths, MODEL, last(3))
+    projection = publish_from(paths, last(3))
     assert state(paths, last(1)[0]) == ("stage_iii", "stage_v", "explicit", "held", "stage_iii", 2)
     datasets = copy.deepcopy(projection.datasets)
     tamper(datasets["cycle_overview"]["macro_judgement"])

@@ -10,16 +10,15 @@ from __future__ import annotations
 from pathlib import Path
 
 from pring_cycle.dashboard import dashboard_page
-from tests.integration.test_confirmation_publish import publish
 from tests.integration.test_macro_hysteresis import SF_REVISED, last, macro_day, revise_credit
-from tests.integration.test_macro_judgement import MODEL
+from tests.integration.test_macro_judgement import publish_from
 from tests.web.test_dashboard_contract import _text
 
 
 def test_a_held_conclusion_is_noted_and_its_run_listed_with_the_signals(tmp_path: Path) -> None:
     paths = macro_day(tmp_path)
     revise_credit(paths, SF_REVISED, on=-2)
-    projection = publish(paths, MODEL, last(3))
+    projection = publish_from(paths, last(3))
 
     text = " ".join(_text(dashboard_page("/", projection, (), ())).split())
 

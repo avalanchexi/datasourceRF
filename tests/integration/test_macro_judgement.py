@@ -9,13 +9,14 @@ from __future__ import annotations
 
 import copy
 import hashlib
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from pring_cycle.context_projection import ContextProjectionRules
+from pring_cycle.day_summary import SHANGHAI, DaySummaries, ModelRules, RunMaterials
 from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.macro_judgement import MANIFEST_FIELD, rules_v0001
 from pring_cycle.models import (
@@ -26,8 +27,13 @@ from pring_cycle.models import (
     model_v0015_manifest,
     model_v0016_manifest,
 )
-from pring_cycle.projections import ProjectionSet, validate_analytical_projection
+from pring_cycle.projections import (
+    ProjectionSet,
+    ProjectionSetRepository,
+    validate_analytical_projection,
+)
 from pring_cycle.runtime import RuntimePaths
+from pring_cycle.trading_calendar import TradingCalendar
 from tests.integration.test_backfill import summary
 from tests.integration.test_confirmation_monthly_indicators import append, year
 from tests.integration.test_confirmation_policy import claim
@@ -72,6 +78,28 @@ def register_macro_model(paths: RuntimePaths) -> None:
     manifest = confirmation_manifest(base)
     manifest.update({"model_version_id": MODEL, MANIFEST_FIELD: rules_v0001()})
     ModelRepository(paths.database).register(manifest)
+
+
+def take_effect(paths: RuntimePaths, day: str, model: str = MODEL) -> None:
+    """The macro rules take effect on ``day``: the first run with them targets it, at that
+    day's own evening, so it reads only what was public by then (ADR-0043)."""
+    DaySummaries(
+        EvidenceRepository(paths.database),
+        ProjectionSetRepository(paths.database),
+        ModelRules.of(ModelRepository(paths.database), model),
+        calendar=TradingCalendar(sessions()),
+    ).summarize_target(
+        day,
+        system_as_of=datetime.combine(date.fromisoformat(day), time(21), tzinfo=SHANGHAI),
+        run_materials=RunMaterials(),
+    )
+
+
+def publish_from(paths: RuntimePaths, window: tuple[str, ...], model: str = MODEL) -> ProjectionSet:
+    """The target's set after the rules took effect on the window's first day, the run
+    filling the days between."""
+    take_effect(paths, window[0], model)
+    return publish(paths, model, window)
 
 
 def quarter(repository: EvidenceRepository, values: tuple[float, ...]) -> None:
@@ -364,7 +392,7 @@ def test_a_backfilled_day_is_judged_by_the_same_rule_at_its_own_cutoff(tmp_path:
     seed_macro(paths)
     window = tuple(day.isoformat() for day in sessions()[-4:])
 
-    publish(paths, MODEL, window)
+    publish_from(paths, window)
 
     for day in window[:-1]:
         conclusion = judgement(summary(paths, day))["conclusion"]
@@ -400,6 +428,9 @@ def test_a_model_without_the_rules_publishes_no_judgement(tmp_path: Path) -> Non
         # A score past the dimensions known, or a dimension out of its order.
         lambda block: block["scores"].update(stage_v=6),
         lambda block: block["dimensions"].reverse(),
+        # Judged before the rules took effect, or stating no day they took effect on.
+        lambda block: block.update(effective_from="2026-08-31"),
+        lambda block: block.pop("effective_from"),
     ],
 )
 def test_a_judgement_disagreeing_with_its_own_scores_is_not_published(

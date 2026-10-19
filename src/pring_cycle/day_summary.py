@@ -326,10 +326,12 @@ class DaySummaries:
                 judged_at=system_as_of,
             )
             context.macro["coverage"] = coverage_display(plan_gaps, model_metrics)
+            effective = self._macro_effective_from(day)
             backfilled = self._backfill(
                 backfill_window,
                 target=day,
                 system_as_of=system_as_of,
+                effective=effective,
                 day_failed=run_materials.day_failed,
             )
             run_materials.step_done("backfill")
@@ -346,6 +348,7 @@ class DaySummaries:
                 decided,
                 context,
                 stated_last_confirmed(decided, last_stage, lookback),
+                effective=effective,
             )
             snapshot_id = self._freeze(readiness, context, system_as_of=system_as_of)
             if snapshot_id is not None:
@@ -392,7 +395,21 @@ class DaySummaries:
         cannot be summarized is returned, and the rest go on.
         """
         with self._scope():
-            return self._backfill(window, target=target, system_as_of=system_as_of).failed
+            return self._backfill(
+                window,
+                target=target,
+                system_as_of=system_as_of,
+                effective=self._macro_effective_from(target),
+            ).failed
+
+    def _macro_effective_from(self, target: str) -> str | None:
+        """The business day the model's macro judgement rules took effect on: the one the
+        published judgements record, else the run's ``target``, the first a run with the
+        rules summarizes (decisions 5, 33). Days before it are never judged, whether or not
+        a summary of theirs exists; None for a model without the rules."""
+        if self._model.macro_judgement is None:
+            return None
+        return self._projections.macro_effective_from() or target
 
     def _backfill(
         self,
@@ -400,6 +417,7 @@ class DaySummaries:
         *,
         target: str,
         system_as_of: datetime,
+        effective: str | None,
         day_failed: Callable[[FailedDay], None] = _ignore,
     ) -> _Backfilled:
         """A day whose latest summary is on another core history than the run's basis is
@@ -437,11 +455,9 @@ class DaySummaries:
                         system_as_of=system_as_of,
                         basis=basis,
                         corrects=corrects,
-                        # A day summarized before the macro rules took effect is corrected
-                        # without them: its stage history is not judged back (ticket 08).
-                        judged=held is None
-                        or "macro_conclusion" in held
-                        or held.get("model_version_id") == self._model.model_version_id,
+                        # A day before the macro rules took effect is summarized without
+                        # them, missed or corrected: nothing is judged back (decision 5).
+                        effective=effective,
                     )
                 except _Uncorrectable as error:
                     # Only a correction is uncorrectable, and only a run on a basis corrects.
@@ -532,13 +548,13 @@ class DaySummaries:
         system_as_of: datetime,
         basis: str | None,
         corrects: SummaryCorrection | None,
-        judged: bool = True,
+        effective: str | None,
     ) -> None:
         """Publish one earlier day's summary from what was public by that day's end.
 
         A correction whose summary cites a context detail no longer held is published on its
         cores only; one whose cores cannot be read from their closes, or that fails on its
-        cores only, is ``_Uncorrectable``. Unless ``judged``, it publishes no macro judgement.
+        cores only, is ``_Uncorrectable``. A day before ``effective`` publishes no macro judgement.
         """
         public_end = datetime.combine(date.fromisoformat(day), time.max, tzinfo=SHANGHAI)
         if (
@@ -563,7 +579,7 @@ class DaySummaries:
                     system_as_of=system_as_of,
                     basis=basis,
                     corrects=replace(corrects, scope=CORE_ONLY),
-                    judged=judged,
+                    effective=effective,
                 )
             except (KeyError, LookupError, TypeError, ValueError) as error:
                 raise _Uncorrectable(f"{type(error).__name__}:{error}") from error
@@ -583,7 +599,7 @@ class DaySummaries:
             system_as_of=system_as_of,
             basis=basis,
             corrects=corrects,
-            judged=judged,
+            effective=effective,
         )
 
     def _publish_day(
@@ -596,7 +612,7 @@ class DaySummaries:
         system_as_of: datetime,
         basis: str | None,
         corrects: SummaryCorrection | None,
-        judged: bool,
+        effective: str | None,
     ) -> None:
         last_stage = self._last_confirmed_stage(day)
         P0ProjectionService(self._projections).publish(
@@ -614,10 +630,13 @@ class DaySummaries:
             core_history_basis=basis,
             corrects=corrects,
             macro_judgement=self._judge_macro(
-                day, readiness, decided, context, stated_last_confirmed(decided, last_stage)
-            )
-            if judged
-            else None,
+                day,
+                readiness,
+                decided,
+                context,
+                stated_last_confirmed(decided, last_stage),
+                effective=effective,
+            ),
         )
 
     def _judge_macro(
@@ -627,10 +646,13 @@ class DaySummaries:
         decided: StageResult,
         context: ContextProjection,
         reference: FormalStage | None,
+        *,
+        effective: str | None,
     ) -> dict[str, object] | None:
         """The macro judgement a day publishes, the target and each backfilled day alike,
         once its context is read and the last confirmed stage its set states is known
-        (ADR-0043). None for a model without the rules, or a context not recomputed.
+        (ADR-0043). None for a model without the rules, a day before they took effect
+        (``effective``), or a context not recomputed.
 
         The judgement first, then its main conclusion, held against the latest one an
         earlier day published (ticket 05), then the signal list grouped against that
@@ -640,7 +662,9 @@ class DaySummaries:
         """
         rules = self._model.macro_judgement
         confirmation = context.macro.get("confirmation")
-        if rules is None or not isinstance(confirmation, Mapping):
+        if rules is None or effective is None or day < effective:
+            return None
+        if not isinstance(confirmation, Mapping):
             return None
         combination = (
             {item.asset: item.state.value for item in readiness if item.state is not None}
@@ -649,7 +673,10 @@ class DaySummaries:
         )
         earlier = self._earlier_judgement(day)
         block = hold(
-            judge(rules, confirmation, reference=reference, cores=combination),
+            {
+                **judge(rules, confirmation, reference=reference, cores=combination),
+                "effective_from": effective,
+            },
             earlier,
             sessions_required=rules.hysteresis_sessions,
         )

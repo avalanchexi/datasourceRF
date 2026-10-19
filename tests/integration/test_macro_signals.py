@@ -37,7 +37,14 @@ from tests.integration.test_confirmation_projection import confirmation_manifest
 from tests.integration.test_confirmation_publish import publish
 from tests.integration.test_core_carry_forward import CORES, seed_cores, sessions
 from tests.integration.test_decertified_main_chain import claim as core_claim
-from tests.integration.test_macro_judgement import CATALOG, MODEL, SEEDED, judgement, seed_macro
+from tests.integration.test_macro_judgement import (
+    CATALOG,
+    MODEL,
+    SEEDED,
+    judgement,
+    publish_from,
+    seed_macro,
+)
 from tests.integration.test_worker_execution import runtime, seed_independent_calendar
 
 
@@ -276,7 +283,7 @@ def last(count: int) -> tuple[str, ...]:
 
 
 def test_relative_momentum_maps_to_its_cell_s_transition_once_formed(tmp_path: Path) -> None:
-    listed = signals(publish(shaped(tmp_path), MODEL, last(5)))
+    listed = signals(publish_from(shaped(tmp_path), last(5)))
 
     r2, r11 = listed["R2"], listed["R11"]
     assert (r2["kind"], r2["source"], r2["same_source"]) == ("price", "relative_momentum", True)
@@ -303,7 +310,7 @@ def test_relative_momentum_maps_to_its_cell_s_transition_once_formed(tmp_path: P
 
 
 def test_a_cell_held_four_sessions_is_a_sprout_and_not_listed(tmp_path: Path) -> None:
-    published = judgement(publish(shaped(tmp_path), MODEL, last(4)))
+    published = judgement(publish_from(shaped(tmp_path), last(4)))
 
     assert not {"R2", "R11"} & {item["id"] for item in published["signals"]}
     sprouts = {item["id"]: item for item in published["sprouts"]}
@@ -361,7 +368,7 @@ def with_peers(tmp_path: Path) -> RuntimePaths:
 
 def listed_day(tmp_path: Path) -> ProjectionSet:
     """``with_peers``'s day after four more sessions: every table signal formed."""
-    return publish(with_peers(tmp_path), MODEL, last(5))
+    return publish_from(with_peers(tmp_path), last(5))
 
 
 def test_peers_turning_against_their_core_flip_it_in_the_day_s_combination(
@@ -403,7 +410,7 @@ def test_peers_turning_against_their_core_flip_it_in_the_day_s_combination(
 def test_a_signal_list_disagreeing_with_itself_is_not_published(
     tmp_path: Path, tamper: Any
 ) -> None:
-    projection = publish(shaped(tmp_path), MODEL, last(5))
+    projection = publish_from(shaped(tmp_path), last(5))
     datasets = copy.deepcopy(projection.datasets)
     tamper(datasets["cycle_overview"]["macro_judgement"])
 
@@ -422,7 +429,7 @@ def test_a_core_s_30_day_candidate_against_its_state_joins_the_list(tmp_path: Pa
     register(paths)
     seed_macro(paths)
 
-    projection = publish(paths, MODEL, last(5))
+    projection = publish_from(paths, last(5))
 
     bond = next(
         item for item in projection.datasets["core_assets"]["assets"] if item["asset"] == "bond"

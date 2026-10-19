@@ -45,6 +45,7 @@ from tests.integration.test_macro_judgement import (
     industrial_va,
     register_macro_model,
     seed_macro,
+    take_effect,
 )
 from tests.integration.test_worker_execution import runtime, seed_independent_calendar
 
@@ -349,7 +350,8 @@ def test_a_correction_of_the_last_confirmed_stage_alone_takes_the_weak_stage_aga
         calendar=TradingCalendar(sessions()),
     )
     repository = ProjectionSetRepository(paths.database)
-    summaries.backfill((held,), target=days[-1], system_as_of=CUTOFF)
+    # The rules take effect on the held day: the first run with them targets it.
+    take_effect(paths, held)
 
     def held_judgement() -> dict[str, Any]:
         [event] = [event for event in repository.stage_history() if event["business_date"] == held]
