@@ -369,6 +369,7 @@ class DaySummaries:
                 decided=decided,
                 core_history_basis=backfilled.basis,
                 macro_judgement=macro_judgement,
+                macro_rules=self._model.macro_judgement,
                 release_calendar_events=run_materials.release_calendar_events,
                 freshness_calendar=run_materials.freshness_calendar,
                 gap_list=tuple(
@@ -638,6 +639,7 @@ class DaySummaries:
                 stated_last_confirmed(decided, last_stage),
                 effective=effective,
             ),
+            macro_rules=self._model.macro_judgement,
         )
 
     def _judge_macro(

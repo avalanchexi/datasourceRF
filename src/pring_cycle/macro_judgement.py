@@ -21,6 +21,7 @@ state, the signal list and the price verification.
 
 from __future__ import annotations
 
+import copy
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -165,7 +166,8 @@ def rules_v0001() -> dict[str, Any]:
         "tie_breakers": {"credit": "social_financing"},
         "positions": {"credit": "social_financing", "overheat": "industrial_va", "price": "ppi"},
         "inventory": "inventory_quadrant",
-        "signature": {stage: dict(cells) for stage, cells in _SIGNATURE.items()},
+        # Each call its own copy: a manifest edited never edits the next one built.
+        "signature": copy.deepcopy(_SIGNATURE),
     }
 
 
@@ -811,6 +813,53 @@ def _consistent(block: object) -> bool:
     if not _formed_consistent(block, main):
         return False
     return all(main.get(field) == expected[field] for field in ("steps", "direction"))
+
+
+def validate_inputs(
+    block: object,
+    rules: MacroJudgementRules,
+    *,
+    confirmation: object,
+    last_confirmed: object,
+) -> None:
+    """A published judgement is the one its model's frozen ``rules`` make of its set: its
+    dimensions read from the set's ``confirmation`` (when its context was summarized), its
+    scores and marks from those dimensions, and its conclusion stated against the last
+    confirmed stage the set states (``last_confirmed``)."""
+    if not isinstance(block, Mapping) or not _inputs_consistent(
+        block, rules, confirmation, last_confirmed
+    ):
+        raise ValueError("projection_macro_judgement_invalid")
+
+
+def _inputs_consistent(
+    block: Mapping[str, Any],
+    rules: MacroJudgementRules,
+    confirmation: object,
+    last_confirmed: object,
+) -> bool:
+    dimensions = _objects(block.get("dimensions"))
+    main = _object(block.get("conclusion"))
+    if main.get("reference_stage") != last_confirmed:
+        return False
+    known = [item for item in dimensions if item.get("value") is not None]
+    if dict(_object(block.get("scores"))) != {
+        stage: sum(_matches(rules.signature[stage][str(item["dimension"])], item) for item in known)
+        for stage in STAGES
+    }:
+        return False
+    if dimensions != scored(rules, dimensions, main.get("stage")):
+        return False
+    if not isinstance(confirmation, Mapping):
+        return True
+    fresh = judge(rules, confirmation, reference=None)
+    return [_unmarked(item) for item in _objects(fresh.get("dimensions"))] == [
+        _unmarked(item) for item in dimensions
+    ]
+
+
+def _unmarked(item: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in item.items() if key != "matches"}
 
 
 def _formed_consistent(block: Mapping[str, Any], main: Mapping[str, Any]) -> bool:

@@ -71,6 +71,21 @@ def coverage_display(
     }
 
 
+def macro_row(event: Mapping[str, Any]) -> tuple[str, str | None]:
+    """A day's macro row from its stage history event: its main conclusion's stage and
+    confidence; ``not_effective`` for a summary made without the rules, ``no_stage`` for
+    one with no stage to take (decision 49), ``unpublished`` with no summary."""
+    recorded = event.get("macro_conclusion")
+    if not event:
+        return "unpublished", None
+    if not isinstance(recorded, Mapping):
+        return "not_effective", None
+    confidence = recorded.get("confidence")
+    return str(recorded.get("stage") or "no_stage"), (
+        str(confidence) if confidence is not None else None
+    )
+
+
 def history_display(events: Sequence[Mapping[str, Any]], days: Sequence[str]) -> dict[str, Any]:
     """Events are already the repository's daily winners, including correction precedence.
 
@@ -84,22 +99,13 @@ def history_display(events: Sequence[Mapping[str, Any]], days: Sequence[str]) ->
         event = by_day.get(day, {})
         official = event.get("current_stage") or event.get("stage_reason") or "unpublished"
         assets = {item["asset"]: item for item in event.get("core_assets", [])}
-        recorded = event.get("macro_conclusion")
-        macro = (
-            "unpublished"
-            if not event
-            else "not_effective"
-            if not isinstance(recorded, Mapping)
-            else recorded.get("stage") or "no_stage"
-        )
+        macro, macro_confidence = macro_row(event)
         rows.append(
             {
                 "date": day,
                 "official": official,
                 "macro": macro,
-                "macro_confidence": recorded.get("confidence")
-                if isinstance(recorded, Mapping)
-                else None,
+                "macro_confidence": macro_confidence,
                 **{
                     asset: assets.get(asset, {}).get("state") or "unavailable"
                     for asset in ("bond", "stock", "commodity")

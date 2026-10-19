@@ -31,7 +31,6 @@ from pring_cycle.models import (
 from pring_cycle.projections import (
     ProjectionSet,
     ProjectionSetRepository,
-    validate_analytical_projection,
 )
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
@@ -50,6 +49,7 @@ from tests.integration.test_macro_judgement import (
     CATALOG,
     MODEL,
     SEEDED,
+    checked,
     judgement,
     publish_from,
     seed_macro,
@@ -425,7 +425,7 @@ def test_a_signal_list_disagreeing_with_itself_is_not_published(
     tamper(datasets["cycle_overview"]["macro_judgement"])
 
     with pytest.raises(ValueError, match="projection_macro_judgement_invalid"):
-        validate_analytical_projection(projection.envelope, datasets)
+        checked(projection.envelope, datasets)
 
 
 def test_a_core_s_30_day_candidate_against_its_state_joins_the_list(tmp_path: Path) -> None:

@@ -138,6 +138,7 @@ class P0ProjectionService:
         core_history_basis: str | None = None,
         corrects: SummaryCorrection | None = None,
         macro_judgement: Mapping[str, object] | None = None,
+        macro_rules: MacroJudgementRules | None = None,
     ) -> P0PublishResult:
         """Publish the day's set; ``decided`` is its formal stage when already decided.
 
@@ -147,8 +148,9 @@ class P0ProjectionService:
         day's assessment keeps what the window's history says. The assessment states the
         ``core_history_basis`` the cores were read on, and the summary it ``corrects``. A
         ``freshness_calendar`` says the gap list's freshness stood on weekdays (ticket 06).
-        A ``macro_judgement`` (ADR-0043), judged before publishing, goes with the overview,
-        its conclusion verified by the cores published here.
+        A ``macro_judgement`` (ADR-0043), judged before publishing under the model's
+        ``macro_rules``, goes with the overview, its conclusion verified by the cores
+        published here.
         """
         gaps = _core_gaps(assets)
         decided = decided or formal_stage(assets)
@@ -330,7 +332,7 @@ class P0ProjectionService:
                 history,
                 display_days(next(iter(display.values()))),
             )
-        validate_analytical_projection(envelope, datasets)
+        validate_analytical_projection(envelope, datasets, macro_rules=macro_rules)
         try:
             current = self._projections.current()
         except LookupError:
@@ -467,17 +469,14 @@ class P0ProjectionService:
                 [*history, assessment],
                 [str(point["date"]) for point in shown["days"]],
             )
-        self._projections.publish(
-            replace(
-                kept.envelope,
-                projection_set_id=projection_set_id,
-                system_as_of=system_as_of,
-                generated_at=system_as_of,
-            ),
-            datasets,
-            p0_assessment=assessment,
-            as_current=False,
+        envelope = replace(
+            kept.envelope,
+            projection_set_id=projection_set_id,
+            system_as_of=system_as_of,
+            generated_at=system_as_of,
         )
+        validate_analytical_projection(envelope, datasets, macro_rules=macro_rules)
+        self._projections.publish(envelope, datasets, p0_assessment=assessment, as_current=False)
         return str(assessment["assessment_id"])
 
 

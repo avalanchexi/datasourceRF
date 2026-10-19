@@ -15,7 +15,10 @@ from pring_cycle.bond_attribution import DRIVERS as ATTRIBUTION_DRIVERS
 from pring_cycle.confirmation import DIMENSIONS as CONFIRMATION_DIMENSIONS
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.confirmation import RELATIONS as CONFIRMATION_RELATIONS
+from pring_cycle.display_projection import macro_row
+from pring_cycle.macro_judgement import MacroJudgementRules
 from pring_cycle.macro_judgement import validate as validate_macro_judgement
+from pring_cycle.macro_judgement import validate_inputs as validate_macro_inputs
 from pring_cycle.macro_signals import validate as validate_macro_signals
 from pring_cycle.macro_verification import validate as validate_price_verification
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
@@ -604,7 +607,11 @@ def _validate_projection(
 def validate_analytical_projection(
     envelope: ProjectionEnvelope,
     datasets: dict[str, dict[str, object]],
+    *,
+    macro_rules: MacroJudgementRules | None = None,
 ) -> None:
+    """A set as it may be published; one with a macro judgement only under the frozen
+    ``macro_rules`` of the model that judged it (ADR-0043)."""
     _validate_projection(envelope, datasets)
     if envelope.system_as_of.tzinfo is None or envelope.generated_at.tzinfo is None:
         raise ValueError("projection_envelope_times_must_be_timezone_aware")
@@ -670,7 +677,15 @@ def validate_analytical_projection(
         # Judged from the dimension summary's key indicators only (ADR-0043).
         if structure != CONFIRMATION_STRUCTURE:
             raise ValueError("projection_macro_judgement_invalid")
+        if macro_rules is None:
+            raise ValueError("projection_macro_judgement_rules_missing")
         validate_macro_judgement(overview["macro_judgement"])
+        validate_macro_inputs(
+            overview["macro_judgement"],
+            macro_rules,
+            confirmation=macro.get("confirmation"),
+            last_confirmed=overview.get("last_confirmed_stage"),
+        )
         _validate_macro_effective(overview["macro_judgement"], envelope.target_business_date)
         validate_macro_signals(overview["macro_judgement"])
         validate_price_verification(
@@ -686,7 +701,12 @@ def validate_analytical_projection(
     stage_events = datasets["stage_history"].get("events")
     if not isinstance(release_events, list) or not isinstance(stage_events, list):
         raise ValueError("projection_event_dataset_invalid")
-    _validate_macro_record(overview, stage_events, envelope.target_business_date)
+    _validate_macro_record(
+        overview,
+        stage_events,
+        datasets["stage_history"].get("display"),
+        envelope.target_business_date,
+    )
 
 
 def _validate_macro_effective(block: object, day: str) -> None:
@@ -701,24 +721,32 @@ def _validate_macro_effective(block: object, day: str) -> None:
 
 
 def _validate_macro_record(
-    overview: dict[str, object], stage_events: list[object], day: str
+    overview: dict[str, object], stage_events: list[object], display: object, day: str
 ) -> None:
     """The day's own stage history event records its macro main conclusion, the stage and
-    confidence the overview states, and only when it states one (macro stage ticket 08)."""
+    confidence the overview states, and only when it states one; with one, the day has
+    exactly that event, and its row on the band shows that record (macro stage ticket 08)."""
     own = [
         item for item in stage_events if isinstance(item, dict) and item.get("business_date") == day
     ]
-    if not own:
-        return
-    recorded = own[-1].get("macro_conclusion")
     judgement = overview.get("macro_judgement")
-    if not isinstance(judgement, dict):
-        if recorded is not None:
+    if isinstance(judgement, dict):
+        main = judgement.get("conclusion")
+        main = main if isinstance(main, dict) else {}
+        expected = {"stage": main.get("stage"), "confidence": main.get("confidence")}
+        if len(own) != 1 or own[0].get("macro_conclusion") != expected:
             raise ValueError("projection_stage_history_macro_mismatch")
-        return
-    main = judgement.get("conclusion")
-    main = main if isinstance(main, dict) else {}
-    if recorded != {"stage": main.get("stage"), "confidence": main.get("confidence")}:
+    elif any(item.get("macro_conclusion") is not None for item in own):
+        raise ValueError("projection_stage_history_macro_mismatch")
+    rows = display.get("days") if isinstance(display, dict) else None
+    shown = [
+        row
+        for row in (rows if isinstance(rows, list) else [])
+        if isinstance(row, dict) and row.get("date") == day
+    ]
+    if shown and (shown[-1].get("macro"), shown[-1].get("macro_confidence")) != macro_row(
+        own[-1] if own else {}
+    ):
         raise ValueError("projection_stage_history_macro_mismatch")
 
 

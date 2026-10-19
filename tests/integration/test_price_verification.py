@@ -15,12 +15,12 @@ from typing import Any
 import pytest
 
 from pring_cycle.evidence import EvidenceRepository
-from pring_cycle.projections import ProjectionSet, validate_analytical_projection
+from pring_cycle.projections import ProjectionSet
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from tests.integration.test_confirmation_publish import publish
 from tests.integration.test_core_carry_forward import CORES, sessions
 from tests.integration.test_decertified_main_chain import claim
-from tests.integration.test_macro_judgement import MODEL, register_macro_model, seed_macro
+from tests.integration.test_macro_judgement import MODEL, checked, register_macro_model, seed_macro
 from tests.integration.test_worker_execution import runtime, seed_independent_calendar
 
 STAGE_V = {"bond": "bear", "stock": "bear", "commodity": "bull"}
@@ -125,4 +125,4 @@ def test_a_verification_disagreeing_with_the_cores_or_the_conclusion_is_not_publ
     tamper(datasets["cycle_overview"]["macro_judgement"])
 
     with pytest.raises(ValueError, match="projection_macro_judgement_invalid"):
-        validate_analytical_projection(projection.envelope, datasets)
+        checked(projection.envelope, datasets)

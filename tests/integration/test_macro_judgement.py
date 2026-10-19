@@ -18,7 +18,8 @@ import pytest
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.day_summary import SHANGHAI, DaySummaries, ModelRules, RunMaterials
 from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
-from pring_cycle.macro_judgement import MANIFEST_FIELD, rules_v0001
+from pring_cycle.macro_judgement import MANIFEST_FIELD, formed, rules_v0001
+from pring_cycle.macro_judgement import validate as validate_judgement
 from pring_cycle.models import (
     ModelRepository,
     _canonical_json,
@@ -28,6 +29,7 @@ from pring_cycle.models import (
     model_v0016_manifest,
 )
 from pring_cycle.projections import (
+    ProjectionEnvelope,
     ProjectionSet,
     ProjectionSetRepository,
     validate_analytical_projection,
@@ -68,8 +70,8 @@ QUARTERS = ("2025-06-30", "2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"
 LPR_MONTHS = tuple(f"2026-{month:02d}" for month in range(1, 9))
 
 
-def register_macro_model(paths: RuntimePaths) -> None:
-    """A confirmation model with v0016's macro judgement rules, in this run's database."""
+def macro_manifest() -> dict[str, Any]:
+    """A confirmation model with v0016's macro judgement rules."""
     base = certified_model_v0001_manifest()
     base["metric_definitions"] = [
         {**item, "certification_status": "certified"} if item["metric_id"] in SEEDED else item
@@ -77,7 +79,18 @@ def register_macro_model(paths: RuntimePaths) -> None:
     ]
     manifest = confirmation_manifest(base)
     manifest.update({"model_version_id": MODEL, MANIFEST_FIELD: rules_v0001()})
-    ModelRepository(paths.database).register(manifest)
+    return manifest
+
+
+def register_macro_model(paths: RuntimePaths) -> None:
+    """``macro_manifest``'s model, in this run's database."""
+    ModelRepository(paths.database).register(macro_manifest())
+
+
+def checked(envelope: ProjectionEnvelope, datasets: dict[str, Any]) -> None:
+    """A set validated as its publication validates it, under the model's frozen rules."""
+    rules = ContextProjectionRules.from_manifest(macro_manifest()).macro_judgement
+    validate_analytical_projection(envelope, datasets, macro_rules=rules)
 
 
 def take_effect(paths: RuntimePaths, day: str, model: str = MODEL) -> None:
@@ -446,4 +459,53 @@ def test_a_judgement_disagreeing_with_its_own_scores_is_not_published(
     tamper(datasets["cycle_overview"]["macro_judgement"])
 
     with pytest.raises(ValueError, match="projection_macro_judgement_invalid"):
-        validate_analytical_projection(projection.envelope, datasets)
+        checked(projection.envelope, datasets)
+
+
+def _scored_as_iii(block: dict[str, Any]) -> None:
+    """Stage III the unique top of five, its raw judgement, conclusion and marks told so."""
+    block["scores"] = {stage: 5 if stage == "stage_iii" else 0 for stage in block["scores"]}
+    block["raw"].update(stage="stage_iii", matched=5)
+    block["conclusion"].update(stage="stage_iii", matched=5, steps=0, direction="same")
+    for item in block["dimensions"]:
+        item["matches"] = True
+    block["conclusion"]["formed"] = formed(block, block["conclusion"]["formed"]["on"])
+
+
+def _stated_from_ii(block: dict[str, Any]) -> None:
+    """The conclusion stated against stage II, which the set does not state."""
+    block["conclusion"].update(reference_stage="stage_ii", steps=3, direction="forward")
+    block["conclusion"]["formed"] = formed(block, block["conclusion"]["formed"]["on"])
+
+
+@pytest.mark.parametrize("tamper", [_scored_as_iii, _stated_from_ii])
+def test_a_judgement_agreeing_with_itself_but_not_its_inputs_is_not_published(
+    tmp_path: Path, tamper: Any
+) -> None:
+    projection = judged(tmp_path)
+    datasets = copy.deepcopy(projection.datasets)
+    tamper(datasets["cycle_overview"]["macro_judgement"])
+    # Consistent in itself: only the frozen rules and the set's own facts tell it apart.
+    validate_judgement(datasets["cycle_overview"]["macro_judgement"])
+
+    with pytest.raises(ValueError, match="projection_macro_judgement_invalid"):
+        checked(projection.envelope, datasets)
+    # A set with a judgement is never validated without the rules it was judged by.
+    with pytest.raises(ValueError, match="projection_macro_judgement_rules_missing"):
+        validate_analytical_projection(projection.envelope, projection.datasets)
+
+
+def test_each_v0016_manifest_is_its_own_copy() -> None:
+    first = model_v0016_manifest()
+    first["macro_judgement_rules"]["signature"]["stage_i"]["policy"]["values"].append("neutral")
+    first["macro_signal_rules"]["peers"]["bond"].append("CN_EQ_CSI300")
+
+    second = model_v0016_manifest()
+
+    assert second["macro_judgement_rules"]["signature"]["stage_i"]["policy"] == {
+        "values": ["easing"]
+    }
+    assert second["macro_signal_rules"]["peers"]["bond"] == [
+        "CN_BOND_10Y_930916",
+        "CN_BOND_FULL_PRICE_CNY030",
+    ]

@@ -26,7 +26,6 @@ from pring_cycle.models import ModelRepository
 from pring_cycle.projections import (
     ProjectionSet,
     ProjectionSetRepository,
-    validate_analytical_projection,
 )
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
@@ -42,6 +41,7 @@ from tests.integration.test_macro_judgement import (
     CATALOG,
     LPR_MONTHS,
     MODEL,
+    checked,
     industrial_va,
     register_macro_model,
     seed_macro,
@@ -302,7 +302,7 @@ def test_a_tie_out_of_keeping_with_its_scores_is_not_published(
     tamper(datasets["cycle_overview"]["macro_judgement"])
 
     with pytest.raises(ValueError, match="projection_macro_judgement_invalid"):
-        validate_analytical_projection(projection.envelope, datasets)
+        checked(projection.envelope, datasets)
 
 
 @pytest.mark.parametrize(
@@ -333,7 +333,7 @@ def test_a_weak_judgement_out_of_keeping_with_its_fallback_is_not_published(
     tamper(datasets["cycle_overview"]["macro_judgement"])
 
     with pytest.raises(ValueError, match="projection_macro_judgement_invalid"):
-        validate_analytical_projection(projection.envelope, datasets)
+        checked(projection.envelope, datasets)
 
 
 def test_a_correction_of_the_last_confirmed_stage_alone_takes_the_weak_stage_again(

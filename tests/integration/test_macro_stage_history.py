@@ -27,7 +27,6 @@ from pring_cycle.models import ModelRepository
 from pring_cycle.projections import (
     ProjectionSet,
     ProjectionSetRepository,
-    validate_analytical_projection,
 )
 from pring_cycle.trading_calendar import TradingCalendar
 from tests.integration.test_backfill import summary
@@ -39,6 +38,7 @@ from tests.integration.test_macro_fallback import seed_policy_and_inventory
 from tests.integration.test_macro_hysteresis import SF_REVISED, last, macro_day, revise_credit
 from tests.integration.test_macro_judgement import (
     MODEL,
+    checked,
     judgement,
     publish_from,
     register_macro_model,
@@ -169,6 +169,10 @@ def _own(datasets: dict[str, Any]) -> dict[str, Any]:
     return datasets["stage_history"]["events"][-1]  # type: ignore[no-any-return]
 
 
+def _row(datasets: dict[str, Any]) -> dict[str, Any]:
+    return datasets["stage_history"]["display"]["days"][-1]  # type: ignore[no-any-return]
+
+
 @pytest.mark.parametrize(
     "tamper",
     [
@@ -183,6 +187,11 @@ def _own(datasets: dict[str, Any]) -> dict[str, Any]:
         lambda datasets: _own(datasets).pop("macro_conclusion"),
         # A record without a judgement to state it.
         lambda datasets: datasets["cycle_overview"].pop("macro_judgement"),
+        # The day's own event left out, so nothing records its conclusion.
+        lambda datasets: datasets["stage_history"]["events"].pop(),
+        # Its row on the band shows another stage or confidence than its record.
+        lambda datasets: _row(datasets).update(macro="stage_iii"),
+        lambda datasets: _row(datasets).update(macro_confidence="tendency"),
     ],
 )
 def test_a_day_recorded_otherwise_than_its_main_conclusion_is_not_published(
@@ -198,7 +207,7 @@ def test_a_day_recorded_otherwise_than_its_main_conclusion_is_not_published(
     tamper(datasets)
 
     with pytest.raises(ValueError, match="projection_stage_history_macro_mismatch"):
-        validate_analytical_projection(projection.envelope, datasets)
+        checked(projection.envelope, datasets)
 
 
 def test_a_day_with_no_stage_to_take_records_so_and_its_relink_records_the_stage_it_takes(

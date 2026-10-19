@@ -25,7 +25,7 @@ from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.day_summary import DaySummaries, ModelRules
 from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.models import ModelRepository, model_v0016_manifest
-from pring_cycle.projections import ProjectionSetRepository, validate_analytical_projection
+from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.trading_calendar import TradingCalendar
 from tests.integration.test_backfill import summary
@@ -36,6 +36,7 @@ from tests.integration.test_macro_fallback import seed_combination
 from tests.integration.test_macro_judgement import (
     CATALOG,
     MODEL,
+    checked,
     judgement,
     publish_from,
     register_macro_model,
@@ -383,4 +384,4 @@ def test_a_hysteresis_out_of_keeping_with_its_judgement_is_not_published(
     tamper(datasets["cycle_overview"]["macro_judgement"])
 
     with pytest.raises(ValueError, match="projection_macro_judgement_invalid"):
-        validate_analytical_projection(projection.envelope, datasets)
+        checked(projection.envelope, datasets)
