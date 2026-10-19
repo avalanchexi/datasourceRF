@@ -83,7 +83,8 @@
 | 03 兜底 | done（736169d，合并 4fb29cf；55 过） | ticket-ms03／ms-03 |
 | 04 信号清单 | done（3f0d1c1，快进合入；36 过） | ticket-ms04／ms-04 |
 | 06 价格验证 | done（78254fc，合并 9917b08） | ticket-ms06／ms-06 |
-| 07 ④ | 进行中（20:4x 派出） | ticket-ms07／ms-07 |
+| 07 ④ | done（cf8f46c，快进合入） | ticket-ms07／ms-07 |
 | 05 滞回 | 进行中（21:0x 派出） | ticket-ms05／ms-05 |
-| 08、09 | 等 05（08）／已可派（09，名额满后排队） | — |
+| 09 报告 | 进行中（21:2x 派出） | ticket-ms09／ms-09 |
+| 08 | 等 05 | — |
 | 10 | ready-for-human | — |
