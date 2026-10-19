@@ -319,7 +319,7 @@ class DaySummaries:
                 else None
             )
             macro_judgement = self._judge_macro(
-                context, stated_last_confirmed(decided, last_stage, lookback)
+                context, readiness, decided, stated_last_confirmed(decided, last_stage, lookback)
             )
             snapshot_id = self._freeze(readiness, context, system_as_of=system_as_of)
             if snapshot_id is not None:
@@ -574,20 +574,34 @@ class DaySummaries:
             decided=decided,
             core_history_basis=basis,
             corrects=corrects,
-            macro_judgement=self._judge_macro(context, stated_last_confirmed(decided, last_stage)),
+            macro_judgement=self._judge_macro(
+                context, readiness, decided, stated_last_confirmed(decided, last_stage)
+            ),
         )
 
     def _judge_macro(
-        self, context: ContextProjection, reference: FormalStage | None
+        self,
+        context: ContextProjection,
+        readiness: CoreReadiness,
+        decided: StageResult,
+        reference: FormalStage | None,
     ) -> dict[str, object] | None:
         """The macro judgement a day publishes, the target and each backfilled day alike,
         once its context is read and the last confirmed stage its set states is known
-        (ADR-0043). None for a model without the rules, or a context not recomputed."""
+        (ADR-0043). None for a model without the rules, or a context not recomputed.
+
+        A weak judgement falls back on the day's three cores while their combination is
+        read, typical or not; with a core unavailable or pending, on ``reference``."""
         rules = self._model.macro_judgement
         confirmation = context.macro.get("confirmation")
         if rules is None or not isinstance(confirmation, Mapping):
             return None
-        return judge(rules, confirmation, reference=reference)
+        cores = (
+            {item.asset: item.state.value for item in readiness if item.state is not None}
+            if decided.reason in {"canonical_combination", "noncanonical_combination"}
+            else None
+        )
+        return judge(rules, confirmation, reference=reference, cores=cores)
 
     def _freeze(
         self, readiness: CoreReadiness, context: ContextProjection, *, system_as_of: datetime

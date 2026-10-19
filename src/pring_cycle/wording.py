@@ -21,6 +21,7 @@ CORE_STATE_LABELS = {
     "bear": "熊市",
     "bearish": "熊市",
 }
+CORE_ASSET_NAMES = {"bond": "债券", "stock": "股票", "commodity": "商品"}
 
 STAGE_TITLES = {
     "stage_i": "第一阶段 · Stage I",

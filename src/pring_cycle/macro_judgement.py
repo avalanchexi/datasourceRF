@@ -4,7 +4,9 @@ Policy, credit, growth, prices and inventory each read one direction from the ke
 indicators the day summary has already read (GLOSSARY: 维度方向), and the six stages of
 the macro cycle signature table, frozen with the model, are scored against them: one
 point a dimension that matches, an unknown dimension scored nowhere. A unique top score of
-at least the threshold is an explicit judgement (decisions 8, 18, 27).
+at least the threshold is an explicit judgement (decisions 8, 18, 27); the judgement is
+never empty short of one (ADR-0043 revised): a tied top is a tendency, too little evidence
+weak, each stated with what it was taken from.
 
 The judgement reads the published key indicator documents only -- their members' evidence,
 direction, position, consistency and actions -- so it never depends on the formal stage:
@@ -22,9 +24,11 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from itertools import product
 from typing import Any
 
-from pring_cycle.domain import FormalStage
+from pring_cycle.domain import CoreAssetState, FormalStage
+from pring_cycle.domain.stage import derive_formal_stage
 
 RULES_VERSION = "macro-judgement-v0001"
 MANIFEST_FIELD = "macro_judgement_rules"
@@ -36,11 +40,29 @@ GROUPS = (
     ("inventory", ("inventory",)),
 )
 STAGES = tuple(stage.value for stage in FormalStage)
+ASSETS = ("bond", "stock", "commodity")
+
+
+def _typical() -> dict[str, tuple[str, str, str]]:
+    """Each stage's typical three cores, as the price stage maps them (ADR-0001)."""
+    typical = {}
+    for bond, stock, commodity in product(CoreAssetState, repeat=len(ASSETS)):
+        result = derive_formal_stage(
+            bond=bond, stock=stock, commodity=commodity, last_confirmed_stage=None
+        )
+        if result.current_stage is not None:
+            typical[result.current_stage.value] = (bond.value, stock.value, commodity.value)
+    return typical
+
+
+TYPICAL = _typical()
 DIRECTIONS = ("up", "down", "flat")
 POSITIONS = ("high", "middle", "low")
 POLICY_STATES = ("easing", "tightening", "neutral")
 QUADRANTS = ("active_destocking", "passive_destocking", "active_restocking", "passive_restocking")
 CONFIDENCES = ("explicit", "tendency", "weak")
+# Each raw judgement's basis and the confidence it is stated with (decisions 18, 24).
+_CONFIDENCE_OF = {"unique_top": "explicit", "tied": "tendency", "insufficient": "weak"}
 # The dimensions read by a vote of key indicators; policy and inventory read their own.
 _VOTED = ("credit", "overheat", "price")
 # What each dimension's value may be, and so what a signature cell may name.
@@ -229,13 +251,18 @@ def judge(
     confirmation: Mapping[str, object],
     *,
     reference: FormalStage | None,
+    cores: Mapping[str, str] | None = None,
 ) -> dict[str, object]:
     """The day's macro judgement block, from its published key indicator documents.
 
     ``reference`` is the last confirmed stage the day's set states: the cores' own stage
-    when typical. Only an explicit judgement names a stage here; the fallbacks for a tie or
-    too little evidence are ticket 03's, and the hysteresis that turns the raw judgement
-    into the main conclusion ticket 05's: until then the conclusion is the raw judgement.
+    when typical. ``cores`` are the day's three core states (bond, stock, commodity) when
+    its combination is read, typical or not; None when a core is unavailable or pending.
+    The judgement is never empty (decisions 18, 24, 27, 35): a unique top of at least the
+    threshold is explicit, a tied top the tied stage nearest ``reference`` (a tendency),
+    and too little evidence weak, from the cores' combination. The hysteresis that turns
+    the raw judgement into the main conclusion is ticket 05's: until then the conclusion
+    is the raw judgement.
     """
     keyed = {
         str(item["key"]): item
@@ -253,12 +280,17 @@ def judge(
     }
     top = max(scores.values())
     leaders = [stage for stage in STAGES if scores[stage] == top]
+    # Too little evidence first, so a tie below the threshold is weak, never a tendency.
     if len(known) < rules.threshold or top < rules.threshold:
-        raw = _raw(None, None, top, len(known), basis="insufficient")
+        fallback = _fallback(cores)
+        weak = _pick("insufficient", (), fallback, reference)
+        raw = _raw(weak, scores, len(known), basis="insufficient", fallback=fallback)
     elif len(leaders) > 1:
-        raw = _raw(None, None, top, len(known), basis="tied", tied=leaders)
+        # The tied stage nearest the last confirmed one, the others stated with it.
+        raw = _raw(nearest(leaders, reference), scores, len(known), basis="tied", tied=leaders)
     else:
-        raw = _raw(leaders[0], "explicit", top, len(known), basis="unique_top")
+        raw = _raw(leaders[0], scores, len(known), basis="unique_top")
+    raw["threshold"] = rules.threshold
     stage = raw["stage"]
     for item in dimensions:
         item["matches"] = (
@@ -298,10 +330,43 @@ def conclusion(raw: Mapping[str, object], reference: FormalStage | str | None) -
 
 def with_reference(block: Mapping[str, object], reference: str | None) -> dict[str, object]:
     """``block`` with its conclusion stated against another last confirmed stage, as a
-    correction of that stage alone states it; nothing else is judged again."""
+    correction of that stage alone states it; nothing else is judged again.
+
+    A tendency or weak raw judgement takes its stage again from the same ties or fallback
+    against that stage, and while no hysteresis holds the conclusion, it is that raw
+    judgement's; an explicit one keeps its stage."""
     current = _object(block.get("conclusion"))
+    raw = _object(block.get("raw"))
+    if (basis := raw.get("basis")) in {"tied", "insufficient"}:
+        tied, fallback = raw.get("tied") or (), raw.get("fallback")
+        raw = {
+            **_raw(
+                _pick(str(basis), tied, fallback, reference),
+                _object(block.get("scores")),
+                int(raw["known"]),
+                basis=str(basis),
+                tied=tied,
+                fallback=fallback,
+            ),
+            "threshold": raw.get("threshold"),
+        }
+    if block.get("hysteresis") is None:
+        return {**block, "raw": raw, "conclusion": conclusion(raw, reference)}
     restated = conclusion(current, reference)
-    return {**block, "conclusion": {**current, **restated}}
+    return {**block, "raw": raw, "conclusion": {**current, **restated}}
+
+
+def nearest(candidates: Sequence[str], reference: FormalStage | str | None) -> str:
+    """The candidate fewest ring steps from ``reference``, forward on equal steps (decision
+    35); without a last confirmed stage, the first in Pring's order."""
+    if reference is None:
+        return candidates[0]
+    origin = FormalStage(reference).value
+    return min(candidates, key=lambda stage: _distance(ring_steps(origin, stage)))
+
+
+def _distance(steps: int | None) -> tuple[int, int]:
+    return (abs(steps or 0), -(steps or 0))
 
 
 def ring_steps(origin: str | None, target: str) -> int | None:
@@ -315,22 +380,57 @@ def ring_steps(origin: str | None, target: str) -> int | None:
 
 def _raw(
     stage: str | None,
-    confidence: str | None,
-    top: int,
+    scores: Mapping[str, int],
     known: int,
     *,
     basis: str,
     tied: Sequence[str] = (),
+    fallback: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     return {
         "stage": stage,
-        "confidence": confidence,
+        # Only without a stage to take (no cores and no last confirmed stage) is it none.
+        "confidence": _CONFIDENCE_OF[basis] if stage is not None else None,
         # The stage's matching dimensions; without a stage, the top score.
-        "matched": top,
+        "matched": scores[stage] if stage is not None else max(scores.values()),
         "known": known,
         "basis": basis,
         "tied": list(tied),
+        "fallback": dict(fallback) if fallback is not None else None,
     }
+
+
+def _fallback(cores: Mapping[str, str] | None) -> dict[str, object]:
+    """Where a weak judgement is taken from: the typical stages fewest assets off the day's
+    combination -- the price stage itself when typical -- or, its cores unavailable, the
+    last confirmed stage (decisions 18, 35)."""
+    if cores is None:
+        return {"source": "reference", "combination": None, "differences": None, "candidates": []}
+    off = {
+        stage: sum(cores[asset] != state for asset, state in zip(ASSETS, pattern, strict=True))
+        for stage, pattern in TYPICAL.items()
+    }
+    fewest = min(off.values())
+    return {
+        "source": "combination",
+        "combination": {asset: cores[asset] for asset in ASSETS},
+        "differences": fewest,
+        "candidates": [stage for stage in STAGES if off[stage] == fewest],
+    }
+
+
+def _pick(
+    basis: str,
+    tied: Sequence[str],
+    fallback: Mapping[str, Any] | None,
+    reference: FormalStage | str | None,
+) -> str | None:
+    """The stage a judgement short of explicit takes against ``reference``."""
+    if basis == "tied":
+        return nearest(tied, reference)
+    if fallback is not None and fallback.get("source") == "combination":
+        return nearest(list(fallback["candidates"]), reference)
+    return FormalStage(reference).value if reference is not None else None
 
 
 def _group(dimension: str) -> str:
@@ -558,14 +658,57 @@ def _consistent(block: object) -> bool:
             return False
         if confidence not in (None, *CONFIDENCES) or judgement.get("known") != known:
             return False
-    if raw.get("confidence") == "explicit":
-        top = max(scores.values())
-        if scores[str(raw["stage"])] != top or list(scores.values()).count(top) != 1:
-            return False
-        if raw.get("matched") != top:
-            return False
+    if not _raw_consistent(raw, scores, known, main.get("reference_stage")):
+        return False
     stage = main.get("stage")
     expected = conclusion(main, main.get("reference_stage"))
     if stage is not None and main.get("matched") != scores[str(stage)]:
         return False
     return all(main.get(field) == expected[field] for field in ("steps", "direction"))
+
+
+def _raw_consistent(
+    raw: Mapping[str, Any], scores: Mapping[str, int], known: int, reference: object
+) -> bool:
+    """The raw judgement is the one its scores, ties and fallback give against the last
+    confirmed stage: explicit only a unique top of at least the threshold, a tendency only
+    a tie at or past it, weak only short of it (decisions 18, 24, 27, 35)."""
+    basis, stage, threshold = raw.get("basis"), raw.get("stage"), raw.get("threshold")
+    top = max(scores.values())
+    leaders = [name for name in STAGES if scores[name] == top]
+    if basis not in _CONFIDENCE_OF or not isinstance(threshold, int):
+        return False
+    if reference is not None and reference not in STAGES:
+        return False
+    short = known < threshold or top < threshold
+    if short != (basis == "insufficient") or (basis == "tied") != (not short and len(leaders) > 1):
+        return False
+    tied, fallback = raw.get("tied"), raw.get("fallback")
+    if tied != (leaders if basis == "tied" else []):
+        return False
+    if basis == "insufficient":
+        if not isinstance(fallback, Mapping):
+            return False
+        combination = fallback.get("combination")
+        if fallback != _fallback(_combination(combination) if combination is not None else None):
+            return False
+    elif fallback is not None:
+        return False
+    expected = leaders[0] if basis == "unique_top" else _pick(basis, leaders, fallback, reference)
+    if stage != expected:
+        return False
+    if stage is None:
+        return raw.get("confidence") is None and raw.get("matched") == top
+    return raw.get("confidence") == _CONFIDENCE_OF[basis] and raw.get("matched") == scores[stage]
+
+
+def _combination(value: object) -> Mapping[str, str] | None:
+    """A published combination's three core states, when it states each as bull or bear."""
+    states = {state.value for state in CoreAssetState}
+    if (
+        isinstance(value, Mapping)
+        and set(value) == set(ASSETS)
+        and all(value[asset] in states for asset in ASSETS)
+    ):
+        return {asset: str(value[asset]) for asset in ASSETS}
+    return None

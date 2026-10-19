@@ -103,12 +103,34 @@ def quarter(repository: EvidenceRepository, values: tuple[float, ...]) -> None:
         )
 
 
-def seed_macro(paths: RuntimePaths) -> None:
+def industrial_va(repository: EvidenceRepository) -> None:
+    """Industrial value added rising to the top of its year: never a January, and February
+    its cumulative growth."""
+    for measure, months in (("current_month_real_yoy", ("01", "02")), ("ytd_real_yoy", None)):
+        append(
+            repository,
+            "CN_INDUSTRIAL_VA",
+            {"measure": measure},
+            tuple(
+                value if (month[5:] not in months if months else month[5:] == "02") else None
+                for month, value in zip(TO_JULY, year(5.3, 5.6, 6.0, fill=5.0), strict=True)
+            ),
+            months=TO_JULY,
+            unit="scalar",
+            definition_version=CATALOG,
+        )
+
+
+# PPI rising to the top of its year, so prices are up and high.
+PPI_HIGH = year(-1.0, -0.4, 0.3, fill=-1.5)
+
+
+def seed_macro(paths: RuntimePaths, *, ppi: tuple[float, ...] = PPI_HIGH) -> None:
     """The 10-15 hand calculation's shape, out by the target day (2026-08-28): no policy
     action, credit and growth down, prices rising high, inventory actively restocked.
 
     The PMI's manufacturing falls while its new orders rise, so it diverges; nothing of
-    loans or M1/M2 is held.
+    loans or M1/M2 is held. ``ppi`` is the PPI's year, whose place is the prices'.
     """
     repository = EvidenceRepository(paths.database)
     for month in LPR_MONTHS:
@@ -135,26 +157,13 @@ def seed_macro(paths: RuntimePaths) -> None:
     append_pmi(
         repository, "new_orders", (50.0, 50.5, 51.0), months=MONTHS, definition_version=CATALOG
     )
-    # Rising to the top of its year: never a January, and February its cumulative growth.
-    for measure, months in (("current_month_real_yoy", ("01", "02")), ("ytd_real_yoy", None)):
-        append(
-            repository,
-            "CN_INDUSTRIAL_VA",
-            {"measure": measure},
-            tuple(
-                value if (month[5:] not in months if months else month[5:] == "02") else None
-                for month, value in zip(TO_JULY, year(5.3, 5.6, 6.0, fill=5.0), strict=True)
-            ),
-            months=TO_JULY,
-            unit="scalar",
-            definition_version=CATALOG,
-        )
+    industrial_va(repository)
     quarter(repository, (5.4, 5.3, 5.2, 5.0, 4.8))
     append(
         repository,
         "CN_PPI",
         {"category": "headline", "measure": "yoy"},
-        year(-1.0, -0.4, 0.3, fill=-1.5),
+        ppi,
         months=TO_JULY,
         definition_version=CATALOG,
     )
