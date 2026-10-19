@@ -367,6 +367,15 @@ def price_consistency_document(
     }
 
 
+def relative_momentum(
+    rules: PriceRules, cores: Mapping[str, CorePrices] | None, span: Sequence[str] | None
+) -> list[dict[str, Any]]:
+    """Each pair's return difference over ``span``, as the document reads it: what the
+    signal list reads a turn by, over the sessions before the day's own (ticket 04)."""
+    read = {asset: _core(asset, rules, cores, span) for asset in ASSETS}
+    return [_pair(pair, read) for pair in rules.pairs]
+
+
 def supply_demand_document(
     rules: SupplyDemand,
     *,

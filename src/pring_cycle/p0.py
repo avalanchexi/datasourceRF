@@ -11,6 +11,7 @@ from pring_cycle.display_projection import display_days, history_display
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.domain.stage import StageResult, derive_formal_stage
 from pring_cycle.macro_judgement import with_reference
+from pring_cycle.macro_signals import regrouped
 from pring_cycle.noncanonical import build_basis
 from pring_cycle.projections import (
     ANALYTICAL_DATASETS,
@@ -415,8 +416,11 @@ class P0ProjectionService:
             overview.pop("last_confirmed_lookback", None)
             datasets["stage_history"].pop("last_confirmed_lookback", None)
             if isinstance(judgement := overview.get("macro_judgement"), dict):
-                # Its conclusion is stated against that stage; nothing is judged again.
-                overview["macro_judgement"] = with_reference(judgement, last_confirmed_stage)
+                # Its conclusion is stated against that stage, and its signals against the
+                # conclusion; nothing is judged again.
+                overview["macro_judgement"] = regrouped(
+                    with_reference(judgement, last_confirmed_stage)
+                )
         datasets["stage_history"]["events"] = [*history, assessment]
         if isinstance(shown := datasets["stage_history"].get("display"), dict):
             datasets["stage_history"]["display"] = history_display(

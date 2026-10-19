@@ -200,7 +200,8 @@ def test_v0016_freezes_the_signature_threshold_and_positions_and_v0015_is_unchan
     assert hashlib.sha256(_canonical_json(v0015).encode()).hexdigest() == V0015_HASH
     assert "macro_judgement_rules" not in v0015
     # Everything else is v0015's: the confirmation keeps its cells, caps and loan count.
-    assert {key: value for key, value in v0016.items() if key != "macro_judgement_rules"} == {
+    added = {"macro_judgement_rules", "macro_signal_rules"}
+    assert {key: value for key, value in v0016.items() if key not in added} == {
         **v0015,
         "model_version_id": "model-v0016",
     }
