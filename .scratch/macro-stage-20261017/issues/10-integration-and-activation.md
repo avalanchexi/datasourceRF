@@ -21,3 +21,7 @@
 - **4 浏览器验收**：副本上用新代码起 8072（PID 585906，10-19 v0016 投影），Codex（`codex exec -s workspace-write -C` scratchpad 独立目录，Playwright 无头）核对 ①、④、⑥ 与 ⑦ 文案，明暗 × 1440／908／390：主结论标题、滞回保持句与当日原始判断依据、三组五维、信号清单归组、价格验证行与抽屉、④ 五卡、⑥ 宏观行（10-14 起 4 格第五阶段明确、生效前留空）与区间切换均符合；六组视口无横向溢出，console error 0。发现缺陷 D1（⑦ 与 ⑥ 抽屉残留"正式阶段"）、D2（⑥ 宏观区间抽屉逐日行仍是价格阶段描述，且与价格区间同日重复），疑点 3 项。我亲自看了 7 张关键截图，与 Codex 报告一致。截图 54 张（JPG）`integration/screenshots/`，报告 `integration/browser-report-codex.txt`。之后按 PID 停站、删副本 `/tmp/pring-ms10-replay` 与全套 basetemp（26G）；正式 Worker（224854）与 8069 未动。
 - **5 验收清单**：`acceptance.md`——自动化结果、重放与 01 对照（含信号逐条差异与报告体积）、页面与报告核对点、需用户裁定 12 项（含本次发现的"滞回期间不改判的分化也归支持后退"）、激活与并入 main 的步骤（注意：正式激活时生效首日直接取当日原始判断，按 10-19 读数为第三阶段（倾向），不是重放里滞回保持的第五阶段）。
 - Status 保持 ready-for-human：全套、副本对照、浏览器验收三框的证据已备，待主 agent 核验后勾选；第四框待用户。
+
+### 2026-10-20 07:19 激活（用户"全部确认"，决定 61）
+
+激活前小修 6116f3c、6321459（D1、决定 51/59/60、三处旧文案、方向悬停提示）合入 macro-stage 后 440 过。停常驻 Worker 与 8069 → 备份 `backups/pring-cycle-before-v0016-20261020.sqlite3`（quick_check ok，0039）→ macro-stage 并入 main（426ea1d，无冲突）→ 重装正式 dev-venv（与 HEAD 0 差异，init ok，冒烟＋宏观 22 过）→ 导出 `.scratch/macro-stage-20261017/model-v0016-manifest.json` → `model-register`（hash f58cd825…）→ `model-activate --confirm`，active 为 model-v0016 → 重启常驻 Worker（PID 618991）与 8069。待办：首个成功发布宏观块的运行即生效首日，核对 ① 标题（预期第三阶段（倾向），滞回 initial）、⑥ 首格、报告新校验与提示词完整发送；之后勾验收清单、本票改 done。

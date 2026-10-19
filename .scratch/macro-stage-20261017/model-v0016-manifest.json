@@ -1,0 +1,6829 @@
+{
+  "calibration_range_start": "2018-06-01",
+  "certified_replay_start": "2026-03-09",
+  "confirmation_rules": {
+    "bond_attribution": {
+      "axes": [
+        {
+          "combine": "agree",
+          "key": "policy",
+          "label": "政策维度",
+          "otherwise": "neutral",
+          "signals": [
+            {
+              "indicator": "policy_rate",
+              "means": {
+                "cut": "easing",
+                "hike": "tightening"
+              },
+              "reading": "action"
+            },
+            {
+              "indicator": "lpr",
+              "means": {
+                "cut": "easing",
+                "hike": "tightening"
+              },
+              "reading": "action"
+            },
+            {
+              "indicator": "rrr",
+              "means": {
+                "cut": "easing",
+                "hike": "tightening"
+              },
+              "reading": "action"
+            },
+            {
+              "indicator": "dr007",
+              "means": {
+                "down": "easing",
+                "up": "tightening"
+              },
+              "reading": "momentum"
+            }
+          ],
+          "texts": {
+            "easing": "宽松",
+            "mixed": "信号分化",
+            "neutral": "中性",
+            "tightening": "收紧",
+            "unconfirmed": "未确认"
+          }
+        },
+        {
+          "combine": "majority",
+          "key": "growth_inflation",
+          "label": "增长通胀（过热、物价）",
+          "signals": [
+            {
+              "indicator": "pmi",
+              "means": {
+                "down": "weaker",
+                "up": "stronger"
+              },
+              "reading": "momentum"
+            },
+            {
+              "indicator": "industrial_va",
+              "means": {
+                "down": "weaker",
+                "up": "stronger"
+              },
+              "reading": "momentum"
+            },
+            {
+              "indicator": "gdp",
+              "means": {
+                "down": "weaker",
+                "up": "stronger"
+              },
+              "reading": "momentum"
+            },
+            {
+              "indicator": "ppi",
+              "means": {
+                "down": "weaker",
+                "up": "stronger"
+              },
+              "reading": "momentum"
+            },
+            {
+              "indicator": "pmi_prices",
+              "means": {
+                "down": "weaker",
+                "up": "stronger"
+              },
+              "reading": "momentum"
+            }
+          ],
+          "texts": {
+            "mixed": "无多数方向",
+            "stronger": "走强",
+            "unconfirmed": "未确认",
+            "weaker": "走弱"
+          }
+        }
+      ],
+      "bond": {
+        "bear": "债券价格走弱",
+        "bull": "债券价格走强"
+      },
+      "core": "bond",
+      "drivers": {
+        "fundamentals": "基本面推动",
+        "fundamentals_and_easing": "基本面加宽松推动",
+        "policy_liquidity": "政策或流动性推动",
+        "unclear": "推动力不明"
+      },
+      "table": [
+        {
+          "bond": "bear",
+          "driver": "fundamentals",
+          "growth_inflation": [
+            "stronger"
+          ],
+          "policy": [
+            "tightening",
+            "neutral"
+          ],
+          "typical": "典型Ⅳ"
+        },
+        {
+          "bond": "bear",
+          "driver": "policy_liquidity",
+          "growth_inflation": [
+            "weaker"
+          ],
+          "policy": [
+            "tightening"
+          ]
+        },
+        {
+          "bond": "bear",
+          "driver": "unclear",
+          "growth_inflation": [
+            "weaker"
+          ],
+          "policy": [
+            "easing"
+          ],
+          "suspicion": "财政供给、信用风险或期限溢价嫌疑"
+        },
+        {
+          "bond": "bull",
+          "driver": "fundamentals_and_easing",
+          "growth_inflation": [
+            "weaker"
+          ],
+          "policy": [
+            "easing"
+          ],
+          "typical": "典型Ⅰ、Ⅵ→Ⅰ"
+        },
+        {
+          "bond": "bull",
+          "driver": "unclear",
+          "policy": [
+            "tightening"
+          ],
+          "suspicion": "避险嫌疑"
+        }
+      ],
+      "texts": {
+        "bond_unknown": "债券核心状态未定",
+        "boundary": "债券状态旁的解释附注：不计入确认度，不由宽松程度推算或改写债券牛熊与正式阶段",
+        "label": "债券归因",
+        "not_in_table": "两轴组合不在归因表中",
+        "term_premium": "期限溢价归因未确认",
+        "unclear_refinement": "收益率曲线与信用利差未接入，推动力不明暂不细分"
+      }
+    },
+    "key_indicators": [
+      {
+        "auxiliary": [
+          {
+            "dimensions": {
+              "measure": "level",
+              "series": "new_orders"
+            },
+            "label": "新订单",
+            "name": "new_orders"
+          },
+          {
+            "dimensions": {
+              "measure": "level",
+              "series": "production"
+            },
+            "label": "生产",
+            "name": "production"
+          },
+          {
+            "dimensions": {
+              "measure": "level",
+              "series": "purchase_volume"
+            },
+            "label": "采购量",
+            "name": "purchase_volume"
+          }
+        ],
+        "dimension": "overheat",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below",
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_ii",
+                  "when": {
+                    "slope": "steeper"
+                  }
+                },
+                "when": [
+                  {
+                    "level": "below",
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济走弱，增长仍弱"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "below",
+                    "momentum": "down",
+                    "slope": "steeper"
+                  }
+                ]
+              },
+              {
+                "note": {
+                  "text": "新订单领先生产",
+                  "when": {
+                    "member": "new_orders",
+                    "outpaces": "production"
+                  }
+                },
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below",
+                    "momentum": "up"
+                  },
+                  {
+                    "crossed": "above"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_iii"
+                },
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up",
+                    "slope": "steeper"
+                  }
+                ]
+              }
+            ],
+            "proposition": "增长仍低但不再恶化"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              },
+              {
+                "note": {
+                  "text": "扩张仍在、动能减弱"
+                },
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up",
+                    "slope": "slower"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济自底部恢复，需求与生产扩张"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              },
+              {
+                "note": {
+                  "text": "扩张后段，斜率放缓"
+                },
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up",
+                    "slope": "slower"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "above"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济充分扩张"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up",
+                    "slope": "steeper"
+                  }
+                ]
+              },
+              {
+                "note": {
+                  "text": "水平仍高、动量下降",
+                  "when": {
+                    "level": "above"
+                  }
+                },
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "增长动量见顶回落"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below",
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "text": "订单先改善：只改动量描述，不宣布复苏",
+                "when": {
+                  "member": "new_orders",
+                  "momentum": "up"
+                }
+              }
+            ],
+            "proposition": "经济由扩张转向收缩"
+          }
+        },
+        "key": "pmi",
+        "level_line": 50,
+        "lookback_months": 3,
+        "main": {
+          "dimensions": {
+            "measure": "level",
+            "series": "manufacturing"
+          },
+          "label": "制造业 PMI",
+          "name": "manufacturing"
+        },
+        "metric_id": "CN_PMI_ACTIVITY",
+        "name": "PMI",
+        "timing": "coincident"
+      },
+      {
+        "auxiliary": [
+          {
+            "dimensions": {
+              "measure": "ytd_real_yoy"
+            },
+            "label": "累计实际同比",
+            "name": "ytd",
+            "unreleased_months": [
+              1
+            ]
+          },
+          {
+            "dimensions": {
+              "measure": "mom_seasonally_adjusted"
+            },
+            "label": "季调环比",
+            "name": "mom_sa",
+            "unreleased_months": [
+              1
+            ]
+          }
+        ],
+        "dimension": "overheat",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  },
+                  {
+                    "position": "low"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济走弱，增长仍弱"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "down",
+                    "slope": "steeper"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "flat",
+                    "position": "low"
+                  },
+                  {
+                    "momentum": "up",
+                    "position": "low"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "增长仍低但不再恶化"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济自底部恢复，需求与生产扩张"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "position": "high"
+                  },
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济充分扩张"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "增长动量见顶回落"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济由扩张转向收缩"
+          }
+        },
+        "key": "industrial_va",
+        "level_line": null,
+        "lookback_months": 12,
+        "main": {
+          "dimensions": {
+            "measure": "current_month_real_yoy"
+          },
+          "label": "当月实际同比",
+          "name": "current_month",
+          "stand_in_label": "1—2 月累计同比（累计口径）",
+          "stand_ins": {
+            "2": {
+              "measure": "ytd_real_yoy"
+            }
+          },
+          "unreleased_months": [
+            1
+          ]
+        },
+        "metric_id": "CN_INDUSTRIAL_VA",
+        "name": "工业增加值",
+        "timing": "coincident"
+      },
+      {
+        "auxiliary": [
+          {
+            "compared": false,
+            "cumulative": true,
+            "dimensions": {
+              "aggregate": "total",
+              "measure": "nominal_ytd_level"
+            },
+            "label": "名义累计值（累计口径）",
+            "name": "nominal_ytd_level"
+          }
+        ],
+        "dimension": "overheat",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济走弱，增长仍弱"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "down",
+                    "slope": "steeper"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "turn_hint": {
+                  "text": "stage_iii",
+                  "when": {
+                    "momentum": "up"
+                  }
+                },
+                "when": [
+                  {
+                    "position": "low"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_iii"
+                },
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "增长仍低但不再恶化"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济自底部恢复，需求与生产扩张"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "position": "high"
+                  }
+                ]
+              },
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "change_size": "marked",
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济充分扩张"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "增长动量见顶回落"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济由扩张转向收缩"
+          }
+        },
+        "frequency": "quarterly",
+        "key": "gdp",
+        "level_line": null,
+        "lookback_quarters": 4,
+        "main": {
+          "dimensions": {
+            "aggregate": "total",
+            "measure": "real_quarter_yoy"
+          },
+          "label": "实际季度同比",
+          "name": "real_quarter_yoy"
+        },
+        "metric_id": "CN_GDP",
+        "name": "GDP",
+        "timing": "coincident"
+      },
+      {
+        "auxiliary": [],
+        "dimension": "overheat",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up",
+                    "position": "high"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  },
+                  {
+                    "position": "low"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "position": "high"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济走弱，增长仍弱"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "position": "low"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "增长仍低但不再恶化"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "position": "low"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济自底部恢复，需求与生产扩张"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "position": "low"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "position": "high"
+                  },
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济充分扩张"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "position": "high"
+                  }
+                ]
+              }
+            ],
+            "proposition": "增长动量见顶回落"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "position": "high"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济由扩张转向收缩"
+          }
+        },
+        "frequency": "quarterly",
+        "key": "capacity_utilization",
+        "level_line": null,
+        "lookback_quarters": 4,
+        "main": {
+          "change_from": {
+            "industry": "all_industry",
+            "measure": "yoy_change"
+          },
+          "dimensions": {
+            "industry": "all_industry",
+            "measure": "quarter_rate"
+          },
+          "label": "全工业产能利用率",
+          "name": "quarter_rate"
+        },
+        "metric_id": "CN_CAPACITY_UTILIZATION",
+        "name": "产能利用率",
+        "timing": "lagging"
+      },
+      {
+        "auxiliary": [
+          {
+            "cumulative": true,
+            "dimensions": {
+              "item": "revenue",
+              "measure": "official_yoy"
+            },
+            "label": "营业收入累计同比（累计口径）",
+            "name": "revenue",
+            "unreleased_months": [
+              1
+            ]
+          },
+          {
+            "cumulative": true,
+            "dimensions": {
+              "item": "cost",
+              "measure": "official_yoy"
+            },
+            "label": "营业成本累计同比（累计口径）",
+            "name": "cost",
+            "unreleased_months": [
+              1
+            ]
+          }
+        ],
+        "dimension": "overheat",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济走弱，增长仍弱"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "增长仍低但不再恶化"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济自底部恢复，需求与生产扩张"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济充分扩张"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  },
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "增长动量见顶回落"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济由扩张转向收缩"
+          }
+        },
+        "key": "industrial_profit",
+        "level_line": null,
+        "lookback_months": 3,
+        "main": {
+          "cumulative": true,
+          "dimensions": {
+            "item": "profit",
+            "measure": "official_yoy"
+          },
+          "label": "利润累计同比（累计口径）",
+          "name": "profit",
+          "unreleased_months": [
+            1
+          ]
+        },
+        "metric_id": "CN_INDUSTRIAL_FINANCE",
+        "name": "工业企业盈利",
+        "timing": "lagging"
+      },
+      {
+        "auxiliary": [
+          {
+            "dimensions": {
+              "category": "headline",
+              "measure": "mom"
+            },
+            "label": "PPI 环比",
+            "name": "mom"
+          },
+          {
+            "dimensions": {
+              "category": "means_of_production",
+              "measure": "yoy"
+            },
+            "label": "生产资料同比",
+            "name": "means_of_production"
+          },
+          {
+            "dimensions": {
+              "category": "consumer_goods",
+              "measure": "yoy"
+            },
+            "label": "生活资料同比",
+            "name": "consumer_goods"
+          }
+        ],
+        "dimension": "price",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "run": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below"
+                  },
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "物价仍弱"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "run": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below"
+                  },
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "text": "环比开始回升",
+                "when": {
+                  "member": "mom",
+                  "momentum": "up"
+                }
+              }
+            ],
+            "proposition": "物价仍低，商品需求未恢复",
+            "turn_hints": [
+              {
+                "text": "stage_iii",
+                "when": {
+                  "member": "mom",
+                  "momentum": "up"
+                }
+              }
+            ]
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  },
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "商品需求恢复，周期偏向通胀一侧"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "价格压力上升"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "position": "high"
+                  },
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_vi"
+                },
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "价格压力仍强"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "物价动量下降"
+          }
+        },
+        "key": "ppi",
+        "level_line": 0,
+        "lookback_months": 12,
+        "main": {
+          "dimensions": {
+            "category": "headline",
+            "measure": "yoy"
+          },
+          "label": "PPI 同比",
+          "name": "headline"
+        },
+        "metric_id": "CN_PPI",
+        "name": "PPI",
+        "timing": "coincident"
+      },
+      {
+        "auxiliary": [
+          {
+            "dimensions": {
+              "category": "ex_food_energy",
+              "measure": "yoy"
+            },
+            "label": "核心 CPI 同比",
+            "metric_id": "CN_CORE_CPI",
+            "name": "core"
+          }
+        ],
+        "dimension": "price",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "text": "核心 CPI 黏性（滞后未转）",
+                "when": {
+                  "member": "core",
+                  "momentum": "flat"
+                }
+              },
+              {
+                "text": "核心 CPI 黏性（滞后未转）",
+                "when": {
+                  "member": "core",
+                  "momentum": "up"
+                }
+              }
+            ],
+            "proposition": "物价仍弱"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "position": "low"
+                  },
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "物价仍低，商品需求未恢复"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  },
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "商品需求恢复，周期偏向通胀一侧"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "价格压力上升"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "up"
+                  },
+                  {
+                    "position": "high"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "价格压力仍强"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "text": "核心 CPI 黏性（滞后未转）",
+                "when": {
+                  "member": "core",
+                  "momentum": "flat"
+                }
+              },
+              {
+                "text": "核心 CPI 黏性（滞后未转）",
+                "when": {
+                  "member": "core",
+                  "momentum": "up"
+                }
+              }
+            ],
+            "proposition": "物价动量下降"
+          }
+        },
+        "key": "cpi",
+        "level_line": null,
+        "lookback_months": 12,
+        "main": {
+          "dimensions": {
+            "category": "headline",
+            "measure": "yoy"
+          },
+          "label": "CPI 同比",
+          "name": "headline"
+        },
+        "metric_id": "CN_CPI_HEADLINE",
+        "name": "CPI",
+        "timing": "lagging"
+      },
+      {
+        "auxiliary": [
+          {
+            "dimensions": {
+              "measure": "level",
+              "series": "purchase_prices"
+            },
+            "label": "主要原材料购进价格",
+            "name": "purchase_prices"
+          }
+        ],
+        "dimension": "price",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below"
+                  },
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "物价仍弱"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_iii"
+                },
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "物价仍低，商品需求未恢复"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "above"
+                  }
+                ]
+              }
+            ],
+            "proposition": "商品需求恢复，周期偏向通胀一侧"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "价格压力上升"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "above"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_vi"
+                },
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              }
+            ],
+            "proposition": "价格压力仍强"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              }
+            ],
+            "proposition": "物价动量下降"
+          }
+        },
+        "key": "pmi_prices",
+        "level_line": 50,
+        "lookback_months": 3,
+        "main": {
+          "dimensions": {
+            "measure": "level",
+            "series": "output_prices"
+          },
+          "label": "出厂价格",
+          "name": "output_prices"
+        },
+        "metric_id": "CN_PMI_PRICES",
+        "name": "PMI 价格",
+        "timing": "coincident"
+      },
+      {
+        "auxiliary": [
+          {
+            "dimensions": {
+              "component": "government_bonds",
+              "measure": "stock_yoy"
+            },
+            "label": "政府债券存量同比",
+            "metric_id": "CN_SF_COMPONENTS",
+            "name": "government_bonds"
+          },
+          {
+            "dimensions": {
+              "component": "renminbi_loans",
+              "measure": "stock_yoy"
+            },
+            "label": "人民币贷款存量同比",
+            "metric_id": "CN_SF_COMPONENTS",
+            "name": "renminbi_loans"
+          },
+          {
+            "dimensions": {
+              "component": "foreign_currency_loans_rmb",
+              "measure": "stock_yoy"
+            },
+            "label": "外币贷款（折人民币）存量同比",
+            "metric_id": "CN_SF_COMPONENTS",
+            "name": "foreign_currency_loans_rmb"
+          },
+          {
+            "dimensions": {
+              "component": "entrusted_loans",
+              "measure": "stock_yoy"
+            },
+            "label": "委托贷款存量同比",
+            "metric_id": "CN_SF_COMPONENTS",
+            "name": "entrusted_loans"
+          },
+          {
+            "dimensions": {
+              "component": "trust_loans",
+              "measure": "stock_yoy"
+            },
+            "label": "信托贷款存量同比",
+            "metric_id": "CN_SF_COMPONENTS",
+            "name": "trust_loans"
+          },
+          {
+            "dimensions": {
+              "component": "undiscounted_bank_acceptances",
+              "measure": "stock_yoy"
+            },
+            "label": "未贴现银行承兑汇票存量同比",
+            "metric_id": "CN_SF_COMPONENTS",
+            "name": "undiscounted_bank_acceptances"
+          },
+          {
+            "dimensions": {
+              "component": "corporate_bonds",
+              "measure": "stock_yoy"
+            },
+            "label": "企业债券存量同比",
+            "metric_id": "CN_SF_COMPONENTS",
+            "name": "corporate_bonds"
+          },
+          {
+            "dimensions": {
+              "component": "nonfinancial_enterprise_equity",
+              "measure": "stock_yoy"
+            },
+            "label": "非金融企业境内股票存量同比",
+            "metric_id": "CN_SF_COMPONENTS",
+            "name": "nonfinancial_enterprise_equity"
+          },
+          {
+            "formula": "sf-monthly-increment-yoy-change-v0001",
+            "label": "当月增量同比多增少增",
+            "name": "monthly_increment"
+          }
+        ],
+        "dimension": "credit",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "turn_hint": {
+                  "text": "stage_ii"
+                },
+                "when": [
+                  {
+                    "change_size": "marked",
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_ii"
+                },
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  },
+                  {
+                    "position": "low"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_ii"
+                },
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "信用仍弱"
+          },
+          "stage_ii": {
+            "caps": [
+              {
+                "text": "实体传导未确认",
+                "when": [
+                  {
+                    "member": "government_bonds",
+                    "momentum": "up"
+                  },
+                  {
+                    "member": "renminbi_loans",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  },
+                  {
+                    "member": "foreign_currency_loans_rmb",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  },
+                  {
+                    "member": "entrusted_loans",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  },
+                  {
+                    "member": "trust_loans",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  },
+                  {
+                    "member": "undiscounted_bank_acceptances",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  },
+                  {
+                    "member": "corporate_bonds",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  },
+                  {
+                    "member": "nonfinancial_enterprise_equity",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "change_size": "marked",
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  },
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "宽松开始传导到融资"
+          },
+          "stage_iii": {
+            "caps": [
+              {
+                "text": "实体传导未确认",
+                "when": [
+                  {
+                    "member": "government_bonds",
+                    "momentum": "up"
+                  },
+                  {
+                    "member": "renminbi_loans",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  },
+                  {
+                    "member": "foreign_currency_loans_rmb",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  },
+                  {
+                    "member": "entrusted_loans",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  },
+                  {
+                    "member": "trust_loans",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  },
+                  {
+                    "member": "undiscounted_bank_acceptances",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  },
+                  {
+                    "member": "corporate_bonds",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  },
+                  {
+                    "member": "nonfinancial_enterprise_equity",
+                    "momentum": [
+                      "flat",
+                      "down"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "融资条件仍支持扩张"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "position": "high"
+                  }
+                ]
+              },
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "change_size": "marked",
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_v"
+                },
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "信用需求旺盛，信用量仍高"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  },
+                  {
+                    "momentum": "up",
+                    "slope": "slower"
+                  }
+                ]
+              },
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "信用边际收紧"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_i"
+                },
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "信用需求走弱"
+          }
+        },
+        "key": "social_financing",
+        "level_line": null,
+        "lookback_months": 12,
+        "main": {
+          "dimensions": {
+            "measure": "stock_yoy"
+          },
+          "label": "存量同比",
+          "name": "stock_yoy"
+        },
+        "metric_id": "CN_SF_TOTAL",
+        "name": "社融",
+        "timing": "leading"
+      },
+      {
+        "auxiliary": [
+          {
+            "dimensions": {
+              "borrower": "household",
+              "measure": "ytd_increment",
+              "tenor": "total"
+            },
+            "formula": "loan-monthly-increment-yoy-change-v0001",
+            "label": "住户贷款当月增量（较去年同月）",
+            "name": "household_total"
+          },
+          {
+            "dimensions": {
+              "borrower": "household",
+              "measure": "ytd_increment",
+              "tenor": "short_term"
+            },
+            "formula": "loan-monthly-increment-yoy-change-v0001",
+            "label": "住户短期贷款当月增量（较去年同月）",
+            "name": "household_short_term"
+          },
+          {
+            "dimensions": {
+              "borrower": "household",
+              "measure": "ytd_increment",
+              "tenor": "long_term"
+            },
+            "formula": "loan-monthly-increment-yoy-change-v0001",
+            "label": "住户中长期贷款当月增量（较去年同月）",
+            "name": "household_long_term"
+          },
+          {
+            "dimensions": {
+              "borrower": "enterprise",
+              "measure": "ytd_increment",
+              "tenor": "total"
+            },
+            "formula": "loan-monthly-increment-yoy-change-v0001",
+            "label": "企（事）业单位贷款当月增量（较去年同月）",
+            "name": "enterprise_total"
+          },
+          {
+            "dimensions": {
+              "borrower": "enterprise",
+              "measure": "ytd_increment",
+              "tenor": "short_term"
+            },
+            "formula": "loan-monthly-increment-yoy-change-v0001",
+            "label": "企业短期贷款当月增量（较去年同月）",
+            "name": "enterprise_short_term"
+          },
+          {
+            "dimensions": {
+              "borrower": "enterprise",
+              "measure": "ytd_increment",
+              "tenor": "bill_financing"
+            },
+            "formula": "loan-monthly-increment-yoy-change-v0001",
+            "label": "票据融资当月增量（较去年同月）",
+            "name": "enterprise_bill_financing"
+          },
+          {
+            "dimensions": {
+              "borrower": "nonbank_financial",
+              "measure": "ytd_increment",
+              "tenor": "total"
+            },
+            "formula": "loan-monthly-increment-yoy-change-v0001",
+            "label": "非银行业金融机构贷款当月增量（较去年同月）",
+            "name": "nonbank_financial_total"
+          },
+          {
+            "dimensions": {
+              "borrower": "all_rmb_loans",
+              "measure": "ytd_increment",
+              "tenor": "total"
+            },
+            "formula": "loan-monthly-increment-yoy-change-v0001",
+            "label": "人民币贷款当月增量（较去年同月）",
+            "name": "all_rmb_loans_total"
+          }
+        ],
+        "dimension": "credit",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "above"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "level": "at"
+                  }
+                ]
+              }
+            ],
+            "proposition": "信用仍弱"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "below",
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "above"
+                  },
+                  {
+                    "level": "below",
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "宽松开始传导到融资"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "above"
+                  }
+                ]
+              }
+            ],
+            "proposition": "融资条件仍支持扩张"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "above"
+                  },
+                  {
+                    "level": "at"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_v"
+                },
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              }
+            ],
+            "proposition": "信用需求旺盛，信用量仍高"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "above"
+                  }
+                ]
+              },
+              {
+                "note": {
+                  "text": "结构恶化",
+                  "when": {
+                    "level": "above",
+                    "member": "enterprise_bill_financing"
+                  }
+                },
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "level": "at"
+                  }
+                ]
+              }
+            ],
+            "proposition": "信用边际收紧"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "level": "above"
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              {
+                "text": "信用脉冲转强而贷款结构未改善（领先观察）",
+                "when": [
+                  {
+                    "momentum": "up",
+                    "observed": "CN_CREDIT_IMPULSE"
+                  },
+                  {
+                    "level": "below"
+                  }
+                ]
+              }
+            ],
+            "proposition": "信用需求走弱"
+          }
+        },
+        "key": "loans",
+        "level_line": 0,
+        "lookback_months": 1,
+        "main": {
+          "dimensions": {
+            "borrower": "enterprise",
+            "measure": "ytd_increment",
+            "tenor": "long_term"
+          },
+          "formula": "loan-monthly-increment-yoy-change-v0001",
+          "label": "企业中长期贷款当月增量（较去年同月）",
+          "name": "enterprise_long_term"
+        },
+        "metric_id": "CN_LOAN_STRUCTURE",
+        "name": "贷款",
+        "timing": "leading"
+      },
+      {
+        "auxiliary": [
+          {
+            "dimensions": {
+              "aggregate": "m2",
+              "measure": "yoy"
+            },
+            "label": "M2 同比",
+            "name": "m2"
+          }
+        ],
+        "derived": [
+          {
+            "formula": "m1-m2-yoy-spread-v0001",
+            "label": "M1−M2",
+            "name": "m1_m2",
+            "of": [
+              "m1",
+              "m2"
+            ]
+          }
+        ],
+        "dimension": "credit",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "position": "low"
+                  },
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  }
+                ]
+              }
+            ],
+            "proposition": "信用仍弱"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "flat"
+                  },
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "宽松开始传导到融资"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "融资条件仍支持扩张"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "position": "high"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_v"
+                },
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "信用需求旺盛，信用量仍高"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "信用边际收紧"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "信用需求走弱"
+          }
+        },
+        "key": "money",
+        "level_line": null,
+        "lookback_months": 12,
+        "main": {
+          "dimensions": {
+            "aggregate": "m1",
+            "measure": "yoy"
+          },
+          "label": "M1 同比",
+          "name": "m1"
+        },
+        "metric_id": "CN_M1_M2",
+        "name": "M1/M2",
+        "timing": "leading"
+      },
+      {
+        "actions": "level",
+        "auxiliary": [],
+        "dimension": "policy",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "action": "hike"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "cut"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "action": "none"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策和资金价格转松"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "action": "hike"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "cut"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "action": "none"
+                  }
+                ]
+              }
+            ],
+            "proposition": "宽松延续并开始传导"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_iv"
+                },
+                "when": [
+                  {
+                    "action": "hike"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "none"
+                  },
+                  {
+                    "action": "cut"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策未转紧，融资条件仍支持扩张"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "confirmed_when": [
+                  {
+                    "after_action": true,
+                    "indicator": "dr007",
+                    "momentum": "down"
+                  }
+                ],
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "action": "cut"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "hike"
+                  },
+                  {
+                    "action": "none"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策由宽松转向中性或收紧"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "note": {
+                  "text": "政策转向，接近Ⅵ→Ⅰ"
+                },
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_vi"
+                },
+                "when": [
+                  {
+                    "action": "cut"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "hike"
+                  },
+                  {
+                    "action": "none"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策中性偏紧，利率维持较高"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "note": {
+                  "text": "政策滞后"
+                },
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "action": "hike"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "turn_hint": {
+                  "text": "stage_i",
+                  "when": {
+                    "action": "cut"
+                  }
+                },
+                "when": [
+                  {
+                    "action": "none"
+                  },
+                  {
+                    "action": "cut"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策观望或刚开始宽松"
+          }
+        },
+        "key": "policy_rate",
+        "level_line": null,
+        "lookback_months": 1,
+        "main": {
+          "dimensions": {},
+          "label": "七天逆回购利率",
+          "name": "omo_7d"
+        },
+        "metric_id": "CN_OMO_7D_RATE",
+        "name": "政策利率",
+        "notices": {
+          "dimensions": {
+            "measure": "injection"
+          },
+          "metric_id": "CN_OMO_7D_AMOUNT"
+        },
+        "timing": "leading",
+        "window_sessions": 120
+      },
+      {
+        "actions": "level",
+        "auxiliary": [
+          {
+            "dimensions": {
+              "tenor": "5y_plus"
+            },
+            "label": "5 年期以上 LPR",
+            "name": "5y_plus"
+          }
+        ],
+        "dimension": "policy",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "action": "hike"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "cut"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "action": "none"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策和资金价格转松"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "action": "hike"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "cut"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "action": "none"
+                  }
+                ]
+              }
+            ],
+            "proposition": "宽松延续并开始传导"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_iv"
+                },
+                "when": [
+                  {
+                    "action": "hike"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "none"
+                  },
+                  {
+                    "action": "cut"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策未转紧，融资条件仍支持扩张"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "confirmed_when": [
+                  {
+                    "after_action": true,
+                    "indicator": "dr007",
+                    "momentum": "down"
+                  }
+                ],
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "action": "cut"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "hike"
+                  },
+                  {
+                    "action": "none"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策由宽松转向中性或收紧"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "note": {
+                  "text": "政策转向，接近Ⅵ→Ⅰ"
+                },
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_vi"
+                },
+                "when": [
+                  {
+                    "action": "cut"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "hike"
+                  },
+                  {
+                    "action": "none"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策中性偏紧，利率维持较高"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "note": {
+                  "text": "政策滞后"
+                },
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "action": "hike"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "turn_hint": {
+                  "text": "stage_i",
+                  "when": {
+                    "action": "cut"
+                  }
+                },
+                "when": [
+                  {
+                    "action": "none"
+                  },
+                  {
+                    "action": "cut"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策观望或刚开始宽松"
+          }
+        },
+        "key": "lpr",
+        "level_line": null,
+        "lookback_months": 8,
+        "main": {
+          "dimensions": {
+            "tenor": "1y"
+          },
+          "label": "1 年期 LPR",
+          "name": "1y"
+        },
+        "metric_id": "CN_LPR_1Y_5Y",
+        "name": "LPR",
+        "timing": "leading",
+        "window_sessions": 120
+      },
+      {
+        "actions": "change",
+        "auxiliary": [],
+        "dimension": "policy",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "action": "hike"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "cut"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "action": "none"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策和资金价格转松"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "action": "hike"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "cut"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "action": "none"
+                  }
+                ]
+              }
+            ],
+            "proposition": "宽松延续并开始传导"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_iv"
+                },
+                "when": [
+                  {
+                    "action": "hike"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "none"
+                  },
+                  {
+                    "action": "cut"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策未转紧，融资条件仍支持扩张"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "action": "cut"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "hike"
+                  },
+                  {
+                    "action": "none"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策由宽松转向中性或收紧"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "note": {
+                  "text": "政策转向，接近Ⅵ→Ⅰ"
+                },
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_vi"
+                },
+                "when": [
+                  {
+                    "action": "cut"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "action": "hike"
+                  },
+                  {
+                    "action": "none"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策中性偏紧，利率维持较高"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "note": {
+                  "text": "政策滞后"
+                },
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "action": "hike"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "turn_hint": {
+                  "text": "stage_i",
+                  "when": {
+                    "action": "cut"
+                  }
+                },
+                "when": [
+                  {
+                    "action": "none"
+                  },
+                  {
+                    "action": "cut"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策观望或刚开始宽松"
+          }
+        },
+        "key": "rrr",
+        "level_line": null,
+        "lookback_months": 1,
+        "main": {
+          "dimensions": {
+            "measure": "rrr_change"
+          },
+          "label": "存款准备金率调整",
+          "name": "rrr_change",
+          "partial": true
+        },
+        "metric_id": "CN_RRR_EVENT",
+        "name": "降准",
+        "released": {
+          "measure": "released_funds"
+        },
+        "timing": "leading",
+        "window_sessions": 120
+      },
+      {
+        "auxiliary": [
+          {
+            "dimensions": {
+              "measure": "net_injection",
+              "tool": "短期逆回购"
+            },
+            "frequency": "monthly",
+            "label": "月度工具投放：短期逆回购净投放",
+            "metric_id": "CN_TOOL_LIQUIDITY_MONTHLY",
+            "name": "short_term_reverse_repo"
+          }
+        ],
+        "dimension": "policy",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "below",
+                    "run": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策和资金价格转松"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "below",
+                    "run": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  },
+                  {
+                    "change_size": "ordinary"
+                  }
+                ]
+              }
+            ],
+            "proposition": "宽松延续并开始传导"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_iv"
+                },
+                "when": [
+                  {
+                    "level": "below",
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "change_size": "ordinary"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策未转紧，融资条件仍支持扩张"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "change_size": "marked",
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策由宽松转向中性或收紧"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "change_size": "marked",
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below"
+                  },
+                  {
+                    "change_size": "ordinary"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策中性偏紧，利率维持较高"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "level": "below",
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  },
+                  {
+                    "change_size": "ordinary"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策观望或刚开始宽松"
+          }
+        },
+        "frequency": "daily",
+        "key": "liquidity",
+        "level_line": 0,
+        "lookback_periods": 12,
+        "main": {
+          "aggregate": "sum",
+          "label": "七天逆回购净投放（每期合计）",
+          "name": "net_injection",
+          "session_formula": "omo-7d-net-injection-v0001"
+        },
+        "metric_id": "CN_OMO_7D_AMOUNT",
+        "name": "流动性投放",
+        "period_sessions": 5,
+        "timing": "leading"
+      },
+      {
+        "auxiliary": [
+          {
+            "aggregate": "mean",
+            "dimensions": {
+              "tenor": "1w"
+            },
+            "label": "SHIBOR 1 周（每期均值）",
+            "metric_id": "CN_SHIBOR_ON_1W_3M",
+            "name": "shibor_1w"
+          }
+        ],
+        "derived": [
+          {
+            "formula": "dr007-policy-spread-sessions-v0001",
+            "label": "DR007 政策利差（基点）",
+            "name": "policy_spread",
+            "of": [
+              "dr007"
+            ]
+          }
+        ],
+        "dimension": "policy",
+        "expectations": {
+          "stage_i": {
+            "caps": [
+              {
+                "text": "政策利率已下调而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "policy_rate"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "LPR 已下调而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "lpr"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "已降准而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "rrr"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "down"
+                  },
+                  {
+                    "level": "below"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策和资金价格转松"
+          },
+          "stage_ii": {
+            "caps": [
+              {
+                "text": "政策利率已下调而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "policy_rate"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "LPR 已下调而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "lpr"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "已降准而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "rrr"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "cells": [
+              {
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "level": "below"
+                  },
+                  {
+                    "change_size": "ordinary",
+                    "position": "low"
+                  }
+                ]
+              }
+            ],
+            "proposition": "宽松延续并开始传导"
+          },
+          "stage_iii": {
+            "caps": [
+              {
+                "text": "政策利率已下调而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "policy_rate"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "LPR 已下调而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "lpr"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "已降准而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "rrr"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "cells": [
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_iv"
+                },
+                "when": [
+                  {
+                    "level": "above",
+                    "momentum": "up"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "change_size": "ordinary"
+                  },
+                  {
+                    "level": "below"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策未转紧，融资条件仍支持扩张"
+          },
+          "stage_iv": {
+            "caps": [
+              {
+                "text": "政策利率已下调而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "policy_rate"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "LPR 已下调而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "lpr"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "已降准而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "rrr"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "level": "below",
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "momentum": "up"
+                  },
+                  {
+                    "level": "above"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策由宽松转向中性或收紧"
+          },
+          "stage_v": {
+            "caps": [
+              {
+                "text": "政策利率已下调而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "policy_rate"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "LPR 已下调而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "lpr"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "已降准而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "rrr"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "cells": [
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "position": "high"
+                  },
+                  {
+                    "level": "above"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策中性偏紧，利率维持较高"
+          },
+          "stage_vi": {
+            "caps": [
+              {
+                "text": "政策利率已下调而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "policy_rate"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "LPR 已下调而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "lpr"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "已降准而 DR007 未降",
+                "when": [
+                  {
+                    "action": "cut",
+                    "indicator": "rrr"
+                  },
+                  {
+                    "momentum": [
+                      "flat",
+                      "up"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "cells": [
+              {
+                "relation": "support",
+                "turn_hint": {
+                  "text": "stage_i"
+                },
+                "when": [
+                  {
+                    "momentum": "down"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "momentum": "up"
+                  }
+                ]
+              }
+            ],
+            "proposition": "政策观望或刚开始宽松"
+          }
+        },
+        "frequency": "daily",
+        "key": "dr007",
+        "level_line": {
+          "dimensions": {},
+          "metric_id": "CN_OMO_7D_RATE"
+        },
+        "lookback_periods": 50,
+        "main": {
+          "aggregate": "mean",
+          "dimensions": {},
+          "label": "DR007（每期均值）",
+          "name": "dr007"
+        },
+        "metric_id": "CN_DR007",
+        "name": "DR007",
+        "period_sessions": 5,
+        "timing": "leading"
+      },
+      {
+        "auxiliary": [],
+        "dimension": "inventory",
+        "expectations": {
+          "stage_i": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "quadrant": "active_restocking"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "quadrant": "active_destocking"
+                  },
+                  {
+                    "quadrant": "passive_restocking"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "quadrant": "passive_destocking"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "quadrant": "unclassified"
+                  }
+                ]
+              }
+            ],
+            "proposition": "需求走弱，库存随之去化或被动积压"
+          },
+          "stage_ii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "quadrant": "passive_restocking"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "quadrant": "passive_destocking"
+                  }
+                ]
+              },
+              {
+                "note": {
+                  "text": "阶段Ⅱ早段"
+                },
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "quadrant": "active_destocking"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_iii"
+                },
+                "when": [
+                  {
+                    "quadrant": "active_restocking"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "quadrant": "unclassified"
+                  }
+                ]
+              }
+            ],
+            "proposition": "需求回升快于生产，库存被动下降"
+          },
+          "stage_iii": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "quadrant": "active_destocking"
+                  },
+                  {
+                    "quadrant": "passive_restocking"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "quadrant": "active_restocking"
+                  }
+                ]
+              },
+              {
+                "note": {
+                  "text": "阶段Ⅲ早段"
+                },
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "quadrant": "passive_destocking"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "quadrant": "unclassified"
+                  }
+                ]
+              }
+            ],
+            "proposition": "需求与生产扩张，企业主动补库"
+          },
+          "stage_iv": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "quadrant": "active_destocking"
+                  },
+                  {
+                    "quadrant": "passive_destocking"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "quadrant": "active_restocking"
+                  }
+                ]
+              },
+              {
+                "note": {
+                  "text": "后段背离"
+                },
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_v"
+                },
+                "when": [
+                  {
+                    "quadrant": "passive_restocking"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "quadrant": "unclassified"
+                  }
+                ]
+              }
+            ],
+            "proposition": "经济充分扩张，企业主动补库"
+          },
+          "stage_v": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "quadrant": "passive_destocking"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "quadrant": "passive_restocking"
+                  }
+                ]
+              },
+              {
+                "note": {
+                  "text": "自Ⅳ过渡"
+                },
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "quadrant": "active_restocking"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_vi"
+                },
+                "when": [
+                  {
+                    "quadrant": "active_destocking"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "quadrant": "unclassified"
+                  }
+                ]
+              }
+            ],
+            "proposition": "需求转弱，产成品被动积压"
+          },
+          "stage_vi": {
+            "cells": [
+              {
+                "grace": true,
+                "relation": "counterevidence",
+                "when": [
+                  {
+                    "quadrant": "active_restocking"
+                  }
+                ]
+              },
+              {
+                "relation": "support",
+                "when": [
+                  {
+                    "quadrant": "active_destocking"
+                  }
+                ]
+              },
+              {
+                "note": {
+                  "text": "自Ⅴ过渡早段"
+                },
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "quadrant": "passive_restocking"
+                  }
+                ]
+              },
+              {
+                "relation": "observation_only",
+                "turn_hint": {
+                  "text": "stage_i"
+                },
+                "when": [
+                  {
+                    "quadrant": "passive_destocking"
+                  }
+                ]
+              },
+              {
+                "note": {
+                  "text": "修复过渡：订单回升而生产未跟",
+                  "when": [
+                    {
+                      "member": "new_orders",
+                      "momentum": "up"
+                    },
+                    {
+                      "member": "industrial_va",
+                      "momentum": [
+                        "flat",
+                        "down"
+                      ]
+                    }
+                  ]
+                },
+                "relation": "observation_only",
+                "when": [
+                  {
+                    "quadrant": "unclassified"
+                  }
+                ]
+              }
+            ],
+            "proposition": "需求恶化，企业主动去库"
+          }
+        },
+        "key": "inventory_quadrant",
+        "level_line": null,
+        "lookback_months": 2,
+        "metric_id": "CN_FINISHED_GOODS_INVENTORY",
+        "name": "库存象限",
+        "quadrant": {
+          "align_months": 2,
+          "lines": {
+            "demand": {
+              "auxiliary": [
+                {
+                  "cumulative": true,
+                  "dimensions": {
+                    "item": "revenue",
+                    "measure": "official_yoy"
+                  },
+                  "label": "需求：工业企业营业收入累计同比（累计口径）",
+                  "metric_id": "CN_INDUSTRIAL_FINANCE",
+                  "name": "revenue",
+                  "unreleased_months": [
+                    1
+                  ]
+                }
+              ],
+              "main": {
+                "dimensions": {
+                  "measure": "level",
+                  "series": "new_orders"
+                },
+                "label": "需求：PMI 新订单",
+                "metric_id": "CN_PMI_ACTIVITY",
+                "name": "new_orders"
+              }
+            },
+            "inventory": {
+              "auxiliary": [
+                {
+                  "dimensions": {
+                    "measure": "level",
+                    "series": "finished_goods"
+                  },
+                  "label": "库存：PMI 产成品库存",
+                  "metric_id": "CN_PMI_INVENTORY",
+                  "name": "pmi_finished_goods"
+                },
+                {
+                  "cumulative": true,
+                  "dimensions": {
+                    "measure": "official_yoy_change"
+                  },
+                  "label": "库存：产成品周转天数同比变化（累计口径）",
+                  "metric_id": "CN_INVENTORY_TURNOVER",
+                  "name": "turnover",
+                  "unreleased_months": [
+                    1
+                  ]
+                }
+              ],
+              "main": {
+                "dimensions": {
+                  "measure": "official_yoy"
+                },
+                "label": "库存：产成品存货名义同比",
+                "metric_id": "CN_FINISHED_GOODS_INVENTORY",
+                "name": "finished_goods",
+                "unreleased_months": [
+                  1
+                ]
+              }
+            },
+            "production": {
+              "auxiliary": [
+                {
+                  "dimensions": {
+                    "measure": "level",
+                    "series": "production"
+                  },
+                  "label": "生产：PMI 生产",
+                  "metric_id": "CN_PMI_ACTIVITY",
+                  "name": "pmi_production"
+                }
+              ],
+              "main": {
+                "dimensions": {
+                  "measure": "current_month_real_yoy"
+                },
+                "label": "生产：工业增加值当月实际同比",
+                "metric_id": "CN_INDUSTRIAL_VA",
+                "name": "industrial_va",
+                "stand_in_label": "1—2 月累计同比（累计口径）",
+                "stand_ins": {
+                  "2": {
+                    "measure": "ytd_real_yoy"
+                  }
+                },
+                "unreleased_months": [
+                  1
+                ]
+              }
+            }
+          },
+          "quadrants": {
+            "active_destocking": {
+              "demand": "down",
+              "inventory": "down",
+              "production": "down"
+            },
+            "active_restocking": {
+              "demand": "up",
+              "inventory": "up",
+              "production": "up"
+            },
+            "passive_destocking": {
+              "demand": "up",
+              "inventory": "down",
+              "production": "up"
+            },
+            "passive_restocking": {
+              "demand": "down",
+              "inventory": "up",
+              "production": "down"
+            }
+          }
+        },
+        "timing": "lagging"
+      }
+    ],
+    "maturity_rules": {
+      "forming_periods": 2,
+      "forming_signals": 2
+    },
+    "observation_interfaces": [
+      {
+        "core": "bond",
+        "core_metric_id": "CN_BOND_CORE_000012",
+        "label": "债券核心（上证国债指数）",
+        "members": [
+          {
+            "label": "10 年国债价格指数",
+            "metric_id": "CN_BOND_10Y_930916",
+            "reads_as": "bond_price"
+          },
+          {
+            "label": "中债 030 全价",
+            "metric_id": "CN_BOND_FULL_PRICE_CNY030",
+            "reads_as": "bond_price"
+          }
+        ]
+      },
+      {
+        "core": "stock",
+        "core_metric_id": "CN_EQUITY_CORE_000985",
+        "label": "股票核心（中证全指）",
+        "members": [
+          {
+            "label": "中证 300",
+            "metric_id": "CN_EQ_CSI300"
+          },
+          {
+            "label": "中证 500",
+            "metric_id": "CN_EQ_CSI500"
+          },
+          {
+            "label": "中证 1000",
+            "metric_id": "CN_EQ_CSI1000"
+          },
+          {
+            "label": "市场广度：涨跌家数",
+            "metric_id": "CN_EQ_ADV_DEC"
+          },
+          {
+            "label": "市场广度：涨跌家数比",
+            "metric_id": "CN_EQ_AD_RATIO"
+          },
+          {
+            "label": "市场广度：上涨成交额占比",
+            "metric_id": "CN_EQ_ADV_AMOUNT_SHARE"
+          },
+          {
+            "label": "市场广度：90 日新高新低",
+            "metric_id": "CN_EQ_NEW_HIGH_LOW_90"
+          },
+          {
+            "label": "市场广度：250 日新高新低",
+            "metric_id": "CN_EQ_NEW_HIGH_LOW_250"
+          },
+          {
+            "label": "市场广度：站上 90 日均线占比",
+            "metric_id": "CN_EQ_ABOVE_MA90"
+          },
+          {
+            "label": "市场广度：站上 250 日均线占比",
+            "metric_id": "CN_EQ_ABOVE_MA250"
+          },
+          {
+            "label": "估值",
+            "metric_id": "CN_INDEX_VALUATION"
+          },
+          {
+            "label": "融资余额",
+            "metric_id": "CN_MARGIN_BALANCE_SSE_SZSE"
+          }
+        ]
+      },
+      {
+        "core": "commodity",
+        "core_metric_id": "CN_COMMODITY_CORE_NHII",
+        "label": "商品核心（南华工业品指数）",
+        "members": [
+          {
+            "label": "南华综合指数",
+            "metric_id": "CN_COMMODITY_BROAD_NHCI"
+          },
+          {
+            "label": "商品篮子",
+            "metric_id": "CN_COMMODITY_EX_HOG_BASKET"
+          },
+          {
+            "label": "商品篮子分项贡献",
+            "metric_id": "CN_COMMODITY_SLEEVE_CONTRIBUTION"
+          },
+          {
+            "label": "WTI 原油",
+            "metric_id": "EIA_WTI_RWTC"
+          },
+          {
+            "label": "Brent 原油",
+            "metric_id": "EIA_BRENT_RBRTE"
+          }
+        ]
+      }
+    ],
+    "price_consistency": {
+      "basket_breadth": {
+        "dimensions": {
+          "formula_version": "ex-hog-calendar-settlement-v0003"
+        },
+        "label": "商品篮子分项广度",
+        "metric_id": "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+        "sleeves": [
+          "copper",
+          "rebar",
+          "polypropylene",
+          "textiles",
+          "rubber",
+          "pulp",
+          "crude_oil"
+        ],
+        "texts": {
+          "broad_fall": "下跌普遍",
+          "broad_rise": "上涨普遍",
+          "few_sleeves_fall": "下跌集中于少数分项",
+          "few_sleeves_rise": "上涨集中于少数分项",
+          "flat": "篮子持平",
+          "single_sleeve_fall": "下跌集中于单一分项",
+          "single_sleeve_rise": "上涨集中于单一分项",
+          "unaligned": "分项累计方向与篮子不一致（逐日涨跌相互抵消）"
+        }
+      },
+      "relative_momentum": {
+        "cores": {
+          "bond": "CN_BOND_CORE_000012",
+          "commodity": "CN_COMMODITY_CORE_NHII",
+          "stock": "CN_EQUITY_CORE_000985"
+        },
+        "formula": "return-difference-v0001",
+        "pairs": [
+          {
+            "against": "bond",
+            "key": "commodity_vs_bond",
+            "label": "商品对债",
+            "of": "commodity"
+          },
+          {
+            "against": "bond",
+            "key": "stock_vs_bond",
+            "label": "股票对债",
+            "of": "stock"
+          },
+          {
+            "against": "commodity",
+            "key": "stock_vs_commodity",
+            "label": "股票对商品",
+            "of": "stock"
+          }
+        ],
+        "sessions": 120
+      },
+      "stages": {
+        "stage_i": {
+          "expect": {
+            "commodity_vs_bond": "down",
+            "stock_vs_bond": "down"
+          },
+          "text": "预期债最强：商品对债、股票对债相对动量向下",
+          "turn_hints": [
+            {
+              "text": "商品对债已回升，可能接近Ⅱ／Ⅲ",
+              "toward": [
+                "stage_ii",
+                "stage_iii"
+              ],
+              "when": {
+                "commodity_vs_bond": "up"
+              }
+            }
+          ]
+        },
+        "stage_ii": {
+          "breadth_notes": {
+            "broad_rise": "上涨普遍",
+            "narrow_rise": "上涨集中于较少个股，阶段稳固度存疑"
+          },
+          "expect": {
+            "commodity_vs_bond": "down",
+            "stock_vs_bond": "up",
+            "stock_vs_commodity": "up"
+          },
+          "text": "预期股票对商品向上、股票对债回升、商品对债仍弱"
+        },
+        "stage_iii": {
+          "breadth_notes": {
+            "broad_rise": "股市广度普遍改善"
+          },
+          "expect": {
+            "commodity_vs_bond": "up"
+          },
+          "text": "预期商品对债相对动量转强"
+        },
+        "stage_iv": {
+          "breadth_notes": {
+            "narrow_rise": "上涨集中于较少个股"
+          },
+          "expect": {
+            "commodity_vs_bond": "up",
+            "stock_vs_bond": "up"
+          },
+          "text": "预期债最弱：股票对债、商品对债相对动量向上"
+        },
+        "stage_v": {
+          "breadth_notes": {
+            "narrow_fall": "下跌集中于较少个股"
+          },
+          "expect": {
+            "commodity_vs_bond": "up",
+            "stock_vs_commodity": "down"
+          },
+          "text": "预期商品最强：商品对债向上、股票对商品向下"
+        },
+        "stage_vi": {
+          "expect": {
+            "bond": "down",
+            "commodity": "down",
+            "stock": "down"
+          },
+          "text": "预期三资产皆弱",
+          "turn_hints": [
+            {
+              "text": "债对商品相对动量转升，可能接近Ⅰ",
+              "toward": [
+                "stage_i"
+              ],
+              "when": {
+                "commodity_vs_bond": "down"
+              }
+            }
+          ]
+        }
+      },
+      "stock_breadth": {
+        "dimensions": {
+          "measure": "above_ma_share"
+        },
+        "label": "股市广度（站上 90 日均线个股占比）",
+        "line": 50,
+        "metric_id": "CN_EQ_ABOVE_MA90",
+        "texts": {
+          "broad_fall": "下跌普遍",
+          "broad_rise": "上涨普遍",
+          "even": "涨跌个股各半",
+          "index_flat": "指数持平",
+          "narrow_fall": "下跌集中于较少个股",
+          "narrow_rise": "上涨集中于较少个股"
+        }
+      }
+    },
+    "supply_demand": {
+      "improving": [
+        {
+          "indicator": "pmi",
+          "member": "new_orders",
+          "run": "up"
+        },
+        {
+          "indicator": "pmi",
+          "member": "purchase_volume",
+          "run": "up"
+        },
+        {
+          "indicator": "pmi",
+          "member": "production",
+          "run": "up"
+        },
+        {
+          "indicator": "industrial_va",
+          "member": "current_month",
+          "momentum": "up"
+        }
+      ],
+      "stages": [
+        "stage_iii",
+        "stage_iv",
+        "stage_v"
+      ],
+      "texts": {
+        "boundary": "现有数据只能做需求一致性检验与供给嫌疑提示，不能确认推动力",
+        "demand_insufficient": "需求恢复解释不足；供给、预期或晚周期因素待查",
+        "demand_supported": "国内需求恢复获得支持（各关键指标各自计数，组合不另计）",
+        "headline": "商品价格上涨，推动力未确认",
+        "label": "商品供需附注",
+        "mixed": "混合：需求读数不一致，不强行二选一",
+        "supply_suspicion": "供给嫌疑（只作附注）",
+        "unconfirmed": "未确认：需求读数不全，缺失不等于无供给冲击",
+        "warrants_with_prices": "注册库存变化，来源未识别"
+      },
+      "weakening": [
+        {
+          "indicator": "pmi",
+          "member": "new_orders",
+          "momentum": "down"
+        },
+        {
+          "indicator": "pmi",
+          "member": "purchase_volume",
+          "momentum": "down"
+        }
+      ]
+    },
+    "timing_rules": {
+      "adjacent_stage": {
+        "lagging": "previous",
+        "leading": "next"
+      },
+      "grace_periods": {
+        "daily": 2,
+        "monthly": 2,
+        "quarterly": 1
+      },
+      "horizon_periods": {
+        "daily": 51,
+        "monthly": 13,
+        "quarterly": 4
+      },
+      "marked_periods": {
+        "daily": 12,
+        "monthly": 12,
+        "quarterly": 4
+      },
+      "year_periods": {
+        "daily": 250,
+        "monthly": 12,
+        "quarterly": 4
+      }
+    },
+    "warrant_conversions": [
+      {
+        "basis": "郑商所《棉花期货业务细则》第三条 5 吨/手、第十二条一张八手",
+        "effective_from": null,
+        "effective_until": null,
+        "factor": 40,
+        "input_unit": "sheet",
+        "symbol": "CF",
+        "unit": "tonne",
+        "weight_basis": "公定重量（名义）"
+      },
+      {
+        "basis": "郑商所《PTA 期货业务细则》第十二条交割单位 5 吨",
+        "effective_from": null,
+        "effective_until": null,
+        "factor": 5,
+        "input_unit": "sheet",
+        "symbol": "TA",
+        "unit": "tonne",
+        "weight_basis": "交割单位"
+      },
+      {
+        "basis": "大商所《聚丙烯期货业务细则》第八条 5 吨/手",
+        "effective_from": null,
+        "effective_until": null,
+        "factor": 5,
+        "input_unit": "lot",
+        "symbol": "PP",
+        "unit": "tonne",
+        "weight_basis": "交易单位"
+      },
+      {
+        "basis": "上期所铜期货合约附件：每一仓单 25 吨为交割批量，非输入单位",
+        "effective_from": null,
+        "effective_until": null,
+        "factor": 1,
+        "input_unit": "tonne",
+        "symbol": "CU",
+        "unit": "tonne",
+        "weight_basis": "吨（上游按吨发布）"
+      },
+      {
+        "basis": "上期所螺纹钢期货合约附件第（6）项：理论计重",
+        "effective_from": null,
+        "effective_until": null,
+        "factor": 1,
+        "input_unit": "tonne",
+        "symbol": "RB",
+        "unit": "tonne",
+        "weight_basis": "理论计重"
+      },
+      {
+        "basis": "上期所天然橡胶业务细则第二十一条：每一仓单 10 吨，非输入单位",
+        "effective_from": null,
+        "effective_until": null,
+        "factor": 1,
+        "input_unit": "tonne",
+        "symbol": "RU",
+        "unit": "tonne",
+        "weight_basis": "吨（上游按吨发布）"
+      },
+      {
+        "basis": "上期所纸浆期货业务细则第十八条：实测风干重",
+        "effective_from": null,
+        "effective_until": null,
+        "factor": 1,
+        "input_unit": "tonne",
+        "symbol": "SP",
+        "unit": "tonne",
+        "weight_basis": "风干重"
+      },
+      {
+        "basis": "上期能源《交割细则》第一百五十二条：原油净体积桶数，无固定吨桶系数",
+        "effective_from": null,
+        "effective_until": null,
+        "factor": 1,
+        "input_unit": "barrel",
+        "symbol": "SC",
+        "unit": "barrel",
+        "weight_basis": "净体积桶"
+      }
+    ]
+  },
+  "core_metrics": {
+    "bond": "CN_BOND_CORE_000012",
+    "commodity": "CN_COMMODITY_CORE_NHII",
+    "stock": "CN_EQUITY_CORE_000985"
+  },
+  "derived_formula_versions": {
+    "credit_impulse": "credit-impulse-12m-flow-share-v0003",
+    "dr007_policy_spread": "dr007-policy-spread-v0001",
+    "loan_monthly_change": "loan-ytd-monthly-change-v0002",
+    "omo_net_injection": "repo-net-injection-trading-calendar-v0002",
+    "order_inventory_spread": "pmi-order-inventory-spread-v0001",
+    "production_order_spread": "pmi-production-order-spread-v0001",
+    "real_inventory_approximation": "inventory-ppi-common-month-v0002",
+    "ust_2s10s_spread": "ust-2s10s-spread-v0001"
+  },
+  "hidden_preheat_policy": "minimum_formula_inputs_only",
+  "history_input_start": "2017-01-01",
+  "macro_judgement_rules": {
+    "hysteresis_sessions": 10,
+    "inventory": "inventory_quadrant",
+    "policy": [
+      "policy_rate",
+      "lpr",
+      "rrr"
+    ],
+    "positions": {
+      "credit": "social_financing",
+      "overheat": "industrial_va",
+      "price": "ppi"
+    },
+    "rules_version": "macro-judgement-v0001",
+    "signature": {
+      "stage_i": {
+        "credit": {
+          "values": [
+            "down"
+          ]
+        },
+        "inventory": {
+          "values": [
+            "active_destocking"
+          ]
+        },
+        "overheat": {
+          "values": [
+            "down"
+          ]
+        },
+        "policy": {
+          "values": [
+            "easing"
+          ]
+        },
+        "price": {
+          "values": [
+            "down"
+          ]
+        }
+      },
+      "stage_ii": {
+        "credit": {
+          "values": [
+            "flat",
+            "up"
+          ]
+        },
+        "inventory": {
+          "values": [
+            "passive_destocking"
+          ]
+        },
+        "overheat": {
+          "positions": [
+            "low"
+          ],
+          "values": [
+            "flat",
+            "up"
+          ]
+        },
+        "policy": {
+          "values": [
+            "easing"
+          ]
+        },
+        "price": {
+          "positions": [
+            "low"
+          ]
+        }
+      },
+      "stage_iii": {
+        "credit": {
+          "values": [
+            "up"
+          ]
+        },
+        "inventory": {
+          "values": [
+            "active_restocking"
+          ]
+        },
+        "overheat": {
+          "values": [
+            "up"
+          ]
+        },
+        "policy": {
+          "values": [
+            "easing",
+            "neutral"
+          ]
+        },
+        "price": {
+          "positions": [
+            "low"
+          ],
+          "values": [
+            "up"
+          ]
+        }
+      },
+      "stage_iv": {
+        "credit": {
+          "values": [
+            "up"
+          ]
+        },
+        "inventory": {
+          "values": [
+            "active_restocking"
+          ]
+        },
+        "overheat": {
+          "values": [
+            "up"
+          ]
+        },
+        "policy": {
+          "values": [
+            "tightening"
+          ]
+        },
+        "price": {
+          "values": [
+            "up"
+          ]
+        }
+      },
+      "stage_v": {
+        "credit": {
+          "values": [
+            "down"
+          ]
+        },
+        "inventory": {
+          "values": [
+            "passive_restocking"
+          ]
+        },
+        "overheat": {
+          "positions": [
+            "high",
+            "middle"
+          ],
+          "values": [
+            "down"
+          ]
+        },
+        "policy": {
+          "values": [
+            "tightening",
+            "neutral"
+          ]
+        },
+        "price": {
+          "positions": [
+            "high"
+          ]
+        }
+      },
+      "stage_vi": {
+        "credit": {
+          "values": [
+            "down"
+          ]
+        },
+        "inventory": {
+          "values": [
+            "active_destocking"
+          ]
+        },
+        "overheat": {
+          "values": [
+            "down"
+          ]
+        },
+        "policy": {
+          "values": [
+            "neutral",
+            "easing"
+          ]
+        },
+        "price": {
+          "values": [
+            "down"
+          ]
+        }
+      }
+    },
+    "threshold": 3,
+    "tie_breakers": {
+      "credit": "social_financing"
+    },
+    "voters": {
+      "credit": [
+        "social_financing",
+        "money"
+      ],
+      "overheat": [
+        "pmi",
+        "industrial_va",
+        "gdp",
+        "capacity_utilization",
+        "industrial_profit"
+      ],
+      "price": [
+        "ppi",
+        "cpi",
+        "pmi_prices"
+      ]
+    }
+  },
+  "macro_rules_version": "macro-confirmation-v0001",
+  "macro_signal_rules": {
+    "basket_breadth": [
+      {
+        "cell": "K2",
+        "from": "stage_v",
+        "readings": [
+          "single_sleeve_rise",
+          "few_sleeves_rise"
+        ],
+        "to": "stage_vi"
+      },
+      {
+        "cell": "K4",
+        "from": "stage_ii",
+        "readings": [
+          "single_sleeve_fall",
+          "few_sleeves_fall"
+        ],
+        "to": "stage_iii"
+      }
+    ],
+    "candidate_sessions": 30,
+    "divergence_forming_periods": 2,
+    "flips": {
+      "cores": {
+        "bond": {
+          "bear": "C1",
+          "bull": "C2"
+        },
+        "commodity": {
+          "bear": "C5",
+          "bull": "C6"
+        },
+        "stock": {
+          "bear": "C3",
+          "bull": "C4"
+        }
+      },
+      "peers": {
+        "bond": {
+          "bear": "P1",
+          "bull": "P2"
+        },
+        "commodity": {
+          "bear": "P5",
+          "bull": "P6"
+        },
+        "stock": {
+          "bear": "P3",
+          "bull": "P4"
+        }
+      }
+    },
+    "forming_sessions": 5,
+    "listed_from": "forming",
+    "peers": {
+      "bond": [
+        "CN_BOND_10Y_930916",
+        "CN_BOND_FULL_PRICE_CNY030"
+      ],
+      "commodity": [
+        "CN_COMMODITY_BROAD_NHCI",
+        "CN_COMMODITY_EX_HOG_BASKET",
+        "EIA_WTI_RWTC",
+        "EIA_BRENT_RBRTE"
+      ],
+      "stock": [
+        "CN_EQ_CSI300",
+        "CN_EQ_CSI500",
+        "CN_EQ_CSI1000"
+      ]
+    },
+    "relative_momentum": [
+      {
+        "cell": "R1",
+        "from": "stage_ii",
+        "level": "down",
+        "pair": "commodity_vs_bond",
+        "to": "stage_iii",
+        "turn": "up"
+      },
+      {
+        "cell": "R2",
+        "from": "stage_iii",
+        "level": "up",
+        "pair": "commodity_vs_bond",
+        "to": "stage_iv",
+        "turn": "up"
+      },
+      {
+        "cell": "R3",
+        "from": "stage_v",
+        "level": "up",
+        "pair": "commodity_vs_bond",
+        "to": "stage_vi",
+        "turn": "down"
+      },
+      {
+        "cell": "R4",
+        "from": "stage_vi",
+        "level": "down",
+        "pair": "commodity_vs_bond",
+        "to": "stage_i",
+        "turn": "down"
+      },
+      {
+        "cell": "R5",
+        "from": "stage_i",
+        "level": "down",
+        "pair": "stock_vs_bond",
+        "to": "stage_ii",
+        "turn": "up"
+      },
+      {
+        "cell": "R9",
+        "from": "stage_i",
+        "level": "up",
+        "pair": "stock_vs_commodity",
+        "to": "stage_ii",
+        "turn": "up"
+      },
+      {
+        "cell": "R10",
+        "from": "stage_ii",
+        "level": "up",
+        "pair": "stock_vs_commodity",
+        "to": "stage_iii",
+        "turn": "down"
+      },
+      {
+        "cell": "R11",
+        "from": "stage_iv",
+        "level": "down",
+        "pair": "stock_vs_commodity",
+        "to": "stage_v",
+        "turn": "down"
+      }
+    ],
+    "rules_version": "macro-signals-v0001",
+    "stock_breadth": [
+      {
+        "cell": "B2",
+        "from": "stage_iv",
+        "readings": [
+          "narrow_rise"
+        ],
+        "to": "stage_v"
+      },
+      {
+        "cell": "B4",
+        "from": "stage_i",
+        "readings": [
+          "narrow_fall"
+        ],
+        "to": "stage_ii"
+      }
+    ],
+    "turn_sessions": 20
+  },
+  "metric_catalog_version": "metric-catalog-v0006",
+  "metric_definitions": [
+    {
+      "allowed_units": [
+        "scalar"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "CN_TRADE_CALENDAR",
+      "name_cn": "CN_TRADE_CALENDAR",
+      "priority": "P0",
+      "release_event_family": "cn_trade_calendar",
+      "release_rule": "china_exchange_calendar",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "CN_TRADE_CALENDAR"
+      ],
+      "source_codes": [
+        "CN_TRADE_CALENDAR"
+      ],
+      "unit": "scalar"
+    },
+    {
+      "allowed_units": [
+        "scalar"
+      ],
+      "certification_status": "awaiting_source_certification",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "event",
+      "metric_id": "CN_RELEASE_SCHEDULE",
+      "name_cn": "CN_RELEASE_SCHEDULE",
+      "priority": "P0",
+      "release_event_family": "cn_release_schedule",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "CN_RELEASE_SCHEDULE"
+      ],
+      "source_codes": [
+        "CN_RELEASE_SCHEDULE"
+      ],
+      "unit": "scalar"
+    },
+    {
+      "allowed_units": [
+        "scalar"
+      ],
+      "certification_status": "awaiting_source_certification",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "SOURCE_OBSERVED_AVAILABILITY",
+      "name_cn": "SOURCE_OBSERVED_AVAILABILITY",
+      "priority": "P0",
+      "release_event_family": "source_observed_availability",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "SOURCE_OBSERVED_AVAILABILITY"
+      ],
+      "source_codes": [
+        "SOURCE_OBSERVED_AVAILABILITY"
+      ],
+      "unit": "scalar"
+    },
+    {
+      "allowed_units": [
+        "index_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "name_cn": "中证全指",
+      "priority": "P0",
+      "release_event_family": "cn_equity_core_000985",
+      "release_rule": "china_trading_day_source_schedule",
+      "release_timezone": "Asia/Shanghai",
+      "role": "core_barometer",
+      "source_candidates": [
+        "000985.CSI"
+      ],
+      "source_codes": [
+        "000985.CSI"
+      ],
+      "unit": "index_points"
+    },
+    {
+      "allowed_units": [
+        "index_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "CN_BOND_CORE_000012",
+      "name_cn": "上证国债指数",
+      "priority": "P0",
+      "release_event_family": "cn_bond_core_000012",
+      "release_rule": "china_trading_day_source_schedule",
+      "release_timezone": "Asia/Shanghai",
+      "role": "core_barometer",
+      "source_candidates": [
+        "000012.SH"
+      ],
+      "source_codes": [
+        "000012.SH"
+      ],
+      "unit": "index_points"
+    },
+    {
+      "allowed_units": [
+        "index_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "name_cn": "南华工业品指数",
+      "priority": "P0",
+      "release_event_family": "cn_commodity_core_nhii",
+      "release_rule": "china_trading_day_source_schedule",
+      "release_timezone": "Asia/Shanghai",
+      "role": "core_barometer",
+      "source_candidates": [
+        "NHII.NH"
+      ],
+      "source_codes": [
+        "NHII.NH"
+      ],
+      "unit": "index_points"
+    },
+    {
+      "allowed_units": [
+        "index_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "source_code"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_EQ_CSI300",
+      "name_cn": "CN_EQ_CSI300",
+      "priority": "P1",
+      "release_event_family": "cn_eq_csi300",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "000300.SH"
+      ],
+      "source_codes": [
+        "000300.SH"
+      ],
+      "unit": "index_points"
+    },
+    {
+      "allowed_units": [
+        "index_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "source_code"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_EQ_CSI500",
+      "name_cn": "CN_EQ_CSI500",
+      "priority": "P1",
+      "release_event_family": "cn_eq_csi500",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "000905.SH"
+      ],
+      "source_codes": [
+        "000905.SH"
+      ],
+      "unit": "index_points"
+    },
+    {
+      "allowed_units": [
+        "index_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "source_code"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_EQ_CSI1000",
+      "name_cn": "CN_EQ_CSI1000",
+      "priority": "P1",
+      "release_event_family": "cn_eq_csi1000",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "000852.SH"
+      ],
+      "source_codes": [
+        "000852.SH"
+      ],
+      "unit": "index_points"
+    },
+    {
+      "allowed_units": [
+        "count"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure",
+        "universe"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_EQ_ADV_DEC",
+      "name_cn": "CN_EQ_ADV_DEC",
+      "priority": "P1",
+      "release_event_family": "cn_eq_adv_dec",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "tushare:daily:breadth-v0003"
+      ],
+      "source_codes": [
+        "tushare:daily:breadth-v0003"
+      ],
+      "unit": "count"
+    },
+    {
+      "allowed_units": [
+        "ratio"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure",
+        "universe"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_EQ_AD_RATIO",
+      "name_cn": "CN_EQ_AD_RATIO",
+      "priority": "P1",
+      "release_event_family": "cn_eq_ad_ratio",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "tushare:daily:breadth-v0003"
+      ],
+      "source_codes": [
+        "tushare:daily:breadth-v0003"
+      ],
+      "unit": "ratio"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure",
+        "universe"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_EQ_ADV_AMOUNT_SHARE",
+      "name_cn": "CN_EQ_ADV_AMOUNT_SHARE",
+      "priority": "P1",
+      "release_event_family": "cn_eq_adv_amount_share",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "tushare:daily:breadth-amount-v0003"
+      ],
+      "source_codes": [
+        "tushare:daily:breadth-amount-v0003"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "multiple",
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "index",
+        "measure"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_INDEX_VALUATION",
+      "name_cn": "CN_INDEX_VALUATION",
+      "priority": "P1",
+      "release_event_family": "cn_index_valuation",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "tushare:index_dailybasic"
+      ],
+      "source_codes": [
+        "tushare:index_dailybasic"
+      ],
+      "unit": "multiple"
+    },
+    {
+      "allowed_units": [
+        "index_points"
+      ],
+      "certification_status": "awaiting_source_certification",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "source_code"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_BOND_FULL_PRICE_CNY030",
+      "name_cn": "CN_BOND_FULL_PRICE_CNY030",
+      "priority": "P2",
+      "release_event_family": "cn_bond_full_price_cny030",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "000012CNY030.CSI"
+      ],
+      "source_codes": [
+        "000012CNY030.CSI"
+      ],
+      "unit": "index_points"
+    },
+    {
+      "allowed_units": [
+        "index_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "source_code"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_BOND_10Y_930916",
+      "name_cn": "CN_BOND_10Y_930916",
+      "priority": "P1",
+      "release_event_family": "cn_bond_10y_930916",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "930916.CSI"
+      ],
+      "source_codes": [
+        "930916.CSI"
+      ],
+      "unit": "index_points"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "CN_DR007",
+      "name_cn": "CN_DR007",
+      "priority": "P1",
+      "release_event_family": "cn_dr007",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "policy_transmission",
+      "source_candidates": [
+        "CN_DR007"
+      ],
+      "source_codes": [
+        "CN_DR007"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "CN_OMO_7D_RATE",
+      "name_cn": "CN_OMO_7D_RATE",
+      "priority": "P1",
+      "release_event_family": "pbc_omo_notice",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "policy_transmission",
+      "source_candidates": [
+        "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html"
+      ],
+      "source_codes": [
+        "PBC_OMO_NOTICE_HTML_V1"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "hundred_million_cny"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_OMO_7D_AMOUNT",
+      "name_cn": "CN_OMO_7D_AMOUNT",
+      "priority": "P1",
+      "release_event_family": "pbc_omo_notice",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "policy_transmission",
+      "source_candidates": [
+        "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html"
+      ],
+      "source_codes": [
+        "PBC_OMO_NOTICE_HTML_V1"
+      ],
+      "unit": "hundred_million_cny"
+    },
+    {
+      "allowed_units": [
+        "basis_points"
+      ],
+      "certification_status": "derived_from_certified_inputs",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "CN_DR007_POLICY_SPREAD",
+      "name_cn": "CN_DR007_POLICY_SPREAD",
+      "priority": "P1",
+      "release_event_family": "cn_dr007_policy_spread",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "policy_transmission",
+      "source_candidates": [
+        "CN_DR007_POLICY_SPREAD"
+      ],
+      "source_codes": [
+        "CN_DR007_POLICY_SPREAD"
+      ],
+      "unit": "basis_points"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "tenor"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_SHIBOR_ON_1W_3M",
+      "name_cn": "CN_SHIBOR_ON_1W_3M",
+      "priority": "P1",
+      "release_event_family": "cn_shibor_on_1w_3m",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "policy_transmission",
+      "source_candidates": [
+        "CN_SHIBOR_ON_1W_3M"
+      ],
+      "source_codes": [
+        "CN_SHIBOR_ON_1W_3M"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "tenor"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_LPR_1Y_5Y",
+      "name_cn": "CN_LPR_1Y_5Y",
+      "priority": "P1",
+      "release_event_family": "chinamoney_lpr",
+      "release_rule": "monthly_day_20_holiday_roll_0900_asia_shanghai",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.chinamoney.com.cn/chinese/bklpr/"
+      ],
+      "source_codes": [
+        "CHINAMONEY_LPR"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "percentage_points",
+        "percent",
+        "hundred_million_cny"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "scope",
+        "measure"
+      ],
+      "frequency": "event",
+      "metric_id": "CN_RRR_EVENT",
+      "name_cn": "CN_RRR_EVENT",
+      "priority": "P1",
+      "release_event_family": "pbc_rrr_notice",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "policy_transmission",
+      "source_candidates": [
+        "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/"
+      ],
+      "source_codes": [
+        "PBC_RRR_NOTICE_HTML_V1"
+      ],
+      "unit": "percentage_points"
+    },
+    {
+      "allowed_units": [
+        "hundred_million_cny"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "tool",
+        "measure"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_TOOL_LIQUIDITY_MONTHLY",
+      "name_cn": "CN_TOOL_LIQUIDITY_MONTHLY",
+      "priority": "P1",
+      "release_event_family": "pbc_tool_liquidity_monthly",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/"
+      ],
+      "source_codes": [
+        "PBC_TOOL_LIQUIDITY_HTML_V1"
+      ],
+      "unit": "hundred_million_cny"
+    },
+    {
+      "allowed_units": [
+        "index_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "source_code"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_COMMODITY_BROAD_NHCI",
+      "name_cn": "CN_COMMODITY_BROAD_NHCI",
+      "priority": "P1",
+      "release_event_family": "cn_commodity_broad_nhci",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "NHCI.NH"
+      ],
+      "source_codes": [
+        "NHCI.NH"
+      ],
+      "unit": "index_points"
+    },
+    {
+      "allowed_units": [
+        "index_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "formula_version"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_COMMODITY_EX_HOG_BASKET",
+      "name_cn": "CN_COMMODITY_EX_HOG_BASKET",
+      "priority": "P1",
+      "release_event_family": "cn_commodity_ex_hog_basket",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "tushare:fut_daily:ex-hog-calendar-settlement-v0003"
+      ],
+      "source_codes": [
+        "tushare:fut_daily:ex-hog-calendar-settlement-v0003"
+      ],
+      "unit": "index_points"
+    },
+    {
+      "allowed_units": [
+        "percentage_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "formula_version",
+        "sleeve"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+      "name_cn": "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+      "priority": "P1",
+      "release_event_family": "cn_commodity_sleeve_contribution",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "tushare:fut_daily:ex-hog-calendar-settlement-v0003"
+      ],
+      "source_codes": [
+        "tushare:fut_daily:ex-hog-calendar-settlement-v0003"
+      ],
+      "unit": "percentage_points"
+    },
+    {
+      "allowed_units": [
+        "tonne",
+        "kilogram",
+        "sheet",
+        "lot",
+        "barrel"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "symbol",
+        "warehouse",
+        "exchange",
+        "measure"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_FUTURES_WARRANTS",
+      "name_cn": "CN_FUTURES_WARRANTS",
+      "priority": "P1",
+      "release_event_family": "cn_futures_warrants",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "signature_card",
+      "source_candidates": [
+        "CN_FUTURES_WARRANTS"
+      ],
+      "source_codes": [
+        "CN_FUTURES_WARRANTS"
+      ],
+      "unit": "tonne"
+    },
+    {
+      "allowed_units": [
+        "diffusion_index_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "series",
+        "measure"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_PMI_ACTIVITY",
+      "name_cn": "CN_PMI_ACTIVITY",
+      "priority": "P1",
+      "release_event_family": "nbs_pmi",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.stats.gov.cn/sj/zxfb/"
+      ],
+      "source_codes": [
+        "CN_PMI_ACTIVITY",
+        "tushare:cn_pmi:official-sampled-v0001"
+      ],
+      "unit": "diffusion_index_points"
+    },
+    {
+      "allowed_units": [
+        "diffusion_index_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "series",
+        "measure"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_PMI_INVENTORY",
+      "name_cn": "CN_PMI_INVENTORY",
+      "priority": "P1",
+      "release_event_family": "nbs_pmi",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "signature_card",
+      "source_candidates": [
+        "https://www.stats.gov.cn/sj/zxfb/"
+      ],
+      "source_codes": [
+        "CN_PMI_INVENTORY",
+        "tushare:cn_pmi:official-sampled-v0001"
+      ],
+      "unit": "diffusion_index_points"
+    },
+    {
+      "allowed_units": [
+        "diffusion_index_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "series",
+        "measure"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_PMI_PRICES",
+      "name_cn": "CN_PMI_PRICES",
+      "priority": "P1",
+      "release_event_family": "nbs_pmi",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.stats.gov.cn/sj/zxfb/"
+      ],
+      "source_codes": [
+        "CN_PMI_PRICES",
+        "tushare:cn_pmi:official-sampled-v0001"
+      ],
+      "unit": "diffusion_index_points"
+    },
+    {
+      "allowed_units": [
+        "diffusion_index_points"
+      ],
+      "certification_status": "derived_from_certified_inputs",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "monthly",
+      "metric_id": "CN_ORDER_INVENTORY_SPREAD",
+      "name_cn": "CN_ORDER_INVENTORY_SPREAD",
+      "priority": "P1",
+      "release_event_family": "cn_order_inventory_spread",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "signature_card",
+      "source_candidates": [
+        "CN_ORDER_INVENTORY_SPREAD"
+      ],
+      "source_codes": [
+        "CN_ORDER_INVENTORY_SPREAD"
+      ],
+      "unit": "diffusion_index_points"
+    },
+    {
+      "allowed_units": [
+        "diffusion_index_points"
+      ],
+      "certification_status": "derived_from_certified_inputs",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "monthly",
+      "metric_id": "CN_PRODUCTION_ORDER_SPREAD",
+      "name_cn": "CN_PRODUCTION_ORDER_SPREAD",
+      "priority": "P1",
+      "release_event_family": "cn_production_order_spread",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "CN_PRODUCTION_ORDER_SPREAD"
+      ],
+      "source_codes": [
+        "CN_PRODUCTION_ORDER_SPREAD"
+      ],
+      "unit": "diffusion_index_points"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure",
+        "category"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_CPI_HEADLINE",
+      "name_cn": "居民消费价格",
+      "priority": "P1",
+      "release_event_family": "nbs_core_cpi",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.stats.gov.cn/sj/zxfb/"
+      ],
+      "source_codes": [
+        "CN_CPI_HEADLINE",
+        "tushare:cn_cpi:official-sampled-v0001"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure",
+        "category"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_CORE_CPI",
+      "name_cn": "核心 CPI",
+      "priority": "P1",
+      "release_event_family": "nbs_core_cpi",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.stats.gov.cn/sj/zxfb/"
+      ],
+      "source_codes": [
+        "NBS_CORE_CPI_HTML_V1"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure",
+        "category"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_PPI",
+      "name_cn": "工业生产者价格",
+      "priority": "P1",
+      "release_event_family": "nbs_ppi",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.stats.gov.cn/sj/zxfb/"
+      ],
+      "source_codes": [
+        "CN_PPI",
+        "tushare:cn_ppi:official-sampled-v0001"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_INDUSTRIAL_VA",
+      "name_cn": "CN_INDUSTRIAL_VA",
+      "priority": "P1",
+      "release_event_family": "nbs_industrial_value_added",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.stats.gov.cn/sj/zxfbhjd/"
+      ],
+      "source_codes": [
+        "NBS_INDUSTRIAL_VA_HTML_V1"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "hundred_million_cny",
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "item",
+        "measure"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_INDUSTRIAL_FINANCE",
+      "name_cn": "CN_INDUSTRIAL_FINANCE",
+      "priority": "P1",
+      "release_event_family": "nbs_industrial_finance",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.stats.gov.cn/sj/zxfbhjd/"
+      ],
+      "source_codes": [
+        "NBS_INDUSTRIAL_FINANCE_HTML_V1"
+      ],
+      "unit": "hundred_million_cny"
+    },
+    {
+      "allowed_units": [
+        "hundred_million_cny",
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_FINISHED_GOODS_INVENTORY",
+      "name_cn": "CN_FINISHED_GOODS_INVENTORY",
+      "priority": "P1",
+      "release_event_family": "nbs_industrial_finance",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "signature_card",
+      "source_candidates": [
+        "https://www.stats.gov.cn/sj/zxfbhjd/"
+      ],
+      "source_codes": [
+        "NBS_INDUSTRIAL_FINANCE_HTML_V1"
+      ],
+      "unit": "hundred_million_cny"
+    },
+    {
+      "allowed_units": [
+        "days",
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_INVENTORY_TURNOVER",
+      "name_cn": "CN_INVENTORY_TURNOVER",
+      "priority": "P1",
+      "release_event_family": "nbs_industrial_finance",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "signature_card",
+      "source_candidates": [
+        "https://www.stats.gov.cn/sj/zxfbhjd/"
+      ],
+      "source_codes": [
+        "NBS_INDUSTRIAL_FINANCE_HTML_V1"
+      ],
+      "unit": "days"
+    },
+    {
+      "allowed_units": [
+        "percent",
+        "percentage_points"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "industry",
+        "measure"
+      ],
+      "frequency": "quarterly",
+      "metric_id": "CN_CAPACITY_UTILIZATION",
+      "name_cn": "CN_CAPACITY_UTILIZATION",
+      "priority": "P1",
+      "release_event_family": "nbs_capacity_utilization",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.stats.gov.cn/sj/zxfbhjd/"
+      ],
+      "source_codes": [
+        "NBS_CAPACITY_UTILIZATION_HTML_V1"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "hundred_million_cny",
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "aggregate",
+        "measure"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_M1_M2",
+      "name_cn": "CN_M1_M2",
+      "priority": "P1",
+      "release_event_family": "pbc_money",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "credit_response",
+      "source_candidates": [
+        "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+      ],
+      "source_codes": [
+        "CN_M1_M2",
+        "tushare:cn_m:official-sampled-v0001"
+      ],
+      "unit": "hundred_million_cny"
+    },
+    {
+      "allowed_units": [
+        "hundred_million_cny",
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_SF_TOTAL",
+      "name_cn": "CN_SF_TOTAL",
+      "priority": "P1",
+      "release_event_family": "pbc_social_financing",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "credit_response",
+      "source_candidates": [
+        "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+      ],
+      "source_codes": [
+        "CN_SF_TOTAL",
+        "tushare:sf_month:official-sampled-v0001"
+      ],
+      "unit": "hundred_million_cny"
+    },
+    {
+      "allowed_units": [
+        "hundred_million_cny",
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "component",
+        "measure"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_SF_COMPONENTS",
+      "name_cn": "CN_SF_COMPONENTS",
+      "priority": "P1",
+      "release_event_family": "pbc_social_financing",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "credit_response",
+      "source_candidates": [
+        "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html"
+      ],
+      "source_codes": [
+        "PBC_SOCIAL_FINANCING_HTML_V1"
+      ],
+      "unit": "hundred_million_cny"
+    },
+    {
+      "allowed_units": [
+        "hundred_million_cny",
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "borrower",
+        "tenor",
+        "measure"
+      ],
+      "frequency": "monthly",
+      "metric_id": "CN_LOAN_STRUCTURE",
+      "name_cn": "CN_LOAN_STRUCTURE",
+      "priority": "P1",
+      "release_event_family": "pbc_loan_structure",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "credit_response",
+      "source_candidates": [
+        "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html"
+      ],
+      "source_codes": [
+        "PBC_LOAN_STRUCTURE_HTML_V1"
+      ],
+      "unit": "hundred_million_cny"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "derived_from_certified_inputs",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "monthly",
+      "metric_id": "CN_CREDIT_IMPULSE",
+      "name_cn": "CN_CREDIT_IMPULSE",
+      "priority": "P1",
+      "release_event_family": "cn_credit_impulse",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "credit_response",
+      "source_candidates": [
+        "CN_CREDIT_IMPULSE"
+      ],
+      "source_codes": [
+        "CN_CREDIT_IMPULSE"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "hundred_million_cny",
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "aggregate",
+        "measure"
+      ],
+      "frequency": "quarterly",
+      "metric_id": "CN_GDP",
+      "name_cn": "CN_GDP",
+      "priority": "P2",
+      "release_event_family": "nbs_gdp",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.stats.gov.cn/sj/zxfb/"
+      ],
+      "source_codes": [
+        "CN_GDP",
+        "tushare:cn_gdp:official-sampled-v0001"
+      ],
+      "unit": "hundred_million_cny"
+    },
+    {
+      "allowed_units": [
+        "cny_per_usd"
+      ],
+      "certification_status": "awaiting_source_certification",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "currency_pair",
+        "quote_direction"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+      "name_cn": "CN_USDCNY_CENTRAL_PARITY",
+      "priority": "P2",
+      "release_event_family": "pbc_usdcny_central_parity",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/index.html"
+      ],
+      "source_codes": [
+        "PBC_CFETS_USDCNY_CENTRAL_PARITY"
+      ],
+      "unit": "cny_per_usd"
+    },
+    {
+      "allowed_units": [
+        "scalar"
+      ],
+      "certification_status": "awaiting_source_certification",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "CN_USDCNY_CLOSE_1630",
+      "name_cn": "CN_USDCNY_CLOSE_1630",
+      "priority": "P2",
+      "release_event_family": "cn_usdcny_close_1630",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "CN_USDCNY_CLOSE_1630"
+      ],
+      "source_codes": [
+        "CN_USDCNY_CLOSE_1630"
+      ],
+      "unit": "scalar"
+    },
+    {
+      "allowed_units": [
+        "usd_per_barrel"
+      ],
+      "certification_status": "awaiting_source_certification",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "EIA_BRENT_RBRTE",
+      "name_cn": "EIA_BRENT_RBRTE",
+      "priority": "P2",
+      "release_event_family": "eia_petroleum_spot_prices",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "source_local_timezone",
+      "role": "international_context",
+      "source_candidates": [
+        "https://api.eia.gov/v2/petroleum/pri/spt/data/"
+      ],
+      "source_codes": [
+        "RBRTE"
+      ],
+      "unit": "usd_per_barrel"
+    },
+    {
+      "allowed_units": [
+        "usd_per_barrel"
+      ],
+      "certification_status": "awaiting_source_certification",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "EIA_WTI_RWTC",
+      "name_cn": "EIA_WTI_RWTC",
+      "priority": "P2",
+      "release_event_family": "eia_petroleum_spot_prices",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "source_local_timezone",
+      "role": "international_context",
+      "source_candidates": [
+        "https://api.eia.gov/v2/petroleum/pri/spt/data/"
+      ],
+      "source_codes": [
+        "RWTC"
+      ],
+      "unit": "usd_per_barrel"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "UST10Y_NOMINAL_YIELD",
+      "name_cn": "UST10Y_NOMINAL_YIELD",
+      "priority": "P2",
+      "release_event_family": "ust10y_nominal_yield",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "source_local_timezone",
+      "role": "international_context",
+      "source_candidates": [
+        "us_tycr.y10"
+      ],
+      "source_codes": [
+        "us_tycr.y10"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "UST2Y_NOMINAL_YIELD",
+      "name_cn": "UST2Y_NOMINAL_YIELD",
+      "priority": "P2",
+      "release_event_family": "ust2y_nominal_yield",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "source_local_timezone",
+      "role": "international_context",
+      "source_candidates": [
+        "us_tycr.y2"
+      ],
+      "source_codes": [
+        "us_tycr.y2"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "basis_points"
+      ],
+      "certification_status": "derived_from_certified_inputs",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "UST_2S10S_SPREAD",
+      "name_cn": "UST_2S10S_SPREAD",
+      "priority": "P2",
+      "release_event_family": "ust_2s10s_spread",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "source_local_timezone",
+      "role": "international_context",
+      "source_candidates": [
+        "UST_2S10S_SPREAD"
+      ],
+      "source_codes": [
+        "UST_2S10S_SPREAD"
+      ],
+      "unit": "basis_points"
+    },
+    {
+      "allowed_units": [
+        "index_points"
+      ],
+      "certification_status": "awaiting_source_certification",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "CBOE_VIX_INDEX",
+      "name_cn": "CBOE_VIX_INDEX",
+      "priority": "P2",
+      "release_event_family": "cboe_vix_index",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "source_local_timezone",
+      "role": "international_context",
+      "source_candidates": [
+        "CBOE_VIX_INDEX"
+      ],
+      "source_codes": [
+        "CBOE_VIX_INDEX"
+      ],
+      "unit": "index_points"
+    },
+    {
+      "allowed_units": [
+        "index_points"
+      ],
+      "certification_status": "awaiting_source_certification",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "NASDAQ_SOX_INDEX",
+      "name_cn": "NASDAQ_SOX_INDEX",
+      "priority": "P2",
+      "release_event_family": "nasdaq_sox_index",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "source_local_timezone",
+      "role": "international_context",
+      "source_candidates": [
+        "NASDAQ_SOX_INDEX"
+      ],
+      "source_codes": [
+        "NASDAQ_SOX_INDEX"
+      ],
+      "unit": "index_points"
+    },
+    {
+      "allowed_units": [
+        "cny_per_usd"
+      ],
+      "certification_status": "awaiting_source_certification",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [],
+      "frequency": "daily",
+      "metric_id": "CN_USDCNY_ECB_REFERENCE_CROSS",
+      "name_cn": "ECB 美元兑人民币参考交叉汇率",
+      "priority": "P2",
+      "release_event_family": "ecb_eur_reference_cross",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Europe/Berlin",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html"
+      ],
+      "source_codes": [
+        "ECB_EUR_REFERENCE_CNY_USD_CROSS_V0001"
+      ],
+      "unit": "cny_per_usd"
+    },
+    {
+      "allowed_units": [
+        "hundred_million_cny"
+      ],
+      "certification_status": "awaiting_source_certification",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure",
+        "scope"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_MARGIN_BALANCE_SSE_SZSE",
+      "name_cn": "沪深两所融资余额与买入额",
+      "priority": "P1",
+      "release_event_family": "cn_margin_balance_sse_szse",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "tushare:margin"
+      ],
+      "source_codes": [
+        "SSE_SZSE_MARGIN_BALANCE"
+      ],
+      "unit": "hundred_million_cny"
+    },
+    {
+      "allowed_units": [
+        "count"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure",
+        "universe"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_EQ_NEW_HIGH_LOW_90",
+      "name_cn": "CN_EQ_NEW_HIGH_LOW_90",
+      "priority": "P1",
+      "release_event_family": "cn_eq_new_high_low_90",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "tushare:stk_factor_pro:breadth-window-v0003"
+      ],
+      "source_codes": [
+        "tushare:stk_factor_pro:breadth-window-v0003"
+      ],
+      "unit": "count"
+    },
+    {
+      "allowed_units": [
+        "count"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure",
+        "universe"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_EQ_NEW_HIGH_LOW_250",
+      "name_cn": "CN_EQ_NEW_HIGH_LOW_250",
+      "priority": "P1",
+      "release_event_family": "cn_eq_new_high_low_250",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "tushare:stk_factor_pro:breadth-window-v0003"
+      ],
+      "source_codes": [
+        "tushare:stk_factor_pro:breadth-window-v0003"
+      ],
+      "unit": "count"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure",
+        "universe"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_EQ_ABOVE_MA90",
+      "name_cn": "CN_EQ_ABOVE_MA90",
+      "priority": "P1",
+      "release_event_family": "cn_eq_above_ma90",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "tushare:stk_factor_pro:breadth-window-v0003"
+      ],
+      "source_codes": [
+        "tushare:stk_factor_pro:breadth-window-v0003"
+      ],
+      "unit": "percent"
+    },
+    {
+      "allowed_units": [
+        "percent"
+      ],
+      "certification_status": "certified",
+      "definition_version": "metric-catalog-v0006",
+      "dimensions": [
+        "measure",
+        "universe"
+      ],
+      "frequency": "daily",
+      "metric_id": "CN_EQ_ABOVE_MA250",
+      "name_cn": "CN_EQ_ABOVE_MA250",
+      "priority": "P1",
+      "release_event_family": "cn_eq_above_ma250",
+      "release_rule": "source_schedule_required",
+      "release_timezone": "Asia/Shanghai",
+      "role": "macro_confirmation",
+      "source_candidates": [
+        "tushare:stk_factor_pro:breadth-window-v0003"
+      ],
+      "source_codes": [
+        "tushare:stk_factor_pro:breadth-window-v0003"
+      ],
+      "unit": "percent"
+    }
+  ],
+  "metric_identity_migration": {
+    "history_policy": "retain_separate",
+    "priority_changes": {
+      "CN_BOND_FULL_PRICE_CNY030": {
+        "from": "P1",
+        "to": "P2"
+      }
+    },
+    "removed_metric_ids": [
+      "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+      "LBMA_GOLD_PRICE_PM_USD_OZT"
+    ],
+    "replacements": {
+      "CN_MARGIN_BALANCE": "CN_MARGIN_BALANCE_SSE_SZSE",
+      "CN_USDCNH_FXCM": "CN_USDCNY_ECB_REFERENCE_CROSS"
+    },
+    "version": "cny030-optional-ecb-margin-v0001"
+  },
+  "model_version_id": "model-v0016",
+  "point_in_time_rule_version": "public-cutoff-v0002",
+  "projection_output_structure": "confirmation-v0001",
+  "replay_acceptance_rule_version": "active-baseline-exact-120-v0001",
+  "selection_rule_version": "selection-v0001",
+  "stage_mapping": {
+    "bear,bear,bear": "stage_vi",
+    "bear,bear,bull": "stage_v",
+    "bear,bull,bull": "stage_iv",
+    "bull,bear,bear": "stage_i",
+    "bull,bull,bear": "stage_ii",
+    "bull,bull,bull": "stage_iii"
+  },
+  "trend_rules": {
+    "candidate_duration_rule_version": "candidate-duration-v0002",
+    "candidate_window_days": 30,
+    "noise_multiplier": 1.5,
+    "persistence_days": 8,
+    "proxy_12m_enabled": false,
+    "rule_version": "trend-v0001",
+    "slope_days": 20,
+    "volatility_days": 20,
+    "window_days": 120
+  },
+  "visible_context_window_rule_version": "exact-core-calendar-120-v0001",
+  "visible_evidence_window_trading_days": 120
+}
