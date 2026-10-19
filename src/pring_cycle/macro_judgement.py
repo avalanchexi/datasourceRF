@@ -143,11 +143,13 @@ def rules_v0001() -> dict[str, Any]:
     dimension's; ``policy``: the indicators whose cuts and hikes in the evidence window are
     the policy dimension's; ``inventory``: the indicator whose quadrant is the inventory
     dimension's; ``threshold``: the dimensions known and the top score an explicit
-    judgement needs.
+    judgement needs; ``hysteresis_sessions``: the sessions running a new judgement stands
+    before it replaces the main conclusion (decision 26, the user's "for now").
     """
     return {
         "rules_version": RULES_VERSION,
         "threshold": 3,
+        "hysteresis_sessions": 10,
         "policy": ["policy_rate", "lpr", "rrr"],
         "voters": {
             "credit": ["social_financing", "money"],
@@ -170,6 +172,7 @@ def rules_v0001() -> dict[str, Any]:
 @dataclass(frozen=True)
 class MacroJudgementRules:
     threshold: int
+    hysteresis_sessions: int
     policy: tuple[str, ...]
     voters: Mapping[str, tuple[str, ...]]
     tie_breakers: Mapping[str, str]
@@ -198,6 +201,9 @@ class MacroJudgementRules:
             raise ValueError("macro_judgement_rules_invalid")
         threshold = raw["threshold"]
         if not isinstance(threshold, int) or not 1 <= threshold <= len(DIMENSIONS):
+            raise ValueError("macro_judgement_rules_invalid")
+        sessions = raw["hysteresis_sessions"]
+        if not isinstance(sessions, int) or isinstance(sessions, bool) or sessions < 1:
             raise ValueError("macro_judgement_rules_invalid")
 
         def keys(value: Any, dimension: str) -> tuple[str, ...]:
@@ -237,6 +243,7 @@ class MacroJudgementRules:
                 signature[stage][dimension] = {"values": values, "positions": wanted}
         return cls(
             threshold=threshold,
+            hysteresis_sessions=sessions,
             policy=keys(raw["policy"], "policy"),
             voters=voters,
             tie_breakers=tie_breakers,
@@ -260,9 +267,9 @@ def judge(
     its combination is read, typical or not; None when a core is unavailable or pending.
     The judgement is never empty (decisions 18, 24, 27, 35): a unique top of at least the
     threshold is explicit, a tied top the tied stage nearest ``reference`` (a tendency),
-    and too little evidence weak, from the cores' combination. The hysteresis that turns
-    the raw judgement into the main conclusion is ticket 05's: until then the conclusion
-    is the raw judgement.
+    and too little evidence weak, from the cores' combination. The conclusion is the raw
+    judgement's, and no hysteresis is counted: ``hold`` counts it against the conclusion
+    before.
     """
     keyed = {
         str(item["key"]): item
@@ -328,14 +335,77 @@ def conclusion(raw: Mapping[str, object], reference: FormalStage | str | None) -
     }
 
 
-def with_reference(block: Mapping[str, object], reference: str | None) -> dict[str, object]:
+@dataclass(frozen=True)
+class Earlier:
+    """The judgement a day's hysteresis counts on from: the latest one an earlier day
+    published, and whether that day is the session before (decision 32; ticket 05)."""
+
+    judgement: Mapping[str, Any]
+    previous_session: bool
+
+
+def hold(
+    block: Mapping[str, object], earlier: Earlier | None, *, sessions_required: int
+) -> dict[str, object]:
+    """``block`` with its main conclusion and hysteresis counted on from ``earlier``
+    (decisions 26, 32, 44, 45).
+
+    With no conclusion before, the raw judgement is the conclusion; one at the conclusion's
+    stage is it, at the day's confidence. One at another stage is a candidate, counted on
+    from the session before when that session's was the same, else from one: on its
+    ``sessions_required``-th session running it replaces the conclusion, and until then the
+    conclusion keeps its stage and confidence, scored on the day's dimensions. A weak one
+    replaces only a weak conclusion: against any other it counts nothing, and a run is
+    broken. Nothing is counted across a session without a judgement."""
+    raw = _object(block.get("raw"))
+    reference = _object(block.get("conclusion")).get("reference_stage")
+    before = _object(earlier.judgement.get("conclusion")) if earlier is not None else {}
+    stage, kept = raw.get("stage"), before.get("stage")
+    candidate, sessions = None, 0
+    if kept is None:
+        basis = "initial"
+    elif stage == kept:
+        basis = "agrees"
+    elif stage is None or (raw.get("confidence") == "weak" and before.get("confidence") != "weak"):
+        basis = "held"
+    else:
+        assert earlier is not None
+        counted = _object(earlier.judgement.get("hysteresis"))
+        sessions = 1 + (
+            int(counted.get("sessions") or 0)
+            if earlier.previous_session and counted.get("candidate") == stage
+            else 0
+        )
+        if sessions >= sessions_required:
+            basis, sessions = "replaced", 0
+        else:
+            basis, candidate = "held", stage
+    state = {
+        "sessions_required": sessions_required,
+        "basis": basis,
+        "candidate": candidate,
+        "sessions": sessions,
+    }
+    if basis != "held":
+        return {**block, "conclusion": conclusion(raw, reference), "hysteresis": state}
+    main = {
+        "stage": kept,
+        "confidence": before.get("confidence"),
+        "matched": _object(block.get("scores"))[str(kept)],
+        "known": raw.get("known"),
+    }
+    return {**block, "conclusion": conclusion(main, reference), "hysteresis": state}
+
+
+def with_reference(
+    block: Mapping[str, object], reference: str | None, *, earlier: Earlier | None
+) -> dict[str, object]:
     """``block`` with its conclusion stated against another last confirmed stage, as a
     correction of that stage alone states it; nothing else is judged again.
 
     A tendency or weak raw judgement takes its stage again from the same ties or fallback
-    against that stage, and while no hysteresis holds the conclusion, it is that raw
-    judgement's; an explicit one keeps its stage."""
-    current = _object(block.get("conclusion"))
+    against that stage, and an explicit one keeps its stage; the hysteresis is counted
+    again on from ``earlier``, as it stands now."""
     raw = _object(block.get("raw"))
     if (basis := raw.get("basis")) in {"tied", "insufficient"}:
         tied, fallback = raw.get("tied") or (), raw.get("fallback")
@@ -350,10 +420,11 @@ def with_reference(block: Mapping[str, object], reference: str | None) -> dict[s
             ),
             "threshold": raw.get("threshold"),
         }
-    if block.get("hysteresis") is None:
-        return {**block, "raw": raw, "conclusion": conclusion(raw, reference)}
-    restated = conclusion(current, reference)
-    return {**block, "raw": raw, "conclusion": {**current, **restated}}
+    judged = {**block, "raw": raw, "conclusion": conclusion(raw, reference)}
+    counted = _object(block.get("hysteresis"))
+    if not counted:
+        return judged
+    return hold(judged, earlier, sessions_required=int(counted["sessions_required"]))
 
 
 def nearest(candidates: Sequence[str], reference: FormalStage | str | None) -> str:
@@ -664,7 +735,42 @@ def _consistent(block: object) -> bool:
     expected = conclusion(main, main.get("reference_stage"))
     if stage is not None and main.get("matched") != scores[str(stage)]:
         return False
+    if not _held_consistent(block.get("hysteresis"), raw, main):
+        return False
     return all(main.get(field) == expected[field] for field in ("steps", "direction"))
+
+
+def _held_consistent(counted: object, raw: Mapping[str, Any], main: Mapping[str, Any]) -> bool:
+    """The conclusion is the raw judgement's unless held; held, it is at another stage, and
+    the raw judgement is the candidate, short of the sessions that replace it, or one that
+    counts nothing: weak against a conclusion that is not, or without a stage."""
+    follows = (main.get("stage"), main.get("confidence")) == (
+        raw.get("stage"),
+        raw.get("confidence"),
+    )
+    if counted is None:
+        return follows
+    if not isinstance(counted, Mapping):
+        return False
+    required, basis = counted.get("sessions_required"), counted.get("basis")
+    candidate, sessions = counted.get("candidate"), counted.get("sessions")
+    if not isinstance(required, int) or required < 1 or not isinstance(sessions, int):
+        return False
+    if basis in {"initial", "agrees", "replaced"}:
+        return (
+            follows
+            and candidate is None
+            and sessions == 0
+            and (basis != "agrees" or main.get("stage") is not None)
+        )
+    if basis != "held" or main.get("stage") is None or main.get("stage") == raw.get("stage"):
+        return False
+    uncounted = raw.get("stage") is None or (
+        raw.get("confidence") == "weak" and main.get("confidence") != "weak"
+    )
+    if candidate is None:
+        return uncounted and sessions == 0
+    return not uncounted and candidate == raw.get("stage") and 1 <= sessions < required
 
 
 def _raw_consistent(

@@ -10,7 +10,7 @@ from pring_cycle.batches import current_batch_id
 from pring_cycle.display_projection import display_days, history_display
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.domain.stage import StageResult, derive_formal_stage
-from pring_cycle.macro_judgement import with_reference
+from pring_cycle.macro_judgement import Earlier, with_reference
 from pring_cycle.macro_signals import regrouped
 from pring_cycle.macro_verification import combination_of, restated, verified
 from pring_cycle.noncanonical import build_basis
@@ -363,6 +363,7 @@ class P0ProjectionService:
         *,
         last_confirmed_stage: str | None,
         system_as_of: datetime,
+        counted_from: Earlier | None,
     ) -> str:
         """Append a version of ``held``, its day's latest summary, that corrects the day's
         last confirmed stage alone (follow-up ticket 01); the new assessment's id.
@@ -370,7 +371,8 @@ class P0ProjectionService:
         Its cores, context, confirmation and evidence are the summary's word for word, and
         nothing is read again; the summary and its set stay. Its set's overview and stage
         history state the stage, and a lookback the set showed in its place goes once the
-        history gives one.
+        history gives one. Its macro judgement's hysteresis counts on from ``counted_from``, as
+        the day summary reads it now.
         """
         day = str(held["business_date"])
         kept = self._projections.get(str(held["projection_set_id"]))
@@ -427,10 +429,11 @@ class P0ProjectionService:
             overview.pop("last_confirmed_lookback", None)
             datasets["stage_history"].pop("last_confirmed_lookback", None)
             if isinstance(judgement := overview.get("macro_judgement"), dict):
-                # Its conclusion is stated against that stage, and its signals and price
-                # verification against the conclusion; nothing is judged again.
+                # Its conclusion is stated against that stage, its hysteresis counted on
+                # from ``counted_from`` again, and its signals and price verification against
+                # the conclusion; nothing is judged again.
                 overview["macro_judgement"] = restated(
-                    regrouped(with_reference(judgement, last_confirmed_stage))
+                    regrouped(with_reference(judgement, last_confirmed_stage, earlier=counted_from))
                 )
         datasets["stage_history"]["events"] = [*history, assessment]
         if isinstance(shown := datasets["stage_history"].get("display"), dict):

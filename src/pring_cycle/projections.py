@@ -354,30 +354,33 @@ class ProjectionSetRepository:
             ).fetchall()
         return tuple((str(row[0]), str(row[1])) for row in rows)
 
-    def macro_judgement_on(self, day: str) -> dict[str, object] | None:
-        """The macro judgement ``day``'s latest summary published, as ``stage_history``
-        lists it; None for a day without a summary, or one published without a judgement.
-        What a day's signals and hysteresis count on from (macro stage tickets 04, 05)."""
-        date.fromisoformat(day)
+    def latest_macro_judgement(self, *, before: str) -> tuple[str, dict[str, object]] | None:
+        """The latest day before ``before`` whose latest summary, as ``stage_history`` lists
+        it, published a macro judgement, with that judgement; None when none did. What a
+        day's signals and hysteresis count on from (macro stage tickets 04, 05)."""
+        date.fromisoformat(before)
         with self._connect() as connection:
             row = connection.execute(
                 f"""
-                SELECT dataset.document_json FROM (
-                    SELECT document_json, row_number() OVER ({_NEWER_FIRST}) AS newer
-                    FROM p0_assessment WHERE target_business_date = ?
+                SELECT latest.target_business_date AS day, dataset.document_json FROM (
+                    SELECT target_business_date, document_json,
+                           row_number() OVER ({_NEWER_FIRST}) AS newer
+                    FROM p0_assessment WHERE target_business_date < ?
                 ) AS latest
                 JOIN analytical_dataset AS dataset
                     ON dataset.projection_set_id
                         = json_extract(latest.document_json, '$.projection_set_id')
                     AND dataset.dataset_name = 'cycle_overview'
                 WHERE latest.newer = 1
+                    AND json_type(dataset.document_json, '$.macro_judgement') = 'object'
+                ORDER BY latest.target_business_date DESC
+                LIMIT 1
                 """,
-                (day,),
+                (before,),
             ).fetchone()
         if row is None:
             return None
-        judgement = json.loads(str(row["document_json"])).get("macro_judgement")
-        return judgement if isinstance(judgement, dict) else None
+        return str(row["day"]), json.loads(str(row["document_json"]))["macro_judgement"]
 
     def last_confirmed_stage(self, *, on_or_before: str) -> str | None:
         """The stage of the latest day on or before ``on_or_before`` that had one.

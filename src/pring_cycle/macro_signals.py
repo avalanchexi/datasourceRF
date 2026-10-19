@@ -11,7 +11,9 @@ maturity (GLOSSARY: 信号成熟度):
   relative momentum, the stock and basket breadth's divergences, and each asset's peers
   turning against its core; of the same source as the cores, they never vote;
 - the cores' own turn watch: a 30-day candidate or an asset candidate against the core's
-  state, mapped as the peers are.
+  state, mapped as the peers are;
+- the hysteresis run (ticket 05): a new judgement counted toward replacing the main
+  conclusion, from that conclusion to its candidate, with the sessions it has stood.
 
 A table signal is listed once forming (decision 37): five sessions running, or two cells
 pointing to one transition that day; confirmed when its target is the day's price stage
@@ -661,9 +663,35 @@ def _object(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
+PROGRESS = "H"
+
+
+def with_progress(block: Mapping[str, Any]) -> dict[str, Any]:
+    """``block`` with its hysteresis run listed among its signals: 倾向转向第 X 阶段（已
+    k/10 日）, from the main conclusion to the candidate, grouped as any other signal
+    (decision 26); none while no candidate is counted."""
+    listed = [item for item in _objects(block.get("signals")) if item.get("id") != PROGRESS]
+    counted = _object(block.get("hysteresis"))
+    if counted.get("candidate") is not None:
+        conclusion = _object(block.get("conclusion")).get("stage")
+        stage = None if conclusion is None else str(conclusion)
+        item: dict[str, Any] = {
+            "id": PROGRESS,
+            "kind": "hysteresis",
+            "source": "hysteresis",
+            "transition": {"from": stage, "to": counted["candidate"]},
+            "sessions": counted.get("sessions"),
+            "sessions_required": counted.get("sessions_required"),
+        }
+        listed.append({**item, **_grouped(item, stage)})
+    return {**block, "signals": listed}
+
+
 def regrouped(block: Mapping[str, Any]) -> dict[str, Any]:
     """``block`` with its signals grouped against its main conclusion again, as a
-    correction restating that conclusion leaves them; nothing else is read again."""
+    correction restating that conclusion leaves them, its hysteresis run listed as it is
+    counted now; nothing else is read again."""
+    block = with_progress(block)
     conclusion = _object(block.get("conclusion")).get("stage")
     stage = None if conclusion is None else str(conclusion)
 
@@ -723,4 +751,9 @@ def _consistent(block: object) -> bool:
                 key: item.get(key) for key in ("group", "steps")
             } != _grouped(item, None if conclusion is None else str(conclusion)):
                 return False
-    return True
+    # The hysteresis run is listed as counted, and only while a candidate is.
+    progress = [item for item in listed if item.get("id") == PROGRESS]
+    expected = [
+        item for item in _objects(with_progress(block).get("signals")) if item.get("id") == PROGRESS
+    ]
+    return progress == expected
