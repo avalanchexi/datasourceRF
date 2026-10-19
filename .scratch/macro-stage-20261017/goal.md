@@ -85,6 +85,13 @@
 | 06 价格验证 | done（78254fc，合并 9917b08） | ticket-ms06／ms-06 |
 | 07 ④ | done（cf8f46c，快进合入） | ticket-ms07／ms-07 |
 | 05 滞回 | 进行中（21:0x 派出） | ticket-ms05／ms-05 |
-| 09 报告 | 进行中（21:2x 派出） | ticket-ms09／ms-09 |
+| 09 报告 | done（bae5b0a，快进合入；报告契约 schema v0006／prompt v0011） | ticket-ms09／ms-09 |
 | 08 | 等 05 | — |
 | 10 | ready-for-human | — |
+
+## 票 09 备注（bae5b0a）
+
+- 有宏观块时报告用 report-schema-v0006、report-prompt-v0011；旧输入照旧 v0008／v0009／非典型 v0010。`conclusions` 加 `macro_stage`、`macro_confidence`（AI 须原样回显，schema const 锁定）；`results.macro_judgement` 为精简块，无嵌套溯源 ID。
+- 校验分三类陈述（宏观主结论、当日原始判断、价格阶段）；非明确写成"明确／已确定"拒收；倾向或弱全文未写出也拒收；章节顺序只靠提示词。
+- 05 合入时复跑 `tests/reports/test_macro_report.py`（滞回保持 3 例当前是改写已发布块构造的，滞回信号整句由 `macro_board.describe` 的 05 分支生成）。
+- 集成（10）合入 main 时必须带上 main 的 ddbba45（CLI stdin 修复），否则宏观报告输入一大就会超时。
