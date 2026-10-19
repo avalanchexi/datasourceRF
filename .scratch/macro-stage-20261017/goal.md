@@ -26,6 +26,14 @@
 - 扩展点：03 改 `macro_judgement.judge` 选取分支（上一确认阶段经 `reference` 传入）；05 在 `DaySummaries._judge_macro`（目标日与补算日共用）接前一日状态，用 `macro_judgement.conclusion(raw, reference)` 生成主结论；规则追加到 `macro_judgement.rules_v0001()`，由 `MacroJudgementRules.from_manifest` 解析，`validate` 同步放宽；页面加在 `macro_board.py`（title、dimensions、conclusion_left），词汇在 `wording.py` 的 `MACRO_*`。
 - 02 的偏离（票面 Comments 有详述）：政策维成员历史不全时不计动作，三项都读不到才"不明"；指标投票只要主要成员当期方向已知（与确认度"回看缺月判未确认"口径不同，票 10 对照时留意）；并列与不足暂发布 stage=None，由 03 替换；标题含"前进 N 步"；① 五维下暂留价格阶段旧行，由 06 收进价格验证行。
 
+## 票 04 留下的接口（3f0d1c1）
+
+- 信号清单在 `macro_judgement.signals`，未列入的萌芽在 `macro_judgement.sprouts`；每条：`id`、`kind`（price／observation／divergence）、`source`、`same_source`、`transition{from,to}`、`group`、`steps`、`maturity`、`sessions` 或 `periods`，另带事实块 `momentum`、`breadth`、`peers`、`candidates`、`asset_turn`、`combination`、`indicator`、`minority`、`rejudged`。模块 `macro_signals.py`。
+- 文案：`macro_board.describe(item)`（整句）、`macro_board.pointer(item)`（短称），不依赖 dash，报告可直接用。
+- `_judge_macro` 顺序：`judge` →（05 在此换成滞回后的主结论）→ `signal_list`；信号按 `conclusion.stage` 归组，滞回必须在 `signal_list` 之前。05 的进度条目追加到 `signals`：`id:"H"`、`kind:"hysteresis"`、`transition{from,to}`、`group`、`steps`（用 `_grouped`），渲染在 `macro_board._reading` 加分支；前一交易日状态用 `ProjectionSetRepository.macro_judgement_on(day)`。
+- `p0.relink` 已接 `macro_signals.regrouped`（纠正上一确认阶段后按新主结论重新归组）。
+- 04 的偏离：成熟度接续前一交易日已发布块计数（v0016 生效后前 4 个交易日价格信号只在两格同指或已确认时列入）；分化信号只分萌芽／成形；政策、库存维分化归"转换未定"；新板删去"转折观察"行（已并入清单）；B、K 组与分化跨两期成形只实现未单测（测试目录缺数据）。
+
 ## 单票规程（02–09）
 
 1. **worktree**：从 `macro-stage` 建 `ms-NN` 分支与 worktree `/home/tywin/worktrees/datasourceRF-ms-NN`；开工前确认基于 `macro-stage` 最新头，不是就 rebase 上去。
@@ -59,7 +67,8 @@
 | 01 回测重跑＋对照表 | done（对照表定稿 24 格，da9ba92） | ticket-ms01／prototype/macro-stage |
 | 02 宏观判断贯通 | done（80e8932，快进合入；冒烟＋新测 17 过） | ticket-ms02／ms-02 |
 | 03 兜底 | 进行中（10-19 19:3x 派出） | ticket-ms03／ms-03 |
-| 04 信号清单 | 进行中（10-19 19:3x 派出） | ticket-ms04／ms-04 |
-| 06、07 | 等 03／04 任一完成（并行上限 2） | — |
+| 04 信号清单 | done（3f0d1c1，快进合入；36 过） | ticket-ms04／ms-04 |
+| 06 价格验证 | 进行中（20:1x 派出） | ticket-ms06／ms-06 |
+| 07 ④ | 等 03 或 06 完成（并行上限 2） | — |
 | 05、08、09 | 等依赖 | — |
 | 10 | ready-for-human | — |
