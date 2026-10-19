@@ -113,34 +113,42 @@ class LeaseDecision:
     next_action: str
 
 
-# Parsed scopes of initial plans, by document hash. A plan is immutable once written, and a
-# full run records an attempt per candidate: parsing the whole plan each time cost a test run
-# a fifth of its time (run findings 2026-09-28, ticket 11).
-_INITIAL_SCOPES: dict[str, dict[str, dict[str, Any]]] = {}
+# Parsed scopes of planned scopes, by the plans' document hashes. A plan is immutable once
+# written, and a full run records an attempt per candidate: parsing the whole plan each time
+# cost a test run a fifth of its time (run findings 2026-09-28, ticket 11).
+_PLANNED_SCOPES: dict[tuple[str, ...], dict[str, dict[str, Any]]] = {}
+# The first plan, and each re-expansion of it (go-live leftovers 03), in order.
+_PLANNED_PHASES = "phase='initial' OR phase LIKE 'expansion:%'"
 
 
-def _initial_plan_scopes(connection: sqlite3.Connection, run_id: str) -> dict[str, dict[str, Any]]:
+def _planned_scopes(connection: sqlite3.Connection, run_id: str) -> dict[str, dict[str, Any]]:
     if not connection.execute(
         "SELECT 1 FROM sqlite_master WHERE name='full_run_gap_plan'"
     ).fetchone():
         return {}
-    row = connection.execute(
-        "SELECT document_hash FROM full_run_gap_plan WHERE run_id=? AND phase='initial'",
+    rows = connection.execute(
+        f"SELECT phase, document_hash FROM full_run_gap_plan WHERE run_id=? "
+        f"AND ({_PLANNED_PHASES})",
         (run_id,),
-    ).fetchone()
-    if row is None:
+    ).fetchall()
+    if not any(phase == "initial" for phase, _digest in rows):
         return {}
-    digest = str(row[0])
-    if digest not in _INITIAL_SCOPES:
-        (document,) = connection.execute(
-            "SELECT document_json FROM full_run_gap_plan WHERE run_id=? AND phase='initial'",
-            (run_id,),
-        ).fetchone()
+    digests = tuple(sorted(str(digest) for _phase, digest in rows))
+    if digests not in _PLANNED_SCOPES:
+        documents = sorted(
+            connection.execute(
+                f"SELECT phase, document_json FROM full_run_gap_plan WHERE run_id=? "
+                f"AND ({_PLANNED_PHASES})",
+                (run_id,),
+            ).fetchall(),
+            key=lambda row: -1 if row[0] == "initial" else int(row[0].split(":")[1]),
+        )
         scopes: dict[str, dict[str, Any]] = {}
-        for item in json.loads(document)["scopes"]:
-            scopes.setdefault(item["release_event_id"], item)
-        _INITIAL_SCOPES[digest] = scopes
-    return _INITIAL_SCOPES[digest]
+        for _phase, document in documents:
+            for item in json.loads(document)["scopes"]:
+                scopes.setdefault(item["release_event_id"], item)
+        _PLANNED_SCOPES[digests] = scopes
+    return _PLANNED_SCOPES[digests]
 
 
 class RunRepository:
@@ -821,7 +829,7 @@ class RunRepository:
         with self._connect() as connection:
             scope = self._retrieval_scope(connection, run_id)
             if scope is None:
-                planned = _initial_plan_scopes(connection, run_id).get(release_event_id)
+                planned = _planned_scopes(connection, run_id).get(release_event_id)
                 if planned is None:
                     raise ValueError("retrieval_attempt_requires_scoped_run")
                 scope = RetrievalScope(
@@ -1106,7 +1114,7 @@ class RunRepository:
         connection: sqlite3.Connection,
         run_id: str,
     ) -> tuple[dict[str, object], ...]:
-        scopes = _initial_plan_scopes(connection, run_id)
+        scopes = _planned_scopes(connection, run_id)
         targeted = self._retrieval_scope(connection, run_id)
         rows = connection.execute(
             """
