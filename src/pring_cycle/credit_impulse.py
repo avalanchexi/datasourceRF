@@ -429,13 +429,15 @@ def derive(
             else set()
         )
         announced = {
-            point.selected_claim_id: value
+            point.selected_claim_id: (point, value)
             for point, value, _inputs in differenced_gdp
             if point.selected_claim_id is not None and point.selected_claim_id not in one_delivery
         }
         if announced and (
             unmatched := set(announced)
-            - official_gdp_quarters_matching_baselines(repository, announced)
+            - official_gdp_quarters_matching_baselines(
+                repository, announced, definition_version=definition_version, as_of=as_of
+            )
         ):
             statuses.append("incomparable_gdp_vintages")
             failures.append(
