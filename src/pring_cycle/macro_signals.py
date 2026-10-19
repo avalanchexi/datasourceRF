@@ -333,9 +333,14 @@ def _run(item: Mapping[str, Any]) -> str:
 
 
 def _move(item: Mapping[str, Any]) -> str:
+    """The move a table signal points to: its whole transition, from and to (decision 43:
+    two cells to one stage from two stages are two moves); an asset turning to no typical
+    combination, that asset and the state it turns to (decision 41)."""
     turn = _object(item.get("asset_turn"))
-    target = item["transition"]["to"]
-    return str(target) if target is not None else f"{turn.get('asset')}:{turn.get('to')}"
+    transition = item["transition"]
+    if transition["to"] is None:
+        return f"{turn.get('asset')}:{turn.get('to')}"
+    return f"{transition['from']}>{transition['to']}"
 
 
 def _previous(block: Mapping[str, Any] | None) -> dict[str, Mapping[str, Any]]:
@@ -613,6 +618,37 @@ def _divergences(
                 }
             )
     return out
+
+
+def rejudged(
+    block: Mapping[str, Any],
+    judgement_rules: MacroJudgementRules,
+    confirmation: Mapping[str, Any],
+    rejudge: Rejudge,
+) -> dict[str, Any]:
+    """``block`` with each divergence's recount judged again by ``rejudge``, as a
+    correction of the day's last confirmed stage states it: the recount's ties and fallback
+    are taken against that stage, as the day's own judgement's are (decision 47)."""
+
+    def again(item: Mapping[str, Any]) -> Mapping[str, Any]:
+        if item.get("kind") != "divergence" or not isinstance(item.get("rejudged"), Mapping):
+            return item
+        indicator = _object(item.get("indicator"))
+        recount = _rejudged(
+            judgement_rules,
+            confirmation,
+            str(indicator.get("key")),
+            str(indicator.get("dimension")),
+            str(_object(item.get("minority")).get("direction")),
+            rejudge,
+        )
+        return {
+            **item,
+            "rejudged": recount,
+            "transition": {**_object(item.get("transition")), "to": recount.get("stage")},
+        }
+
+    return {**block, "signals": [again(item) for item in _objects(block.get("signals"))]}
 
 
 def _rejudged(

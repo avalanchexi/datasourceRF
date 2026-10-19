@@ -10,13 +10,14 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Callable
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from pring_cycle.context_projection import ContextProjectionRules
+from pring_cycle.day_summary import DaySummaries, ModelRules
 from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.macro_judgement import MANIFEST_FIELD, rules_v0001
 from pring_cycle.macro_signals import MANIFEST_FIELD as SIGNALS_FIELD
@@ -27,16 +28,24 @@ from pring_cycle.models import (
     model_v0015_manifest,
     model_v0016_manifest,
 )
-from pring_cycle.projections import ProjectionSet, validate_analytical_projection
+from pring_cycle.projections import (
+    ProjectionSet,
+    ProjectionSetRepository,
+    validate_analytical_projection,
+)
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
+from pring_cycle.trading_calendar import TradingCalendar
 from pring_cycle.tushare_context import MARKET_INDEX_IDENTITIES
 from tests.integration.test_confirmation_cumulative_quarterly import LESS, LOAN_PAIRS, MORE, loan
 from tests.integration.test_confirmation_monthly_indicators import append
 from tests.integration.test_confirmation_projection import confirmation_manifest
 from tests.integration.test_confirmation_publish import publish
-from tests.integration.test_core_carry_forward import CORES, seed_cores, sessions
+from tests.integration.test_core_carry_forward import CORES, CUTOFF, seed_cores, sessions
+from tests.integration.test_day_summary import stock_conflict
 from tests.integration.test_decertified_main_chain import claim as core_claim
+from tests.integration.test_macro_fallback import STOCK_TURN, seed_combination
+from tests.integration.test_macro_hysteresis import SF_REVISED, revise_credit
 from tests.integration.test_macro_judgement import (
     CATALOG,
     MODEL,
@@ -44,6 +53,7 @@ from tests.integration.test_macro_judgement import (
     judgement,
     publish_from,
     seed_macro,
+    take_effect,
 )
 from tests.integration.test_worker_execution import runtime, seed_independent_calendar
 
@@ -445,3 +455,83 @@ def test_a_core_s_30_day_candidate_against_its_state_joins_the_list(tmp_path: Pa
     assert watch["candidates"]["against"] == ["candidate_30d"]
     assert watch["transition"] == {"from": "stage_iii", "to": "stage_iv"}
     assert (watch["group"], watch["sessions"], watch["maturity"]) == ("back", 5, "forming")
+
+
+def test_two_cells_to_one_stage_from_two_stages_are_no_transition_formed(tmp_path: Path) -> None:
+    paths = runtime(tmp_path)
+    # The commodity core rises by one a session to 274, then falls back from 240 over the
+    # last five: its 30-day candidate bear against its bull, and stocks stronger than
+    # commodities and strengthening.
+    seed_shaped_cores(paths, lambda i: 100.0 + i if i < 175 else 240.0 - 2 * (i - 175))
+    register(paths)
+    seed_macro(paths)
+
+    published = judgement(publish(paths, MODEL))
+
+    sprouts = {item["id"]: item for item in published["sprouts"]}
+    # R9 points from I to II, the commodity core's candidate from III to II: one stage, two
+    # transitions, each on its first session -- sprouts both (decision 43).
+    assert sprouts["R9"]["transition"] == {"from": "stage_i", "to": "stage_ii"}
+    assert sprouts["C5"]["transition"] == {"from": "stage_iii", "to": "stage_ii"}
+    assert [(sprouts[key]["sessions"], sprouts[key]["maturity"]) for key in ("R9", "C5")] == [
+        (1, "sprout"),
+        (1, "sprout"),
+    ]
+    assert not {"R9", "C5"} & {item["id"] for item in published["signals"]}
+
+
+def test_a_relink_while_a_run_is_counted_judges_the_divergence_again(tmp_path: Path) -> None:
+    # Bonds and commodities falling, stocks rising until two sessions before the held day:
+    # the day the rules take effect is a noncanonical bond bear · stock bull · commodity
+    # bear, without a stage before it; the day after, missed at first, stage VI; the held
+    # day's stock close conflicts, so it has no stage of its own. Credit is up throughout:
+    # stages III, IV and V tie at three, and the PMI's minority, voting, ties III and IV.
+    paths = runtime(tmp_path)
+    seed_combination(paths, "bear", "bull", "bear", stock_turn=STOCK_TURN - 2)
+    register(paths)
+    seed_macro(paths)
+    revise_credit(paths, SF_REVISED, on=-12)
+    days = [day.isoformat() for day in sessions()]
+    first, staged, held = days[-4], days[-3], days[-2]
+    EvidenceRepository(paths.database).append_source_claims((stock_conflict(sessions()[-2]),))
+    take_effect(paths, first)
+    summaries = DaySummaries(
+        EvidenceRepository(paths.database),
+        ProjectionSetRepository(paths.database),
+        ModelRules.of(ModelRepository(paths.database), MODEL),
+        calendar=TradingCalendar(sessions()),
+    )
+    repository = ProjectionSetRepository(paths.database)
+
+    def held_judgement() -> dict[str, Any]:
+        [event] = [event for event in repository.stage_history() if event["business_date"] == held]
+        return judgement(repository.get(str(event["projection_set_id"])))
+
+    summaries.backfill((held,), target=days[-1], system_as_of=CUTOFF)
+    before = held_judgement()
+    # No stage before it: the ties go to the first in Pring's order, stage III.
+    assert (before["conclusion"]["stage"], before["hysteresis"]["basis"]) == ("stage_iii", "agrees")
+    pmi = next(item for item in before["signals"] if item["id"] == "D-pmi")
+    assert (pmi["rejudged"]["stage"], pmi["transition"], pmi["group"]) == (
+        "stage_iii",
+        {"from": "stage_iii", "to": "stage_iii"},
+        "hold",
+    )
+
+    summaries.backfill((staged, held), target=days[-1], system_as_of=CUTOFF + timedelta(days=1))
+
+    after = held_judgement()
+    # Stated against stage VI, the day's raw tie goes to V, counted on from the day before:
+    # the second session toward replacing stage III, still held.
+    assert (after["raw"]["stage"], after["conclusion"]["stage"]) == ("stage_v", "stage_iii")
+    assert (after["hysteresis"]["candidate"], after["hysteresis"]["sessions"]) == ("stage_v", 2)
+    assert [item["matches"] for item in after["dimensions"]] == [True, True, False, False, True]
+    # The PMI's recount is judged again against stage VI: its tie of III and IV goes to IV,
+    # a step forward from the conclusion.
+    pmi = next(item for item in after["signals"] if item["id"] == "D-pmi")
+    assert (pmi["rejudged"]["stage"], pmi["rejudged"]["confidence"]) == ("stage_iv", "tendency")
+    assert (pmi["transition"], pmi["group"], pmi["steps"]) == (
+        {"from": "stage_iii", "to": "stage_iv"},
+        "forward",
+        1,
+    )

@@ -10,8 +10,8 @@ from pring_cycle.batches import current_batch_id
 from pring_cycle.display_projection import display_days, history_display
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.domain.stage import StageResult, derive_formal_stage
-from pring_cycle.macro_judgement import Earlier, MacroJudgementRules, with_reference
-from pring_cycle.macro_signals import regrouped
+from pring_cycle.macro_judgement import Earlier, MacroJudgementRules, judge, with_reference
+from pring_cycle.macro_signals import regrouped, rejudged
 from pring_cycle.macro_verification import combination_of, restated, verified
 from pring_cycle.noncanonical import build_basis
 from pring_cycle.projections import (
@@ -427,17 +427,24 @@ class P0ProjectionService:
                 # the conclusion; nothing is judged again.
                 if macro_rules is None:
                     raise ValueError("macro_judgement_rules_missing")
-                overview["macro_judgement"] = restated(
-                    regrouped(
-                        with_reference(
-                            judgement,
-                            last_confirmed_stage,
-                            earlier=counted_from,
-                            rules=macro_rules,
-                            day=day,
-                        )
-                    )
+                judgement = with_reference(
+                    judgement,
+                    last_confirmed_stage,
+                    earlier=counted_from,
+                    rules=macro_rules,
+                    day=day,
                 )
+                if isinstance(confirmation := datasets["macro"].get("confirmation"), dict):
+                    # Its divergences' recounts take their ties against that stage too.
+                    reference = FormalStage(last_confirmed_stage) if last_confirmed_stage else None
+                    cores = _cores_read(overview)
+                    judgement = rejudged(
+                        judgement,
+                        macro_rules,
+                        confirmation,
+                        lambda rules, twin: judge(rules, twin, reference=reference, cores=cores),
+                    )
+                overview["macro_judgement"] = restated(regrouped(judgement))
         judgement = overview.get("macro_judgement")
         assessment = self._projections.prepare_p0_assessment(
             {
@@ -472,6 +479,19 @@ class P0ProjectionService:
             as_current=False,
         )
         return str(assessment["assessment_id"])
+
+
+def _cores_read(overview: Mapping[str, object]) -> dict[str, str] | None:
+    """The set's three core states when its combination was read, typical or not; None
+    when a core was unavailable or pending -- what the day's weak judgement fell back on."""
+    if overview.get("stage_reason") not in {"canonical_combination", "noncanonical_combination"}:
+        return None
+    assets = overview.get("core_assets")
+    return {
+        str(item["asset"]): str(item["state"])
+        for item in (assets if isinstance(assets, list) else [])
+        if isinstance(item, dict)
+    }
 
 
 def stated_last_confirmed(
