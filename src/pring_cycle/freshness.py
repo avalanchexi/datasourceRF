@@ -736,12 +736,14 @@ def _failed_candidates(
     database: Path, run_id: str, held: Mapping[str, object]
 ) -> dict[str, list[dict[str, str]]]:
     """Per metric, up to three distinct candidate URLs the batch rejected for a period it
-    still lacks, with reasons.
+    still lacks, with reasons; one the negative cache held back also with the first cause,
+    why the earlier request it was held for failed (worker gaps 01).
 
     A rejected candidate speaks for its own period alone: one the final plan completed (with
     every member), or, a period the plan did not require, one ``held`` since, leaves the
     metric's other gaps as they are (run findings 1002 ticket 05).
     """
+    from pring_cycle.retrieval_ledger import first_cause
     from pring_cycle.storage import database_connection
 
     with database_connection(database) as connection:
@@ -749,10 +751,12 @@ def _failed_candidates(
             "SELECT 1 FROM sqlite_master WHERE name='retrieval_candidate_validation'"
         ).fetchone():
             return {}
-        rows = connection.execute(
+        connection.row_factory = sqlite3.Row
+        validations = connection.execute(
             """
-            SELECT json_extract(g.identity_json, '$.metric_id'),
-                   json_extract(g.identity_json, '$.period'), v.candidate_url, v.reason
+            SELECT json_extract(g.identity_json, '$.metric_id') AS metric_id,
+                   json_extract(g.identity_json, '$.period') AS period, v.candidate_url,
+                   v.reason, v.download_request_id
             FROM retrieval_candidate_validation v, json_each(v.gap_ids_json) j
             JOIN retrieval_gap g ON g.gap_id = j.value
             WHERE v.run_id=? AND v.outcome='not_model_usable'
@@ -761,6 +765,7 @@ def _failed_candidates(
             """,
             (run_id,),
         ).fetchall()
+        rows = [(row, first_cause(connection, row)) for row in validations]
         plan = (
             connection.execute(
                 "SELECT document_json FROM full_run_gap_plan WHERE run_id=? AND phase='final'",
@@ -775,23 +780,30 @@ def _failed_candidates(
         (str(item["metric_id"]), str(item["period"])): bool(item["complete"])
         for item in (json.loads(plan[0])["gaps"] if plan else ())
     }
-    failed: dict[str, dict[str, str]] = {}
-    for metric_id, period, url, reason in rows:
-        key = (str(metric_id), str(period))
+    failed: dict[str, dict[str, dict[str, str]]] = {}
+    for row, cause in rows:
+        key = (str(row["metric_id"]), str(row["period"]))
         if complete.get(key, _held_through(held.get(key[0]), key[1])):
             continue
-        failed.setdefault(key[0], {})[str(url)] = str(reason)
-    return {
-        metric_id: [{"url": url, "reason": reason} for url, reason in list(urls.items())[:3]]
-        for metric_id, urls in failed.items()
-    }
+        url = str(row["candidate_url"])
+        failed.setdefault(key[0], {})[url] = {"url": url, "reason": str(row["reason"])}
+        if cause is not None:
+            failed[key[0]][url]["first_cause"] = cause
+    return {metric_id: list(urls.values())[:3] for metric_id, urls in failed.items()}
+
+
+def _held_against(held: object, period: str) -> tuple[str, str] | None:
+    """A held period end and a retrieval period (a day, a month or a quarter, as its last
+    month) cut to the same length, to compare; none when nothing is held."""
+    if "-Q" in period:
+        period = f"{period[:4]}-{int(period[-1]) * 3:02d}"
+    return (held[: len(period)], period) if isinstance(held, str) else None
 
 
 def _held_through(held: object, period: str) -> bool:
-    """Whether a held period end reaches a retrieval period: a day, a month or a quarter."""
-    if "-Q" in period:
-        period = f"{period[:4]}-{int(period[-1]) * 3:02d}"
-    return isinstance(held, str) and held[: len(period)] >= period
+    """Whether a held period end reaches a retrieval period."""
+    compared = _held_against(held, period)
+    return compared is not None and compared[0] >= compared[1]
 
 
 def backtracked(database: Path, run_id: str) -> dict[str, str]:
@@ -823,6 +835,7 @@ _GAP_ORDER = (
     "derived_failed",
     "source_failed",
     "source_conflict",
+    "awaiting_release",
 )
 
 
@@ -974,6 +987,66 @@ def sort_gaps(gaps: Iterable[dict[str, object]]) -> list[dict[str, object]]:
     )
 
 
+def stated_next_releases(documents: Iterable[object]) -> dict[str, str]:
+    """Per metric, the next release its source's original states, as the latest acquisition
+    of its row in the projection's documents recorded (EIA's history pages)."""
+    found: dict[str, str] = {}
+
+    def walk(value: object) -> None:
+        if isinstance(value, Mapping):
+            acquisition = value.get("latest_acquisition")
+            if (
+                isinstance(metric_id := value.get("metric_id"), str)
+                and isinstance(acquisition, Mapping)
+                and acquisition.get("next_release_date")
+            ):
+                found[metric_id] = str(acquisition["next_release_date"])
+            for child in value.values():
+                walk(child)
+        elif isinstance(value, list | tuple):
+            for child in value:
+                walk(child)
+
+    walk(list(documents))
+    return found
+
+
+def awaiting_stated_release(
+    plan_gaps: Iterable[Mapping[str, object]],
+    documents: Iterable[object],
+    *,
+    held_periods: Mapping[str, object],
+    judged_at: datetime,
+) -> tuple[dict[str, object], ...]:
+    """The final plan's periods, each one requested and not had that its source's original
+    says is not out yet marked ``awaiting_release``: past the period the run holds, with the
+    next release the original states on or after the day judged on (in Beijing; the source's
+    own day is not later). The estimate let it through; the gate is not changed, only how the
+    gap list and coverage group it (worker gaps 03, spec story 9)."""
+    stated = stated_next_releases(documents)
+    judged_on = judged_at.astimezone(SHANGHAI).date().isoformat()
+    marked: list[dict[str, object]] = []
+    for gap in plan_gaps:
+        row = dict(gap)
+        metric_id, period = str(gap["metric_id"]), str(gap.get("period"))
+        release = stated.get(metric_id)
+        if (
+            not gap.get("complete", True)
+            and gap.get("release_gate") is None
+            and release is not None
+            and release >= judged_on
+            and release > period
+            and not _held_through(held_periods.get(metric_id), period)
+        ):
+            row["awaiting_release"] = {
+                "period": period,
+                "next_release_date": release,
+                "basis": "source_next_release_date",
+            }
+        marked.append(row)
+    return tuple(marked)
+
+
 # A formula document that names no metric of its own.
 _FORMULA_DOCUMENTS = {"real_inventory_approximation": "CN_REAL_FINISHED_GOODS_INVENTORY_PROXY"}
 _USABLE_DERIVED_STATUSES = frozenset({"current", "stale", "available", "disabled_by_model"})
@@ -986,6 +1059,7 @@ def add_projection_gaps(
     derived_requirements: Iterable[Mapping[str, object]],
     plan_gaps: Iterable[Mapping[str, object]],
     definitions: Iterable[MetricDefinition],
+    held_periods: Mapping[str, object] | None = None,
 ) -> list[dict[str, object]]:
     """Add what only the computed projection shows, which timeliness cannot see (ticket 09).
 
@@ -1001,13 +1075,23 @@ def add_projection_gaps(
     observations whose sources disagree gets ``conflicts``, each with the reason the
     comparison gave (ADR-0033), also when the selected claim failed too. A period the
     run plan could not complete and the release gate kept from being requested gets its
-    metric ``not_requested``, each period with the gate's reason (lookback L01); one its
+    metric ``not_requested``, each period with the gate's reason (lookback L01), except a
+    period whose release has not come: that is ``awaiting_release``, each period with the
+    next release date its source's original states, else the registered release lag's, and
+    is neither missing nor a coverage gap (worker gaps 03); one its
     official listing stopped short of gets ``not_covered``, each period with the listing,
     where its reading stopped (``page_limit``: the run's pages of the site were read), the
     pages read and the earliest entry they list: not listed as far as read, which is not
-    "none" (lookback L05). The list keeps one row
+    "none" (lookback L05). Any other period the plan could not complete although a later
+    one is held (``held_periods``, the run's timeliness) or the plan completed it gets its
+    metric ``missing_periods``, each with the members it lacks, such as a warrant symbol's
+    historical day (worker gaps 04). A metric's newest planned period held in part gets
+    ``members_missing``: the members held beside those still missing (worker gaps 02). The
+    list keeps one row
     per metric: a metric not listed yet is added as ``derived_failed``, ``source_failed``,
-    ``source_conflict`` or, never requested, ``missing``.
+    ``source_conflict`` or, never requested, ``missing``; a metric with nothing but periods
+    awaiting release as ``awaiting_release``, and one listed otherwise keeps its category,
+    noting them.
     """
     from pring_cycle.retrieval_registry import is_searchable_gap
 
@@ -1038,6 +1122,10 @@ def add_projection_gaps(
     for document in documents:
         walk(document, None)
     listed = {str(gap["metric_id"]): dict(gap) for gap in gaps}
+    # What each timeliness row holds, before the projection's additions to the list.
+    listed_held = {metric_id: gap.get("held_period") for metric_id, gap in listed.items()}
+    # The next release the source's original states, as its latest acquisition recorded.
+    next_releases = stated_next_releases(rows)
 
     def entry(metric_id: str, category: str, reason: str) -> dict[str, object]:
         return listed.setdefault(
@@ -1054,10 +1142,18 @@ def add_projection_gaps(
             },
         )
 
+    plan_gaps = list(plan_gaps)
     incomplete = [gap for gap in plan_gaps if not gap.get("complete", True)]
     not_requested: dict[str, list[dict[str, object]]] = {}
+    awaiting: dict[str, list[dict[str, object]]] = {}
     for gap in incomplete:
-        if gap.get("release_gate") is not None:
+        if isinstance(stated := gap.get("awaiting_release"), Mapping):
+            awaiting.setdefault(str(gap["metric_id"]), []).append(dict(stated))
+        elif gap.get("release_gate") == "awaiting_release":
+            awaiting.setdefault(str(gap["metric_id"]), []).append(
+                _awaiting_release(gap, next_releases)
+            )
+        elif gap.get("release_gate") is not None:
             not_requested.setdefault(str(gap["metric_id"]), []).append(
                 {"period": gap.get("period"), "reason": gap["release_gate"]}
             )
@@ -1071,6 +1167,8 @@ def add_projection_gaps(
             )
     for metric_id, periods in not_covered.items():
         entry(metric_id, "missing", "listing_not_covered")["not_covered"] = periods
+    for metric_id, periods in _members_missing(plan_gaps).items():
+        entry(metric_id, "missing", "members_missing")["members_missing"] = periods
     for requirement in derived_requirements:
         metric_id = str(requirement["metric_id"])
         parents = requirement.get("required_input_periods")
@@ -1139,7 +1237,135 @@ def add_projection_gaps(
         if gap["category"] == "source_conflict":
             gap["held_period"] = items[-1]["period"]
         gap["conflicts"] = items
+    historical = _historical_periods(plan_gaps, listed_held, held_periods or {}, listed)
+    for metric_id, periods in historical.items():
+        entry(metric_id, "missing", "historical_periods_missing")["missing_periods"] = periods
+    for metric_id, periods in awaiting.items():
+        if metric_id in listed:
+            listed[metric_id]["awaiting_release"] = periods
+        else:
+            listed[metric_id] = {
+                "metric_id": metric_id,
+                "priority": priorities.get(metric_id),
+                "category": "awaiting_release",
+                "reason": "awaiting_release",
+                "due_period": None,
+                "held_period": None,
+                "periods_behind": None,
+                "awaiting_release": periods,
+            }
     return sort_gaps(listed.values())
+
+
+def _members_missing(
+    plan_gaps: Iterable[Mapping[str, object]],
+) -> dict[str, list[dict[str, object]]]:
+    """Each metric's newest planned period requested that the run holds part of but not all:
+    the members held and those still missing (worker gaps 02: September's social financing
+    stock and flow held, its official stock growth not). Earlier periods are listed as
+    history. A newer period the gate kept back or awaiting release is listed with its own
+    reason, and is no newer one here, which would leave this one in neither list."""
+    gaps = list(plan_gaps)
+    newest: dict[str, str] = {}
+    for gap in gaps:
+        if gap.get("release_gate") is not None or "awaiting_release" in gap:
+            continue
+        metric_id, period = str(gap["metric_id"]), str(gap.get("period"))
+        newest[metric_id] = max(newest.get(metric_id, period), period)
+    found: dict[str, list[dict[str, object]]] = {}
+    for gap in gaps:
+        metric_id = str(gap["metric_id"])
+        held, missing = _members(gap.get("held_members")), _members(gap.get("missing_members"))
+        if gap.get("complete", True) or not held or str(gap.get("period")) != newest.get(metric_id):
+            continue
+        found.setdefault(metric_id, []).append(
+            {"period": gap.get("period"), "held_members": held, "missing_members": missing}
+        )
+    return found
+
+
+def _historical_periods(
+    plan_gaps: Iterable[Mapping[str, object]],
+    listed_held: Mapping[str, object],
+    held_periods: Mapping[str, object],
+    listed: Mapping[str, Mapping[str, object]],
+) -> dict[str, list[dict[str, object]]]:
+    """Per metric, each period the final plan could not complete although a later one is
+    held or the plan completed it, with the members it lacks (worker gaps 04): a warrant
+    symbol's day, say. Before the latest period held, not a period still to come.
+
+    Not a period a gate kept from being requested or a listing did not reach, both listed
+    with their own reason; not one past the period the metric's timeliness row holds, which
+    that row speaks for; not one a formula's missing inputs already name.
+    """
+    plan = list(plan_gaps)
+    latest: dict[str, str] = {}
+    for gap in plan:
+        if gap.get("complete", True):
+            metric_id = str(gap["metric_id"])
+            latest[metric_id] = max(latest.get(metric_id, ""), str(gap.get("period")))
+    named = {
+        (str(item.get("metric_id")), str(item.get("period")))
+        for row in listed.values()
+        for item in _members(row.get("missing_inputs"))
+        if isinstance(item, Mapping)
+    }
+    historical: dict[str, list[dict[str, object]]] = {}
+    for gap in plan:
+        metric_id, period = str(gap["metric_id"]), str(gap.get("period"))
+        if (
+            gap.get("complete", True)
+            or gap.get("release_gate") is not None
+            or "awaiting_release" in gap
+            or isinstance(gap.get("listing_not_covered"), Mapping)
+            # Not a period still to come: neither the plan nor timeliness holds a later one.
+            or (
+                latest.get(metric_id, "") <= period
+                and not _holds_later(held_periods.get(metric_id), period)
+            )
+            # A period past the one a timeliness row holds is that row's to speak for.
+            or (metric_id in listed_held and not _held_through(listed_held[metric_id], period))
+            or (metric_id, period) in named
+        ):
+            continue
+        historical.setdefault(metric_id, []).append(
+            {"period": period, "missing_members": _members(gap.get("missing_members"))}
+        )
+    return {
+        metric_id: sorted(periods, key=lambda item: str(item["period"]))
+        for metric_id, periods in historical.items()
+    }
+
+
+def _holds_later(held: object, period: str) -> bool:
+    """Whether a held period end is later than a retrieval period."""
+    compared = _held_against(held, period)
+    return compared is not None and compared[0] > compared[1]
+
+
+def _awaiting_release(
+    gap: Mapping[str, object], next_releases: Mapping[str, str]
+) -> dict[str, object]:
+    """A period awaiting release, with when it is out: the next release its source's original
+    states when that is after the period, else the registered release lag's."""
+    metric_id, period = str(gap["metric_id"]), str(gap.get("period"))
+    stated = next_releases.get(metric_id)
+    if stated is not None and stated > period:
+        return {"period": period, "next_release_date": stated, "basis": "source_next_release_date"}
+    rule = FRESHNESS_REGISTRY.get(metric_id)
+    if rule is None or rule.frequency == "event":
+        return {"period": period}
+    if "-Q" in period:
+        first = date(int(period[:4]), int(period[-1]) * 3 - 2, 1)
+    else:
+        first = date.fromisoformat(period + "-01" if len(period) == 7 else period)
+    calendar = current_calendar()
+    released = release_at(rule, period_end(rule.frequency, first, calendar), calendar)
+    return {
+        "period": period,
+        "next_release_date": released.date().isoformat(),
+        "basis": "registered_release_lag",
+    }
 
 
 def _by_member(

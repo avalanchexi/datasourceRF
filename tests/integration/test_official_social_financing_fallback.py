@@ -24,6 +24,7 @@ from pring_cycle.retrieval_ledger import RetrievalLedger
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.tushare_context import TushareContextAdapter
+from tests.conftest import install_runtime_clock
 from tests.fixtures.delivery_assertions import assert_delivered_points, assert_delivered_rows
 from tests.fixtures.model_registration import (
     bind_synthetic_review,
@@ -553,3 +554,146 @@ def test_a_page_fetched_for_the_components_leaves_out_the_total_tushare_delivere
         ("2026-07-31", "ytd_increment"): (220000.0, {"tushare"}),
         ("2026-07-31", "stock_yoy"): (7.4, {"中国人民银行"}),
     }
+
+
+# The PBC put July's report out at 16:30 on 08-14 (the page's own time); the registered
+# estimate, the 10th trading day after the month at 18:00, is later the same day.
+BEFORE_ESTIMATE = datetime(2026, 8, 14, 8, 45, tzinfo=UTC)
+JULY_EVENT = "full:pbc_social_financing:2026-07"
+
+
+def july_release_run(
+    paths: RuntimePaths,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    *,
+    delivered: bool,
+    listed: bool = True,
+) -> tuple[RunRepository, str, str, list[str]]:
+    """A confirmation model's full run at 16:45 on 08-14, between the PBC's July report and
+    the estimated release: TuShare holds July's total (``delivered``) or nothing, and the
+    report's column lists July's report (``listed``) or not yet. Returns the run's
+    repository, run id and definition version, and the official pages requested."""
+    candidate, version = admit_sf_candidate(paths, capsys, confirmation=True)
+    if delivered:
+
+        def transport(payload: dict) -> bytes:
+            return json.dumps(
+                {
+                    "code": 0,
+                    "data": {
+                        "fields": ["month", "inc_cumval", "stk_endval"],
+                        "items": [["202607", 220000.0, 460.0]],
+                    },
+                }
+            ).encode()
+
+        adapter = TushareContextAdapter("fixture-only", transport=transport)
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.social_financing_total(start_month="2026-07", end_month="2026-07"),
+            definition_version=version,
+        )
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        requested.append(url)
+        if url == COLUMN:
+            content = (
+                f'<a href="{ARTICLE}">2026年7月金融统计数据报告</a>'.encode()
+                if listed
+                else b"<p>No July release listed yet</p>"
+            )
+        elif url == ARTICLE:
+            content = (
+                Path(__file__).parents[1] / "fixtures/official_period_fallback/pbc_money.html"
+            ).read_bytes()
+        else:
+            raise OSError("unrelated fixture unavailable")
+        return FetchedOfficialContextDocument(content, "text/html", url, 200)
+
+    monkeypatch.setattr("pring_cycle.official_context._fetch_official_context_document", fetch)
+    runs = RunRepository(paths.database)
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-08-14",
+        client_request_id="sf-july-release",
+        model_version_id=candidate,
+        system_as_of=datetime.now(UTC),
+    )
+    run = runs.advance(submitted.run_id, "refreshing_evidence")
+    FullRunRetrieval(paths).retrieve(run)
+    return runs, run.run_id, version, requested
+
+
+def july_total(paths: RuntimePaths, version: str) -> dict[str, tuple[float | None, set[str]]]:
+    return {
+        p.dimensions["measure"]: (p.selected_value, {c.provider for c in p.claims})
+        for p in EvidenceRepository(paths.database).metric_series(
+            "CN_SF_TOTAL", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
+        )
+        if p.period_end == "2026-07-31"
+    }
+
+
+def test_a_release_the_run_already_holds_part_of_is_not_held_back_by_its_estimate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    request: pytest.FixtureRequest,
+) -> None:
+    """Decision 2 (worker gaps 02): TuShare already delivered July's total, so July's release
+    is out, though its estimate is not due. The stock growth and the components of that one
+    release are requested, not held back as awaiting release for the whole period."""
+    install_runtime_clock(monkeypatch, request, BEFORE_ESTIMATE)
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+
+    runs, run_id, version, requested = july_release_run(paths, monkeypatch, capsys, delivered=True)
+
+    assert ARTICLE in requested
+    july = july_total(paths, version)
+    assert july["stock_end"] == (4600000.0, {"tushare"})
+    assert july["stock_yoy"] == (7.4, {"中国人民银行"})
+    stored = runs.get(run_id)
+    assert not [
+        attempt
+        for attempt in stored.retrieval_attempts
+        if attempt["release_event_id"] == JULY_EVENT and attempt["channel"] == "release_gate"
+    ]
+
+
+@pytest.mark.parametrize("listed", [True, False])
+def test_a_release_not_due_by_its_estimate_is_looked_for_once_on_its_official_column(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    request: pytest.FixtureRequest,
+    listed: bool,
+) -> None:
+    """Decision 2 (worker gaps 02): nothing of July is held and its estimate is not due, yet
+    the run reads the report's column once, and takes a report already out. One not listed
+    yet stays awaiting release: no search is opened for it."""
+    install_runtime_clock(monkeypatch, request, BEFORE_ESTIMATE)
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+
+    runs, run_id, version, requested = july_release_run(
+        paths, monkeypatch, capsys, delivered=False, listed=listed
+    )
+
+    assert COLUMN in requested
+    assert (ARTICLE in requested) == listed
+    july = july_total(paths, version)
+    if listed:
+        assert july == {
+            "stock_end": (4632700.0, {"中国人民银行"}),
+            "stock_yoy": (7.4, {"中国人民银行"}),
+            "ytd_increment": (222500.0, {"中国人民银行"}),
+        }
+        return
+    assert july == {}
+    july_attempts = [
+        a for a in runs.get(run_id).retrieval_attempts if a["release_event_id"] == JULY_EVENT
+    ]
+    # The column alone was read for it: no other channel was opened.
+    assert {a["channel"] for a in july_attempts if a["outcome"] != "not_configured"} == {"official"}

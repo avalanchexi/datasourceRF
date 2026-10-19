@@ -1621,9 +1621,14 @@ def _derived_document(derived: Spread, by_member: Mapping[str, MemberReading]) -
 
 
 def _unknown_readings(cell: Cell, main: MemberReading) -> str:
+    # Only what the cell reads is asked: a reading has no action or quadrant of its own.
     names = sorted(
-        {name for condition in cell.when for name in condition.readings}
-        - {name for name in _READINGS if main.reading(name) is not None}
+        {
+            name
+            for condition in cell.when
+            for name in condition.readings
+            if main.reading(name) is None
+        }
     )
     return "unknown_" + "_".join(names)
 

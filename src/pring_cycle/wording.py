@@ -65,7 +65,7 @@ def stage_code(value: object) -> str:
 
 
 def stage_name(value: object) -> str:
-    """A formal stage's Chinese name alone, where its code would repeat it (decision 13)."""
+    """A formal stage's Chinese name alone (第三阶段), as report prose names it."""
     return STAGE_TITLES.get(str(value).lower(), str(value)).partition(" · ")[0]
 
 
@@ -163,6 +163,20 @@ _WARRANT_SYMBOLS = {
     "SP": "纸浆",
     "SC": "原油",
 }
+# Social financing's measures, and the components of its stock as the PBC's report names them.
+_SF_MEASURES = {"stock_end": "期末存量", "ytd_increment": "累计增量", "stock_yoy": "存量同比"}
+_SF_COMPONENTS = {
+    "renminbi_loans": "人民币贷款",
+    "foreign_currency_loans_rmb": "外币贷款（折合人民币）",
+    "entrusted_loans": "委托贷款",
+    "trust_loans": "信托贷款",
+    "undiscounted_bank_acceptances": "未贴现银行承兑汇票",
+    "corporate_bonds": "企业债券",
+    "government_bonds": "政府债券",
+    "nonfinancial_enterprise_equity": "非金融企业境内股票融资",
+    "depository_abs": "存款类金融机构资产支持证券",
+    "loan_writeoffs": "贷款核销",
+}
 # Each member entry names the dimension values it matches; a row may carry more dimensions.
 MEMBER_NAMES: dict[str, tuple[tuple[dict[str, str], str], ...]] = {
     "CN_EQ_ADV_DEC": tuple(
@@ -213,8 +227,15 @@ MEMBER_NAMES: dict[str, tuple[tuple[dict[str, str], str], ...]] = {
     "CN_FUTURES_WARRANTS": tuple(
         ({"symbol": symbol}, name) for symbol, name in _WARRANT_SYMBOLS.items()
     ),
+    "CN_SF_TOTAL": tuple(({"measure": measure}, name) for measure, name in _SF_MEASURES.items()),
+    "CN_SF_COMPONENTS": tuple(
+        ({"component": component, "measure": measure}, component_name + measure_name)
+        for component, component_name in _SF_COMPONENTS.items()
+        for measure, measure_name in _SF_MEASURES.items()
+    ),
 }
 # Request sources as the data chain and its Sankey name them; providers arrive as free text.
+# A registered source code (``tushare:index_daily``) is named by its provider, before the colon.
 SOURCE_NAMES = {
     "official": "官方发布",
     "tushare": "TuShare",
@@ -227,6 +248,13 @@ SOURCE_NAMES = {
     "European Central Bank": "欧洲央行",
     "Cboe Global Markets": "Cboe",
     "Nasdaq Global Indexes": "纳斯达克指数",
+    "pbc": "中国人民银行",
+    "chinamoney": "中国货币网",
+    "eia": "美国能源信息署",
+    "ecb": "欧洲央行",
+    "cboe": "Cboe",
+    "nasdaq": "纳斯达克指数",
+    "derived": "派生计算",
 }
 # Why a metric period is a gap, as the gap list records it: the row's own reason, the release
 # gate that kept a period from being requested, where an official listing's reading stopped,
@@ -242,6 +270,8 @@ REASON_LABELS = {
     "restricted_license": "授权受限，不取数也不检索",
     "period_not_requested": "未请求",
     "listing_not_covered": "官方列表未覆盖",
+    "members_missing": "部分成员未取得",
+    "historical_periods_missing": "历史缺期",
     "not_computed": "未计算",
     "missing_inputs": "缺少输入",
     "incomparable_gdp_vintages": "GDP 前后版本不可比",
@@ -253,6 +283,9 @@ REASON_LABELS = {
     "earlier_session_not_searched": "较早交易日不逐日检索",
     "unknown_release_configuration": "发布规则未登记",
     "negative_cache_active": "被负缓存拦下",
+    # What a period awaiting release takes its next release date from (worker gaps 03).
+    "source_next_release_date": "来源原件写明",
+    "registered_release_lag": "按登记发布滞后推算",
     # Where an official listing's reading stopped.
     "page_limit": "本轮该站列表页额度用完",
     "repeated_page": "翻到重复页",
@@ -269,6 +302,11 @@ REASON_LABELS = {
     "incomplete_model_input": "数值不完整",
     "retrieval_blocked": "请求被缓存或预算拦下",
     "rule_not_matched": "解析规则未命中",
+    # Why the request a negative cache holds a candidate back for first failed (worker
+    # gaps 01); "negative_cache_active" itself is above.
+    "official_context_usdcny_quote_missing": "官方页未见美元中间价",
+    "official_context_period_identity_mismatch": "官方页日期与所需期不符",
+    "official_context_source_http_status_invalid": "官方页返回异常状态",
 }
 NO_CHINESE_NAME = "未提供中文名"
 NO_MEMBER_NAME = "未提供成员中文名"
@@ -328,4 +366,5 @@ def metric_label(metric_id: object) -> str:
 
 def source_name(channel: object) -> str:
     """A request source's Chinese name, or the recorded value when none is mapped."""
-    return SOURCE_NAMES.get(str(channel), str(channel))
+    value = str(channel)
+    return SOURCE_NAMES.get(value) or SOURCE_NAMES.get(value.partition(":")[0], value)

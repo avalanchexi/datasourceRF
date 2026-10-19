@@ -88,7 +88,7 @@ def test_worker_lists_every_single_asset_difference_without_classifying(
     assert all(row["candidate_state"] is None for row in basis["comparisons"])
     source = report_input_from_projection(published)
     assert source.results["noncanonical_basis"] == basis
-    assert source.prompt_version == "report-prompt-v0007"
+    assert source.prompt_version == "report-prompt-v0010"
     assert "候选熊市 0 天" not in "".join(fact_sentences(basis))
 
 
@@ -120,7 +120,7 @@ def test_new_report_and_home_show_reading_with_honest_source(
     home = _text(dashboard_page("/", published, (), (snapshot,)))
     assert TITLE in home
     assert ("AI 解读" if ai_available else "确定性模板") in home
-    assert "与阶段 V只差债券一项" in home
+    assert "与第五阶段只差债券一项" in home
     assert "暂无正式阶段" in home
     assert snapshot.current_stage is None
     # A report from another immutable projection must never appear on today's home.
@@ -166,6 +166,26 @@ def test_pages_use_glossary_wording_for_canonical_and_noncanonical_projections(
             assert word not in text, (route, word)
 
 
+def test_reading_naming_stages_in_chinese_is_accepted_as_the_prompt_asks(
+    tmp_path: Path,
+) -> None:
+    # The prompt asks the prose for 第三阶段, so the fixed fact sentences read the same way.
+    source = report_input_from_projection(projection(tmp_path, ("bull", "bear", "bull")))
+    output = document(source)
+    explanation = output["sections"][0]["explanation"]
+    assert "与第五阶段只差债券一项" in explanation
+    assert "上一确认阶段：第三阶段，仅作历史上下文。" in explanation
+    assert "阶段 V" not in explanation and "阶段 III" not in explanation
+    repository = ReportRepository.create(tmp_path / "reports.sqlite3")
+    result = ReportService(
+        repository, (FakeAdapter("codex_cli", AdapterResponse.succeeded(output)),)
+    ).generate(source)
+    assert result.status == "completed"
+    snapshot = repository.get(result.report_snapshot_id)
+    assert snapshot.body["explanation_source"] == "ai"
+    assert "untranslated_codes" not in snapshot.body
+
+
 @pytest.mark.parametrize(
     "change",
     [
@@ -175,6 +195,7 @@ def test_pages_use_glossary_wording_for_canonical_and_noncanonical_projections(
         "missing_section",
         "duplicate_section",
         "inclined_stage",
+        "inclined_chinese_stage",
         "nearest_stage",
         "extra_false_fact",
         "no_observation",
@@ -197,6 +218,8 @@ def test_invalid_reading_is_rejected_and_falls_back(tmp_path: Path, change: str)
         output["sections"].append(dict(section))
     elif change == "inclined_stage":
         section["explanation"] += "目前倾向处于阶段 III。"
+    elif change == "inclined_chinese_stage":
+        section["explanation"] += "目前倾向第三阶段。"
     elif change == "nearest_stage":
         section["explanation"] += "最接近阶段 III。"
     elif change == "extra_false_fact":
@@ -218,6 +241,11 @@ def test_invalid_reading_is_rejected_and_falls_back(tmp_path: Path, change: str)
         attempt.process_audit.get("rejection")
         for attempt in repository.attempts(result.report_snapshot_id)
     )
+    if change.startswith("inclined"):
+        assert {
+            attempt.process_audit["rejection"]["check"]
+            for attempt in repository.attempts(result.report_snapshot_id)
+        } == {"noncanonical_stated_stage"}
     snapshot = repository.get(result.report_snapshot_id)
     assert snapshot.body["explanation_source"] == "deterministic_template"
     assert snapshot.body["ai_explanation"][0]["explanation"] == "".join(
@@ -237,7 +265,7 @@ def test_cli_prompt_contains_frozen_reading_contract(
     def generate(name: str, prompt: str, schema: Any, **kwargs: Any) -> Any:
         data = json.loads(prompt)
         assert name == adapter
-        assert data["execution_contract"]["prompt_version"] == "report-prompt-v0007"
+        assert data["execution_contract"]["prompt_version"] == "report-prompt-v0010"
         contract = data["noncanonical_reading_contract"]
         assert contract["title"] == TITLE
         assert len(contract["required_fact_sentences"]) == 5
@@ -277,7 +305,7 @@ def test_noncanonical_reading_preserves_not_applicable_confirmation(tmp_path: Pa
     assert result.status == "completed"
     snapshot = repository.get(result.report_snapshot_id)
     assert snapshot.schema_version == "report-schema-v0005"
-    assert snapshot.prompt_version == "report-prompt-v0007"
+    assert snapshot.prompt_version == "report-prompt-v0010"
     assert snapshot.body["conclusions"] == source.conclusions
 
 
@@ -302,7 +330,7 @@ def test_old_noncanonical_input_keeps_its_old_snapshot_and_contract(tmp_path: Pa
     service = ReportService(repository, ())
     historical = service.generate(old, client_request_id="old")
     before = repository.get(historical.report_snapshot_id)
-    assert before.prompt_version == "report-prompt-v0004"
+    assert before.prompt_version == "report-prompt-v0008"
     assert "ai_explanation" not in before.body
     service.generate(source, client_request_id="new")
     assert repository.get(historical.report_snapshot_id).body == before.body

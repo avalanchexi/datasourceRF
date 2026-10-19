@@ -1074,7 +1074,8 @@ def gaps_drawer(projection: ProjectionSet | None) -> Any:
 
 def data_boundary_line(gaps: object, coverage: dict[str, Any], pinned: str) -> list[Any]:
     """The gap list's size and the final plan's model metric-periods not held, with the
-    way on to section 07 and the data chain."""
+    way on to section 07 and the data chain. A metric awaiting release is no gap: it is
+    counted apart (worker gaps 03)."""
     missing: list[Any] = (
         [
             html.Strong(
@@ -1085,7 +1086,10 @@ def data_boundary_line(gaps: object, coverage: dict[str, Any], pinned: str) -> l
         if coverage.get("available")
         else ["历史期未取到：该版本未提供"]
     )
-    count = f"{len(objects(gaps))} 项缺口"
+    awaiting = sum(item.get("category") == "awaiting_release" for item in objects(gaps))
+    count = f"{len(objects(gaps)) - awaiting} 项缺口" + (
+        f"（另 {awaiting} 项等待发布）" if awaiting else ""
+    )
     return [
         drawer_trigger(GAPS_DRAWER, count) if objects(gaps) else count,
         " · ",
@@ -1956,7 +1960,8 @@ GAP_PREVIEW = 5
 
 
 def gap_preview(value: object) -> list[Any]:
-    """The gap list once: its first rows on the page, every row in a drawer (spec 07)."""
+    """The gap list once: its first rows on the page, every row in a drawer (spec 07); a
+    historical period's members are in the drawer alone (worker gaps 04)."""
     listed = view._document_list(value)
     gaps = [
         item
@@ -1965,10 +1970,17 @@ def gap_preview(value: object) -> list[Any]:
         if item.get("category") == category
     ]
     if len(gaps) <= GAP_PREVIEW:
-        return [view._gap_list(gaps)]
+        return [
+            view._gap_list(gaps, detailed=False),
+            *(
+                [drawer_trigger(GAPS_DRAWER, "缺期明细 →")]
+                if any(item.get("missing_periods") for item in gaps)
+                else []
+            ),
+        ]
     return [
         html.P(f"缺口共 {len(gaps)} 条，以下为前 {GAP_PREVIEW} 条。", className="secondary-copy"),
-        view._gap_list(gaps[:GAP_PREVIEW]),
+        view._gap_list(gaps[:GAP_PREVIEW], detailed=False),
         # The panel is the one gaps_drawer renders beside the conclusion board.
         drawer_trigger(GAPS_DRAWER, f"查看全部 {len(gaps)} 条缺口 →"),
     ]

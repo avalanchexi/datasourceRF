@@ -191,7 +191,7 @@ def test_new_report_records_current_protocol_without_rewriting_legacy_input_bund
         snapshot.schema_version == attempt.process_audit["schema_version"] == "report-schema-v0004"
     )
     assert (
-        snapshot.prompt_version == attempt.process_audit["prompt_version"] == "report-prompt-v0004"
+        snapshot.prompt_version == attempt.process_audit["prompt_version"] == "report-prompt-v0008"
     )
     assert snapshot.input_schema_version == "report-schema-v0002"
     assert snapshot.input_prompt_version == "report-prompt-v0002"

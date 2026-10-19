@@ -22,9 +22,12 @@ from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.trading_calendar import TradingCalendar
 from tests.integration.test_backfill import cpi_periods, query, summary
-from tests.integration.test_core_carry_forward import CUTOFF, TARGET, seed_cores, sessions
+from tests.integration.test_confirmation_cumulative_quarterly import AMOUNT, LESS, LOAN_PAIRS, loan
+from tests.integration.test_confirmation_monthly_indicators import append
+from tests.integration.test_confirmation_publish import MODEL, publish, register_confirmation_model
+from tests.integration.test_core_carry_forward import CORES, CUTOFF, TARGET, seed_cores, sessions
 from tests.integration.test_decertified_main_chain import claim
-from tests.integration.test_worker_execution import runtime
+from tests.integration.test_worker_execution import runtime, seed_independent_calendar
 from tests.web.test_dashboard_contract import _text
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -796,3 +799,105 @@ def test_a_revision_held_only_after_the_day_keeps_the_value_it_revises(
     inputs = frozen_inputs(paths, projection)
     assert july in inputs
     assert revision not in inputs
+
+
+def test_stage_ii_loans_less_with_their_momentum_not_known_are_unconfirmed_and_say_so(
+    tmp_path: Path,
+) -> None:
+    # Bonds and stocks rising, commodities falling: stage II.
+    paths = runtime(tmp_path)
+    days = sessions()
+    seed_independent_calendar(paths, days)
+    repository = EvidenceRepository(paths.database)
+    cores = []
+    for index, observed in enumerate(days):
+        for asset, metric_id in CORES.items():
+            api_name, code = CORE_API_IDENTITIES[metric_id]
+            cores.append(
+                claim(
+                    metric_id,
+                    observed,
+                    400.0 - index if asset == "commodity" else 100.0 + index,
+                    unit="index_points",
+                    provider="tushare",
+                    reference=f"tushare:{api_name}:{code}:{observed}",
+                )
+            )
+    repository.append_source_claims(tuple(cores))
+    register_confirmation_model(paths, ("CN_LOAN_STRUCTURE",))
+    # July's long-term loans less than a year before; no month before is read, so whether
+    # they were less by more or by less than June's is not known.
+    for pair in LOAN_PAIRS:
+        append(
+            repository,
+            "CN_LOAN_STRUCTURE",
+            loan(*pair),
+            LESS,
+            months=("2025-06", "2025-07", "2026-06", "2026-07"),
+            unit=AMOUNT,
+            definition_version="metric-catalog-v0001",
+        )
+
+    projection = publish(paths, MODEL)
+
+    assert stage(projection)[0] == "stage_ii"
+    confirmation: Any = projection.datasets["macro"]["confirmation"]
+    loans = next(
+        item
+        for dimension in confirmation["dimensions"]
+        for item in dimension["key_indicators"]
+        if item["key"] == "loans"
+    )
+    assert loans["members"][0]["direction"] == "down"
+    assert loans["relation"] == "unconfirmed"
+    assert loans["missing"] == [
+        "borrower=enterprise,measure=ytd_increment,tenor=long_term:unknown_momentum"
+    ]
+
+
+def test_a_period_held_in_part_before_one_awaiting_release_keeps_its_gap_row(
+    tmp_path: Path,
+) -> None:
+    """Worker gaps 02/03: July's social financing awaits release, June's is held in part
+    and nothing later is held. June is neither the newest planned period nor history before
+    one held: it still lists what it holds and lacks, so every period the coverage counts
+    missing has its row in the gap list."""
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    stock, flow = (
+        f'CN_SF_TOTAL:{{"measure": "{measure}"}}' for measure in ("stock_end", "ytd_increment")
+    )
+    plan = (
+        {
+            "metric_id": "CN_SF_TOTAL",
+            "period": "2026-07",
+            "complete": False,
+            "release_gate": "awaiting_release",
+            "missing_members": [stock, flow],
+            "selected_claim_ids": [],
+        },
+        {
+            "metric_id": "CN_SF_TOTAL",
+            "period": "2026-06",
+            "complete": False,
+            "held_members": [stock],
+            "missing_members": [flow],
+            "selected_claim_ids": ["fixture-june-stock"],
+        },
+    )
+
+    projection = target_projection(
+        paths, RunMaterials(plan_gaps=plan, held_periods={"CN_SF_TOTAL": "2026-06-30"})
+    )
+
+    (listed,) = (
+        gap
+        for gap in projection.datasets["cycle_overview"]["gap_list"]
+        if gap["metric_id"] == "CN_SF_TOTAL"
+    )
+    assert listed["members_missing"] == [
+        {"period": "2026-06", "held_members": [stock], "missing_members": [flow]}
+    ]
+    assert [item["period"] for item in listed["awaiting_release"]] == ["2026-07"]
+    coverage = projection.datasets["macro"]["coverage"]["catalog"]
+    assert coverage["counts"] == {"release_gated": 1, "missing": 1}

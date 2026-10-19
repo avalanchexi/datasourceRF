@@ -118,6 +118,38 @@ def test_five_gaps_or_fewer_need_no_drawer() -> None:
     assert "查看全部" not in visible
 
 
+def test_historical_warrant_days_are_one_row_with_periods_and_symbols_in_the_drawer() -> None:
+    """Worker gaps 04: the plan's historical days, one row a metric, details in the drawer."""
+    warrants = {
+        **_gap("CN_FUTURES_WARRANTS", priority="P2"),
+        "reason": "historical_periods_missing",
+        "missing_periods": [
+            {
+                "period": "2026-07-21",
+                "missing_members": [
+                    f"CN_FUTURES_WARRANTS:symbol_missing:{symbol}"
+                    for symbol in ("CU", "RB", "RU", "SC", "SP")
+                ],
+            },
+            {"period": "2026-09-09", "missing_members": ["CN_FUTURES_WARRANTS:symbol_missing:PP"]},
+        ],
+    }
+    page = dashboard_page("/", _gaps_projection([warrants, _gap("CN_SF_TOTAL")]), (), ())
+    section = _by_id(page, "reading")
+    visible = _words(_visible(section))
+
+    assert (
+        "P2 期货注册仓单（CN_FUTURES_WARRANTS）：历史缺期 2 期共缺 6 个成员"
+        "（2026-07-21 至 2026-09-09）"
+    ) in visible
+    assert "铜" not in visible
+    panel = _panel(page, _trigger(section, "缺期明细"))
+    assert (
+        "历史缺期 2026-07-21 缺 铜（CU）、螺纹钢（RB）、天然橡胶（RU）、原油（SC）、纸浆（SP）；"
+        "2026-09-09 缺 聚丙烯（PP）"
+    ) in panel
+
+
 def _template_report(projection: ProjectionSet, gaps: list[dict[str, Any]]) -> Any:
     return _report(
         projection.envelope.projection_set_id,
@@ -191,6 +223,22 @@ def test_an_ai_summary_is_the_first_paragraph_of_the_latest_same_projection_repo
     assert "旧版首段" not in _text(section) and "别的投影首段" not in _text(section)
     panel = _panel(section, _trigger(section, "查看报告详情"))
     assert "报告身份 report-projection-board-2" in panel and "第二段。" in panel
+
+
+def test_report_details_mark_a_reading_that_kept_raw_codes() -> None:
+    projection = _gaps_projection([])
+    identity = projection.envelope.projection_set_id
+    coded = {
+        **_ai_body("沿 stage_iii 解读（来源：tushare:index_daily）。"),
+        "untranslated_codes": ["stage_iii", "tushare:index_daily"],
+    }
+
+    marked = _reading(projection, reports=(_report(identity, body=coded),))
+    clean = _reading(projection, reports=(_report(identity, body=_ai_body("沿第三阶段解读。")),))
+
+    panel = _panel(marked, _trigger(marked, "查看报告详情"))
+    assert "含未翻译代号：stage_iii、tushare:index_daily" in panel
+    assert "未翻译代号" not in _panel(clean, _trigger(clean, "查看报告详情"))
 
 
 def test_without_a_report_the_section_says_so_and_keeps_generate_and_history() -> None:

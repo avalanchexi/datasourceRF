@@ -5,6 +5,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, tzinfo
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Self
 
 import pytest
@@ -284,6 +285,26 @@ def test_rewritten_conclusions_structure_tools_and_advice_are_rejected(
     assert reports.attempts(result.report_snapshot_id)[0].outcome == outcome
 
 
+@pytest.mark.parametrize(
+    ("explanation", "outcome"),
+    [
+        ("当前处于第三阶段，债券转弱。", "stage_mutation_rejected"),
+        ("目前阶段为第四阶段。", "stage_mutation_rejected"),
+        ("当前处于第二阶段，债券与股票同为牛市。", "succeeded"),
+    ],
+)
+def test_a_stage_stated_by_its_chinese_name_is_checked_like_its_numeral(
+    tmp_path: Path, explanation: str, outcome: str
+) -> None:
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    document = valid_document(sections=[{"title": "阶段", "explanation": explanation}])
+    codex = FakeAdapter("codex_cli", AdapterResponse.succeeded(document))
+
+    result = ReportService(reports, (codex,)).generate(bundle())
+
+    assert [item.outcome for item in reports.attempts(result.report_snapshot_id)] == [outcome]
+
+
 def test_two_cli_failures_publish_a_deterministic_fact_skeleton(tmp_path: Path) -> None:
     reports = ReportRepository.create(tmp_path / "reports.sqlite3")
     codex = FakeAdapter("codex_cli", AdapterResponse.unavailable("cli_not_authenticated"))
@@ -442,6 +463,149 @@ def test_report_input_carries_results_and_sources_without_evidence_identifiers(
             "source": [activity_provider],
             "anomaly": ["gap:CN_INDUSTRIAL_VA"],
         }
+
+
+def test_report_input_names_its_stages_metrics_and_sources_in_chinese(tmp_path: Path) -> None:
+    """Machine fields stay for validation; the AI is also given each code's Chinese name."""
+    projections = ProjectionSetRepository.create(tmp_path / "projections.sqlite3")
+    assets = tuple(
+        CoreAssetReadiness(
+            asset=asset,
+            metric_id=metric_id,
+            state=state,
+            reason="validated",
+            observation_count=120,
+            latest_business_date="2026-08-28",
+            observation_version_ids=(f"version-{asset}",),
+        )
+        for asset, metric_id, state in (
+            ("bond", "CN_BOND_CORE_000012", CoreAssetState.BULL),
+            ("stock", "CN_EQUITY_CORE_000985", CoreAssetState.BULL),
+            ("commodity", "CN_COMMODITY_CORE_NHII", CoreAssetState.BEAR),
+        )
+    )
+    P0ProjectionService(projections).publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        assets=assets,  # type: ignore[arg-type]
+        last_confirmed_stage=None,
+        macro_document={
+            "overheat": {
+                "state": "fixture_activity",
+                "evidence": [{"metric_id": "CN_INDUSTRIAL_VA", "status": "missing"}],
+            },
+            "overheat_state": "fixture_activity",
+        },
+    )
+
+    report_input = report_input_from_projection(projections.current())
+    prompt = report_input.prompt_document()
+
+    assert report_input.current_stage == "stage_ii"
+    assert report_input.results["core_assets"][0]["source"] == "tushare:index_daily"
+    assert report_input.results["overheat_state"]["anomaly"] == ["gap:CN_INDUSTRIAL_VA"]
+    assert prompt["display_names"] == {
+        "stages": {"stage_ii": "第二阶段"},
+        "metrics": {
+            "CN_BOND_CORE_000012": "上证国债指数",
+            "CN_COMMODITY_CORE_NHII": "南华工业品指数",
+            "CN_EQUITY_CORE_000985": "中证全指",
+            "CN_INDUSTRIAL_VA": "工业增加值",
+        },
+        "sources": {"tushare:fut_index_daily": "TuShare", "tushare:index_daily": "TuShare"},
+    }
+
+
+def test_cli_prompt_asks_for_the_chinese_names_of_the_codes_it_carries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = ReportInput.create(
+        projection_set_id="projection-1",
+        target_business_date="2026-08-28",
+        report_cutoff=datetime(2026, 8, 28, 10, tzinfo=UTC),
+        system_as_of=datetime(2026, 8, 28, 9, 59, tzinfo=UTC),
+        model_version_id="model-v0001",
+        trend_rule_version="trend-v0001",
+        current_stage="stage_iii",
+        stage_reason="canonical_combination",
+        core_states={"bond": "bear", "stock": "bull", "commodity": "bull"},
+        conclusions=CONCLUSIONS,
+        results={
+            "core_assets": [
+                {
+                    "asset": "stock",
+                    "value": "bull",
+                    "metric_id": "CN_EQUITY_CORE_000985",
+                    "source": "tushare:index_daily",
+                }
+            ]
+        },
+    )
+    prompts: list[dict[str, Any]] = []
+
+    def run(name: str, prompt: str, schema: Any, **kwargs: Any) -> Any:
+        prompts.append(json.loads(prompt))
+        return SimpleNamespace(
+            document=None, classification="fixture", audit={}, version="fixture", tool_events=0
+        )
+
+    monkeypatch.setattr("pring_cycle.reports.run_structured_cli", run)
+    CliReportAdapter("codex_cli").generate(source)
+
+    [prompt] = prompts
+    assert prompt["report_input"]["results"]["core_assets"][0]["source"] == "tushare:index_daily"
+    assert prompt["report_input"]["display_names"] == {
+        "stages": {"stage_iii": "第三阶段"},
+        "metrics": {"CN_EQUITY_CORE_000985": "中证全指"},
+        "sources": {"tushare:index_daily": "TuShare"},
+    }
+    assert "display_names" in prompt["instruction"]
+    assert "不写原始代号" in prompt["instruction"]
+    assert prompt["execution_contract"]["prompt_version"] == "report-prompt-v0008"
+
+
+def test_report_with_untranslated_codes_is_kept_and_marked(tmp_path: Path) -> None:
+    source = ReportInput.create(
+        projection_set_id="projection-1",
+        target_business_date="2026-08-28",
+        report_cutoff=datetime(2026, 8, 28, 10, tzinfo=UTC),
+        system_as_of=datetime(2026, 8, 28, 9, 59, tzinfo=UTC),
+        model_version_id="model-v0001",
+        trend_rule_version="trend-v0001",
+        current_stage="stage_ii",
+        stage_reason="canonical_combination",
+        core_states={"bond": "bull", "stock": "bull", "commodity": "bear"},
+        conclusions=CONCLUSIONS,
+        results={
+            "core_assets": [
+                {
+                    "asset": "stock",
+                    "value": "bull",
+                    "metric_id": "CN_EQUITY_CORE_000985",
+                    "source": "tushare:index_daily",
+                }
+            ]
+        },
+    )
+
+    def report(explanation: str) -> dict[str, Any]:
+        reports = ReportRepository.create(tmp_path / f"{len(explanation)}.sqlite3")
+        document = {
+            **valid_document(),
+            "bundle_id": source.bundle_id,
+            "sections": [{"title": "三核心", "explanation": explanation}],
+        }
+        codex = FakeAdapter("codex_cli", AdapterResponse.succeeded(document))
+        result = ReportService(reports, (codex,)).generate(source)
+        assert (result.status, result.adapter) == ("completed", "codex_cli")
+        return reports.get(result.report_snapshot_id).body
+
+    coded = report("沿 stage_ii 解读，中证全指走强（来源：tushare:index_daily）。")
+    named = report("沿第二阶段解读，中证全指走强（来源：TuShare）。")
+
+    assert coded["ai_explanation"][0]["explanation"].startswith("沿 stage_ii")
+    assert coded["untranslated_codes"] == ["stage_ii", "tushare:index_daily"]
+    assert "untranslated_codes" not in named
 
 
 def test_real_run_report_input_is_a_fraction_of_the_first_evidence_bundle() -> None:

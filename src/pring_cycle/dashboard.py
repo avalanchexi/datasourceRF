@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -23,6 +23,7 @@ from pring_cycle.runs import RunRecord
 from pring_cycle.wording import (
     CORE_STATE_LABELS,
     core_state_label,
+    display_name,
     metric_label,
     reason_label,
     stage_change_label,
@@ -374,7 +375,16 @@ GAP_CATEGORY_LABELS = {
     "source_conflict": "来源冲突",
     # Lists published before gap sources #04 still carry the old category.
     "no_searchable_source": "无可检索来源",
+    # Not owed yet: listed apart and last, never a missing period (worker gaps 03).
+    "awaiting_release": "等待发布",
 }
+
+
+def candidate_reason(item: Mapping[str, object]) -> str:
+    """Why a candidate was not adopted; one the negative cache held back also with the
+    first cause, why the request it was held for failed (worker gaps 01)."""
+    cause = item.get("first_cause")
+    return reason_label(item.get("reason")) + (f"，首因 {reason_label(cause)}" if cause else "")
 
 
 def _candidate_reasons(value: object) -> str:
@@ -383,7 +393,7 @@ def _candidate_reasons(value: object) -> str:
     if not candidates:
         return ""
     return "；候选 " + "；".join(
-        f"{item.get('url')}（{reason_label(item.get('reason'))}）" for item in candidates
+        f"{item.get('url')}（{candidate_reason(item)}）" for item in candidates
     )
 
 
@@ -415,6 +425,97 @@ def _not_requested(value: object) -> str:
         )
         + f"（{reason_label(reason)}）"
         for reason, periods in by_reason.items()
+    )
+
+
+def _members_missing(value: object) -> str:
+    """Each period of a release partly held: the members taken and those still missing
+    (worker gaps 02), each by its Chinese name."""
+    return "".join(
+        f"；{item.get('period')} 已取得 {_member_names(item.get('held_members'))}，"
+        f"仍缺 {_member_names(item.get('missing_members'))}"
+        for item in _document_list(value)
+    )
+
+
+def _decoded_member(member: object) -> tuple[str, dict[str, Any]] | None:
+    """A plan's member key as its metric and the dimensions telling it apart: a warrant
+    symbol is recorded ``<metric>:symbol_missing:<symbol>``, another member
+    ``<metric>:<dimensions as JSON>``; none when it reads as neither."""
+    metric_id, _, rest = str(member).partition(":")
+    kind, _, symbol = rest.partition(":")
+    if kind == "symbol_missing":
+        return metric_id, {"symbol": symbol}
+    try:
+        dimensions = json.loads(rest) if rest else {}
+    except ValueError:
+        return None
+    return (metric_id, dimensions) if isinstance(dimensions, dict) else None
+
+
+def _member_names(value: object) -> str:
+    """Members as the plan keys them, by their Chinese names; one unreadable by its
+    metric's."""
+    names = []
+    for key in value if isinstance(value, list) else []:
+        metric_id, dimensions = _decoded_member(key) or (str(key).partition(":")[0], {})
+        names.append(display_name(metric_id, dimensions).name)
+    return "、".join(names)
+
+
+def _member_name(member: object) -> str:
+    """A plan's missing member by its Chinese name and the values telling it apart; one
+    unreadable as recorded."""
+    decoded = _decoded_member(member)
+    if decoded is None:
+        return str(member)
+    metric_id, dimensions = decoded
+    name = display_name(metric_id, dimensions)
+    values = "、".join(str(value) for value in dimensions.values())
+    if not name.provided:
+        return values or str(member)
+    return f"{name.name}（{values}）" if values else name.name
+
+
+def _missing_periods(value: object, *, detailed: bool) -> str:
+    """The periods the final plan could not complete for another reason than a gate or a
+    listing, such as a warrant symbol's historical day (worker gaps 04): a count and span
+    on the page, each period with the members it lacks in the drawer."""
+    periods = _document_list(value)
+    if not periods:
+        return ""
+    if detailed:
+        return "；历史缺期 " + "；".join(
+            f"{item.get('period')} 缺 "
+            + "、".join(_member_name(member) for member in _document_members(item))
+            for item in periods
+        )
+    days = [str(item.get("period")) for item in periods]
+    members = sum(len(_document_members(item)) for item in periods)
+    span = days[0] if len(days) == 1 else f"{min(days)} 至 {max(days)}"
+    return f"；历史缺期 {len(days)} 期共缺 {members} 个成员（{span}）"
+
+
+def _document_members(item: dict[str, Any]) -> list[object]:
+    members = item.get("missing_members")
+    return list(members) if isinstance(members, list) else []
+
+
+def _awaiting_release(value: object) -> str:
+    """The periods whose release has not come, by when it is out and on what basis."""
+    by_release: dict[tuple[str, str], list[str]] = {}
+    for item in _document_list(value):
+        key = (str(item.get("next_release_date") or ""), str(item.get("basis") or ""))
+        by_release.setdefault(key, []).append(str(item.get("period")))
+    return "".join(
+        "；等待发布 "
+        + (
+            periods[0]
+            if len(periods) == 1
+            else f"{len(periods)} 期 {min(periods)} 至 {max(periods)}"
+        )
+        + (f"（下次发布 {release}，{reason_label(basis)}）" if release else "")
+        for (release, basis), periods in by_release.items()
     )
 
 
@@ -497,8 +598,9 @@ def _calendar_fallback_notice(value: object) -> list[html.P]:
     ]
 
 
-def _gap_list(value: object) -> html.Div:
-    """One row per gap, grouped under its category, in the order the batch listed them."""
+def _gap_list(value: object, *, detailed: bool = True) -> html.Div:
+    """One row per gap, grouped under its category, in the order the batch listed them;
+    without ``detailed``, a historical period's members are left to the drawer."""
     gaps = _document_list(value)
     if not gaps:
         return html.Div(html.P("本次运行没有缺口。", className="body-copy"))
@@ -510,7 +612,7 @@ def _gap_list(value: object) -> html.Div:
                 html.Div(
                     [
                         html.H3(f"{label}（{len(rows)}）"),
-                        html.Ul([html.Li(_gap_row(item, category)) for item in rows]),
+                        html.Ul([html.Li(_gap_row(item, category, detailed)) for item in rows]),
                     ],
                     className="gap-group",
                 )
@@ -519,10 +621,16 @@ def _gap_list(value: object) -> html.Div:
 
 
 # A row reason its period details already state: they stand in for it.
-_REASONS_IN_DETAILS = {"period_not_requested", "listing_not_covered"}
+_REASONS_IN_DETAILS = {
+    "period_not_requested",
+    "listing_not_covered",
+    "awaiting_release",
+    "members_missing",
+    "historical_periods_missing",
+}
 
 
-def _gap_row(item: dict[str, Any], category: str) -> str:
+def _gap_row(item: dict[str, Any], category: str, detailed: bool = True) -> str:
     """One gap: the metric by its Chinese name, why in Chinese, then its details."""
     reason = str(item.get("reason"))
     details = (
@@ -530,13 +638,26 @@ def _gap_row(item: dict[str, Any], category: str) -> str:
         + _failed_members(item.get("failed_members"))
         + _not_requested(item.get("not_requested"))
         + _not_covered(item.get("not_covered"))
+        + _members_missing(item.get("members_missing"))
+        + _missing_periods(item.get("missing_periods"), detailed=detailed)
+        + _awaiting_release(item.get("awaiting_release"))
         + ("；来源复核失败" if item.get("source_failures") and category != "source_failed" else "")
         + ("；来源同时冲突" if item.get("conflicts") and category != "source_conflict" else "")
         + ("；未配置额外网页检索补缺" if item.get("no_web_fallback") else "")
     )
     head = (
         ""
-        if reason in _REASONS_IN_DETAILS and (item.get("not_requested") or item.get("not_covered"))
+        if reason in _REASONS_IN_DETAILS
+        and any(
+            item.get(key)
+            for key in (
+                "not_requested",
+                "not_covered",
+                "awaiting_release",
+                "missing_periods",
+                "members_missing",
+            )
+        )
         else reason_label(reason)
         + (
             f"（应有期 {item.get('due_period')}，持有 {item.get('held_period')}）"
@@ -2188,6 +2309,14 @@ def _report_head(report: ReportSnapshot) -> list[Any]:
                     "pending_evidence_review": "结构与结论已校验，语义待核查",
                     "unavailable": "无AI解释",
                 }.get(str(report.explanation_verification.get("status")), "未记录核查"),
+            ),
+            # The prose kept raw codes: saved as written, marked here (decision 5).
+            *(
+                [_compact_fact("正文代号", "含未翻译代号：" + "、".join(map(str, codes)))]
+                if report.body_retained
+                and isinstance(codes := report.body.get("untranslated_codes"), list)
+                and codes
+                else []
             ),
         ],
         className="compact-facts",

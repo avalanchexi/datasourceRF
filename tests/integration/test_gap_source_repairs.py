@@ -430,7 +430,11 @@ def test_usdcny_1630_close_is_held_from_cfets_not_its_night_close(
     paths, _run_id = completed
 
     assert latest_values(paths, "CN_USDCNY_CLOSE_1630") == {"{}": 7.1802}
-    assert "CN_USDCNY_CLOSE_1630" not in gaps(paths)
+    # Held on the target day, so no timeliness gap; the plan's earlier session, which the
+    # intraday file cannot carry, is listed as a historical gap (worker gaps 04).
+    listed = gaps(paths)["CN_USDCNY_CLOSE_1630"]
+    assert listed["reason"] == "historical_periods_missing"
+    assert [item["period"] for item in listed["missing_periods"]] == ["2026-07-31"]
     with sqlite3.connect(paths.database) as connection:
         searched = connection.execute(
             "SELECT count(*) FROM retrieval_attempt WHERE metric_id IN "
