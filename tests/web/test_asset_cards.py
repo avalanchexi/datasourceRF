@@ -254,6 +254,7 @@ ADVANCES = {
     "period": "2026-09-30",
     "frequency": "daily",
     "direction": "down",
+    "direction_input_observation_version_ids": ["claim-advances-29"],
     "status": "current",
     "selected_claim_id": "claim-advances",
     "observation_id": "observation-advances",
@@ -296,11 +297,12 @@ def test_observations_show_four_columns_and_each_row_opens_every_field() -> None
     (row,) = [item for item in _triggers(card) if _text(item) == "上涨家数"]
     panel = _words(_panel(page, row))
 
-    assert "同类观察 名称 值 近 5 日 方向 上涨家数 978 家 -222 家 ↓ 下降" in _words(card)
+    assert "同类观察 名称 值 近 5 日 较上期方向 上涨家数 978 家 -222 家 ↓ 下降" in _words(card)
     assert "2026-09-30" not in _words(card).split("同类观察", 1)[1]
     assert panel.startswith(
         "上涨家数 CN_EQ_ADV_DEC · advances 关闭 "
-        "最新值 978 家 统计期 / 频率 2026-09-30 / 日频 方向 ↓ 下降 "
+        "最新值 978 家 统计期 / 频率 2026-09-30 / 日频 "
+        "较上期方向 ↓ 下降（2026-09-29 → 2026-09-30） "
         "近 5 日 -222 家（2026-09-23 → 2026-09-30） "
         "近 120 日 —（不足完整 120 交易日回看） 时效 当前有效 用途 仅观察，不计数 "
         "证据 查看固定版本证据 → 观测 observation-advances 走势与比较端点"
@@ -309,6 +311,33 @@ def test_observations_show_four_columns_and_each_row_opens_every_field() -> None
         "/data-chain?projection=projection-cores&version=claim-advances&return=assets#evidence"
         in _hrefs(_panel(page, row))
     )
+
+
+def test_the_direction_compares_the_previous_period_not_the_5_day_window() -> None:
+    # The window runs from 09-23 and the count rose over it; against 09-29 it fell.
+    page = dashboard_page(
+        "/",
+        _with_observations([{"label": "市场广度：涨跌家数", "evidence": [ADVANCES]}]),
+        (),
+        (),
+    )
+    (cell,) = _find(
+        _by_id(page, "asset-stock"), lambda item: getattr(item, "children", None) == "↓ 下降"
+    )
+
+    assert cell.title == "较上期：2026-09-29 → 2026-09-30（非近 5 日）"
+
+
+def test_a_direction_whose_previous_period_is_not_among_the_points_says_so() -> None:
+    row = {**ADVANCES, "direction_input_observation_version_ids": ["claim-elsewhere"]}
+    page = dashboard_page(
+        "/", _with_observations([{"label": "市场广度：涨跌家数", "evidence": [row]}]), (), ()
+    )
+    (trigger,) = [
+        item for item in _triggers(_by_id(page, "asset-stock")) if _text(item) == "上涨家数"
+    ]
+
+    assert "较上期方向 ↓ 下降（上期日期未提供）" in _words(_panel(page, trigger))
 
 
 def _breadth(measure: str, start: float, end: float, change: float | None) -> dict[str, object]:
