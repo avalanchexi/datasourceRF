@@ -43,6 +43,7 @@ _NO_STAGE = "无可取阶段（证据不足、三核心不可用且无上一确�
 _NO_REFERENCE = "无上一确认阶段，按 Pring 顺序取首个"
 _UNREAD_POLICY = "政策利率、LPR、降准均无可读记录"
 _NO_ACTION = "120 日内无降息、LPR 下调、降准或上调"
+_HELD = "滞回保持"
 VERIFICATION_DRAWER = drawer_key("conclusion", "price-verification")
 
 
@@ -61,6 +62,7 @@ def conclusion_left(block: Mapping[str, Any]) -> html.Div:
             html.H2(
                 title(_mapping(block.get("conclusion")), block), className="stage-value macro-title"
             ),
+            *([html.P(line, className="macro-held")] if (line := held(block)) else []),
             *([html.P(line, className="macro-fallback")] if (line := fallback(block)) else []),
             dimensions(block),
             signal_list(block),
@@ -141,6 +143,20 @@ def title(conclusion: Mapping[str, Any], block: Mapping[str, Any]) -> str:
         return f"{head}· 无上一确认阶段"
     move = "不变" if steps == 0 else f"前进 {steps} 步" if steps > 0 else f"后退 {-steps} 步"
     return f"{head}· 相对上次确认{stage_name(reference)} {move}"
+
+
+def held(block: Mapping[str, Any]) -> str | None:
+    """滞回保持，当日原始判断：第 X 阶段（倾向） -- under the title while the hysteresis
+    holds the conclusion against the day's raw judgement (decision 45); None otherwise."""
+    if _mapping(block.get("hysteresis")).get("basis") != "held":
+        return None
+    raw = _mapping(block.get("raw"))
+    if raw.get("stage") is None:
+        return f"{_HELD}，当日原始判断：{_NO_STAGE}"
+    return (
+        f"{_HELD}，当日原始判断：{stage_name(raw.get('stage'))}"
+        f"（{MACRO_CONFIDENCES.get(str(raw.get('confidence')), '')}）"
+    )
 
 
 def fallback(block: Mapping[str, Any]) -> str | None:
@@ -374,6 +390,12 @@ def _reading(item: Mapping[str, Any]) -> str:
     source = item.get("source")
     if item.get("kind") == "divergence":
         return _divergence(item)
+    if item.get("kind") == "hysteresis":
+        # Decision 26: the run a new judgement stands, toward replacing the conclusion.
+        return (
+            f"倾向转向{stage_name(_mapping(item.get('transition')).get('to'))}"
+            f"（已 {item.get('sessions')}/{item.get('sessions_required')} 日）"
+        )
     if source == "relative_momentum":
         momentum = _mapping(item.get("momentum"))
         first, second = _pair_name(momentum.get("of")), _pair_name(momentum.get("against"))
@@ -420,7 +442,7 @@ def _reading(item: Mapping[str, Any]) -> str:
 
 def _transition(item: Mapping[str, Any]) -> str:
     """符合第三→第四阶段 for a cell's own transition; an asset flipped, what it makes."""
-    if item.get("kind") == "divergence":
+    if item.get("kind") in {"divergence", "hysteresis"}:
         return ""
     transition = _mapping(item.get("transition"))
     origin, target = transition.get("from"), transition.get("to")

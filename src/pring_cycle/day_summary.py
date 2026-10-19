@@ -68,8 +68,8 @@ from pring_cycle.freshness import (
     release_schedule_scope,
     use_release_schedule,
 )
-from pring_cycle.macro_judgement import MacroJudgementRules, judge
-from pring_cycle.macro_signals import SignalDay, SignalRules, signal_list
+from pring_cycle.macro_judgement import Earlier, MacroJudgementRules, hold, judge
+from pring_cycle.macro_signals import SignalDay, SignalRules, signal_list, with_progress
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import (
     CARRIED_FORWARD,
@@ -489,6 +489,7 @@ class DaySummaries:
                         held,
                         last_confirmed_stage=_text_or_none(last),
                         system_as_of=system_as_of,
+                        counted_from=self._earlier_judgement(day),
                     )
                 except (KeyError, LookupError, TypeError, ValueError) as error:
                     yield FailedDay(day, type(error).__name__)
@@ -617,8 +618,9 @@ class DaySummaries:
         once its context is read and the last confirmed stage its set states is known
         (ADR-0043). None for a model without the rules, or a context not recomputed.
 
-        The judgement first, then its main conclusion, then the signal list grouped
-        against that conclusion and counted on from the previous session's (ticket 04).
+        The judgement first, then its main conclusion, held against the latest one an
+        earlier day published (ticket 05), then the signal list grouped against that
+        conclusion and counted on from the previous session's (ticket 04).
         A weak judgement falls back on the day's three cores while their combination is
         read, typical or not; with a core unavailable or pending, on ``reference``.
         """
@@ -631,10 +633,15 @@ class DaySummaries:
             if decided.reason in {"canonical_combination", "noncanonical_combination"}
             else None
         )
-        block = judge(rules, confirmation, reference=reference, cores=combination)
+        earlier = self._earlier_judgement(day)
+        block = hold(
+            judge(rules, confirmation, reference=reference, cores=combination),
+            earlier,
+            sessions_required=rules.hysteresis_sessions,
+        )
         signals, prices = self._model.macro_signals, self._model.price_rules
         if signals is None or prices is None:
-            return block
+            return with_progress(block)
         listed, sprouts = signal_list(
             signals,
             prices,
@@ -646,25 +653,34 @@ class DaySummaries:
                 core_prices={item.asset: _core_prices(item) for item in readiness},
                 sessions=self._sessions_to(day, prices.points + signals.turn_sessions),
                 price_stage=decided.current_stage.value if decided.current_stage else None,
-                previous=self._previous_judgement(day),
+                previous=(
+                    earlier.judgement if earlier is not None and earlier.previous_session else None
+                ),
             ),
             conclusion=_text_or_none(_mapping(block.get("conclusion")).get("stage")),
             rejudge=lambda twin_rules, twin: judge(
                 twin_rules, twin, reference=reference, cores=combination
             ),
         )
-        return {**block, "signals": listed, "sprouts": sprouts}
+        return with_progress({**block, "signals": listed, "sprouts": sprouts})
 
-    def _previous_judgement(self, day: str) -> Mapping[str, object] | None:
-        """The macro judgement the session before ``day`` last published; none when that
-        session has no summary, or one without a judgement: nothing is counted across it."""
+    def _earlier_judgement(self, day: str) -> Earlier | None:
+        """The macro judgement the latest day before ``day`` last published, and whether
+        that day is the session before; none when no earlier day published one. A session
+        without a summary, or one without a judgement, breaks what is counted across it."""
+        found = self._projections.latest_macro_judgement(before=day)
+        if found is None:
+            return None
         try:
             previous = self._window_calendar.latest_on_or_before(
                 date.fromisoformat(day) - timedelta(days=1)
             )
         except LookupError:
-            return None
-        return self._projections.macro_judgement_on(previous.isoformat())
+            previous = None
+        held_day, judgement = found
+        return Earlier(
+            judgement, previous_session=previous is not None and held_day == previous.isoformat()
+        )
 
     def _sessions_to(self, day: str, count: int) -> tuple[str, ...] | None:
         """The ``count`` SSE sessions to ``day``, as the window's calendar states them."""
