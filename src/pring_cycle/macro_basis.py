@@ -30,6 +30,7 @@ SCOPE = (
     "五维方向由关键指标读法得出（政策按 120 日内动作，库存即象限，其余多数决），"
     "与宏观周期特征表比对；确认度对价格阶段计算，见 01 价格验证。"
 )
+UNREAD = "未读到"
 _ACTIONS = {"cut": "下调", "hike": "上调"}
 _POLICY_VALUES = {"cut": "easing", "hike": "tightening"}
 
@@ -87,7 +88,14 @@ def decided(item: Mapping[str, Any]) -> str:
     """How the dimension took its direction: the policy rule, the quadrant, or the vote."""
     reason = item.get("basis")
     if item.get("dimension") == "policy":
-        return basis(item)
+        # Decision 51: a member not read adds no action; the card says which were not.
+        unread = [
+            str(each.get("name") or each.get("key"))
+            for each in _mappings(item.get("indicators"))
+            if each.get("voting") and each.get("action") is None and not each.get("actions")
+        ]
+        missing = f"（{'、'.join(unread)}{UNREAD}）" if unread and reason != "unread" else ""
+        return basis(item) + missing
     if item.get("dimension") == "inventory":
         return "库存象限即维度方向" if reason == "quadrant" else basis(item)
     tally = sorted(_mapping(item.get("tally")).items(), key=lambda pair: (-int(pair[1]), pair[0]))
@@ -128,7 +136,7 @@ def vote(dimension: str, indicator: Mapping[str, Any]) -> str:
             )
         if indicator.get("action") == "none":
             return f"120 日内无动作 → {MACRO_VALUES['neutral']}"
-        return "无可读记录，不计"
+        return f"{UNREAD}，不计动作"
     if dimension == "inventory":
         quadrant = indicator.get("quadrant")
         if not current:

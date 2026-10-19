@@ -371,3 +371,28 @@ def test_a_judgement_the_hysteresis_holds_is_told_as_held(
 
     (attempt,) = reports.attempts(result.report_snapshot_id)
     assert attempt.process_audit.get("rejection", {}).get("check") == check
+
+
+def test_the_report_under_the_judgement_names_the_cores_stage_the_price_stage(
+    tmp_path: Path, explicit: ProjectionSet
+) -> None:
+    # D1: 07's stage change and the report's details say 价格阶段 as the rest of the page
+    # does; only the published bond attribution note, the model's own text, keeps 正式阶段.
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    codex = FakeAdapter("codex_cli", AdapterResponse.unavailable("cli_not_authenticated"))
+    result = ReportService(reports, (codex,)).generate(report_input_from_projection(explicit))
+    # A reading refused for rewriting the cores' stage says which stage it rewrote.
+    snapshot = replace(
+        reports.get(result.report_snapshot_id),
+        adapter_outcomes=(("codex_cli", "stage_mutation_rejected"),),
+    )
+    note = "不由宽松程度推算或改写债券牛熊与正式阶段"
+
+    for route in ("/", "/reports"):
+        text = " ".join(_text(dashboard_page(route, explicit, (), (snapshot,))).split())
+
+        assert "正式阶段" not in text.replace(note, ""), route
+    home = " ".join(_text(dashboard_page("/", explicit, (), (snapshot,))).split())
+    assert "阶段变化：非典型组合，暂无价格阶段" in home
+    assert "价格阶段 暂无价格阶段" in home and "阶段变化 非典型组合，暂无价格阶段" in home
+    assert "codex_cli 输出改写价格阶段被拒" in home

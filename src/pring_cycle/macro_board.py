@@ -29,6 +29,7 @@ from pring_cycle.wording import (
     MACRO_MATURITIES,
     MACRO_NO_SIGNALS,
     MACRO_POSITIONS,
+    MACRO_RAW_UNCHANGED,
     MACRO_SAME_SOURCE,
     MACRO_SIGNAL_GROUPS,
     MACRO_SIGNAL_LIST,
@@ -132,6 +133,28 @@ def verification_panel(
             ),
             *counted,
         ],
+    )
+
+
+def bond_policy_apart(block: Mapping[str, Any], attribution: Mapping[str, Any]) -> str | None:
+    """Why the bond attribution's policy axis and the policy dimension read two directions:
+    the axis reads DR007's liquidity too, the dimension the actions alone (acceptance Q-c).
+    None when they agree, or when either is not read."""
+    axis = next(
+        (item for item in _mappings(attribution.get("axes")) if item.get("axis") == "policy"), {}
+    )
+    dimension = next(
+        (item for item in _mappings(block.get("dimensions")) if item.get("dimension") == "policy"),
+        {},
+    )
+    read = {"easing", "tightening", "neutral"}
+    value = dimension.get("value")
+    if axis.get("value") not in read or value not in read or axis.get("value") == value:
+        return None
+    return (
+        f"与宏观政策维{MACRO_VALUES[str(value)]}口径不同："
+        "债券归因的政策维度兼看 DR007 流动性走势，宏观政策维只按 120 日内降息、LPR 下调、"
+        "降准等动作判定"
     )
 
 
@@ -362,13 +385,15 @@ def signal_list(block: Mapping[str, Any]) -> html.Div:
     then the open and the unmapped (decisions 35, 41); each its own anchor, which the
     same-source labels of 02 point to."""
     listed = _mappings(block.get("signals"))
+    held_off = _mapping(block.get("hysteresis")).get("basis") == "held"
+    raw = _mapping(block.get("raw")) if held_off else None
     groups: list[Any] = [
         html.Div(
             [
                 html.H3(MACRO_SIGNAL_GROUPS[group], className="macro-group-title"),
                 html.Ul(
                     [
-                        html.Li(describe(item), id=signal_anchor(item)[1:])
+                        html.Li(describe(item, raw=raw), id=signal_anchor(item)[1:])
                         for item in listed
                         if item.get("group") == group
                     ],
@@ -393,13 +418,24 @@ def signal_anchor(item: Mapping[str, Any]) -> str:
     return f"#signal-{item.get('id')}"
 
 
-def describe(item: Mapping[str, Any]) -> str:
+def describe(item: Mapping[str, Any], *, raw: Mapping[str, Any] | None = None) -> str:
     """A signal in one line: what it reads, the transition it supports, its maturity, and
-    for one of the cores' own source that it never votes."""
+    for one of the cores' own source that it never votes. With the ``raw`` judgement the
+    hysteresis holds the conclusion off, a divergence recounted to it says it changes
+    nothing that day (decision 60); its group stays the conclusion's."""
     parts = [_reading(item)]
     transition = _transition(item)
     if transition:
         parts.append(transition)
+    rejudged = _mapping(item.get("rejudged"))
+    if (
+        raw is not None
+        and item.get("kind") == "divergence"
+        and rejudged.get("stage") is not None
+        and (rejudged.get("stage"), rejudged.get("confidence"))
+        == (raw.get("stage"), raw.get("confidence"))
+    ):
+        parts.append(MACRO_RAW_UNCHANGED)
     if item.get("maturity") in MACRO_MATURITIES:
         parts.append(MACRO_MATURITIES[str(item["maturity"])])
     if item.get("same_source"):

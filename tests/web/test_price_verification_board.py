@@ -14,6 +14,7 @@ from pathlib import Path
 from dash.development.base_component import Component
 
 from pring_cycle.dashboard import dashboard_page
+from pring_cycle.domain.trend import TrendRules
 from pring_cycle.projections import ProjectionSet
 from tests.integration.test_price_verification import verified
 from tests.web.test_conclusion_board import _board
@@ -71,7 +72,7 @@ def test_a_consistent_price_stage_says_so(tmp_path: Path) -> None:
     ) in board
 
 
-def test_a_noncanonical_combination_keeps_its_comparisons_and_shows_no_confirmation(
+def test_a_noncanonical_combination_keeps_its_comparisons_and_says_no_confirmation_applies(
     tmp_path: Path,
 ) -> None:
     projection = verified(tmp_path, "stock")
@@ -85,4 +86,31 @@ def test_a_noncanonical_combination_keeps_its_comparisons_and_shows_no_confirmat
         "Stage III 差股票：当前熊市 → 要求牛市，30 日候选熊市 "
         "Stage V 差债券：当前牛市 → 要求熊市，30 日候选牛市"
     ) in drawer
-    assert "确认度" not in drawer and "确认度" not in _columns(projection)
+    # 04 points here for the confirmation; with no price stage the drawer says why there is
+    # none (acceptance Q-b), and counts nothing.
+    assert drawer.endswith("确认度 无价格阶段，确认度不适用：确认度只对价格阶段计算")
+    assert "可评估 · " not in drawer and "确认度" not in _columns(projection)
+
+
+def test_the_drawers_method_says_the_judgement_leads_and_the_price_stage_verifies(
+    tmp_path: Path,
+) -> None:
+    projection = verified(tmp_path, "bond", "stock", "commodity")
+    rules = TrendRules(
+        window_days=120,
+        slope_days=20,
+        volatility_days=20,
+        noise_multiplier=1.5,
+        persistence_days=8,
+        candidate_window_days=30,
+    )
+    page = dashboard_page("/", projection, (), (), trend_rules=rules)
+    drawer = _words(_by_id(page, DRAWER))
+
+    # Acceptance Q-a: the five dimensions judge the stage; the macro does more than confirm.
+    assert (
+        "判法 MA120 + 20 日斜率定稳定牛熊，噪声带 1.5×20 日波动，持续 8 日确认，"
+        "30 日候选只作转折观察；宏观判断为主结论，价格阶段作验证 · "
+        + projection.envelope.model_version_id
+    ) in drawer
+    assert "事后确认" not in drawer

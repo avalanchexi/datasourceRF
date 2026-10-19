@@ -22,6 +22,8 @@ from pring_cycle.run_health import ProducerRun
 from pring_cycle.runs import RunRecord
 from pring_cycle.wording import (
     CORE_STATE_LABELS,
+    FORMAL_TERM,
+    PRICE_TERM,
     core_state_label,
     display_name,
     metric_label,
@@ -2283,15 +2285,24 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
     return html.Div([*head, *content], className="report-reader")
 
 
+def report_stage_term(body: dict[str, Any]) -> str:
+    """What a report calls the cores' stage: the price stage once the macro judgement leads
+    the results it bound (GLOSSARY: 价格阶段), the formal stage on an older report."""
+    results = body.get("verified_results")
+    led = isinstance(results, dict) and isinstance(results.get("macro_judgement"), dict)
+    return PRICE_TERM if led else FORMAL_TERM
+
+
 def _report_head(report: ReportSnapshot) -> list[Any]:
     """A report's identity facts with its correction and calendar notes."""
+    term = report_stage_term(report.body if report.body_retained else {})
     identity = html.Dl(
         [
             _compact_fact("报告身份", report.report_snapshot_id),
             _compact_fact("投影身份", report.projection_set_id),
-            _compact_fact("正式阶段", _stage_label(report.current_stage)),
-            *_report_stage_change(report.body),
-            *_report_last_confirmed(report.body),
+            _compact_fact(term, _stage_label(report.current_stage).replace(FORMAL_TERM, term)),
+            *_report_stage_change(report.body, term),
+            *_report_last_confirmed(report.body, term),
             _compact_fact("截止点", report.report_cutoff.isoformat()),
             _compact_fact(
                 "时效判定", freshness_statement(report.target_business_date, report.report_cutoff)
@@ -2555,7 +2566,7 @@ def _last_confirmed_label(stage: object, lookback: object) -> str:
     return f"尚无（回溯失败：{lookback.get('failure') or '未记录原因'}）"
 
 
-def _report_stage_change(body: dict[str, Any]) -> list[html.Div]:
+def _report_stage_change(body: dict[str, Any], term: str) -> list[html.Div]:
     results = body.get("verified_results")
     stage = results.get("formal_stage") if isinstance(results, dict) else None
     label = (
@@ -2563,10 +2574,10 @@ def _report_stage_change(body: dict[str, Any]) -> list[html.Div]:
         if isinstance(stage, dict)
         else None
     )
-    return [_compact_fact("阶段变化", label)] if label else []
+    return [_compact_fact("阶段变化", label.replace(FORMAL_TERM, term))] if label else []
 
 
-def _report_last_confirmed(body: dict[str, Any]) -> list[html.Div]:
+def _report_last_confirmed(body: dict[str, Any], term: str) -> list[html.Div]:
     results = body.get("verified_results")
     stage = results.get("formal_stage") if isinstance(results, dict) else None
     if not isinstance(stage, dict):
@@ -2576,7 +2587,7 @@ def _report_last_confirmed(body: dict[str, Any]) -> list[html.Div]:
             "上一确认阶段",
             _last_confirmed_label(
                 stage.get("last_confirmed_stage"), stage.get("last_confirmed_lookback")
-            ),
+            ).replace(FORMAL_TERM, term),
         )
     ]
 

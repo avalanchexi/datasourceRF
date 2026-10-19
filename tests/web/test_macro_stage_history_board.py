@@ -185,3 +185,33 @@ def test_a_set_whose_days_all_precede_the_rules_shows_its_four_rows() -> None:
     assert list(_bands(projection)["y"]) == ["正式阶段", "债券", "股票", "商品"]
     assert "该投影生成时尚无宏观判断" in _words(bands)
     assert _views(intervals) == ([], [])
+
+
+def test_a_correction_under_the_macro_judgement_names_the_price_stage() -> None:
+    # D1: the cores' stage is the price stage on a set the judgement leads, in a day's
+    # correction note too.
+    corrected = {
+        "projection_set_id": "projection-old-10-14",
+        "reason": "core_history_basis_changed",
+        "scope": "core_only",
+    }
+    projection = _with_macro_counts(
+        _history(
+            [
+                _macro("2026-10-13", "stage_iii", "stage_v", "explicit"),
+                _day(
+                    "2026-10-14",
+                    "stage_iii",
+                    macro="stage_v",
+                    macro_confidence="explicit",
+                    corrects=corrected,
+                ),
+            ]
+        )
+    )
+
+    bands, intervals, rest = _sides(projection)
+    text = " ".join(_words(part) for part in (bands, intervals, *rest))
+
+    assert "（核心历史口径变更；只更正核心与价格阶段，上下文与确认度未重算" in text
+    assert "正式阶段" not in text

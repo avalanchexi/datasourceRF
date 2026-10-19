@@ -7,8 +7,11 @@ with nothing judged on the page.
 
 from __future__ import annotations
 
+import copy
+from dataclasses import replace
 from pathlib import Path
 
+from pring_cycle.projections import ProjectionSet
 from tests.integration.test_macro_judgement import judged
 from tests.web.test_conclusion_board import _asset, _board, _projection
 
@@ -62,3 +65,38 @@ def test_an_older_set_keeps_its_board_and_says_it_has_no_judgement() -> None:
     assert "宏观判断：" not in board
     # Nothing is published, so nothing is said to be missing.
     assert NO_JUDGEMENT not in _board(None)
+
+
+def test_the_right_column_beside_the_judgement_is_named_further_notes(tmp_path: Path) -> None:
+    board = _board(judged(tmp_path))
+
+    # Decision 59: the notes a reader sets beside the judgement, not its confirmation.
+    assert "补充说明 价格一致性 " in board
+    assert "旁注" not in board
+
+
+def _bond_policy(projection: ProjectionSet, value: str, text: str) -> ProjectionSet:
+    """The set with its bond attribution's policy axis read as ``value``."""
+    datasets = copy.deepcopy(projection.datasets)
+    note = datasets["macro"]["bond_attribution"]
+    for axis in note["axes"]:  # type: ignore[index]
+        if axis["axis"] == "policy":
+            axis.update(value=value, text=text)
+    return replace(projection, datasets=datasets)
+
+
+def test_a_bond_attribution_policy_read_apart_from_the_policy_dimension_says_why(
+    tmp_path: Path,
+) -> None:
+    projection = judged(tmp_path)
+    eased = _board(_bond_policy(projection, "easing", "宽松"))
+
+    # The policy dimension is neutral: no cut or hike in 120 days.
+    assert (
+        "政策维度宽松、增长通胀（过热、物价）未确认（附注，不计数）；"
+        "与宏观政策维中性口径不同：债券归因的政策维度兼看 DR007 流动性走势，"
+        "宏观政策维只按 120 日内降息、LPR 下调、降准等动作判定"
+    ) in eased
+    # Read alike, or the axis not read, there is nothing to tell apart.
+    assert "口径不同" not in _board(_bond_policy(projection, "neutral", "中性"))
+    assert "口径不同" not in _board(projection)

@@ -770,8 +770,11 @@ def price_verification_drawer(
     confirmation = obj(view._dataset(projection, "macro").get("confirmation"))
     stage = verification.get("price_stage")
     applicable = bool(obj(confirmation.get("summary")).get("applicable"))
-    counted = (
-        [
+    if stage is None:
+        # 04 points here for the confirmation: with no price stage, say why there is none.
+        counted: list[Any] = [html.H3("确认度"), html.P(NO_PRICE_STAGE_CONFIRMATION)]
+    elif confirmation:
+        counted = [
             html.H3(f"确认度（对价格阶段{stage_name(stage)}）"),
             html.P(confirmation_heading(confirmation, term=PRICE_TERM)),
             html.Div(
@@ -782,10 +785,12 @@ def price_verification_drawer(
                 className="confirmation-summary",
             ),
         ]
-        if stage is not None and confirmation
-        else []
-    )
+    else:
+        counted = []
     return macro_board.verification_panel(judgement, rows, counted)
+
+
+NO_PRICE_STAGE_CONFIRMATION = "无价格阶段，确认度不适用：确认度只对价格阶段计算"
 
 
 def _cores(projection: ProjectionSet | None) -> dict[str, dict[str, Any]]:
@@ -925,12 +930,17 @@ def method_line(projection: ProjectionSet | None, trend_rules: TrendRules | None
     model = projection.envelope.model_version_id
     if trend_rules is None:
         return f"该模型版本未提供趋势规则参数 · {model}"
+    # Under the judgement the macro leads and the price stage verifies it (ADR-0043).
+    macro = (
+        "宏观判断为主结论，价格阶段作验证"
+        if stage_term(projection) == PRICE_TERM
+        else "宏观与库存只做事后确认，不改写阶段"
+    )
     return (
         f"MA{trend_rules.window_days} + {trend_rules.slope_days} 日斜率定稳定牛熊，"
         f"噪声带 {trend_rules.noise_multiplier:g}×{trend_rules.volatility_days} 日波动，"
         f"持续 {trend_rules.persistence_days} 日确认，"
-        f"{trend_rules.candidate_window_days} 日候选只作转折观察；"
-        f"宏观与库存只做事后确认，不改写阶段 · {model}"
+        f"{trend_rules.candidate_window_days} 日候选只作转折观察；{macro} · {model}"
     )
 
 
@@ -1286,13 +1296,16 @@ def conclusion_right(projection: ProjectionSet | None) -> Any:
     confirmation = obj(macro.get("confirmation"))
     applicable = bool(obj(confirmation.get("summary")).get("applicable"))
     noncanonical = is_noncanonical(projection)
+    judgement = macro_board.judgement(view._dataset(projection, "cycle_overview"))
+    attribution = obj(macro.get("bond_attribution"))
+    apart = macro_board.bond_policy_apart(judgement, attribution) if judgement else None
     rows: tuple[tuple[str, Any], ...] = (
         ("价格一致性", price_consistency_line(obj(macro.get("price_consistency")))),
         (
             "库存象限",
             inventory_quadrant_line(confirmation, view._dataset(projection, "inventory")),
         ),
-        ("债券归因", bond_attribution_line(obj(macro.get("bond_attribution")))),
+        ("债券归因", bond_attribution_line(attribution) + (f"；{apart}" if apart else "")),
         (
             "数据边界",
             data_boundary_line(
@@ -1306,7 +1319,7 @@ def conclusion_right(projection: ProjectionSet | None) -> Any:
         [item for label, value in rows for item in (html.Dt(label), html.Dd(value))],
         className="board-rows",
     )
-    if macro_board.judgement(view._dataset(projection, "cycle_overview")) is not None:
+    if judgement is not None:
         # The confirmation is read in the price verification drawer (decision 11).
         return html.Div(
             [html.P(MACRO_BOARD_NOTES, className="section-kicker"), listed],
@@ -1371,8 +1384,9 @@ def reading_line(
             html.A("生成报告", href=pinned + "#generate-report-command"),
         ]
     if report.adapter == "deterministic":
+        term = view.report_stage_term(report.body if report.body_retained else {})
         failures = "；".join(
-            f"{adapter} {ADAPTER_FAILURES.get(outcome, outcome)}"
+            f"{adapter} {ADAPTER_FAILURES.get(outcome, outcome).replace(FORMAL_TERM, term)}"
             for adapter, outcome in report.adapter_outcomes
             if outcome != "succeeded"
         )
@@ -1400,7 +1414,10 @@ def report_summary(report: ReportSnapshot | None, pinned: str) -> list[Any]:
     stage = obj(obj(body.get("verified_results")).get("formal_stage"))
     # A reading may call a noncanonical day's empty stage a gap; it is no data gap.
     stage_note = (
-        html.P("阶段变化：" + NONCANONICAL_NO_STAGE, className="secondary-copy")
+        html.P(
+            "阶段变化：" + NONCANONICAL_NO_STAGE.replace(FORMAL_TERM, view.report_stage_term(body)),
+            className="secondary-copy",
+        )
         if noncanonical_stage_change(stage.get("change"), stage.get("reason"))
         else None
     )
@@ -2892,7 +2909,10 @@ def history_day(day: dict[str, Any], *, term: str = FORMAL_TERM) -> html.Li:
                     "更正版本：更正 ",
                     projection_link(corrects.get("projection_set_id")),
                     "（"
-                    + (view._stage_correction_note(corrects) or str(corrects.get("reason")))
+                    + (
+                        view._stage_correction_note(corrects).replace(FORMAL_TERM, term)
+                        or str(corrects.get("reason"))
+                    )
                     + "）",
                 ],
                 className="secondary-copy",

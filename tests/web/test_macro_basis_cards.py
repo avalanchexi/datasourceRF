@@ -65,7 +65,8 @@ def test_five_cards_head_with_their_direction_position_match_and_how_they_were_d
 
     assert [card.split(" ")[0] for card in cards] == ["政策", "信用", "增长", "物价", "库存"]
     heads = (
-        "政策 中性 · 吻合 · 120 日内无降息、LPR 下调、降准或上调",
+        # Decision 51: neutral while a member was not read, which says so.
+        "政策 中性 · 吻合 · 120 日内无降息、LPR 下调、降准或上调（政策利率、降准未读到）",
         "信用 下行 · 低位（社融） · 吻合 · 多数决：下行 1 票",
         "增长 下行 · 高位（工业增加值） · 吻合 · 多数决：下行 2 票、上行 1 票",
         "物价 上行 · 高位（PPI） · 吻合 · 多数决：上行 2 票",
@@ -92,9 +93,9 @@ def test_each_key_indicator_says_where_it_went_in_its_dimensions_decision(
 
     went = {
         # Policy is read by its actions in 120 days; the liquidity and DR007 are notes.
-        "政策利率": "无可读记录，不计",
+        "政策利率": "未读到，不计动作",
         "LPR": "120 日内无动作 → 中性",
-        "降准": "无可读记录，不计",
+        "降准": "未读到，不计动作",
         "流动性投放": "附注，不参与判定",
         "DR007": "附注，不参与判定",
         "社融": "投下行",

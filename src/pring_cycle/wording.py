@@ -78,10 +78,12 @@ MACRO_SIGNAL_GROUPS = {
     "unmapped": "资产转向（未映射阶段）",
 }
 MACRO_MATURITIES = {"sprout": "萌芽", "forming": "成形", "confirmed": "确认"}
+# A divergence recounted to the day's raw judgement while the hysteresis holds (decision 60).
+MACRO_RAW_UNCHANGED = "不改变当日原始判断"
 MACRO_ASSETS = {"bond": "债券", "stock": "股票", "commodity": "商品"}
 # The price verification row and its drawer (macro stage ticket 06).
 MACRO_VERIFICATION = "价格验证"
-MACRO_BOARD_NOTES = "旁注"
+MACRO_BOARD_NOTES = "补充说明"
 
 
 # How a report's formal stage changed on its day, as its verified results record it.
