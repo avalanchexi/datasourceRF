@@ -10,7 +10,7 @@ import pytest
 from pring_cycle.reports import CliReportAdapter, ReportInput, ReportRepository, ReportService
 
 
-def frozen_bundle() -> ReportInput:
+def frozen_bundle(**extra_results: object) -> ReportInput:
     return ReportInput.create(
         projection_set_id="projection-protocol",
         target_business_date="2026-08-28",
@@ -35,6 +35,7 @@ def frozen_bundle() -> ReportInput:
                 "source": "三核心价格状态",
                 "anomaly": [],
             },
+            **extra_results,
         },
     )
 
@@ -81,6 +82,9 @@ if '--help' in sys.argv:
 event={'name':name,'args':sys.argv[1:],'https_proxy':os.environ.get('HTTPS_PROXY'),
        'key_visible':any(k in os.environ for k in ('OPENAI_API_KEY','ANTHROPIC_API_KEY'))}
 with calls.open('a') as f: f.write(json.dumps(event)+'\\n')
+if PRIMARY=='slow_stdin':
+    import time
+    time.sleep(0.75)
 prompt=json.load(sys.stdin)
 if PRIMARY=='both_hang' or (PRIMARY=='codex_hang' and name=='codex'):
     import time
@@ -305,6 +309,24 @@ def test_cli_timeout_audit_preserves_partial_hash_and_bounded_fallback(
     assert attempt.outcome == "timed_out"
     assert attempt.process_audit["exit_code"] == -15
     assert attempt.process_audit["stdout_bytes"] > 0
+
+
+def test_a_prompt_larger_than_the_pipe_reaches_a_cli_that_reads_stdin_late(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The 10-19 report: 91,805 bytes against a 64 KiB pipe, read after the first poll."""
+    install_cli(tmp_path, monkeypatch, primary="slow_stdin", record_prompt=True)
+    source = frozen_bundle(padding="仓" * 40_000)
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    result = ReportService(reports, (CliReportAdapter("codex_cli", timeout_seconds=10),)).generate(
+        source
+    )
+    assert result.status == "completed"
+    received = json.loads((tmp_path / "cli" / "codex.prompt.json").read_text())
+    assert received["report_input"]["results"]["padding"] == "仓" * 40_000
+    audit = reports.attempts(result.report_snapshot_id)[0].process_audit
+    assert audit["prompt_bytes"] > 65_536
+    assert audit["prompt_bytes_sent"] == audit["prompt_bytes"]
 
 
 def test_claude_tool_event_is_rejected_even_with_a_valid_structured_result(
