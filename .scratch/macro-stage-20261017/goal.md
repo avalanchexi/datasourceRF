@@ -48,6 +48,14 @@
 - 写入点 `P0ProjectionService.publish`，**排在 05 滞回与 04 信号之后**，读最终主结论；纯函数与校验在 `macro_verification.py`；整句 `macro_board.verification_line(block)`。
 - 06 的偏离：抽屉另收 02 暂留的原因、上次确认、核心沿用、判法；新投影右栏去掉确认度，标题暂定"旁注"（待用户验收）；relink 用 `restated` 重算价格验证（未单测）。
 
+## 票 05 留下的接口（0df25bb，合并到 macro-stage）
+
+- `macro_judgement.hysteresis = {sessions_required, basis, candidate, sessions}`，`basis` ∈ `initial`（生效首日直接取原始判断）／`agrees`（原始判断与主结论同阶段）／`held`（保持原阶段与把握程度）／`replaced`（第 10 个连续交易日完成替换，即主结论变化日）。
+- 前日判断用 `ProjectionSetRepository.latest_macro_judgement(before=day)`（该日之前最近一个发布了宏观判断的日期与块）；中间缺汇总的交易日：沿用最近主结论，候选从 1 重计。
+- 文案：`macro_board.held(block)`（"滞回保持，当日原始判断：第 X 阶段（倾向）"，非保持返回 None）；进度条目 `describe(item)` → "倾向转向第 X 阶段（已 k/10 日）"；条目字段 `id:"H"`、`kind/source:"hysteresis"`、`transition{from,to}`、`sessions`、`sessions_required`、`group`、`steps`。
+- 08：阶段史只读 `conclusion.stage`／`conclusion.confidence`；可用 `hysteresis.basis` 标替换日。
+- 05 的偏离：历史更正不向后重算（只重算被更正那天）；保持期间 matched/known 取当日五维对保持阶段的得分，把握程度沿用保持前的。
+
 ## 单票规程（02–09）
 
 1. **worktree**：从 `macro-stage` 建 `ms-NN` 分支与 worktree `/home/tywin/worktrees/datasourceRF-ms-NN`；开工前确认基于 `macro-stage` 最新头，不是就 rebase 上去。
@@ -84,9 +92,9 @@
 | 04 信号清单 | done（3f0d1c1，快进合入；36 过） | ticket-ms04／ms-04 |
 | 06 价格验证 | done（78254fc，合并 9917b08） | ticket-ms06／ms-06 |
 | 07 ④ | done（cf8f46c，快进合入） | ticket-ms07／ms-07 |
-| 05 滞回 | 进行中（21:0x 派出） | ticket-ms05／ms-05 |
+| 05 滞回 | done（0df25bb，合并入 macro-stage） | ticket-ms05／ms-05 |
 | 09 报告 | done（bae5b0a，快进合入；报告契约 schema v0006／prompt v0011） | ticket-ms09／ms-09 |
-| 08 | 等 05 | — |
+| 08 阶段史 | 进行中（22:1x 派出） | ticket-ms08／ms-08 |
 | 10 | ready-for-human | — |
 
 ## 票 09 备注（bae5b0a）
