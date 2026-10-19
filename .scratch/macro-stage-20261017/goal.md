@@ -19,6 +19,13 @@
 - **并行度**：02 合入后，03、04、06、07 可并行，但同时在跑的实施子代理不超过 2 个（`cockpit.py`、单日汇总、`wording` 共改）；合并子代理按完成顺序合入，冲突逐处按两票意图解决并复跑两票受影响测试。
 - **09 报告**：现行非典型报告契约（固定章节、禁止"倾向"字样、按 `noncanonical_basis` 进入旧限制）须按"有无宏观判断块"分流，旧输入保持原行为；阶段陈述校验要区分宏观主结论、价格阶段、并列候选与信号转换。
 
+## 票 02 留下的接口（80e8932）
+
+- `cycle_overview.macro_judgement`：`rules_version`；`raw{stage, confidence, matched, known, basis(unique_top/tied/insufficient), tied[]}`；`conclusion{stage, confidence, matched, known, reference_stage, steps, direction(forward/back/same/None)}`；`hysteresis`（None，05 填）；`dimensions[]`；`scores{stage_i..vi}`；`signals`（[]，04 填）；`price_verification`（None，06 填）。
+- `dimensions[]` 每项：`dimension`、`group`(monetary/economic/inventory)、`value`、`position`、`basis`、`matches`、`indicators[]`；投票维另有 `position_from`、`tally`、`tie_breaker`；`indicators[]` 含 `key`、`name`、`voting`、`vote`、`divergent`、`period`、`evidence_status`（贷款列出但 `voting=False`）；政策维含 `action`、`actions[]`，库存维含 `quadrant`。
+- 扩展点：03 改 `macro_judgement.judge` 选取分支（上一确认阶段经 `reference` 传入）；05 在 `DaySummaries._judge_macro`（目标日与补算日共用）接前一日状态，用 `macro_judgement.conclusion(raw, reference)` 生成主结论；规则追加到 `macro_judgement.rules_v0001()`，由 `MacroJudgementRules.from_manifest` 解析，`validate` 同步放宽；页面加在 `macro_board.py`（title、dimensions、conclusion_left），词汇在 `wording.py` 的 `MACRO_*`。
+- 02 的偏离（票面 Comments 有详述）：政策维成员历史不全时不计动作，三项都读不到才"不明"；指标投票只要主要成员当期方向已知（与确认度"回看缺月判未确认"口径不同，票 10 对照时留意）；并列与不足暂发布 stage=None，由 03 替换；标题含"前进 N 步"；① 五维下暂留价格阶段旧行，由 06 收进价格验证行。
+
 ## 单票规程（02–09）
 
 1. **worktree**：从 `macro-stage` 建 `ms-NN` 分支与 worktree `/home/tywin/worktrees/datasourceRF-ms-NN`；开工前确认基于 `macro-stage` 最新头，不是就 rebase 上去。
@@ -50,6 +57,9 @@
 | 票 | 状态 | 执行者／分支 |
 |---|---|---|
 | 01 回测重跑＋对照表 | done（对照表定稿 24 格，da9ba92） | ticket-ms01／prototype/macro-stage |
-| 02 宏观判断贯通 | 进行中（10-19 19:0x 派出） | ticket-ms02／ms-02 |
-| 03–09 | 等 02 | — |
+| 02 宏观判断贯通 | done（80e8932，快进合入；冒烟＋新测 17 过） | ticket-ms02／ms-02 |
+| 03 兜底 | 进行中（10-19 19:3x 派出） | ticket-ms03／ms-03 |
+| 04 信号清单 | 进行中（10-19 19:3x 派出） | ticket-ms04／ms-04 |
+| 06、07 | 等 03／04 任一完成（并行上限 2） | — |
+| 05、08、09 | 等依赖 | — |
 | 10 | ready-for-human | — |
