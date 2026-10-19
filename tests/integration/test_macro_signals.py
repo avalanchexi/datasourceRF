@@ -180,13 +180,17 @@ def test_a_divergent_indicator_is_listed_with_its_minority_s_direction(tmp_path:
     }
     # Manufacturing falls; its new orders rise.
     assert pmi["minority"] == {"direction": "up", "members": ["新订单"]}
-    # Voted the minority's way the PMI turns growth up, and III, IV and V tie at three.
+    # Voted the minority's way the PMI turns growth up, and III, IV and V tie at three: the
+    # tie is III, the last confirmed stage itself (ticket 03), two steps back from V.
     assert pmi["rejudged"]["dimension"] == {"dimension": "overheat", "value": "up"}
     assert (pmi["rejudged"]["basis"], pmi["rejudged"]["tied"], pmi["rejudged"]["matched"]) == (
         "tied",
         ["stage_iii", "stage_iv", "stage_v"],
         3,
     )
+    assert (pmi["rejudged"]["stage"], pmi["rejudged"]["confidence"]) == ("stage_iii", "tendency")
+    assert pmi["transition"] == {"from": "stage_v", "to": "stage_iii"}
+    assert (pmi["group"], pmi["steps"]) == ("back", -2)
     # Its first period divergent: a sprout, listed all the same.
     assert (pmi["maturity"], pmi["periods"]) == ("sprout", 1)
 

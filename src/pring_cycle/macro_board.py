@@ -15,7 +15,7 @@ from typing import Any
 
 from dash import html
 
-from pring_cycle.macro_judgement import GROUPS
+from pring_cycle.macro_judgement import ASSETS, GROUPS
 from pring_cycle.macro_signals import GROUPS as SIGNAL_GROUPS
 from pring_cycle.wording import (
     CORE_STATE_LABELS,
@@ -36,6 +36,8 @@ from pring_cycle.wording import (
 )
 
 _ACTIONS = {"cut": "下调", "hike": "上调"}
+_NO_STAGE = "无可取阶段（证据不足、三核心不可用且无上一确认阶段）"
+_NO_REFERENCE = "无上一确认阶段，按 Pring 顺序取首个"
 _UNREAD_POLICY = "政策利率、LPR、降准均无可读记录"
 _NO_ACTION = "120 日内无降息、LPR 下调、降准或上调"
 
@@ -56,6 +58,7 @@ def conclusion_left(
             html.H2(
                 title(_mapping(block.get("conclusion")), block), className="stage-value macro-title"
             ),
+            *([html.P(line, className="macro-fallback")] if (line := fallback(block)) else []),
             dimensions(block),
             signal_list(block),
             html.P("价格阶段", className="section-kicker"),
@@ -73,7 +76,7 @@ def title(conclusion: Mapping[str, Any], block: Mapping[str, Any]) -> str:
     """宏观判断：第 N 阶段（明确，5 维中 k 维吻合）· 相对上次确认第 M 阶段 前进 n 步."""
     stage = conclusion.get("stage")
     if stage is None:
-        return f"{MACRO_JUDGEMENT}：未达明确判断（{_undecided(_mapping(block.get('raw')))}）"
+        return f"{MACRO_JUDGEMENT}：{_NO_STAGE}"
     head = (
         f"{MACRO_JUDGEMENT}：{stage_name(stage)}"
         f"（{MACRO_CONFIDENCES.get(str(conclusion.get('confidence')), '')}，"
@@ -86,11 +89,59 @@ def title(conclusion: Mapping[str, Any], block: Mapping[str, Any]) -> str:
     return f"{head}· 相对上次确认{stage_name(reference)} {move}"
 
 
-def _undecided(raw: Mapping[str, Any]) -> str:
+def fallback(block: Mapping[str, Any]) -> str | None:
+    """How a tendency or a weak judgement took its stage, under the title (decisions 18,
+    24, 35): the stages tied and their score, or the dimensions lacking and what the
+    judgement fell back on. None for an explicit one."""
+    raw = _mapping(block.get("raw"))
+    reference = _mapping(block.get("conclusion")).get("reference_stage")
+    nearest = f"取离上次确认{stage_name(reference)}最近者" if reference else _NO_REFERENCE
+    stage = raw.get("stage")
     if raw.get("basis") == "tied":
-        tied = "、".join(stage_name(stage) for stage in raw.get("tied") or ())
-        return f"{tied}并列，各 {raw.get('matched')} 维"
-    return f"已知 {raw.get('known')} 维，最高 {raw.get('matched')} 维吻合"
+        others = "、".join(stage_name(item) for item in raw.get("tied") or () if item != stage)
+        return (
+            f"{MACRO_CONFIDENCES['tendency']}{stage_name(stage)}"
+            f"（与{others}并列，各 {raw.get('matched')} 维）：{nearest}"
+        )
+    if raw.get("basis") != "insufficient":
+        return None
+    threshold, known = raw.get("threshold"), raw.get("known")
+    if isinstance(known, int) and isinstance(threshold, int) and known < threshold:
+        lacking = "、".join(
+            MACRO_DIMENSIONS.get(str(item.get("dimension")), str(item.get("dimension")))
+            for item in _mappings(block.get("dimensions"))
+            if item.get("value") is None
+        )
+        short = f"已知 {known} 维，缺{lacking}，不足 {threshold} 维"
+    else:
+        top = max(
+            (v for v in _mapping(block.get("scores")).values() if isinstance(v, int)), default=0
+        )
+        short = f"{known} 维已知，最高仅 {top} 维吻合，不足 {threshold} 维"
+    taken = _mapping(raw.get("fallback"))
+    combination = _mapping(taken.get("combination"))
+    if taken.get("source") != "combination":
+        then = (
+            f"三核心不可用，取上一确认阶段{stage_name(stage)}"
+            if stage is not None
+            else f"三核心不可用且无上一确认阶段，{_NO_STAGE}"
+        )
+    elif taken.get("differences") == 0:
+        then = f"价格组合典型（{_cores(combination)}），取价格阶段{stage_name(stage)}"
+    else:
+        candidates = "、".join(stage_name(item) for item in taken.get("candidates") or ())
+        then = (
+            f"退回价格组合推断：{_cores(combination)}与{candidates}"
+            f"各差 {taken.get('differences')} 项，{nearest}"
+        )
+    return f"{MACRO_CONFIDENCES['weak']}判断：{short}；{then}"
+
+
+def _cores(combination: Mapping[str, Any]) -> str:
+    return " · ".join(
+        f"{MACRO_ASSETS[asset]}{CORE_STATE_LABELS.get(str(combination.get(asset)), '不明')}"
+        for asset in ASSETS
+    )
 
 
 def dimensions(block: Mapping[str, Any]) -> html.Div:
@@ -147,17 +198,21 @@ def basis(item: Mapping[str, Any]) -> str:
     if item.get("dimension") == "inventory":
         indicator = indicators[0] if indicators else {}
         if reason != "quadrant":
-            return f"{indicator.get('name') or '库存象限'}未分类"
+            lacking = "缺当期读数" if indicator.get("evidence_status") != "current" else "未分类"
+            return f"{indicator.get('name') or '库存象限'}{lacking}"
         divergent = "（辅助成员分化）" if indicator.get("divergent") else ""
         return f"{indicator.get('name')} {indicator.get('period')}{divergent}"
+    voters = [indicator for indicator in indicators if indicator.get("voting")]
+    if reason == "short_of_half":
+        clear = sum(each.get("vote") is not None for each in voters)
+        return f"明确者不足半数（{clear}/{len(voters)}）：" + _lacking(voters)
     votes = "；".join(
         _spaced(
             str(indicator.get("name") or indicator.get("key")),
             MACRO_VALUES.get(str(indicator.get("vote")), MACRO_UNKNOWN),
         )
         + ("（分化）" if indicator.get("divergent") else "")
-        for indicator in indicators
-        if indicator.get("voting")
+        for indicator in voters
     )
     if reason == "tie_broken":
         breaker = next(
@@ -169,8 +224,31 @@ def basis(item: Mapping[str, Any]) -> str:
             str(item.get("tie_breaker")),
         )
         return f"打平取{breaker}：{votes}"
-    lead = {"short_of_half": "明确者不足半数：", "tied": "多数决打平："}.get(reason, "")
+    lead = {"tied": "多数决打平："}.get(reason, "")
     return lead + votes
+
+
+def _lacking(voters: Sequence[Mapping[str, Any]]) -> str:
+    """An unknown dimension's clear votes, then what the others lack: a current reading, or
+    with one, a direction (ticket 03)."""
+
+    def named(each: Mapping[str, Any]) -> str:
+        return str(each.get("name") or each.get("key"))
+
+    parts = [
+        _spaced(named(each), MACRO_VALUES[str(each["vote"])])
+        + ("（分化）" if each.get("divergent") else "")
+        for each in voters
+        if each.get("vote") is not None
+    ]
+    unvoted = [each for each in voters if each.get("vote") is None]
+    for status, lack in ((False, "缺当期读数："), (True, "方向未读出：")):
+        names = [
+            named(each) for each in unvoted if (each.get("evidence_status") == "current") == status
+        ]
+        if names:
+            parts.append(lack + "、".join(names))
+    return "；".join(parts)
 
 
 def signal_list(block: Mapping[str, Any]) -> html.Div:
