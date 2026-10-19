@@ -94,7 +94,7 @@
 | 07 ④ | done（cf8f46c，快进合入） | ticket-ms07／ms-07 |
 | 05 滞回 | done（0df25bb，合并入 macro-stage） | ticket-ms05／ms-05 |
 | 09 报告 | done（bae5b0a，快进合入；报告契约 schema v0006／prompt v0011） | ticket-ms09／ms-09 |
-| 08 阶段史 | 进行中（22:1x 派出） | ticket-ms08／ms-08 |
+| 08 阶段史 | done（ed448bd，快进合入） | ticket-ms08／ms-08 |
 | 10 | ready-for-human | — |
 
 ## 票 09 备注（bae5b0a）
@@ -103,3 +103,9 @@
 - 校验分三类陈述（宏观主结论、当日原始判断、价格阶段）；非明确写成"明确／已确定"拒收；倾向或弱全文未写出也拒收；章节顺序只靠提示词。
 - 05 合入时复跑 `tests/reports/test_macro_report.py`（滞回保持 3 例当前是改写已发布块构造的，滞回信号整句由 `macro_board.describe` 的 05 分支生成）。
 - 集成（10）合入 main 时必须带上 main 的 ddbba45（CLI stdin 修复），否则宏观报告输入一大就会超时。
+
+## 票 08 备注（ed448bd）与收尾
+
+- assessment 新增 `macro_conclusion{stage, confidence}`；`stage_history.display.days` 每行加 `macro`（阶段／not_effective／no_stage／unpublished）与 `macro_confidence`，另 `macro_counts`；校验 `projection_stage_history_macro_mismatch`。⑥ 首行为宏观判断色带（倾向、弱同色渐浅，生效前与无可取阶段留空），右栏区间可切换"正式阶段｜宏观判断"。
+- 08 的偏离：v0015 投影不显示宏观行；页面仍用"正式阶段"字样（留 10 统一为"价格阶段"）；生效边界沿用 05 口径（首个用 v0016 汇总的日子即生效首日，含首次补算——10 需确认是否按激活日划界）；区间切换（dashboard.js）未做浏览器验证；宏观投影的区间抽屉两套，同日明细出现两次。
+- 2026-10-19 23:2x：02–09 全部合入 macro-stage；Codex 两轴审查进行中（会话 scratchpad `ms-review/`），之后一个子代理修复全部审查项，再进入 10。
