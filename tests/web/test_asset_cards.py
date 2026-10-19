@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from dash import html
+from dash import dcc, html
 from dash.development.base_component import Component
 
 from pring_cycle.dashboard import dashboard_page
@@ -177,6 +177,29 @@ def test_the_candidate_lines_keep_the_30_day_direction_and_the_asset_candidate_a
     assert "30 日候选方向 熊市 资产候选状态 牛市 · 持续 5 日 / 门槛 未提供 近 5 日" in cards[1]
     assert "30 日候选方向 无 资产候选状态 无 近 5 日" in cards[2]
     assert all("持续 0 日" not in card and "牛市 · 0" not in card for card in cards)
+
+
+def test_the_card_chart_is_240px_tall_with_a_level_tick_on_each_months_first_session() -> None:
+    # The window opens mid-August, so August's first session is not on the chart.
+    dates = ["2026-08-28", "2026-08-31", "2026-09-01", "2026-09-30", "2026-10-09", "2026-10-12"]
+    display = {
+        **_display(230.95, "claim-bond"),
+        "points": [
+            {"date": date, "value": 230.0 + i, "ma120": 229.0, "selected_claim_id": None}
+            for i, date in enumerate(dates)
+        ],
+    }
+    projection = _projection([_asset("bond", "CN_BOND_CORE_000012")], displays={"bond": display})
+    (graph,) = _find(_card(projection, "bond"), lambda item: isinstance(item, dcc.Graph))
+    layout = graph.figure["layout"]
+
+    assert layout["height"] == 240
+    assert graph.style["height"] == "240px"
+    assert layout["xaxis"]["type"] == "category"
+    assert layout["xaxis"]["tickmode"] == "array"
+    assert layout["xaxis"]["tickvals"] == ["2026-09-01", "2026-10-09"]
+    assert layout["xaxis"]["ticktext"] == ["2026-09", "2026-10"]
+    assert layout["xaxis"]["tickangle"] == 0
 
 
 def test_an_old_projection_without_display_points_keeps_a_readable_card() -> None:

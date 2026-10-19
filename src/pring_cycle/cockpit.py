@@ -184,6 +184,14 @@ def chart(display: dict[str, Any], projection: ProjectionSet) -> Any:
     if not points:
         return html.P("旧投影未提供展示点列；新运行发布后可用。", className="empty-note")
     dates = [item["date"] for item in points]
+    # One level tick on each month's first session; nticks alone would not land on months.
+    # The window opens mid-month, so its first month's tick would sit off its first session
+    # and crowd the next month's; it shows only when the window holds a single month.
+    months: dict[str, Any] = {}
+    for date in dates:
+        months.setdefault(str(date)[:7], date)
+    if len(months) > 1:
+        del months[next(iter(months))]
     links = [
         evidence_href(projection, str(item["selected_claim_id"]))
         if item.get("selected_claim_id")
@@ -220,7 +228,7 @@ def chart(display: dict[str, Any], projection: ProjectionSet) -> Any:
                 figure={
                     "data": traces,
                     "layout": {
-                        "height": 160,
+                        "height": 240,
                         "margin": {"l": 44, "r": 6, "t": 6, "b": 24},
                         "paper_bgcolor": "rgba(0,0,0,0)",
                         "plot_bgcolor": "rgba(0,0,0,0)",
@@ -228,7 +236,10 @@ def chart(display: dict[str, Any], projection: ProjectionSet) -> Any:
                         "showlegend": False,
                         "xaxis": {
                             "type": "category",
-                            "nticks": 4,
+                            "tickmode": "array",
+                            "tickvals": list(months.values()),
+                            "ticktext": list(months),
+                            "tickangle": 0,
                             "gridcolor": "rgba(120,140,150,0.18)",
                         },
                         "yaxis": {"gridcolor": "rgba(120,140,150,0.18)", "zeroline": False},
@@ -237,8 +248,8 @@ def chart(display: dict[str, Any], projection: ProjectionSet) -> Any:
                 },
                 config={"displayModeBar": False, "responsive": True, "displaylogo": False},
                 # Responsive mode sets height 100%, which a stretched grid or flex card
-                # resolves against its track and collapses; the card's chart is 160px.
-                style={"height": "160px"},
+                # resolves against its track and collapses; the card's chart is 240px.
+                style={"height": "240px"},
                 className="price-chart card-chart",
             ),
             html.P(
