@@ -5,6 +5,7 @@ import sqlite3
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -2093,3 +2094,38 @@ def test_a_loan_change_whose_months_ended_before_the_window_is_not_shown(
     assert all(str(row["observation_id"]).startswith("gap:") for row in loan)
     with sqlite3.connect(paths.database) as connection:
         assert connection.execute("SELECT count(*) FROM derived_observation").fetchone() == (0,)
+
+
+def test_a_five_day_window_short_of_sessions_names_the_missing_days(tmp_path: Path) -> None:
+    from tests.integration.test_derived_context_freshness import append_input, fixture_manifest
+
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+    # The window 08-21 → 08-28 lacks 08-26 and 08-27; its two ends are both held.
+    for day, value in (
+        ("2026-08-20", 7.12),
+        ("2026-08-21", 7.13),
+        ("2026-08-24", 7.12),
+        ("2026-08-25", 7.11),
+        ("2026-08-28", 7.10),
+    ):
+        append_input(
+            repository,
+            "CN_USDCNY_CENTRAL_PARITY",
+            day,
+            value,
+            dimensions={"currency_pair": "USD/CNY", "quote_direction": "CNY per USD"},
+            unit="cny_per_usd",
+        )
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 29, tzinfo=UTC),
+        model_manifest=fixture_manifest(),
+        as_of_mode=AsOfMode.PUBLIC,
+        calendar=TradingCalendar(sessions()),
+    )
+    rows: Any = context.macro["international_context"]
+    parity = next(row for row in rows if row["metric_id"] == "CN_USDCNY_CENTRAL_PARITY")
+    change = parity["display"]["change_5"]
+    assert change["value"] is None
+    assert change["reason"] == "window_session_missing"
+    assert change["missing_dates"] == ["2026-08-26", "2026-08-27"]

@@ -325,11 +325,22 @@ def change_number(change: dict[str, Any]) -> str:
     return "+" + text if change.get("unit") == "count" and change["value"] > 0 else text
 
 
+def missing_note(change: dict[str, Any]) -> str | None:
+    """The sessions a change's window lacks, as 缺 MM-DD、MM-DD (a long list cut short)."""
+    days = [str(day)[5:] for day in change.get("missing_dates") or () if day]
+    if not days:
+        return None
+    return "缺 " + "、".join(days[:5]) + (f" 等 {len(days)} 日" if len(days) > 5 else "")
+
+
 def change_cell(value: object) -> Any:
     change = obj(value)
     if change.get("value") is None:
         reason = str(change.get("reason") or "旧投影未提供")
-        return html.Span("—", title=REASONS.get(reason) or reason_label(reason))
+        note = missing_note(change)
+        return html.Span(
+            f"—（{note}）" if note else "—", title=REASONS.get(reason) or reason_label(reason)
+        )
     return html.Span(
         change_number(change),
         title=f"{change.get('start_date')} → {change.get('end_date')}",
@@ -2612,7 +2623,8 @@ def _change_text(value: object) -> str:
     change = obj(value)
     if change.get("value") is None:
         reason = str(change.get("reason") or "旧投影未提供")
-        return f"—（{REASONS.get(reason) or reason_label(reason)}）"
+        note = missing_note(change)
+        return f"—（{REASONS.get(reason) or reason_label(reason)}{'：' + note if note else ''}）"
     return (
         change_number(change)
         + f"（{change.get('start_date') or '—'} → {change.get('end_date') or '—'}）"

@@ -232,6 +232,77 @@ def test_the_treasury_spread_reads_its_sign_as_positive_or_inverted_never_as_ris
     assert "利差正负 倒挂（10 年低于 2 年）" in _words(_drawer(page, inverted))
 
 
+def test_a_five_day_window_short_of_sessions_says_which_days_it_lacks() -> None:
+    def short(missing: list[str]) -> dict[str, Any]:
+        return {
+            "change_5": {
+                "value": None,
+                "start_date": "2026-10-12",
+                "end_date": "2026-10-19",
+                "reason": "window_session_missing",
+                "missing_dates": missing,
+            }
+        }
+
+    rows = [
+        _row("CN_USDCNY_CENTRAL_PARITY", 6.72, "cny_per_usd", display=short(["2026-10-15"])),
+        _row(
+            "CN_USDCNY_CLOSE_1630",
+            6.68,
+            "scalar",
+            display=short(["2026-10-12", "2026-10-13", "2026-10-15", "2026-10-16"]),
+        ),
+    ]
+    projection = _overseas_projection(rows)
+    page = dashboard_page("/", projection, (), ())
+    parity, close = _cards(projection)
+
+    assert _words(parity).endswith("近 5 日 —（缺 10-15）")
+    assert _words(close).endswith("近 5 日 —（缺 10-12、10-13、10-15、10-16）")
+    assert "近 5 日 —（窗口缺少实际交易日观测：缺 10-15）" in _words(_drawer(page, parity))
+
+
+def test_the_treasury_spread_card_shows_its_five_day_change_and_trend() -> None:
+    spread = _row(
+        "UST_2S10S_SPREAD",
+        35.0,
+        "basis_points",
+        period="2026-10-16",
+        display={
+            "unit": "basis_points",
+            "change_5": {
+                "value": -12.0,
+                "unit": "basis_points",
+                "kind": "difference",
+                "start_date": "2026-10-08",
+                "end_date": "2026-10-16",
+            },
+            "points": [
+                {
+                    "date": "2026-10-08",
+                    "value": 47.0,
+                    "selected_claim_id": None,
+                    "input_claim_ids": ["claim-10y-1008", "claim-2y-1008"],
+                },
+                {
+                    "date": "2026-10-16",
+                    "value": 35.0,
+                    "selected_claim_id": None,
+                    "input_claim_ids": ["claim-10y-1016", "claim-2y-1016"],
+                },
+            ],
+        },
+    )
+    projection = _overseas_projection([spread])
+    page = dashboard_page("/", projection, (), ())
+    (card,) = _cards(projection)
+
+    assert _words(card).endswith("近 5 日 -12.00 基点")
+    drawer = _words(_drawer(page, card))
+    assert "近 5 日 -12.00 基点（2026-10-08 → 2026-10-16）" in drawer
+    assert "2026-10-08 47.00 基点" in drawer
+
+
 def test_every_card_and_other_row_has_its_own_drawer() -> None:
     rows = [
         UST10Y,
