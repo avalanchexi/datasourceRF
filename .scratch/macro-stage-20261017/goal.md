@@ -34,6 +34,14 @@
 - `p0.relink` 已接 `macro_signals.regrouped`（纠正上一确认阶段后按新主结论重新归组）。
 - 04 的偏离：成熟度接续前一交易日已发布块计数（v0016 生效后前 4 个交易日价格信号只在两格同指或已确认时列入）；分化信号只分萌芽／成形；政策、库存维分化归"转换未定"；新板删去"转折观察"行（已并入清单）；B、K 组与分化跨两期成形只实现未单测（测试目录缺数据）。
 
+## 票 03 留下的接口（736169d，合并 4fb29cf）
+
+- `judge(rules, confirmation, reference=…, cores=…)` 的原始判断永不为空（决定 49 例外：三核心不可用且无上一确认阶段 → stage/confidence 为 None，标题"无可取阶段"）；把握程度 明确／倾向／弱。
+- `raw` 新增 `fallback`（来源、三核心组合、差异资产数、候选阶段）与 `threshold`；决定 44 可直接比较 `raw.confidence` 与前一日 `conclusion.confidence`。
+- 校验只约束原始判断自洽；主结论只校验步数与吻合数，05 的主结论可不同于原始判断。`with_reference` 在滞回状态非空时只重述步数——05 若需滞回随更正重算，要在此分支补。
+- 08：每日记 `conclusion.stage` 与 `conclusion.confidence`，两者可同为 None，色带要能显示"无可取阶段"空格；`raw.basis`、`raw.fallback.source` 可标注来源，但阶段史只记主结论。
+- `_judge_macro` 新增 `readiness`、`decided` 参数；三核心组合 `combination` 同时传给主判断与 04 的分化重判。
+
 ## 单票规程（02–09）
 
 1. **worktree**：从 `macro-stage` 建 `ms-NN` 分支与 worktree `/home/tywin/worktrees/datasourceRF-ms-NN`；开工前确认基于 `macro-stage` 最新头，不是就 rebase 上去。
@@ -66,9 +74,9 @@
 |---|---|---|
 | 01 回测重跑＋对照表 | done（对照表定稿 24 格，da9ba92） | ticket-ms01／prototype/macro-stage |
 | 02 宏观判断贯通 | done（80e8932，快进合入；冒烟＋新测 17 过） | ticket-ms02／ms-02 |
-| 03 兜底 | 实施完（736169d），待合并 04 后合入 | ticket-ms03／ms-03 |
+| 03 兜底 | done（736169d，合并 4fb29cf；55 过） | ticket-ms03／ms-03 |
 | 04 信号清单 | done（3f0d1c1，快进合入；36 过） | ticket-ms04／ms-04 |
 | 06 价格验证 | 进行中（20:1x 派出） | ticket-ms06／ms-06 |
-| 07 ④ | 等 03 或 06 完成（并行上限 2） | — |
+| 07 ④ | 进行中（20:4x 派出） | ticket-ms07／ms-07 |
 | 05、08、09 | 等依赖 | — |
 | 10 | ready-for-human | — |
