@@ -58,6 +58,8 @@ MACRO_VALUES = {
 }
 MACRO_POSITIONS = {"high": "高位", "middle": "中位", "low": "低位"}
 MACRO_UNKNOWN = "不明"
+# Section 04 under a judgement: its five dimensions' basis (macro stage ticket 07).
+MACRO_BASIS = "宏观判断依据"
 # The signal list under the judgement (macro stage ticket 04).
 MACRO_SIGNAL_LIST = "信号清单"
 MACRO_NO_SIGNALS = "当日无成形以上的转折信号"

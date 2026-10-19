@@ -13,7 +13,7 @@ from urllib.parse import urlencode
 from dash import dcc, html
 
 from pring_cycle import dashboard as view
-from pring_cycle import macro_board
+from pring_cycle import macro_basis, macro_board
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.domain.trend import TrendRules
 from pring_cycle.drawer import drawer_key, drawer_panel, drawer_trigger, unique_key
@@ -523,7 +523,9 @@ def report_board(
             *view._supply_demand_sections(macro),
         ],
         [overseas_cards(macro, projection)],
-        [
+        macro_basis_section(judgement, confirmation, macro, projection)
+        if (judgement := macro_board.judgement(overview)) is not None
+        else [
             html.P(view._confirmation_scope(confirmation)),
             confirmation_cards(confirmation, macro, projection),
         ]
@@ -585,12 +587,13 @@ def report_board(
             html.A("打开报告历史与生成工作区 →", href="/reports" + pinned),
         ],
     ]
+    sections = section_titles(macro_board.judgement(overview))
     return html.Div(
         [
             html.Nav(
                 [
                     html.A([html.Span(f"{index:02d}"), title], href=pinned + "#" + key)
-                    for index, (key, title) in enumerate(SECTIONS, 1)
+                    for index, (key, title) in enumerate(sections, 1)
                 ],
                 className="report-toc",
                 **cast(Any, {"aria-label": "报告目录"}),
@@ -614,13 +617,23 @@ def report_board(
                         className="report-section",
                     )
                     for index, ((key, title), body) in enumerate(
-                        zip(SECTIONS, bodies, strict=True), 1
+                        zip(sections, bodies, strict=True), 1
                     )
                 ],
                 className="report-body",
             ),
         ],
         className="report-layout",
+    )
+
+
+def section_titles(judgement: Mapping[str, Any] | None) -> tuple[tuple[str, str], ...]:
+    """The sections by their titles: under a judgement 04 is its basis (macro stage ticket
+    07); an older set's 04 keeps its name."""
+    if judgement is None:
+        return SECTIONS
+    return tuple(
+        (key, macro_basis.TITLE if key == "confirmation" else title) for key, title in SECTIONS
     )
 
 
@@ -1525,12 +1538,6 @@ def _own_reading(item: dict[str, Any]) -> list[Any]:
     """A key indicator read through its main member alone: value, period and direction, each
     from the latest source when the member lacks it. No stage, so nothing is counted."""
     member = _main_member(item)
-    source = obj(member.get("latest_source"))
-
-    def read(field: str) -> object:
-        return member[field] if member.get(field) is not None else source.get(field)
-
-    label = str(member.get("label") or "")
     if member.get("direction") is not None:
         direction = _direction_arrow(member["direction"])
     elif member.get("quadrant") is not None:
@@ -1538,11 +1545,26 @@ def _own_reading(item: dict[str, Any]) -> list[Any]:
     else:
         direction = "方向未提供"
     return [
+        *_main_reading(item),
+        html.Span(direction),
+        html.Span("不计数", className="uncounted-tag"),
+    ]
+
+
+def _main_reading(item: dict[str, Any]) -> list[Any]:
+    """The main member's name when it is not the indicator's, its value and its period, each
+    from the latest source when the member lacks it."""
+    member = _main_member(item)
+    source = obj(member.get("latest_source"))
+
+    def read(field: str) -> object:
+        return member[field] if member.get(field) is not None else source.get(field)
+
+    label = str(member.get("label") or "")
+    return [
         html.Small(label) if label and label != item.get("name") else None,
         html.Span(number(read("value"), read("unit")), className="card-value"),
         html.Span(str(read("period") or "—")),
-        html.Span(direction),
-        html.Span("不计数", className="uncounted-tag"),
     ]
 
 
@@ -1688,6 +1710,40 @@ def confirmation_cards(
             ],
         ]
     )
+
+
+def macro_basis_section(
+    judgement: Mapping[str, Any],
+    confirmation: dict[str, Any],
+    macro: dict[str, object],
+    projection: ProjectionSet | None,
+) -> list[Any]:
+    """Section 04 under a judgement (macro stage ticket 07): the five cards of its basis; a
+    key indicator's row reads its main member, says where it went in the vote and opens the
+    drawer of its members, as the confirmation reads them."""
+    applicable = confirmation.get("applicable") is True
+    readings = {
+        (str(dimension.get("dimension")), str(item.get("key"))): item
+        for dimension in objects(confirmation.get("dimensions"))
+        for item in objects(dimension.get("key_indicators"))
+    }
+    keys: list[str] = []
+    drawers: list[Any] = []
+
+    def row(dimension: str, indicator: Mapping[str, Any], vote: str) -> Any:
+        item = readings.get((dimension, str(indicator.get("key"))))
+        name = html.Strong(str(indicator.get("name") or indicator.get("key")))
+        went = html.Span(vote, className="macro-vote")
+        if item is None:
+            return html.Div([name, went], className="indicator-row")
+        key = unique_key(drawer_key("confirmation", item.get("metric_id"), item.get("key")), keys)
+        keys.append(key)
+        drawers.append(_indicator_drawer(item, key, macro, projection, applicable=applicable))
+        return drawer_trigger(key, [name, *_main_reading(item), went], class_name="indicator-row")
+
+    grid = macro_basis.cards(judgement, row)
+    # Panels sit outside the cards so the drawer is fixed to the viewport.
+    return [html.P(macro_basis.SCOPE), grid, *drawers]
 
 
 LINE_CARDS = (("demand", "需求"), ("production", "生产"), ("inventory", "库存"))
