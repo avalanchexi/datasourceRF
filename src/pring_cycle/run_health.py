@@ -286,12 +286,15 @@ def gap_diagnostics(
         source = [
             item for item in (plan.get("initial") or {}).get("requirements", []) if "period" in item
         ]
+    from pring_cycle.full_retrieval import planned_scopes
+
     adopted = set((plan.get("adoption") or {}).get("selected_claim_ids", []))
+    planned = planned_scopes(plan)
     rows = []
     for gap in source:
         scopes = [
             scope
-            for scope in (plan.get("initial") or {}).get("scopes", [])
+            for scope in planned
             if gap["metric_id"] in scope.get("metric_ids", [])
             and gap["period"] == scope.get("period")
         ]
