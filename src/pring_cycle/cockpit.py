@@ -2129,12 +2129,15 @@ def related_assets(
         rows.append(
             (
                 # A long name is cut to one line; hovering shows it whole with its code.
-                # The link covers its row, so the title sits on the link.
+                # The link covers its row, the direction cell too, so the title sits on the
+                # link and names the periods the direction compares.
                 drawer_trigger(
                     key,
                     name.name,
                     class_name="row-trigger",
-                    title="\n".join(part for part in (name.name, name.code) if part),
+                    title="\n".join(
+                        part for part in (name.name, name.code, direction_hover(evidence)) if part
+                    ),
                 ),
                 number(evidence.get("value"), evidence.get("unit")),
                 change_cell(window_change(evidence, "change_5")),
@@ -2966,12 +2969,18 @@ def _compared_periods(item: dict[str, Any]) -> str | None:
     return f"{previous} → {item.get('period') or '—'}" if previous else "上期日期未提供"
 
 
+def direction_hover(item: dict[str, Any]) -> str | None:
+    """The two periods the direction compares, as hovering names them; None for none."""
+    compared = _compared_periods(item)
+    return f"较上期：{compared}（非近 5 日）" if compared else None
+
+
 def direction_cell(item: dict[str, Any], *, label: str = "") -> Any:
     """The direction's arrow, after ``label`` when it compares two periods; hovering names
     them."""
-    compared = _compared_periods(item)
+    hover = direction_hover(item)
     arrow = _direction_arrow(item.get("direction"))
-    return html.Span(label + arrow, title=f"较上期：{compared}（非近 5 日）") if compared else arrow
+    return html.Span(label + arrow, title=hover) if hover else arrow
 
 
 # The derived Treasury spread's projected direction is the sign of its value, not a
