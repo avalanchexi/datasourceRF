@@ -15,8 +15,10 @@ from typing import Any
 
 from dash import html
 
+from pring_cycle.drawer import drawer_key, drawer_panel, drawer_trigger
 from pring_cycle.macro_judgement import GROUPS
 from pring_cycle.macro_signals import GROUPS as SIGNAL_GROUPS
+from pring_cycle.macro_verification import ASSETS as VERIFIED_ASSETS
 from pring_cycle.wording import (
     CORE_STATE_LABELS,
     MACRO_ASSETS,
@@ -32,12 +34,14 @@ from pring_cycle.wording import (
     MACRO_SIGNAL_LIST,
     MACRO_UNKNOWN,
     MACRO_VALUES,
+    MACRO_VERIFICATION,
     stage_name,
 )
 
 _ACTIONS = {"cut": "下调", "hike": "上调"}
 _UNREAD_POLICY = "政策利率、LPR、降准均无可读记录"
 _NO_ACTION = "120 日内无降息、LPR 下调、降准或上调"
+VERIFICATION_DRAWER = drawer_key("conclusion", "price-verification")
 
 
 def judgement(overview: Mapping[str, object]) -> Mapping[str, Any] | None:
@@ -46,10 +50,9 @@ def judgement(overview: Mapping[str, object]) -> Mapping[str, Any] | None:
     return block if isinstance(block, Mapping) else None
 
 
-def conclusion_left(
-    block: Mapping[str, Any], price_stage: str, rows: Sequence[tuple[str, Any]]
-) -> html.Div:
-    """The board's left column: the judgement, its dimensions, then the price stage."""
+def conclusion_left(block: Mapping[str, Any]) -> html.Div:
+    """The board's left column: the judgement, its dimensions, its signals, then the price
+    verification (decision 21)."""
     return html.Div(
         [
             html.P(MACRO_JUDGEMENT, className="section-kicker"),
@@ -58,14 +61,72 @@ def conclusion_left(
             ),
             dimensions(block),
             signal_list(block),
-            html.P("价格阶段", className="section-kicker"),
-            html.P(price_stage, className="price-stage-value"),
             html.Dl(
-                [item for label, value in rows for item in (html.Dt(label), html.Dd(value))],
+                [
+                    html.Dt(MACRO_VERIFICATION),
+                    html.Dd(drawer_trigger(VERIFICATION_DRAWER, verification_line(block))),
+                ],
                 className="board-rows",
             ),
         ],
         className="board-left",
+    )
+
+
+def verification_line(block: Mapping[str, Any]) -> str:
+    """价格阶段：第六阶段（债券熊市 · 股票熊市 · 商品熊市） · 第五阶段预期：… · 商品偏离 --
+    the price stage or the noncanonical combination, what the judged stage expects, and
+    whether they agree or which asset is off (decision 10)."""
+    verification = _mapping(block.get("price_verification"))
+    if not verification:
+        return "该投影未提供价格验证"
+    actual = _combination(_mapping(verification.get("combination")))
+    stage, reason = verification.get("price_stage"), verification.get("reason")
+    if stage is not None:
+        head = f"价格阶段：{stage_name(stage)}（{actual}）"
+    elif reason == "noncanonical_combination":
+        head = f"非典型组合（{actual}）"
+    else:
+        head = f"暂无价格阶段（{actual}）"
+    expected = verification.get("expected")
+    if not isinstance(expected, Mapping):
+        return f"{head} · 宏观判断无阶段，不比对"
+    combination = _mapping(verification.get("combination"))
+    unread = [_asset(asset) for asset in VERIFIED_ASSETS if combination.get(asset) is None]
+    deviations = "、".join(_asset(asset) for asset in verification.get("deviations") or ())
+    found = [
+        *([f"{deviations}偏离"] if deviations else []),
+        *([f"{'、'.join(unread)}不可用，未比对"] if unread else []),
+    ]
+    return (
+        f"{head} · {stage_name(verification.get('expected_stage'))}预期："
+        f"{_combination(expected)} · " + ("；".join(found) or "一致")
+    )
+
+
+def verification_panel(
+    block: Mapping[str, Any], rows: Sequence[tuple[str, Any]], counted: Sequence[Any]
+) -> html.Div:
+    """The verification row's drawer: the price stage's ``rows`` and, with a price stage, the
+    confirmation ``counted`` against it (decision 11); the cockpit builds both."""
+    return drawer_panel(
+        VERIFICATION_DRAWER,
+        MACRO_VERIFICATION,
+        [
+            html.P(verification_line(block)),
+            html.Dl(
+                [item for label, value in rows for item in (html.Dt(label), html.Dd(value))],
+                className="board-rows",
+            ),
+            *counted,
+        ],
+    )
+
+
+def _combination(combination: Mapping[str, Any]) -> str:
+    return " · ".join(
+        _asset(asset) + CORE_STATE_LABELS.get(str(combination.get(asset)), "不可用")
+        for asset in VERIFIED_ASSETS
     )
 
 

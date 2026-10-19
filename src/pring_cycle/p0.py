@@ -12,6 +12,7 @@ from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.domain.stage import StageResult, derive_formal_stage
 from pring_cycle.macro_judgement import with_reference
 from pring_cycle.macro_signals import regrouped
+from pring_cycle.macro_verification import combination_of, restated, verified
 from pring_cycle.noncanonical import build_basis
 from pring_cycle.projections import (
     ANALYTICAL_DATASETS,
@@ -146,7 +147,8 @@ class P0ProjectionService:
         day's assessment keeps what the window's history says. The assessment states the
         ``core_history_basis`` the cores were read on, and the summary it ``corrects``. A
         ``freshness_calendar`` says the gap list's freshness stood on weekdays (ticket 06).
-        A ``macro_judgement`` (ADR-0043), judged before publishing, goes with the overview.
+        A ``macro_judgement`` (ADR-0043), judged before publishing, goes with the overview,
+        its conclusion verified by the cores published here.
         """
         gaps = _core_gaps(assets)
         decided = decided or formal_stage(assets)
@@ -207,6 +209,15 @@ class P0ProjectionService:
         )
         if noncanonical_basis is not None:
             identity_document["noncanonical_basis"] = noncanonical_basis
+        if macro_judgement is not None:
+            # The cores the set publishes verify the judgement's conclusion (ticket 06).
+            macro_judgement = verified(
+                macro_judgement,
+                price_stage=stage.current_stage.value if stage.current_stage else None,
+                reason=stage.reason,
+                combination=combination_of(asset_documents),
+                comparisons=(noncanonical_basis or {}).get("comparisons") or (),
+            )
         if display:
             identity_document["core_display"] = display
             identity_document["prior_stage_history"] = [
@@ -416,10 +427,10 @@ class P0ProjectionService:
             overview.pop("last_confirmed_lookback", None)
             datasets["stage_history"].pop("last_confirmed_lookback", None)
             if isinstance(judgement := overview.get("macro_judgement"), dict):
-                # Its conclusion is stated against that stage, and its signals against the
-                # conclusion; nothing is judged again.
-                overview["macro_judgement"] = regrouped(
-                    with_reference(judgement, last_confirmed_stage)
+                # Its conclusion is stated against that stage, and its signals and price
+                # verification against the conclusion; nothing is judged again.
+                overview["macro_judgement"] = restated(
+                    regrouped(with_reference(judgement, last_confirmed_stage))
                 )
         datasets["stage_history"]["events"] = [*history, assessment]
         if isinstance(shown := datasets["stage_history"].get("display"), dict):

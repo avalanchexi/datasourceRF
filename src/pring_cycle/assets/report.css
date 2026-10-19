@@ -38,7 +38,6 @@ html, body { font-size: 14px; }
 .macro-signal-list { margin: 0; padding-left: 16px; font-size: 13px; color: var(--ink-strong); overflow-wrap: anywhere; }
 .macro-signal-list li:target { background: var(--surface-muted); }
 .signal-pointers { margin: 4px 0; font-size: 12px; color: var(--ink-muted); }
-.price-stage-value { margin: 2px 0 10px; font-size: 16px; font-weight: 600; color: var(--ink-strong); }
 .conclusion-board > div + div { border-left: 1px solid var(--line); padding-left: 22px; }
 .board-rows { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 6px 10px; margin: 0; font-size: 13px; align-items: baseline; }
 .board-rows dt { color: var(--ink-muted); font-size: 12px; }
