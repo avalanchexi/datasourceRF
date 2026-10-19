@@ -17,6 +17,7 @@ from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.confirmation import RELATIONS as CONFIRMATION_RELATIONS
 from pring_cycle.macro_judgement import validate as validate_macro_judgement
 from pring_cycle.macro_signals import validate as validate_macro_signals
+from pring_cycle.macro_verification import validate as validate_price_verification
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
 from pring_cycle.publication_corrections import (
     PUBLICATION_CORRECTION_SCHEMA,
@@ -656,6 +657,15 @@ def validate_analytical_projection(
             raise ValueError("projection_macro_judgement_invalid")
         validate_macro_judgement(overview["macro_judgement"])
         validate_macro_signals(overview["macro_judgement"])
+        validate_price_verification(
+            overview["macro_judgement"],
+            price_stage=overview.get("current_stage"),
+            reason=overview.get("stage_reason"),
+            assets=list(by_asset.values()),
+            comparisons=basis.get("comparisons")
+            if isinstance(basis := overview.get("noncanonical_basis"), dict)
+            else None,
+        )
     release_events = datasets["release_calendar"].get("events")
     stage_events = datasets["stage_history"].get("events")
     if not isinstance(release_events, list) or not isinstance(stage_events, list):
