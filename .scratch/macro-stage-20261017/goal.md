@@ -1,9 +1,40 @@
-# 目标：宏观判断阶段为主结论（2026-10-17 起）
+# 目标：宏观判断阶段为主结论，永不为空（2026-10-17 起，2026-10-19 修订）
 
-**范围**：[spec.md](spec.md) 与 [issues/](issues/) 01–08；决定见 [decisions.md](decisions.md)（两轮 14 条）；调查见 [investigation.md](investigation.md)；ADR-0043。
-**当前只做 01 原型回测**。02 起等 01 经用户定稿（特征表与门槛记入 decisions.md）且 A 批次（`cockpit-layout`）验收并入 main 后，集成分支 `macro-stage` 从 main 建，届时补写本文件的单票规程。
+**范围**：[spec.md](spec.md)（2026-10-19 修订）与 [issues/](issues/) 01–10；决定见 [decisions.md](decisions.md)（36 条）；调查见 [investigation.md](investigation.md)；ADR-0043（含修订）。初版票存档 `issues-20261017/`，初版 01 规程见下方"初版 01 规程（存档）"。
+**执行方式**：`/implement-spec`（2026-10-19 用户启动）：主 agent 调度，每票一个命名子代理（`ticket-msNN`），只读调查与审查走 `codex exec`。
 
-## 01 原型回测规程
+## 依赖图
+
+01（回测重跑＋对照表，需用户确认）→ 02 贯通 → {03 兜底、04 信号清单、06 价格验证、07 ④} → 05 滞回（03、04）→ 08 ⑥与阶段史（03、05）；09 报告（03、04、06）→ 10 集成与激活（需用户同意）。
+
+## 集成分支
+
+- 01 定稿（用户已于 10-19 确认，决定 37–48）、且 golive-20261019 的全套测试通过并把修复提交到 main 后（不等你验收新前端），从 main 建 `macro-stage`（worktree `/home/tywin/worktrees/datasourceRF-ms`），并把 `prototype/macro-stage` 上的文档（`GLOSSARY.md`、`docs/adr/0043*`、`.scratch/macro-stage-20261017/`）检出进来提交一次；原型脚本不并入。
+- 代码地图（Codex 只读探查）：`/home/tywin/worktrees/macro-stage-notes/code-map.md`，各实施子代理先读。
+
+## 代码地图带来的约束（Codex 探查，2026-10-19）
+
+- **v0016 不分次登记**：模型版本登记后内容不可变。02–05 各自在清单构建处增加特征表、兜底、信号对照表、滞回参数，测试一律在每例独立运行库里登记；任何票都不得向共享库或正式库登记 `model-v0016`，正式登记只在 10 经用户同意后做一次。
+- **02 先做预备重构**：先定发布用的宏观判断结构（原始判断、主结论、五维依据、并列信息、滞回状态、信号清单、价格验证），并把目标日与补算日共用的"发布前完成宏观判断"抽成一步；① 新结论板与 ④ 新维度卡放进小型渲染模块，保留旧投影分支；不改 v0015 确认度的分化封顶、贷款计数与预期表。后续票只扩展该结构。
+- **并行度**：02 合入后，03、04、06、07 可并行，但同时在跑的实施子代理不超过 2 个（`cockpit.py`、单日汇总、`wording` 共改）；合并子代理按完成顺序合入，冲突逐处按两票意图解决并复跑两票受影响测试。
+- **09 报告**：现行非典型报告契约（固定章节、禁止"倾向"字样、按 `noncanonical_basis` 进入旧限制）须按"有无宏观判断块"分流，旧输入保持原行为；阶段陈述校验要区分宏观主结论、价格阶段、并列候选与信号转换。
+
+## 单票规程（02–09）
+
+1. **worktree**：从 `macro-stage` 建 `ms-NN` 分支与 worktree `/home/tywin/worktrees/datasourceRF-ms-NN`；开工前确认基于 `macro-stage` 最新头，不是就 rebase 上去。
+2. **读**：本票、spec、decisions、code-map.md 对应节、GLOSSARY、ADR-0043/0034/0037/0003；`docs/agents/testing.md`。
+3. **环境**：独立 venv `~/.local/share/pring-cycle/dev-venv-msNN`（`UV_PROJECT_ENVIRONMENT=... uv sync --extra dev --no-editable`，在本票 worktree 执行），`PYTEST_ADDOPTS=--basetemp=/tmp/pytest-msNN`，`PYTHONDONTWRITEBYTECODE=1`；不碰正式 `dev-venv`、正式库与调度。
+4. **实施**：调用 Skill `mattpocock-skills:tdd`，按票面勾选框红绿推进；只跑受影响测试（`python tools/check.py quick <文件>`），重型文件在 `flock /tmp/pring-heavy.lock` 下；收尾跑两例冒烟。
+5. **收尾**：把 `macro-stage` 最新头合并进本分支并复跑受影响测试；票面勾选、`## Comments` 记测试命令、通过数与耗时；`Status: done`；英文提交信息带署名两行。回报主 agent：分支、提交号、测试结果、偏离票面之处。
+6. **合并**：主 agent 派合并子代理把 `ms-NN` 合入 `macro-stage`（能快进则快进），复跑冒烟。
+7. **清理**：合并后删 worktree、`/tmp/pytest-msNN`；venv 保留到 10 完成。
+
+## 收尾（10）
+
+全部 02–09 合入后：Codex 两轴审查（Standards＋Spec，`codex exec -s read-only`）→ 一个子代理修复全部审查项 → 全套测试（clock_check、flock、disk_guard 12G）→ 正式库只读副本跑 10-14～10-19 单日汇总并与 01 回测对照 → Codex 浏览器验收 → 用户验收清单；v0016 激活与并入 main 须用户明确同意。
+
+## 初版 01 规程（存档）
+
 
 1. **worktree**：`git -C /home/tywin/worktrees/datasourceRF-cl worktree add -b prototype/macro-stage /home/tywin/worktrees/datasourceRF-ms-proto cockpit-layout`。脚本与输出放 `prototype/macro-stage/`（仓库根下目录），用完即弃写法，不写测试、不改 `src/`。
 2. **读**：票 01、spec、decisions（重点决定 4、7、8、9、13）、investigation、ADR-0043、GLOSSARY（宏观判断阶段、宏观周期特征表、维度方向、价格验证、价格阶段）。只读调查用 `codex exec -s read-only`。
@@ -16,7 +47,8 @@
 
 ## 进度
 
-| 票 | 状态 | 分支／提交 |
+| 票 | 状态 | 执行者／分支 |
 |---|---|---|
-| 01 原型回测 | 实施中 | prototype/macro-stage |
-| 02–08 | 等 01 定稿与 A15 | — |
+| 01 回测重跑＋对照表 | done（对照表定稿 24 格，da9ba92） | ticket-ms01／prototype/macro-stage |
+| 02–09 | 等 golive 全套通过 | — |
+| 10 | ready-for-human | — |
