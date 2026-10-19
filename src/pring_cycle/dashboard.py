@@ -2269,7 +2269,10 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
             ),
         ]
     results = body.get("verified_results")
-    if isinstance(results, dict) and isinstance(results.get("noncanonical_basis"), dict):
+    # A template reading (noncanonical, or led by the macro judgement) keeps its facts.
+    if isinstance(results, dict) and any(
+        isinstance(results.get(key), dict) for key in ("noncanonical_basis", "macro_judgement")
+    ):
         content.extend(
             [
                 _report_fact_section("三核心", body.get("core_states")),
