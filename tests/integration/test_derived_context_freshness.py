@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import calendar
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import pytest
 
@@ -14,6 +14,7 @@ from pring_cycle.dashboard import _gap_list
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.freshness import add_projection_gaps
 from pring_cycle.models import analytical_model_v0002_manifest
+from pring_cycle.trading_calendar import US_TREASURY
 
 
 def append_input(
@@ -94,6 +95,45 @@ def test_treasury_spread_retains_old_value_without_adopting_it_as_current(
         assert not (inputs | {derived_id}) & adopted
     else:
         assert inputs | {derived_id} <= adopted
+
+
+def test_treasury_spread_shows_its_own_points_and_five_day_change(tmp_path: Path) -> None:
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+    days: list[date] = []
+    day = date(2026, 8, 28)
+    while len(days) < 125:
+        if US_TREASURY.is_trading(day):
+            days.insert(0, day)
+        day -= timedelta(days=1)
+    for index, day in enumerate(days):
+        # The 10-year falls a basis point a session while the 2-year holds: the spread
+        # narrows from 100 bp by one each session, to -24 bp on the last.
+        append_input(repository, "UST10Y_NOMINAL_YIELD", day.isoformat(), 4.6 - index / 100)
+        append_input(repository, "UST2Y_NOMINAL_YIELD", day.isoformat(), 3.6)
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 29, tzinfo=UTC),
+        model_manifest=fixture_manifest(),
+        as_of_mode=AsOfMode.PUBLIC,
+    )
+    rows = cast(list[dict[str, Any]], context.macro["international_context"])
+    spread = next(row for row in rows if row["metric_id"] == "UST_2S10S_SPREAD")
+    display = spread["display"]
+    assert spread["value"] == pytest.approx(-24)
+    assert display["unit"] == "basis_points"
+    assert len(display["points"]) == 120
+    assert display["points"][0]["date"] == days[5].isoformat()
+    assert display["points"][0]["value"] == pytest.approx(95)
+    assert display["points"][-1]["date"] == "2026-08-28"
+    assert display["points"][-1]["value"] == pytest.approx(-24)
+    change = display["change_5"]
+    assert change["value"] == pytest.approx(-5)
+    assert change["unit"] == "basis_points"
+    assert (change["start_date"], change["end_date"]) == (days[-6].isoformat(), "2026-08-28")
+    assert display["change_120"]["value"] == pytest.approx(-120)
+    # Both ends read both yields, and the projection freezes all four.
+    assert len(change["input_claim_ids"]) == 4
+    assert set(change["input_claim_ids"]) <= set(context.observation_version_ids)
 
 
 @pytest.mark.parametrize("year,status", [(2026, "current"), (2025, "stale")])

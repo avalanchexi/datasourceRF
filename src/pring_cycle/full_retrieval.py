@@ -68,6 +68,12 @@ from pring_cycle.trading_calendar import (
     use_run_calendar,
 )
 
+# A re-expansion of the plan, by its number: a newer period taken during the run moved its
+# readings' t (go-live leftovers 03). Each asks only for what no earlier plan asked for, so a
+# run's expansions end; the bound stops a source that kept delivering newer periods.
+EXPANSION = "expansion:"
+MAX_EXPANSIONS = 3
+
 
 class FullRunRetrieval:
     """Persist the plan before calls, evaluate once, and link publication separately."""
@@ -76,14 +82,13 @@ class FullRunRetrieval:
         self.paths = paths
 
     def retrieve(self, run: RunRecord, *, decided_at: datetime | None = None) -> None:
-        """Plan the run's gaps, then retrieve them.
+        """Plan the run's gaps, then retrieve them, re-expanding the plan while that takes a
+        newer period than it read.
 
         ``decided_at`` is when the Worker decided what its direct fetch covers; the first
         plan reads the credit lookback as of then, so it asks for nothing that fetch left
         out (ticket 24).
         """
-        from pring_cycle.worker import _production_retrieval_adapters
-
         plan = read_full_retrieval_plan(self.paths.database, run.run_id)
         if plan["final"] is not None:
             return
@@ -96,11 +101,47 @@ class FullRunRetrieval:
         if plan.get("event_backtrack") is None:
             self._backtrack_events(run)
         version = str(initial["definition_version"])
+        window = initial.get("daily_window", {}).get("dates", ())
         # A plan recorded before an interruption: its window judges the rest of the run.
-        self._use_judging_calendar(run, initial.get("daily_window", {}).get("dates", ()))
+        self._use_judging_calendar(run, window)
+        asked: dict[tuple[str, str], set[str] | None] = {}
+        scopes = initial["scopes"]
+        for number in range(1, MAX_EXPANSIONS + 2):
+            for document in scopes:
+                _mark_asked(asked, document)
+            reached = self._retrieve_scopes(run, scopes, version)
+            if number <= len(plan["expansions"]):
+                # Recorded before an interruption: retrieved again as planned.
+                scopes = plan["expansions"][number - 1]["scopes"]
+                continue
+            if not reached or number > MAX_EXPANSIONS:
+                return
+            # A newer period taken moves its readings' t (ADR-0035's t-12 and t-13 with
+            # it): what they add is asked for now, not first listed as a gap at the frozen
+            # cutoff (go-live leftovers 03).
+            scopes = [
+                document
+                for document in self._plan(run, decided_at=decided_at)["scopes"]
+                if not _asked_for(asked, document)
+            ]
+            self._use_judging_calendar(run, window)
+            if not scopes:
+                return
+            self._record(
+                run.run_id,
+                f"{EXPANSION}{number}",
+                {"scopes": scopes, "created_at": utc_now().isoformat()},
+            )
+
+    def _retrieve_scopes(self, run: RunRecord, scopes: list[dict[str, Any]], version: str) -> bool:
+        """Retrieve the planned scopes; whether any passed the release gate, so may have
+        taken something."""
+        from pring_cycle.worker import _production_retrieval_adapters
+
         runs = RunRepository(self.paths.database)
-        self._read_listings(run, initial["scopes"], version)
-        for document in initial["scopes"]:
+        reached = False
+        self._read_listings(run, scopes, version)
+        for document in scopes:
             scope = _scope(document)
             scoped = replace(run, retrieval_scope=scope)
             release, discover_release = self._gate(run, scope, version)
@@ -123,6 +164,7 @@ class FullRunRetrieval:
                     occurred_at=utc_now(),
                 )
                 continue
+            reached = True
             if runs.status(run.run_id) != "running":
                 raise ValueError("full_retrieval_run_not_running")
             ledger = RetrievalLedger(self.paths.database, scope_run=scoped)
@@ -179,6 +221,7 @@ class FullRunRetrieval:
                     occurred_at=utc_now(),
                     physical_request_id=attempt.physical_request_id,
                 )
+        return reached
 
     def _gate(self, run: RunRecord, scope: RetrievalScope, version: str) -> tuple[str, bool]:
         """The scope's release status, and whether only its official listing may establish
@@ -849,13 +892,14 @@ class FullRunRetrieval:
         selector = ModelInputSelector(self.paths, run)
         before = ledger.for_run(run.run_id)
         bound = {(g["metric_id"], g["period"]) for g in before["gaps"]} if before else set()
-        for document in initial["scopes"]:
+        planned = planned_scopes(plan)
+        for document in planned:
             scope = _scope(document)
             scoped = replace(run, retrieval_scope=scope)
             if any((metric, scope.period) in bound for metric in scope.metric_ids):
                 ledger.bind_run(scoped, initial["definition_version"])
-        gated = _release_gated(self.paths.database, run.run_id, initial["scopes"], bound)
-        uncovered = _listing_uncovered(self.paths, run.run_id, initial["scopes"])
+        gated = _release_gated(self.paths.database, run.run_id, planned, bound)
+        uncovered = _listing_uncovered(self.paths, run.run_id, planned)
         for requirement in final_plan["requirements"]:
             if "period" not in requirement:
                 continue
@@ -1078,7 +1122,14 @@ def record_first_outcome(database: Path, run_id: str, phase: str, document: dict
 
 
 def read_full_retrieval_plan(database: Path, run_id: str) -> dict[str, Any]:
-    result: dict[str, Any] = {"initial": None, "final": None, "adoption": None, "acquisitions": []}
+    result: dict[str, Any] = {
+        "initial": None,
+        "expansions": [],
+        "final": None,
+        "adoption": None,
+        "acquisitions": [],
+    }
+    expansions: dict[int, dict[str, Any]] = {}
     with database_connection(database) as connection:
         if not connection.execute(
             "SELECT 1 FROM sqlite_master WHERE name='full_run_gap_plan'"
@@ -1090,7 +1141,11 @@ def read_full_retrieval_plan(database: Path, run_id: str) -> dict[str, Any]:
         ):
             if hashlib.sha256(document.encode()).hexdigest() != digest:
                 raise ValueError("full_run_gap_plan_hash_mismatch")
-            result[phase] = json.loads(document)
+            if phase.startswith(EXPANSION):
+                expansions[int(phase.removeprefix(EXPANSION))] = json.loads(document)
+            else:
+                result[phase] = json.loads(document)
+        result["expansions"] = [expansions[number] for number in sorted(expansions)]
         connection.row_factory = sqlite3.Row
         if connection.execute(
             "SELECT 1 FROM sqlite_master WHERE name='full_run_acquisition' "
@@ -1178,6 +1233,43 @@ def _listing_uncovered(
                 "oldest_entry": min(scan.days(listing), default=None),
             }
     return uncovered
+
+
+def _members_of(document: dict[str, Any], metric_id: str) -> set[str] | None:
+    """The members a scope asks of ``metric_id``: None for every one."""
+    own = {key for key in document.get("members", ()) if key.startswith(f"{metric_id}:")}
+    return own or None
+
+
+def _asked_for(asked: dict[tuple[str, str], set[str] | None], document: dict[str, Any]) -> bool:
+    """Whether every metric and period of the scope, with its members, was asked for."""
+    for metric_id in document["metric_ids"]:
+        key = (metric_id, document["period"])
+        if key not in asked:
+            return False
+        held, wanted = asked[key], _members_of(document, metric_id)
+        if held is not None and (wanted is None or not wanted <= held):
+            return False
+    return True
+
+
+def _mark_asked(asked: dict[tuple[str, str], set[str] | None], document: dict[str, Any]) -> None:
+    for metric_id in document["metric_ids"]:
+        key = (metric_id, document["period"])
+        wanted = _members_of(document, metric_id)
+        if wanted is None or (key in asked and asked[key] is None):
+            asked[key] = None
+        else:
+            asked[key] = {*(asked.get(key) or ()), *wanted}
+
+
+def planned_scopes(plan: dict[str, Any]) -> list[dict[str, Any]]:
+    """The scopes the run planned: the first plan's, then each re-expansion's."""
+    initial = plan.get("initial") or {}
+    return [
+        *initial.get("scopes", []),
+        *(document for expansion in plan.get("expansions", []) for document in expansion["scopes"]),
+    ]
 
 
 def _scope(document: dict[str, Any]) -> RetrievalScope:

@@ -19,6 +19,7 @@ import shutil
 import signal
 import subprocess
 import tempfile
+import threading
 import time
 from collections.abc import Callable
 from contextlib import suppress
@@ -48,6 +49,8 @@ _ENVIRONMENT = {
 # The web search tool itself, as each CLI reports it.
 CODEX_WEB_SEARCH_ITEMS = {"web_search"}
 CLAUDE_WEB_SEARCH_TOOLS = {"WebSearch"}
+# Small enough that the audited count of prompt bytes sent stays close to what the CLI took.
+_STDIN_CHUNK_CHARACTERS = 1024
 
 
 @dataclass(frozen=True)
@@ -132,7 +135,7 @@ def run_structured_cli(
             )
         except OSError:
             return failed("process_start_failed")
-        version_stdout, version_stderr, version_outcome = _communicate_with_limits(
+        version_stdout, version_stderr, version_outcome, _ = _communicate_with_limits(
             version_process,
             "",
             deadline=min(deadline, time.monotonic() + 5),
@@ -204,7 +207,7 @@ def run_structured_cli(
             )
         except OSError:
             return failed("process_start_failed")
-        stdout, stderr, outcome = _communicate_with_limits(
+        stdout, stderr, outcome, record["prompt_bytes_sent"] = _communicate_with_limits(
             process, prompt, deadline=deadline, cancel_requested=cancel_requested
         )
         record.update(_process_output_fingerprint(process, stdout, stderr))
@@ -260,35 +263,81 @@ def _communicate_with_limits(
     *,
     deadline: float,
     cancel_requested: Callable[[], bool] | None,
-) -> tuple[str, str, str | None]:
-    first = True
+) -> tuple[str, str, str | None, int]:
+    """Send the whole prompt, then EOF, while reading both outputs; stop at the deadline.
+
+    Writing and reading run on their own threads, so a prompt larger than the pipe keeps
+    flowing however late the CLI starts reading, and this thread is free to cancel or time
+    out. Returns the outputs, why the call was stopped (if it was) and the bytes sent.
+    """
+    assert process.stdin is not None and process.stdout is not None and process.stderr is not None
+    stdin = process.stdin
+    sent = 0
+    outputs: dict[str, str] = {}
+
+    def write() -> None:
+        nonlocal sent
+        with suppress(OSError, ValueError):
+            for start in range(0, len(prompt), _STDIN_CHUNK_CHARACTERS):
+                chunk = prompt[start : start + _STDIN_CHUNK_CHARACTERS]
+                stdin.write(chunk)
+                stdin.flush()
+                sent += len(chunk.encode())
+        with suppress(OSError, ValueError):
+            stdin.close()
+
+    def read(name: str, stream: Any) -> None:
+        with suppress(OSError, ValueError):
+            outputs[name] = stream.read()
+        with suppress(OSError):
+            stream.close()
+
+    writer = threading.Thread(target=write, daemon=True)
+    readers = [
+        threading.Thread(target=read, args=(name, stream), daemon=True)
+        for name, stream in (("stdout", process.stdout), ("stderr", process.stderr))
+    ]
+    for thread in (writer, *readers):
+        thread.start()
+
+    def finished(timeout: float) -> bool:
+        until = time.monotonic() + timeout
+        for reader in readers:
+            reader.join(max(0.0, until - time.monotonic()))
+        if any(reader.is_alive() for reader in readers):
+            return False
+        try:
+            process.wait(max(0.0, until - time.monotonic()))
+        except subprocess.TimeoutExpired:
+            return False
+        return True
+
+    def stopped(outcome: str | None) -> tuple[str, str, str | None, int]:
+        writer.join(5)
+        return outputs.get("stdout", ""), outputs.get("stderr", ""), outcome, sent
+
     while True:
         if cancel_requested is not None and cancel_requested():
-            stdout, stderr = _terminate_process_group(process)
-            return stdout, stderr, "cancelled"
+            _terminate_process_group(process, finished)
+            return stopped("cancelled")
         remaining = deadline - time.monotonic()
         if remaining <= 0:
-            stdout, stderr = _terminate_process_group(process)
-            return stdout, stderr, "timed_out"
-        try:
-            stdout, stderr = process.communicate(
-                prompt if first else None,
-                timeout=min(0.5, remaining),
-            )
-            return stdout, stderr, None
-        except subprocess.TimeoutExpired:
-            first = False
+            _terminate_process_group(process, finished)
+            return stopped("timed_out")
+        if finished(min(0.5, remaining)):
+            return stopped(None)
 
 
-def _terminate_process_group(process: subprocess.Popen[str]) -> tuple[str, str]:
+def _terminate_process_group(
+    process: subprocess.Popen[str], finished: Callable[[float], bool]
+) -> None:
     with suppress(ProcessLookupError):
         os.killpg(process.pid, signal.SIGTERM)
-    try:
-        return process.communicate(timeout=5)
-    except subprocess.TimeoutExpired:
+    if not finished(5):
         with suppress(ProcessLookupError):
             os.killpg(process.pid, signal.SIGKILL)
-        return process.communicate()
+        while not finished(5):
+            pass
 
 
 def _reported_cli_models(stdout: str) -> list[str]:

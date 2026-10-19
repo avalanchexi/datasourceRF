@@ -138,7 +138,8 @@ def test_repeated_runtime_views_remain_available(tmp_path: Path) -> None:
                     assert maintenance.audit_events() == ()
                     assert acquisition_analysis_context(paths.database, ('absent',)) == {}
                     assert read_full_retrieval_plan(paths.database, run.run_id) == {
-                        'initial': None, 'final': None, 'adoption': None, 'acquisitions': [],
+                        'initial': None, 'expansions': [], 'final': None, 'adoption': None,
+                        'acquisitions': [],
                     }
                     assert required_calendar(paths, run, selector)['status'] == 'unavailable'
                     assert execution_fingerprint(paths)['database_revision'] == (

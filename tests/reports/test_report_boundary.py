@@ -96,6 +96,77 @@ def test_valid_primary_cli_writes_an_immutable_report_snapshot(tmp_path: Path) -
     assert stored.body_retained is True
 
 
+def test_the_report_input_carries_the_facts_without_their_evidence_identifiers() -> None:
+    claims = [f"{index:064x}" for index in range(40)]
+    traced = {
+        "inventory": {
+            "registered_warrants": {
+                "median_change_rate": 0.2,
+                "observation_version_ids": claims,
+                "symbols": [
+                    {
+                        "symbol": "CF",
+                        "first": 400.0,
+                        "last": 480.0,
+                        "change_rate": 0.2,
+                        "first_claim_ids": claims[:20],
+                        "last_claim_ids": claims[20:],
+                    }
+                ],
+            },
+        },
+        "core_assets": [
+            {
+                "metric_id": "CN_BOND_CORE_000012",
+                "state": "bull",
+                "selected_claim_ids": claims[:3],
+                "readings": [{"period": "2026-08", "value": 1.5, "observation_id": "obs-1"}],
+            }
+        ],
+        "policy_direction": {
+            "value": "easing",
+            "source": ["tushare"],
+            "derived_observation_id": "derived-1",
+            "evidence_snapshot_id": "snapshot-1",
+        },
+    }
+    shown = {
+        "inventory": {
+            "registered_warrants": {
+                "median_change_rate": 0.2,
+                "symbols": [{"symbol": "CF", "first": 400.0, "last": 480.0, "change_rate": 0.2}],
+            },
+        },
+        "core_assets": [
+            {
+                "metric_id": "CN_BOND_CORE_000012",
+                "state": "bull",
+                "readings": [{"period": "2026-08", "value": 1.5}],
+            }
+        ],
+        "policy_direction": {"value": "easing", "source": ["tushare"]},
+    }
+
+    def create(results: dict[str, Any]) -> ReportInput:
+        return ReportInput.create(
+            projection_set_id="projection-1",
+            target_business_date="2026-08-28",
+            report_cutoff=datetime(2026, 8, 28, 10, tzinfo=UTC),
+            system_as_of=datetime(2026, 8, 28, 9, 59, tzinfo=UTC),
+            model_version_id="model-v0001",
+            trend_rule_version="trend-v0001",
+            current_stage="stage_ii",
+            stage_reason="canonical_combination",
+            core_states={"bond": "bull", "stock": "bull", "commodity": "bear"},
+            conclusions=CONCLUSIONS,
+            results=results,
+        )
+
+    # Tracing is the projection's job: the AI is given the facts, never what they rest on.
+    assert create(traced).prompt_document() == create(shown).prompt_document()
+    assert claims[0] not in json.dumps(create(traced).deterministic_skeleton())
+
+
 def test_clock_rollback_retains_timeout_audit_and_measured_duration(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

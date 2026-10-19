@@ -4,7 +4,7 @@ import calendar
 import hashlib
 import json
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Collection, Iterable, Mapping
 from dataclasses import asdict, dataclass, replace
 from datetime import date, datetime, timedelta
 from math import isfinite
@@ -853,11 +853,16 @@ class TushareContextAdapter:
         *,
         start_date: date,
         end_date: date,
+        metric_ids: Collection[str] | None = None,
     ) -> tuple[ContextScalar, ...]:
+        """Each index's closes; ``metric_ids`` asks for those indices alone, so what is
+        asked is what is checked and stored (go-live leftovers 04)."""
         if end_date < start_date:
             raise ValueError("tushare_date_range_invalid")
         scalars: list[ContextScalar] = []
         for metric_id, (api_name, source_code) in MARKET_INDEX_IDENTITIES.items():
+            if metric_ids is not None and metric_id not in metric_ids:
+                continue
             rows = self._call(
                 api_name,
                 {

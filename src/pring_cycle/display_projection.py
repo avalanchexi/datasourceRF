@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any
 
@@ -241,6 +242,33 @@ def _sessions_back(calendar: Sessions, target: date, count: int) -> tuple[date, 
     return tuple(reversed(days))
 
 
+@dataclass(frozen=True)
+class _Reading:
+    """One period's shown value and the claims it was read from."""
+
+    value: float
+    claim_ids: tuple[str, ...]
+    unit: str
+
+
+def _valid(points: Sequence[MetricSeriesPoint], rejected: set[str]) -> dict[str, MetricSeriesPoint]:
+    return {
+        point.period_end: point
+        for point in points
+        if point.selected_value is not None
+        and point.selected_claim_id
+        and point.selected_claim_id not in rejected
+        and point.selection_status == "selected"
+    }
+
+
+def _claim_unit(point: MetricSeriesPoint, default: str) -> str:
+    return next(
+        (claim.unit for claim in point.claims if claim.claim_id == point.selected_claim_id),
+        default,
+    )
+
+
 def context_display(
     definition: MetricDefinition,
     points: Sequence[MetricSeriesPoint],
@@ -251,16 +279,67 @@ def context_display(
     rejected: set[str],
 ) -> dict[str, Any]:
     """Show original periods; compare daily values only on the registered market calendar."""
-    valid = {
-        point.period_end: point
-        for point in points
-        if point.selected_value is not None
-        and point.selected_claim_id
-        and point.selected_claim_id not in rejected
-        and point.selection_status == "selected"
+    readings = {
+        day: _Reading(
+            point.selected_value,  # type: ignore[arg-type]
+            (str(point.selected_claim_id),),
+            _claim_unit(point, definition.unit),
+        )
+        for day, point in _valid(points, rejected).items()
     }
+    return _display(
+        definition,
+        readings,
+        sorted({point.period_end for point in points}),
+        target=target,
+        calendar=calendar,
+        frequency=frequency,
+    )
+
+
+def difference_display(
+    definition: MetricDefinition,
+    left: Sequence[MetricSeriesPoint],
+    right: Sequence[MetricSeriesPoint],
+    *,
+    multiplier: float,
+    target: date,
+    calendar: Sessions | None,
+    rejected: set[str],
+) -> dict[str, Any]:
+    """A daily derived difference, ``(left - right) * multiplier`` in the definition's unit,
+    shown on each session both inputs hold; its points read the two inputs' claims."""
+    lefts, rights = _valid(left, rejected), _valid(right, rejected)
+    readings = {
+        day: _Reading(
+            (float(lefts[day].selected_value) - float(rights[day].selected_value))  # type: ignore[arg-type]
+            * multiplier,
+            (str(lefts[day].selected_claim_id), str(rights[day].selected_claim_id)),
+            definition.unit,
+        )
+        for day in lefts.keys() & rights.keys()
+    }
+    return _display(
+        definition,
+        readings,
+        sorted(readings),
+        target=target,
+        calendar=calendar,
+        frequency="daily",
+    )
+
+
+def _display(
+    definition: MetricDefinition,
+    valid: Mapping[str, _Reading],
+    periods: Sequence[str],
+    *,
+    target: date,
+    calendar: Sessions | None,
+    frequency: str,
+) -> dict[str, Any]:
     latest = max(valid, default=None)
-    dates: Sequence[str] = sorted({point.period_end for point in points})[-120:]
+    dates: Sequence[str] = periods[-120:]
     calendar_status = "not_daily" if frequency != "daily" else "unavailable"
     if frequency == "daily" and calendar:
         try:
@@ -286,14 +365,12 @@ def context_display(
         except LookupError:
             return result
         result["start_date"] = span[0]
-        if any(day not in valid for day in span):
-            return {**result, "reason": "window_session_missing"}
+        missing = [day for day in span if day not in valid]
+        if missing:
+            # Name the sessions the window lacks, so the reader sees which days a "—" waits on.
+            return {**result, "reason": "window_session_missing", "missing_dates": missing}
         first, last = valid[span[0]], valid[span[-1]]
-        baseline, value = float(first.selected_value), float(last.selected_value)  # type: ignore[arg-type]
-        unit = next(
-            (claim.unit for claim in last.claims if claim.claim_id == last.selected_claim_id),
-            definition.unit,
-        )
+        baseline, value, unit = float(first.value), float(last.value), last.unit
         if unit in {"percent", "percentage_points", "basis_points"}:
             delta = (value - baseline) * (1 if unit == "basis_points" else 100)
             kind, shown_unit = "difference", "basis_points"
@@ -309,22 +386,28 @@ def context_display(
             "kind": kind,
             "unit": shown_unit,
             "reason": None,
-            "input_claim_ids": [first.selected_claim_id, last.selected_claim_id],
+            "input_claim_ids": [*first.claim_ids, *last.claim_ids],
         }
+
+    def point(day: str) -> dict[str, Any]:
+        reading = valid.get(day)
+        shown: dict[str, Any] = {
+            "date": day,
+            "value": reading.value if reading else None,
+            "selected_claim_id": (
+                reading.claim_ids[0] if reading and len(reading.claim_ids) == 1 else None
+            ),
+        }
+        if reading and len(reading.claim_ids) > 1:
+            shown["input_claim_ids"] = list(reading.claim_ids)
+        return shown
 
     return {
         "schema_version": "context-display-v0001",
         "frequency": frequency,
         "unit": definition.unit,
         "calendar_status": calendar_status,
-        "points": [
-            {
-                "date": day,
-                "value": valid[day].selected_value if day in valid else None,
-                "selected_claim_id": valid[day].selected_claim_id if day in valid else None,
-            }
-            for day in dates
-        ],
+        "points": [point(day) for day in dates],
         "change_5": change(5),
         "change_120": change(120),
     }

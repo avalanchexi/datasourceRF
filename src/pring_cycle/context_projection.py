@@ -37,7 +37,7 @@ from pring_cycle.confirmation import (
     month_back,
     month_end,
 )
-from pring_cycle.display_projection import context_display
+from pring_cycle.display_projection import context_display, difference_display
 from pring_cycle.domain import StageResult
 from pring_cycle.domain.macro import (
     EvidenceSignal,
@@ -565,12 +565,40 @@ def build_context_projection(
         for metric_id in ("UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD")
         for row in rows_by_metric[metric_id]
     ]
+    spread_display = (
+        _treasury_spread_display(
+            repository,
+            definitions,
+            as_of=as_of,
+            as_of_mode=as_of_mode,
+            target=date.fromisoformat(target_business_date)
+            if target_business_date
+            else as_of.astimezone(ZoneInfo("Asia/Shanghai")).date(),
+            sse=calendar or current_calendar(),
+        )
+        if "UST_2S10S_SPREAD" in market_derived_rows
+        else None
+    )
+    if spread_display is not None:
+        display_inputs.update(
+            claim_id
+            for point in spread_display["points"]
+            for claim_id in point.get("input_claim_ids", ())
+        )
+        for key in ("change_5", "change_120"):
+            display_inputs.update(spread_display[key].get("input_claim_ids", []))
     rows_by_metric["UST_2S10S_SPREAD"] = tuple(
         {
             **row,
             "acquisition_status": "derived_from_inputs",
             "latest_acquisition": None,
             "input_acquisition": treasury_inputs,
+            # The derived spread's own points and windows, read from both yields' sessions.
+            **(
+                {"display": spread_display}
+                if spread_display is not None and "derived_observation_id" in row
+                else {}
+            ),
         }
         for row in rows_by_metric["UST_2S10S_SPREAD"]
     )
@@ -2766,6 +2794,42 @@ def _difference_row(
         "value_state": EvidenceValueState.REPORTED_VALUE.value,
     }
     return row, (*inputs, derived_id)
+
+
+def _treasury_spread_display(
+    repository: Any,
+    definitions: Mapping[str, MetricDefinition],
+    *,
+    as_of: datetime,
+    as_of_mode: AsOfMode,
+    target: date,
+    sse: TradingCalendar,
+) -> dict[str, Any]:
+    """The 10-year less 2-year spread in basis points on each Treasury session both yields
+    hold, as ``context_display`` shows a reported series."""
+    series: dict[str, tuple[MetricSeriesPoint, ...]] = {}
+    rejected: set[str] = set()
+    for metric_id in ("UST10Y_NOMINAL_YIELD", "UST2Y_NOMINAL_YIELD"):
+        version = definitions[metric_id].definition_version
+        series[metric_id] = tuple(
+            repository.metric_series(
+                metric_id, mode=as_of_mode, as_of=as_of, definition_version=version
+            )
+        )
+        rejected |= set(
+            ClaimAdoption(repository, definition_version=version, mode=as_of_mode)
+            .check({metric_id: series[metric_id]})[metric_id]
+            .not_adoptable
+        )
+    return difference_display(
+        definitions["UST_2S10S_SPREAD"],
+        series["UST10Y_NOMINAL_YIELD"],
+        series["UST2Y_NOMINAL_YIELD"],
+        multiplier=100.0,
+        target=target,
+        calendar=market_calendar(FRESHNESS_REGISTRY["UST10Y_NOMINAL_YIELD"].market, sse),
+        rejected=rejected,
+    )
 
 
 def _derived_observation_identity(

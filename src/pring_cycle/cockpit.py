@@ -196,6 +196,14 @@ def chart(display: dict[str, Any], projection: ProjectionSet) -> Any:
     if not points:
         return html.P("旧投影未提供展示点列；新运行发布后可用。", className="empty-note")
     dates = [item["date"] for item in points]
+    # One level tick on each month's first session; nticks alone would not land on months.
+    # The window opens mid-month, so its first month's tick would sit off its first session
+    # and crowd the next month's; it shows only when the window holds a single month.
+    months: dict[str, Any] = {}
+    for date in dates:
+        months.setdefault(str(date)[:7], date)
+    if len(months) > 1:
+        del months[next(iter(months))]
     links = [
         evidence_href(projection, str(item["selected_claim_id"]))
         if item.get("selected_claim_id")
@@ -232,7 +240,7 @@ def chart(display: dict[str, Any], projection: ProjectionSet) -> Any:
                 figure={
                     "data": traces,
                     "layout": {
-                        "height": 160,
+                        "height": 240,
                         "margin": {"l": 44, "r": 6, "t": 6, "b": 24},
                         "paper_bgcolor": "rgba(0,0,0,0)",
                         "plot_bgcolor": "rgba(0,0,0,0)",
@@ -240,7 +248,10 @@ def chart(display: dict[str, Any], projection: ProjectionSet) -> Any:
                         "showlegend": False,
                         "xaxis": {
                             "type": "category",
-                            "nticks": 4,
+                            "tickmode": "array",
+                            "tickvals": list(months.values()),
+                            "ticktext": list(months),
+                            "tickangle": 0,
                             "gridcolor": "rgba(120,140,150,0.18)",
                         },
                         "yaxis": {"gridcolor": "rgba(120,140,150,0.18)", "zeroline": False},
@@ -249,8 +260,8 @@ def chart(display: dict[str, Any], projection: ProjectionSet) -> Any:
                 },
                 config={"displayModeBar": False, "responsive": True, "displaylogo": False},
                 # Responsive mode sets height 100%, which a stretched grid or flex card
-                # resolves against its track and collapses; the card's chart is 160px.
-                style={"height": "160px"},
+                # resolves against its track and collapses; the card's chart is 240px.
+                style={"height": "240px"},
                 className="price-chart card-chart",
             ),
             html.P(
@@ -326,11 +337,22 @@ def change_number(change: dict[str, Any]) -> str:
     return "+" + text if change.get("unit") == "count" and change["value"] > 0 else text
 
 
+def missing_note(change: dict[str, Any]) -> str | None:
+    """The sessions a change's window lacks, as 缺 MM-DD、MM-DD (a long list cut short)."""
+    days = [str(day)[5:] for day in change.get("missing_dates") or () if day]
+    if not days:
+        return None
+    return "缺 " + "、".join(days[:5]) + (f" 等 {len(days)} 日" if len(days) > 5 else "")
+
+
 def change_cell(value: object) -> Any:
     change = obj(value)
     if change.get("value") is None:
         reason = str(change.get("reason") or "旧投影未提供")
-        return html.Span("—", title=REASONS.get(reason) or reason_label(reason))
+        note = missing_note(change)
+        return html.Span(
+            f"—（{note}）" if note else "—", title=REASONS.get(reason) or reason_label(reason)
+        )
     return html.Span(
         change_number(change),
         title=f"{change.get('start_date')} → {change.get('end_date')}",
@@ -2099,7 +2121,7 @@ def related_assets(
                 ),
                 number(evidence.get("value"), evidence.get("unit")),
                 change_cell(window_change(evidence, "change_5")),
-                _direction_arrow(evidence.get("direction")),
+                direction_cell(evidence),
             )
         )
         panels.append(
@@ -2126,7 +2148,7 @@ def related_assets(
                 ),
             )
         )
-    return table(("名称", "值", "近 5 日", "方向"), rows), panels
+    return table(("名称", "值", "近 5 日", "较上期方向"), rows), panels
 
 
 def _peer_usage(member: dict[str, Any], judgement: Mapping[str, Any], asset: str) -> list[Any]:
@@ -2906,6 +2928,56 @@ def _direction_arrow(value: object) -> str:
     return DIRECTION_ARROWS.get(str(value), "— " + view._state_label(value))
 
 
+def _compared_periods(item: dict[str, Any]) -> str | None:
+    """The two periods a row's direction compares, latest against the previous available one
+    (not the 5-day window): the earlier is the display point reading the direction's input.
+    A row whose direction reads no earlier period has none."""
+    inputs = item.get("direction_input_observation_version_ids") or ()
+    if not inputs:
+        return None
+    previous = next(
+        (
+            point["date"]
+            for point in objects(obj(item.get("display")).get("points"))
+            if point.get("selected_claim_id") in inputs and point.get("date")
+        ),
+        None,
+    )
+    return f"{previous} → {item.get('period') or '—'}" if previous else "上期日期未提供"
+
+
+def direction_cell(item: dict[str, Any], *, label: str = "") -> Any:
+    """The direction's arrow, after ``label`` when it compares two periods; hovering names
+    them."""
+    compared = _compared_periods(item)
+    arrow = _direction_arrow(item.get("direction"))
+    return html.Span(label + arrow, title=f"较上期：{compared}（非近 5 日）") if compared else arrow
+
+
+# The derived Treasury spread's projected direction is the sign of its value, not a
+# comparison with an earlier period, so it reads as positive or inverted.
+SPREAD_METRIC = "UST_2S10S_SPREAD"
+
+
+def _spread_sign(item: dict[str, Any], *, short: bool) -> str:
+    value = item.get("value")
+    if not isinstance(value, int | float):
+        return "—"
+    if value > 0:
+        return "正值（未倒挂）" if short else "正值（10 年高于 2 年）"
+    if value < 0:
+        return "倒挂" if short else "倒挂（10 年低于 2 年）"
+    return "零" if short else "零（10 年等于 2 年）"
+
+
+def _direction_field(item: dict[str, Any]) -> tuple[str, str]:
+    if item.get("metric_id") == SPREAD_METRIC:
+        return ("利差正负", _spread_sign(item, short=False))
+    compared = _compared_periods(item)
+    arrow = _direction_arrow(item.get("direction"))
+    return ("较上期方向", f"{arrow}（{compared}）") if compared else ("方向", arrow)
+
+
 def _overseas_card(item: dict[str, Any], key: str) -> Any:
     name = row_name(item)
     return drawer_trigger(
@@ -2915,7 +2987,9 @@ def _overseas_card(item: dict[str, Any], key: str) -> Any:
             html.Small(name.code) if name.code != name.name else None,
             html.Span(number(item.get("value"), item.get("unit")), className="card-value"),
             html.Span(str(item.get("period") or "—")),
-            html.Span(_direction_arrow(item.get("direction"))),
+            html.Span(_spread_sign(item, short=True), title="按利差正负，不是较上期方向")
+            if item.get("metric_id") == SPREAD_METRIC
+            else html.Span(direction_cell(item, label="较上期 ")),
             html.Span(["近 5 日 ", change_cell(obj(item.get("display")).get("change_5"))]),
         ],
         class_name="overseas-card",
@@ -2926,7 +3000,8 @@ def _change_text(value: object) -> str:
     change = obj(value)
     if change.get("value") is None:
         reason = str(change.get("reason") or "旧投影未提供")
-        return f"—（{REASONS.get(reason) or reason_label(reason)}）"
+        note = missing_note(change)
+        return f"—（{REASONS.get(reason) or reason_label(reason)}{'：' + note if note else ''}）"
     return (
         change_number(change)
         + f"（{change.get('start_date') or '—'} → {change.get('end_date') or '—'}）"
@@ -2964,7 +3039,7 @@ def _context_drawer(
             f"{item.get('period') or '—'} / "
             + view._state_label(item.get("frequency") or "未提供"),
         ),
-        ("方向", _direction_arrow(item.get("direction"))),
+        _direction_field(item),
         ("近 5 日", _change_text(window_change(item, "change_5"))),
         ("近 120 日", _change_text(window_change(item, "change_120"))),
         ("时效", view._state_label(item.get("status"))),

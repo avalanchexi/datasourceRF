@@ -13,6 +13,7 @@ table, read as the median change and the breadth of rises and falls.
 from __future__ import annotations
 
 import copy
+import json
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -717,8 +718,10 @@ def test_the_inventory_page_and_the_report_carry_the_quadrant_and_the_warrant_no
 ) -> None:
     repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
     seed(repository, "up", "up", "up")
-    for day, value in zip(DAYS, (10.0, 10.0, 12.0), strict=True):
+    claims = [
         append_warrant(repository, "CF", "A", day, value, "sheet")
+        for day, value in zip(DAYS, (10.0, 10.0, 12.0), strict=True)
+    ]
     context = project(repository, FormalStage.STAGE_III)
     # A published stage III set, its macro and inventory read from this evidence.
     published = confirmed(tmp_path / "run")
@@ -749,6 +752,12 @@ def test_the_inventory_page_and_the_report_carry_the_quadrant_and_the_warrant_no
     notes = bundle.results["confirmation"]["inventory"]
     assert notes["registered_warrants"]["median_change_rate"] == pytest.approx(0.2)
     assert "observation_version_ids" not in notes["registered_warrants"]
+    # The first and last day's figures are told; the claims they were read from are not.
+    (cotton,) = (item for item in notes["registered_warrants"]["symbols"] if item["symbol"] == "CF")
+    assert (cotton["first"], cotton["last"]) == (400.0, 480.0)
+    assert cotton["change_rate"] == pytest.approx(0.2)
+    assert not {"first_claim_ids", "last_claim_ids"} & set(cotton)
+    assert not any(claim in json.dumps(bundle.prompt_document()) for claim in claims)
     assert notes["cards"][0] == {
         "label": "需求：PMI 新订单",
         "line": "demand",
