@@ -160,7 +160,9 @@ def retrieve_tushare_context(
                     "CN_BOND_10Y_930916",
                     "CN_COMMODITY_BROAD_NHCI",
                 },
-                adapter.market_indices,
+                # Only the indices sought are asked for: the check that what is stored is
+                # what the originals hold compares the same scope (go-live leftovers 04).
+                partial(adapter.market_indices, metric_ids=frozenset(metrics)),
             ),
         )
         for members, daily_method in daily_methods:
