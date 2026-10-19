@@ -332,7 +332,7 @@ def test_a_10_15_day_is_stage_v_explicit_four_of_five_two_steps_on_from_stage_ii
         "stage_v": 4,
         "stage_vi": 3,
     }
-    assert published["conclusion"] == {
+    assert {key: value for key, value in published["conclusion"].items() if key != "formed"} == {
         "stage": "stage_v",
         "confidence": "explicit",
         "matched": 4,
@@ -431,6 +431,11 @@ def test_a_model_without_the_rules_publishes_no_judgement(tmp_path: Path) -> Non
         # Judged before the rules took effect, or stating no day they took effect on.
         lambda block: block.update(effective_from="2026-08-31"),
         lambda block: block.pop("effective_from"),
+        # A dimension marked otherwise than against the conclusion, or one not known marked.
+        lambda block: block["dimensions"][4].update(matches=True),
+        lambda block: block["dimensions"][0].update(value=None),
+        # A conclusion taken from the day's judgement, said to be from another.
+        lambda block: block["conclusion"]["formed"].update(basis="tied"),
     ],
 )
 def test_a_judgement_disagreeing_with_its_own_scores_is_not_published(

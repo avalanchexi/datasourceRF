@@ -183,7 +183,7 @@ def test_a_new_judgement_replaces_the_conclusion_on_its_10th_session(tmp_path: P
     ]
     ninth = judgement(summary(paths, window[-2]))
     # Held, the conclusion keeps its stage and confidence, scored on the day's dimensions.
-    assert ninth["conclusion"] == {
+    assert {key: value for key, value in ninth["conclusion"].items() if key != "formed"} == {
         "stage": "stage_v",
         "confidence": "explicit",
         "matched": 3,
@@ -192,6 +192,8 @@ def test_a_new_judgement_replaces_the_conclusion_on_its_10th_session(tmp_path: P
         "steps": 2,
         "direction": "forward",
     }
+    # It was taken from the second day's raw judgement, which it agreed with.
+    assert ninth["conclusion"]["formed"]["on"] == window[1]
     assert ninth["hysteresis"]["sessions_required"] == 10
     # The run is listed with the day's signals, two steps back from stage V.
     [progress] = [item for item in ninth["signals"] if item["kind"] == "hysteresis"]
@@ -297,6 +299,56 @@ def test_a_weak_judgement_never_replaces_an_explicit_one(tmp_path: Path) -> None
     ]
 
 
+def test_a_held_conclusion_s_dimensions_match_the_stage_it_holds(tmp_path: Path) -> None:
+    paths = macro_day(tmp_path)
+    revise_credit(paths, SF_REVISED, on=-2)
+
+    published = judgement(publish_from(paths, last(3)))
+
+    # Stage V held against the day's stage III: each dimension is told against stage V,
+    # credit up and inventory restocking off it, growth down and prices high on it.
+    assert published["hysteresis"]["basis"] == "held"
+    assert [(item["dimension"], item["matches"]) for item in published["dimensions"]] == [
+        ("policy", True),
+        ("credit", False),
+        ("overheat", True),
+        ("price", True),
+        ("inventory", False),
+    ]
+    assert published["conclusion"]["matched"] == 3
+
+
+def test_a_held_tendency_keeps_the_tie_it_was_taken_from(tmp_path: Path) -> None:
+    # Stage III a tendency, tied with IV and V, until social financing's July is restated
+    # as first published on the last session: stage V, explicit, counted from one.
+    paths = macro_day(tmp_path)
+    window = last(3)
+    revise_credit(paths, SF_REVISED, on=-12)
+    revise_credit(paths, SF_JULY, on=-1)
+
+    publish_from(paths, window)
+
+    assert state(paths, window[-1]) == ("stage_v", "stage_iii", "tendency", "held", "stage_v", 1)
+    held = judgement(summary(paths, window[-1]))
+    # Decision 24: the conclusion keeps the tie it was taken from, its scores and day, apart
+    # from the day's own raw judgement.
+    assert held["conclusion"]["formed"] == {
+        "on": window[1],
+        "stage": "stage_iii",
+        "confidence": "tendency",
+        "basis": "tied",
+        "tied": ["stage_iii", "stage_iv", "stage_v"],
+        "matched": 3,
+        "known": 5,
+        "threshold": 3,
+        "fallback": None,
+        "reference_stage": "stage_iii",
+        "scores": judgement(summary(paths, window[1]))["scores"],
+        "unknown": [],
+    }
+    assert (held["raw"]["basis"], held["raw"]["tied"]) == ("unique_top", [])
+
+
 def _progress(block: dict[str, Any]) -> dict[str, Any]:
     return next(item for item in block["signals"] if item["id"] == "H")  # type: ignore[no-any-return]
 
@@ -314,6 +366,10 @@ def _progress(block: dict[str, Any]) -> dict[str, Any]:
             signals=[item for item in block["signals"] if item["id"] != "H"]
         ),
         lambda block: _progress(block).update(sessions=5),
+        # A dimension told against the day's raw stage, not the stage held.
+        lambda block: block["dimensions"][1].update(matches=True),
+        # Held, a conclusion said to be taken from another judgement than its own.
+        lambda block: block["conclusion"]["formed"].update(confidence="tendency"),
     ],
 )
 def test_a_hysteresis_out_of_keeping_with_its_judgement_is_not_published(

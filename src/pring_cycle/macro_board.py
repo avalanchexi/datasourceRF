@@ -64,6 +64,7 @@ def conclusion_left(block: Mapping[str, Any]) -> html.Div:
             ),
             *([html.P(line, className="macro-held")] if (line := held(block)) else []),
             *([html.P(line, className="macro-fallback")] if (line := fallback(block)) else []),
+            *([html.P(line, className="macro-fallback")] if (line := raw_fallback(block)) else []),
             dimensions(block),
             signal_list(block),
             html.Dl(
@@ -160,35 +161,63 @@ def held(block: Mapping[str, Any]) -> str | None:
 
 
 def fallback(block: Mapping[str, Any]) -> str | None:
-    """How a tendency or a weak judgement took its stage, under the title (decisions 18,
-    24, 35): the stages tied and their score, or the dimensions lacking and what the
-    judgement fell back on. None for an explicit one."""
-    raw = _mapping(block.get("raw"))
-    reference = _mapping(block.get("conclusion")).get("reference_stage")
-    nearest = f"取离上次确认{stage_name(reference)}最近者" if reference else _NO_REFERENCE
-    stage = raw.get("stage")
-    if raw.get("basis") == "tied":
-        others = "、".join(stage_name(item) for item in raw.get("tied") or () if item != stage)
-        return (
-            f"{MACRO_CONFIDENCES['tendency']}{stage_name(stage)}"
-            f"（与{others}并列，各 {raw.get('matched')} 维）：{nearest}"
-        )
-    if raw.get("basis") != "insufficient":
+    """How the main conclusion took its stage, under the title (decisions 18, 24, 35): the
+    stages tied and their score, or the dimensions lacking and what the judgement fell back
+    on. Held, it is told from the judgement it was taken from, with that day (decision 45).
+    None for an explicit one."""
+    if _mapping(block.get("hysteresis")).get("basis") == "held":
+        taken = _mapping(_mapping(block.get("conclusion")).get("formed"))
+        return _basis(taken, on=taken.get("on")) if taken else None
+    return _basis(_raw_facts(block))
+
+
+def raw_fallback(block: Mapping[str, Any]) -> str | None:
+    """How the day's raw judgement took its stage, while the hysteresis holds the conclusion
+    off it: told apart from the conclusion's own (decision 24). None otherwise."""
+    if _mapping(block.get("hysteresis")).get("basis") != "held":
         return None
-    threshold, known = raw.get("threshold"), raw.get("known")
-    if isinstance(known, int) and isinstance(threshold, int) and known < threshold:
-        lacking = "、".join(
-            MACRO_DIMENSIONS.get(str(item.get("dimension")), str(item.get("dimension")))
+    line = _basis(_raw_facts(block))
+    return f"当日原始判断依据：{line}" if line else None
+
+
+def _raw_facts(block: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        **_mapping(block.get("raw")),
+        "reference_stage": _mapping(block.get("conclusion")).get("reference_stage"),
+        "scores": _mapping(block.get("scores")),
+        "unknown": [
+            item.get("dimension")
             for item in _mappings(block.get("dimensions"))
             if item.get("value") is None
+        ],
+    }
+
+
+def _basis(facts: Mapping[str, Any], *, on: object = None) -> str | None:
+    reference = facts.get("reference_stage")
+    nearest = f"取离上次确认{stage_name(reference)}最近者" if reference else _NO_REFERENCE
+    stage = facts.get("stage")
+    if facts.get("basis") == "tied":
+        others = "、".join(stage_name(item) for item in facts.get("tied") or () if item != stage)
+        dated = f"，{on} 判断" if on else ""
+        return (
+            f"{MACRO_CONFIDENCES['tendency']}{stage_name(stage)}"
+            f"（与{others}并列，各 {facts.get('matched')} 维{dated}）：{nearest}"
+        )
+    if facts.get("basis") != "insufficient":
+        return None
+    threshold, known = facts.get("threshold"), facts.get("known")
+    if isinstance(known, int) and isinstance(threshold, int) and known < threshold:
+        lacking = "、".join(
+            MACRO_DIMENSIONS.get(str(item), str(item)) for item in facts.get("unknown") or ()
         )
         short = f"已知 {known} 维，缺{lacking}，不足 {threshold} 维"
     else:
         top = max(
-            (v for v in _mapping(block.get("scores")).values() if isinstance(v, int)), default=0
+            (v for v in _mapping(facts.get("scores")).values() if isinstance(v, int)), default=0
         )
         short = f"{known} 维已知，最高仅 {top} 维吻合，不足 {threshold} 维"
-    taken = _mapping(raw.get("fallback"))
+    taken = _mapping(facts.get("fallback"))
     combination = _mapping(taken.get("combination"))
     if taken.get("source") != "combination":
         then = (
@@ -204,7 +233,8 @@ def fallback(block: Mapping[str, Any]) -> str | None:
             f"退回价格组合推断：{_cores(combination)}与{candidates}"
             f"各差 {taken.get('differences')} 项，{nearest}"
         )
-    return f"{MACRO_CONFIDENCES['weak']}判断：{short}；{then}"
+    dated = f"（{on} 判断）" if on else ""
+    return f"{MACRO_CONFIDENCES['weak']}判断{dated}：{short}；{then}"
 
 
 def _cores(combination: Mapping[str, Any], *, unread: str = "不明") -> str:

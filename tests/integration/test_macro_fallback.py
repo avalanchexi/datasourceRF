@@ -129,6 +129,11 @@ def judgement(projection: ProjectionSet) -> dict[str, Any]:
     return projection.datasets["cycle_overview"]["macro_judgement"]  # type: ignore[no-any-return]
 
 
+def stated(main: dict[str, Any]) -> dict[str, Any]:
+    """A main conclusion as the title states it, without what it was formed from."""
+    return {key: value for key, value in main.items() if key != "formed"}
+
+
 def test_a_tie_takes_the_stage_one_step_on_from_the_last_confirmed_stage(tmp_path: Path) -> None:
     # Bond and stock rise, commodities fall: Stage II, the last confirmed stage.
     published = judgement(tied(tmp_path, "bull", "bull", "bear"))
@@ -138,7 +143,7 @@ def test_a_tie_takes_the_stage_one_step_on_from_the_last_confirmed_stage(tmp_pat
     assert published["raw"]["basis"] == "tied"
     assert published["raw"]["tied"] == ["stage_iii", "stage_v", "stage_vi"]
     # III is one step on from II; V three on, VI two back.
-    assert published["conclusion"] == {
+    assert stated(published["conclusion"]) == {
         "stage": "stage_iii",
         "confidence": "tendency",
         "matched": 3,
@@ -208,7 +213,7 @@ def test_too_little_evidence_off_typical_cores_is_the_nearest_stage_one_asset_aw
         "differences": 1,
         "candidates": ["stage_i", "stage_iii", "stage_v"],
     }
-    assert published["conclusion"] == {
+    assert stated(published["conclusion"]) == {
         "stage": "stage_iii",
         "confidence": "weak",
         "matched": 2,
@@ -365,10 +370,15 @@ def test_a_correction_of_the_last_confirmed_stage_alone_takes_the_weak_stage_aga
     summaries.backfill((staged, held), target=days[-1], system_as_of=CUTOFF + timedelta(days=1))
 
     relinked = held_judgement()
-    assert {key: relinked[key] for key in ("dimensions", "scores")} == {
-        key: first[key] for key in ("dimensions", "scores")
-    }
-    assert relinked["conclusion"] == {
+
+    def read(block: dict[str, Any]) -> list[dict[str, Any]]:
+        return [{k: v for k, v in item.items() if k != "matches"} for item in block["dimensions"]]
+
+    # Nothing is judged again; its dimensions are told against the stage it now takes.
+    assert (read(relinked), relinked["scores"]) == (read(first), first["scores"])
+    assert [item["matches"] for item in first["dimensions"]] == [None] * 5
+    assert [item["matches"] for item in relinked["dimensions"]] == [True, None, None, None, True]
+    assert stated(relinked["conclusion"]) == {
         "stage": "stage_iii",
         "confidence": "weak",
         "matched": 2,

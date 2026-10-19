@@ -298,22 +298,58 @@ def judge(
     else:
         raw = _raw(leaders[0], scores, len(known), basis="unique_top")
     raw["threshold"] = rules.threshold
-    stage = raw["stage"]
-    for item in dimensions:
-        item["matches"] = (
-            _matches(rules.signature[str(stage)][str(item["dimension"])], item)
-            if stage is not None and item["value"] is not None
-            else None
-        )
     return {
         "rules_version": RULES_VERSION,
         "raw": raw,
         "conclusion": conclusion(raw, reference),
         "hysteresis": None,
-        "dimensions": dimensions,
+        "dimensions": scored(rules, dimensions, raw["stage"]),
         "scores": scores,
         "signals": [],
         "price_verification": None,
+    }
+
+
+def scored(
+    rules: MacroJudgementRules, dimensions: Sequence[Mapping[str, Any]], stage: object
+) -> list[dict[str, Any]]:
+    """``dimensions``, each told whether it matches ``stage``'s signature cell: the main
+    conclusion's, so that what the board and the report give as its basis is its own
+    (decision 45); none for a dimension not known, or without a stage."""
+    return [
+        {
+            **item,
+            "matches": (
+                _matches(rules.signature[str(stage)][str(item["dimension"])], item)
+                if stage is not None and item.get("value") is not None
+                else None
+            ),
+        }
+        for item in dimensions
+    ]
+
+
+def formed(block: Mapping[str, object], day: str) -> dict[str, object]:
+    """What a main conclusion taken from the day's raw judgement keeps of it while the
+    hysteresis holds it: its stage and confidence, the tie or fallback it was taken from,
+    the stage it was stated against, the day's scores and unknown dimensions, and the day
+    (decisions 24, 45)."""
+    raw = _object(block.get("raw"))
+    return {
+        "on": day,
+        **{
+            field: raw.get(field)
+            for field in ("stage", "confidence", "basis", "tied", "matched", "known")
+        },
+        "threshold": raw.get("threshold"),
+        "fallback": raw.get("fallback"),
+        "reference_stage": _object(block.get("conclusion")).get("reference_stage"),
+        "scores": dict(_object(block.get("scores"))),
+        "unknown": [
+            str(item.get("dimension"))
+            for item in _objects(block.get("dimensions"))
+            if item.get("value") is None
+        ],
     }
 
 
@@ -345,10 +381,14 @@ class Earlier:
 
 
 def hold(
-    block: Mapping[str, object], earlier: Earlier | None, *, sessions_required: int
+    block: Mapping[str, object],
+    earlier: Earlier | None,
+    *,
+    rules: MacroJudgementRules,
+    day: str,
 ) -> dict[str, object]:
-    """``block`` with its main conclusion and hysteresis counted on from ``earlier``
-    (decisions 26, 32, 44, 45).
+    """``block``, ``day``'s, with its main conclusion and hysteresis counted on from
+    ``earlier`` (decisions 26, 32, 44, 45), and its dimensions told against the conclusion.
 
     With no conclusion before, the raw judgement is the conclusion; one at the conclusion's
     stage is it, at the day's confidence. One at another stage is a candidate, counted on
@@ -356,7 +396,10 @@ def hold(
     ``sessions_required``-th session running it replaces the conclusion, and until then the
     conclusion keeps its stage and confidence, scored on the day's dimensions. A weak one
     replaces only a weak conclusion: against any other it counts nothing, and a run is
-    broken. Nothing is counted across a session without a judgement."""
+    broken. Nothing is counted across a session without a judgement. A conclusion keeps
+    what it was ``formed`` from: the day's raw judgement, or, held, the one it was taken
+    from before."""
+    sessions_required = rules.hysteresis_sessions
     raw = _object(block.get("raw"))
     reference = _object(block.get("conclusion")).get("reference_stage")
     before = _object(earlier.judgement.get("conclusion")) if earlier is not None else {}
@@ -387,18 +430,33 @@ def hold(
         "sessions": sessions,
     }
     if basis != "held":
-        return {**block, "conclusion": conclusion(raw, reference), "hysteresis": state}
-    main = {
-        "stage": kept,
-        "confidence": before.get("confidence"),
-        "matched": _object(block.get("scores"))[str(kept)],
-        "known": raw.get("known"),
+        main = {**conclusion(raw, reference), "formed": formed(block, day)}
+    else:
+        main = conclusion(
+            {
+                "stage": kept,
+                "confidence": before.get("confidence"),
+                "matched": _object(block.get("scores"))[str(kept)],
+                "known": raw.get("known"),
+            },
+            reference,
+        )
+        main["formed"] = before.get("formed")
+    return {
+        **block,
+        "conclusion": main,
+        "hysteresis": state,
+        "dimensions": scored(rules, _objects(block.get("dimensions")), main["stage"]),
     }
-    return {**block, "conclusion": conclusion(main, reference), "hysteresis": state}
 
 
 def with_reference(
-    block: Mapping[str, object], reference: str | None, *, earlier: Earlier | None
+    block: Mapping[str, object],
+    reference: str | None,
+    *,
+    earlier: Earlier | None,
+    rules: MacroJudgementRules,
+    day: str,
 ) -> dict[str, object]:
     """``block`` with its conclusion stated against another last confirmed stage, as a
     correction of that stage alone states it; nothing else is judged again.
@@ -421,10 +479,12 @@ def with_reference(
             "threshold": raw.get("threshold"),
         }
     judged = {**block, "raw": raw, "conclusion": conclusion(raw, reference)}
-    counted = _object(block.get("hysteresis"))
-    if not counted:
-        return judged
-    return hold(judged, earlier, sessions_required=int(counted["sessions_required"]))
+    if not _object(block.get("hysteresis")):
+        return {
+            **judged,
+            "dimensions": scored(rules, _objects(block.get("dimensions")), raw["stage"]),
+        }
+    return hold(judged, earlier, rules=rules, day=day)
 
 
 def nearest(candidates: Sequence[str], reference: FormalStage | str | None) -> str:
@@ -735,9 +795,38 @@ def _consistent(block: object) -> bool:
     expected = conclusion(main, main.get("reference_stage"))
     if stage is not None and main.get("matched") != scores[str(stage)]:
         return False
+    # Each dimension is told against the main conclusion: its marks are the conclusion's
+    # score, and only a known dimension of a stage is marked.
+    marks = [item.get("matches") for item in dimensions]
+    if any(
+        (mark is None) != (stage is None or item.get("value") is None)
+        or mark not in (None, True, False)
+        for mark, item in zip(marks, dimensions, strict=True)
+    ):
+        return False
+    if stage is not None and marks.count(True) != main.get("matched"):
+        return False
     if not _held_consistent(block.get("hysteresis"), raw, main):
         return False
+    if not _formed_consistent(block, main):
+        return False
     return all(main.get(field) == expected[field] for field in ("steps", "direction"))
+
+
+def _formed_consistent(block: Mapping[str, Any], main: Mapping[str, Any]) -> bool:
+    """A conclusion taken from the day's raw judgement keeps that judgement as it stands; a
+    held one keeps the one it was taken from, at its stage and confidence (decision 24)."""
+    if block.get("hysteresis") is None:
+        return "formed" not in main
+    kept = main.get("formed")
+    if not isinstance(kept, Mapping):
+        return False
+    if _object(block.get("hysteresis")).get("basis") == "held":
+        return (kept.get("stage"), kept.get("confidence")) == (
+            main.get("stage"),
+            main.get("confidence"),
+        )
+    return {**kept, "on": None} == {**formed(block, ""), "on": None}
 
 
 def _held_consistent(counted: object, raw: Mapping[str, Any], main: Mapping[str, Any]) -> bool:

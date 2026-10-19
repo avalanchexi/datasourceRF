@@ -10,7 +10,7 @@ from pring_cycle.batches import current_batch_id
 from pring_cycle.display_projection import display_days, history_display
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.domain.stage import StageResult, derive_formal_stage
-from pring_cycle.macro_judgement import Earlier, with_reference
+from pring_cycle.macro_judgement import Earlier, MacroJudgementRules, with_reference
 from pring_cycle.macro_signals import regrouped
 from pring_cycle.macro_verification import combination_of, restated, verified
 from pring_cycle.noncanonical import build_basis
@@ -365,6 +365,7 @@ class P0ProjectionService:
         last_confirmed_stage: str | None,
         system_as_of: datetime,
         counted_from: Earlier | None,
+        macro_rules: MacroJudgementRules | None = None,
     ) -> str:
         """Append a version of ``held``, its day's latest summary, that corrects the day's
         last confirmed stage alone (follow-up ticket 01); the new assessment's id.
@@ -373,7 +374,7 @@ class P0ProjectionService:
         nothing is read again; the summary and its set stay. Its set's overview and stage
         history state the stage, and a lookback the set showed in its place goes once the
         history gives one. Its macro judgement's hysteresis counts on from ``counted_from``, as
-        the day summary reads it now.
+        the day summary reads it now, under the model's ``macro_rules``.
         """
         day = str(held["business_date"])
         kept = self._projections.get(str(held["projection_set_id"]))
@@ -424,8 +425,18 @@ class P0ProjectionService:
                 # Its conclusion is stated against that stage, its hysteresis counted on
                 # from ``counted_from`` again, and its signals and price verification against
                 # the conclusion; nothing is judged again.
+                if macro_rules is None:
+                    raise ValueError("macro_judgement_rules_missing")
                 overview["macro_judgement"] = restated(
-                    regrouped(with_reference(judgement, last_confirmed_stage, earlier=counted_from))
+                    regrouped(
+                        with_reference(
+                            judgement,
+                            last_confirmed_stage,
+                            earlier=counted_from,
+                            rules=macro_rules,
+                            day=day,
+                        )
+                    )
                 )
         judgement = overview.get("macro_judgement")
         assessment = self._projections.prepare_p0_assessment(

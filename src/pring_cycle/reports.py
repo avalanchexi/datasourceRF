@@ -571,6 +571,7 @@ def _macro_results(block: dict[str, Any]) -> dict[str, Any]:
         "title": macro_board.title(conclusion, block),
         "held": _held(block),
         "fallback": macro_board.fallback(block),
+        "raw_fallback": macro_board.raw_fallback(block),
         "conclusion": {
             field: conclusion.get(field)
             for field in (*_MACRO_PAIRS, "reference_stage", "steps", "direction")
@@ -676,7 +677,7 @@ def macro_sections(macro: dict[str, Any]) -> list[dict[str, str]]:
 
     judged = [
         str(macro.get("title")),
-        *(str(macro[field]) for field in ("held", "fallback") if macro.get(field)),
+        *(str(macro[field]) for field in ("held", "fallback", "raw_fallback") if macro.get(field)),
         # A dimension a sentence: its own line joins its votes by semicolons.
         *(str(item.get("line")) for item in _list(macro.get("dimensions"))),
     ]

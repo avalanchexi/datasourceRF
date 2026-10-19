@@ -514,6 +514,7 @@ class DaySummaries:
                         last_confirmed_stage=_text_or_none(last),
                         system_as_of=system_as_of,
                         counted_from=self._earlier_judgement(day),
+                        macro_rules=self._model.macro_judgement,
                     )
                 except (KeyError, LookupError, TypeError, ValueError) as error:
                     yield FailedDay(day, type(error).__name__)
@@ -678,7 +679,8 @@ class DaySummaries:
                 "effective_from": effective,
             },
             earlier,
-            sessions_required=rules.hysteresis_sessions,
+            rules=rules,
+            day=day,
         )
         signals, prices = self._model.macro_signals, self._model.price_rules
         if signals is None or prices is None:
