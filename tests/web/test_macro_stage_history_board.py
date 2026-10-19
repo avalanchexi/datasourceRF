@@ -66,7 +66,7 @@ def _colour(trace: dict[str, Any], row: int, column: int) -> str | None:
 def test_the_macro_judgement_is_the_bands_first_row_its_confidence_told_apart() -> None:
     trace = _bands(_projection())
 
-    assert list(trace["y"]) == ["宏观判断", "正式阶段", "债券", "股票", "商品"]
+    assert list(trace["y"]) == ["宏观判断", "价格阶段", "债券", "股票", "商品"]
     assert trace["text"][0] == [
         "生效前",
         "第五阶段（明确）",
@@ -112,13 +112,13 @@ def test_the_left_side_counts_the_macro_days_and_its_table_lists_them_the_layout
         "宏观判断日数：生效前 1 日 · 第五阶段（明确） 2 日 · 第五阶段（倾向） 1 日 · "
         "无可取阶段 1 日" in text
     )
-    assert "正式阶段日数：第三阶段 2 日 · 非典型组合，暂无正式阶段 2 日" in text
+    assert "价格阶段日数：第三阶段 2 日 · 非典型组合，暂无价格阶段 2 日" in text
     # The drawers still follow both sides; the table's columns lead with the macro row.
     assert not _find(bands, _is_panel) and not _find(intervals, _is_panel)
     [calendar] = [item for item in rest if _is_panel(item) and "色带" in _words(item.children[0])]
     table = _words(calendar)
-    assert "交易日 宏观判断 正式阶段 债券 股票 商品" in table
-    assert "2026-10-15 第五阶段（倾向） 非典型组合，暂无正式阶段" in table
+    assert "交易日 宏观判断 价格阶段 债券 股票 商品" in table
+    assert "2026-10-15 第五阶段（倾向） 非典型组合，暂无价格阶段" in table
 
 
 def _views(intervals: Component) -> tuple[list[Component], list[Component]]:
@@ -135,14 +135,14 @@ def test_the_intervals_can_be_listed_by_the_macro_judgement() -> None:
     switches, lists = _views(intervals)
 
     assert [(_words(item), getattr(item, "aria-pressed")) for item in switches] == [
-        ("正式阶段", "true"),
+        ("价格阶段", "true"),
         ("宏观判断", "false"),
     ]
     official, macro = lists
     assert (official.hidden, macro.hidden) == (False, True)
     assert [_words(item) for item in official.children] == [
         "10-12～10-13 第三阶段 2 日",
-        "10-14～10-15 非典型组合，暂无正式阶段 2 日",
+        "10-14～10-15 非典型组合，暂无价格阶段 2 日",
         "10-16 核心数据待处理 1 日",
     ]
     # By the macro judgement: a confidence changed breaks the interval, as a stage does.

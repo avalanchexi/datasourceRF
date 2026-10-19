@@ -81,3 +81,19 @@ def test_an_older_set_keeps_its_labels_and_its_turn_watch_row() -> None:
     )
 
     assert "转折观察 " in _board(projection) and "信号清单" not in _board(projection)
+
+
+def test_a_page_led_by_the_judgement_calls_the_cores_stage_the_price_stage(
+    tmp_path: Path,
+) -> None:
+    # GLOSSARY: 价格阶段. Only the published bond attribution note, the model's own text,
+    # still says 正式阶段.
+    projection = listed_day(tmp_path)
+    note = "不由宽松程度推算或改写债券牛熊与正式阶段"
+
+    for route in ("/", "/stage-history"):
+        text = _text(dashboard_page(route, projection, (), ())).replace(note, "")
+
+        assert "正式阶段" not in text
+        assert "五维定宏观阶段 · 价格表象作验证" in text
+        assert "价格阶段日数：" in text

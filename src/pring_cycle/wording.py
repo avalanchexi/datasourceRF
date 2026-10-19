@@ -87,6 +87,8 @@ MACRO_BOARD_NOTES = "旁注"
 # How a report's formal stage changed on its day, as its verified results record it.
 STAGE_CHANGE_LABELS = {"formal": "形成正式阶段", "gap": NO_FORMAL_STAGE}
 NONCANONICAL_NO_STAGE = "非典型组合，暂无正式阶段"
+# Under the macro judgement the cores' stage is the price stage (GLOSSARY: 价格阶段).
+FORMAL_TERM, PRICE_TERM = "正式阶段", "价格阶段"
 
 
 def noncanonical_stage_change(change: object, reason: object) -> bool:

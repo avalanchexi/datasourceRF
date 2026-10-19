@@ -28,6 +28,7 @@ from pring_cycle.wording import (
     _GDP_AGGREGATES,
     _GDP_MEASURES,
     CORE_STATE_LABELS,
+    FORMAL_TERM,
     MACRO_BOARD_NOTES,
     MACRO_CONFIDENCES,
     MACRO_HISTORY_BLANKS,
@@ -39,6 +40,7 @@ from pring_cycle.wording import (
     NO_MACRO_JUDGEMENT,
     NO_MEMBER_NAME,
     NONCANONICAL_NO_STAGE,
+    PRICE_TERM,
     DisplayName,
     core_state_label,
     display_name,
@@ -612,7 +614,12 @@ def report_board(
                             html.Header(
                                 [
                                     html.H2(f"{index:02d} {title}"),
-                                    html.P(BOARD_SUBTITLE, className="report-subtitle")
+                                    html.P(
+                                        MACRO_BOARD_SUBTITLE
+                                        if stage_term(projection) == PRICE_TERM
+                                        else BOARD_SUBTITLE,
+                                        className="report-subtitle",
+                                    )
                                     if key == "conclusion"
                                     else None,
                                 ],
@@ -645,6 +652,16 @@ def section_titles(judgement: Mapping[str, Any] | None) -> tuple[tuple[str, str]
 
 
 BOARD_SUBTITLE = "正式阶段 · 三核心 · 确认度 · 一致性 · 库存 · 归因，一板看完"
+MACRO_BOARD_SUBTITLE = "五维定宏观阶段 · 价格表象作验证 · 库存 · 归因，一板看完"
+
+
+def stage_term(projection: ProjectionSet | None) -> str:
+    """What the page calls the cores' own stage: the price stage once the macro judgement
+    leads the set (ADR-0043, GLOSSARY: 价格阶段), the formal stage on an older set."""
+    overview = view._dataset(projection, "cycle_overview")
+    return PRICE_TERM if macro_board.judgement(overview) is not None else FORMAL_TERM
+
+
 CORE_ORDER = ("bond", "stock", "commodity")
 CORE_NAMES = {"bond": "债券", "stock": "股票", "commodity": "商品"}
 # A blocked stage reason, named before the board lists each core (spec: reason line).
@@ -734,7 +751,7 @@ def price_verification_drawer(
     counted = (
         [
             html.H3(f"确认度（对价格阶段{stage_name(stage)}）"),
-            html.P(confirmation_heading(confirmation)),
+            html.P(confirmation_heading(confirmation, term=PRICE_TERM)),
             html.Div(
                 [
                     dimension_cell(item, applicable=applicable)
@@ -932,15 +949,16 @@ RELATION_SHORT = {
 LEGACY_MACRO_STATES = ("policy_direction", "credit_response", "overheat_state", "price_pressure")
 
 
-def confirmation_heading(confirmation: dict[str, Any]) -> str:
-    """Whether the confirmation is assessed, over how many key indicators, by which rules."""
+def confirmation_heading(confirmation: dict[str, Any], *, term: str = FORMAL_TERM) -> str:
+    """Whether the confirmation is assessed, over how many key indicators, by which rules;
+    ``term`` is what the page calls the stage it is assessed against."""
     summary = obj(confirmation.get("summary"))
     if not summary:
         return "该版本未提供确认汇总"
     rules = confirmation.get("macro_rules_version") or "版本未提供"
     if summary.get("applicable"):
         return f"可评估 · {summary.get('total')} 项关键指标 · 规则 {rules}"
-    return f"不适用 · {summary.get('total')} 项关键指标 · 无正式阶段，不计数 · 规则 {rules}"
+    return f"不适用 · {summary.get('total')} 项关键指标 · 无{term}，不计数 · 规则 {rules}"
 
 
 def _dimension_total(dimension: dict[str, Any]) -> int | None:
@@ -1714,7 +1732,7 @@ def _indicator_drawer(
                     html.P(
                         "非典型组合不判定命题与成熟度"
                         if is_noncanonical(projection)
-                        else "无正式阶段，不判定命题与成熟度",
+                        else f"无{stage_term(projection)}，不判定命题与成熟度",
                         className="empty-note",
                     )
                 ]
@@ -1858,13 +1876,13 @@ def inventory_section(confirmation: dict[str, Any], projection: ProjectionSet | 
     members = objects(indicator.get("members"))
     available = {str(card.get("label")): card for card in objects(document.get("cards"))}
     return [
-        quadrant_card(indicator),
+        quadrant_card(indicator, term=stage_term(projection)),
         line_cards(members, available, projection),
         *warrant_line(document, projection),
     ]
 
 
-def quadrant_card(indicator: dict[str, Any]) -> Any:
+def quadrant_card(indicator: dict[str, Any], *, term: str = FORMAL_TERM) -> Any:
     member = next((item for item in objects(indicator.get("members")) if "quadrant" in item), {})
     relation = str(indicator.get("relation"))
     return html.Div(
@@ -1882,7 +1900,7 @@ def quadrant_card(indicator: dict[str, Any]) -> Any:
             html.Span(
                 f"确认关系：{view._RELATION_LABELS[relation]}（象限仅计一项）"
                 if relation in RELATION_COUNTED
-                else "确认关系：不适用（无正式阶段，不计数）",
+                else f"确认关系：不适用（无{term}，不计数）",
                 className="secondary-copy",
             ),
         ],
@@ -2407,10 +2425,12 @@ HISTORY_LABELS = {
 }
 
 
-def history_label(value: object) -> str:
-    """A day's state in Chinese once: a stage's code stays in its drawer's title."""
+def history_label(value: object, *, term: str = FORMAL_TERM) -> str:
+    """A day's state in Chinese once: a stage's code stays in its drawer's title; ``term``
+    is what the page calls the cores' stage."""
     text = str(value)
-    return HISTORY_LABELS.get(text, stage_name(value) if text.startswith("stage_") else text)
+    label = HISTORY_LABELS.get(text, stage_name(value) if text.startswith("stage_") else text)
+    return label.replace(FORMAL_TERM, term)
 
 
 def lookback_note(lookback: object) -> list[Any]:
@@ -2529,11 +2549,12 @@ def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]
             html.P("旧投影未提供对齐的交易日色带；历史事件仍可阅读。"),
         ], []
     macro = macro_recorded(days)
+    term = PRICE_TERM if macro else FORMAL_TERM
     kinds = (("macro",) if macro else ()) + ("official", "bond", "stock", "commodity")
-    labels = ((MACRO_JUDGEMENT,) if macro else ()) + ("正式阶段", "债券", "股票", "商品")
+    labels = ((MACRO_JUDGEMENT,) if macro else ()) + (term, "债券", "股票", "商品")
 
     def label(day: Mapping[str, Any], key: str) -> str:
-        return macro_history_label(day) if key == "macro" else history_label(day[key])
+        return macro_history_label(day) if key == "macro" else history_label(day[key], term=term)
 
     calendar = drawer_key("history-calendar")
     cells = [[_band_category(day, key) for day in days] for key in kinds]
@@ -2587,9 +2608,9 @@ def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]
     )
     counts = [
         html.P(
-            "正式阶段日数："
+            f"{term}日数："
             + " · ".join(
-                f"{history_label(key)} {value} 日"
+                f"{history_label(key, term=term)} {value} 日"
                 for key, value in obj(display.get("counts")).items()
             )
         )
@@ -2613,7 +2634,7 @@ def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]
                         "宏观判断由政策、信用、增长、物价、库存五维对照特征表得出，"
                         "每日记滞回后的主结论，色深为明确、渐浅为倾向与弱；"
                         "生效前与无可取阶段留空，不倒推。"
-                        "正式阶段由债券、股票、商品的 120 日稳定方向映射，作价格验证。"
+                        "价格阶段由债券、股票、商品的 120 日稳定方向映射，作价格验证。"
                     )
                 ]
                 if macro
@@ -2695,12 +2716,14 @@ def history_intervals(days: Sequence[dict[str, Any]]) -> tuple[list[Any], list[A
             html.P("尚无阶段事件；首次完整投影发布后，区间会显示在这里。", className="empty-note"),
         ], []
     macro = macro_recorded(days)
+    term = PRICE_TERM if macro else FORMAL_TERM
     official, official_panels = _interval_list(
         days,
         lambda day: (day["official"],),
-        lambda day: history_label(day["official"]),
+        lambda day: history_label(day["official"], term=term),
         "history-interval",
         view="official" if macro else None,
+        term=term,
     )
     if not macro:
         return [heading, official], official_panels
@@ -2710,8 +2733,9 @@ def history_intervals(days: Sequence[dict[str, Any]]) -> tuple[list[Any], list[A
         macro_history_label,
         "history-macro-interval",
         view="macro",
+        term=term,
     )
-    views = (("official", "正式阶段"), ("macro", MACRO_JUDGEMENT))
+    views = (("official", term), ("macro", MACRO_JUDGEMENT))
     # Only the switch's script shows the other list; without it the formal one stays.
     switch = html.Div(
         [
@@ -2743,6 +2767,7 @@ def _interval_list(
     prefix: str,
     *,
     view: str | None = None,
+    term: str = FORMAL_TERM,
 ) -> tuple[html.Ul, list[Any]]:
     """The intervals of one ``state`` running over consecutive days, and their drawers; a
     ``view`` names the list for the switch between them, shown only for the formal stage."""
@@ -2789,7 +2814,7 @@ def _interval_list(
             drawer_panel(
                 key,
                 f"{label(run[0])} · {span(run)}",
-                [html.Ul([history_day(day) for day in run], className="record-list")],
+                [html.Ul([history_day(day, term=term) for day in run], className="record-list")],
                 code=stage_code(state(run[0])[0])
                 if str(state(run[0])[0]).startswith("stage_")
                 else None,
@@ -2814,8 +2839,9 @@ def projection_link(projection_set_id: object) -> Any:
     )
 
 
-def history_day(day: dict[str, Any]) -> html.Li:
-    """One day of an interval: its state, its event's facts, the version it corrects and why."""
+def history_day(day: dict[str, Any], *, term: str = FORMAL_TERM) -> html.Li:
+    """One day of an interval: its state, its event's facts, the version it corrects and why;
+    ``term`` is what the page calls the cores' stage."""
     corrects = day.get("corrects")
     gaps = day.get("gaps")
     facts = (
@@ -2826,7 +2852,7 @@ def history_day(day: dict[str, Any]) -> html.Li:
                 if day.get("last_confirmed_stage")
                 else "尚无"
             ),
-            "原因 " + history_label(day.get("stage_reason") or "未记录"),
+            "原因 " + history_label(day.get("stage_reason") or "未记录", term=term),
             "；".join(view._gap_label(str(value)) for value in gaps)
             if isinstance(gaps, list) and gaps
             else "无 P0 缺口",
@@ -2837,7 +2863,7 @@ def history_day(day: dict[str, Any]) -> html.Li:
     )
     return html.Li(
         [
-            html.Strong(f"{day['date']} · {history_label(day['official'])}"),
+            html.Strong(f"{day['date']} · {history_label(day['official'], term=term)}"),
             html.Span(" · ".join(facts), className="secondary-copy") if facts else None,
             html.Span(
                 [
