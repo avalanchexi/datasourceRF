@@ -87,7 +87,9 @@ class ReportInput:
         results: dict[str, Any] | None = None,
         gap_list: list[Any] | None = None,
     ) -> ReportInput:
-        schema_version, prompt_version = _contract(conclusions or {}, results)
+        conclusions = _without_evidence_identifiers(conclusions or {})
+        results = _without_evidence_identifiers(results or {})
+        schema_version, prompt_version = _contract(conclusions, results)
         display_names = _display_names(current_stage, conclusions, results)
         identity = {
             "projection_set_id": projection_set_id,
@@ -99,8 +101,8 @@ class ReportInput:
             "current_stage": current_stage,
             "stage_reason": stage_reason,
             "core_states": core_states,
-            "conclusions": conclusions or {},
-            "results": results or {},
+            "conclusions": conclusions,
+            "results": results,
             "gap_list": gap_list or [],
             "display_names": display_names,
             "schema_version": schema_version,
@@ -117,8 +119,8 @@ class ReportInput:
             current_stage=current_stage,
             stage_reason=stage_reason,
             core_states=core_states,
-            conclusions=conclusions or {},
-            results=results or {},
+            conclusions=conclusions,
+            results=results,
             gap_list=gap_list or [],
             display_names=display_names,
             schema_version=schema_version,
@@ -455,15 +457,8 @@ def _inventory_notes(inventory: dict[str, Any]) -> dict[str, Any]:
             for card in _list(inventory.get("cards"))
             if isinstance(card, dict)
         ],
-        "registered_warrants": (
-            {
-                key: value
-                for key, value in warrants.items()
-                if key not in {"observation_version_ids"}
-            }
-            if isinstance(warrants, dict)
-            else None
-        ),
+        # Its evidence identifiers are left out with every other (ReportInput.create).
+        "registered_warrants": dict(warrants) if isinstance(warrants, dict) else None,
         "real_inventory_approximation": (
             {
                 field: proxy.get(field)
@@ -563,6 +558,36 @@ def _display_names(*values: Any) -> dict[str, dict[str, str]]:
 
     visit(values)
     return {kind: dict(sorted(codes.items())) for kind, codes in names.items()}
+
+
+# What a fact rests on, not the fact: claim, observation and snapshot identifiers, at any
+# depth, under any prefix (``first_claim_ids``, ``input_observation_version_ids``...).
+_EVIDENCE_IDENTIFIER_SUFFIXES = (
+    "claim_id",
+    "claim_ids",
+    "observation_id",
+    "observation_ids",
+    "observation_version_id",
+    "observation_version_ids",
+    "snapshot_id",
+    "assessment_id",
+    "attempt_id",
+)
+
+
+def _without_evidence_identifiers(value: Any) -> Any:
+    """``value`` with every evidence identifier left out: tracing is the projection's and
+    the batch's job, and hundreds of them only crowd the AI's input (go-live leftovers 02).
+    Metric and stage codes stay, for the display names and the explanation checks."""
+    if isinstance(value, dict):
+        return {
+            key: _without_evidence_identifiers(item)
+            for key, item in value.items()
+            if not str(key).endswith(_EVIDENCE_IDENTIFIER_SUFFIXES)
+        }
+    if isinstance(value, list | tuple):
+        return [_without_evidence_identifiers(item) for item in value]
+    return value
 
 
 def _list(value: object) -> list[Any]:
