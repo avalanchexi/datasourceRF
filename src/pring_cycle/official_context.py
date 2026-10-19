@@ -42,6 +42,7 @@ from pring_cycle.evidence import (
     EvidenceRepository,
     EvidenceValueState,
     MetricSeriesPoint,
+    SourceClaimAcquisition,
     SourceClaimInput,
     publication_times,
 )
@@ -330,7 +331,7 @@ def parse_official_acquisition(
     """Rebuild the complete official release recorded by an acquisition."""
     if (
         receipt.state != "validated"
-        or receipt.api_name not in {"document_import", "official_http_get"}
+        or receipt.api_name not in _OFFICIAL_API_NAMES
         or receipt.parser_version != "official-context-parser-v0004"
         or receipt.fields != ""
         or receipt.received_at is None
@@ -476,37 +477,63 @@ def official_claims_matching_acquisitions(
 
 def official_gdp_quarters_matching_baselines(
     repository: EvidenceRepository,
-    quarter_values: Mapping[str, float],
+    quarters: Mapping[str, tuple[MetricSeriesPoint, float]],
+    *,
+    definition_version: str,
+    as_of: datetime,
 ) -> set[str]:
-    """Validate YTD differences against each selected release's nominal quarter.
+    """Validate YTD differences against the nominal quarter an official release states.
+
+    ``quarters`` maps each selected YTD claim to its point and the quarter differenced
+    from it. An official claim is checked against its own release. A claim from another
+    source (a news story, a TuShare quarter fetched alone) is checked against the
+    bureau's releases of its quarter known by ``as_of``: one that states the same YTD
+    and that quarter shows the baseline is of its vintage (go-live leftovers 05).
 
     This is a constraint on cross-release arithmetic, not a new observed metric.
     Callers must also validate every selected YTD parent, including the baseline.
     """
+    provider = _PROVIDERS["nbs_gdp"][0]
+
+    def stated(acquisition: SourceClaimAcquisition) -> _GdpRow | None:
+        try:
+            parsed = parse_official_acquisition(acquisition.receipt, acquisition.raw)
+            if parsed.family != "nbs_gdp":
+                return None
+            _validate_registered_gdp_table(acquisition.raw, parsed.period)
+            parser = _OfficialHtmlParser()
+            parser.feed(_decode_document(acquisition.raw))
+            return _gdp_rows(parser.tables, parsed.period)["total"]
+        except (LookupError, TypeError, ValueError):
+            return None
+
     comparable: set[str] = set()
     for claim_id, acquisitions in repository.source_claim_acquisitions_many(
-        tuple(quarter_values)
+        tuple(quarters)
     ).items():
+        point, quarter = quarters[claim_id]
         if not acquisitions:
             continue
-        for acquisition in acquisitions:
-            try:
-                parsed = parse_official_acquisition(acquisition.receipt, acquisition.raw)
-                if parsed.family != "nbs_gdp":
-                    break
-                _validate_registered_gdp_table(acquisition.raw, parsed.period)
-                parser = _OfficialHtmlParser()
-                parser.feed(_decode_document(acquisition.raw))
-                table = _table_with_first_column_members(
-                    parser.tables, {"GDP", "第一产业", "第二产业", "第三产业"}
-                )
-                row = _unique_first_cell_row(table, "GDP")
-                announced_quarter = _bounded_number(row[1], minimum=0)
-            except (LookupError, TypeError, ValueError):
-                break
-            if announced_quarter != quarter_values[claim_id]:
-                break
-        else:
+        if any(item.receipt.api_name in _OFFICIAL_API_NAMES for item in acquisitions):
+            if all(
+                (row := stated(item)) is not None and row.quarter_level == quarter
+                for item in acquisitions
+            ):
+                comparable.add(claim_id)
+            continue
+        releases = repository.provider_acquisitions(
+            "CN_GDP",
+            point.period_end,
+            provider=provider,
+            definition_version=definition_version,
+            as_of=as_of,
+        )
+        if any(
+            (row := stated(item)) is not None
+            and row.ytd_level == point.selected_value
+            and row.quarter_level == quarter
+            for item in releases
+        ):
             comparable.add(claim_id)
     return comparable
 
@@ -1782,12 +1809,124 @@ def _parse_ppi(
     )
 
 
+_OFFICIAL_API_NAMES = frozenset({"document_import", "official_http_get"})
+_GDP_AGGREGATES = (
+    ("total", "gdp"),
+    ("primary", "pi"),
+    ("secondary", "si"),
+    ("tertiary", "ti"),
+)
+_GDP_RELEASE_LABELS = ("GDP", "第一产业", "第二产业", "第三产业")
+_GDP_COMPOSITE_LABELS = ("一、国内生产总值（亿元）", "第一产业", "第二产业", "第三产业")
+_QUARTER_NAMES = ("一季度", "二季度", "三季度", "四季度")
+
+
+@dataclass(frozen=True)
+class _GdpRow:
+    """One aggregate as either NBS table states it: the quarter's nominal level and real
+    growth, and the year to date's nominal level. In the first quarter they are one."""
+
+    quarter_level: float
+    quarter_yoy: float
+    ytd_level: float
+
+
+def _gdp_table(tables: list[list[tuple[str, ...]]]) -> tuple[bool, list[tuple[str, ...]]]:
+    """The release's GDP table, and whether it is the monthly indicators' composite one.
+
+    The accounting release has a table of its own (rows "GDP" and the three industries);
+    the monthly indicators release states the quarter in its composite table, whose GDP
+    rows open with "一、国内生产总值（亿元）" (go-live leftovers 05).
+    """
+    try:
+        return False, _table_with_first_column_members(tables, set(_GDP_RELEASE_LABELS))
+    except ValueError as error:
+        composite = _unique_tables(
+            table
+            for table in tables
+            if any(row and _compact_text(row[0]) == _GDP_COMPOSITE_LABELS[0] for row in table)
+        )
+        if len(composite) != 1:
+            raise error
+        return True, composite[0]
+
+
+def _gdp_rows(tables: list[list[tuple[str, ...]]], period: str) -> dict[str, _GdpRow]:
+    """Each aggregate's row, by the columns its table states (``_gdp_table``)."""
+    composite, table = _gdp_table(tables)
+    if composite:
+        return _composite_gdp_rows(table, period)
+    quarter = int(period[-1])
+    level_index = 1 if quarter == 1 else 2
+    yoy_index = 2 if quarter == 1 else 3
+    rows = {}
+    for (aggregate, _prefix), label in zip(_GDP_AGGREGATES, _GDP_RELEASE_LABELS, strict=True):
+        row = _unique_first_cell_row(table, label)
+        rows[aggregate] = _GdpRow(
+            quarter_level=_bounded_number(row[1], minimum=0),
+            quarter_yoy=_percent(row[yoy_index]),
+            ytd_level=_bounded_number(row[level_index], minimum=0),
+        )
+    return rows
+
+
+def _composite_gdp_rows(table: list[tuple[str, ...]], period: str) -> dict[str, _GdpRow]:
+    """The composite table's GDP rows: the month's columns, then the year to date's, each
+    a level and its growth; GDP's month cells hold the quarter, named after the value.
+
+    The rows are told by place: the three industries' names recur under investment.
+    """
+    quarter = int(period[-1])
+    month = quarter * 3
+    header = tuple(_compact_text(cell) for cell in table[0])
+    if (
+        len(header) != 3
+        or header[:2] != ("指标", f"{month}月")
+        or re.fullmatch(rf"1[-—–－]{month}月", header[2]) is None
+        or tuple(_compact_text(cell) for cell in table[1])
+        != ("绝对量", "同比增长（%）", "绝对量", "同比增长（%）")
+    ):
+        raise ValueError("official_context_table_schema_mismatch")
+    labels = [_compact_text(row[0]) if row else "" for row in table]
+    start = labels.index(_GDP_COMPOSITE_LABELS[0])
+    block = table[start : start + len(_GDP_COMPOSITE_LABELS)]
+    if labels.count(_GDP_COMPOSITE_LABELS[0]) != 1 or tuple(
+        labels[start : start + len(_GDP_COMPOSITE_LABELS)]
+    ) != (_GDP_COMPOSITE_LABELS):
+        raise ValueError("official_context_row_identity_mismatch")
+    quarter_tag = f"（{_QUARTER_NAMES[quarter - 1]}）"
+    rows = {}
+    for (aggregate, _prefix), row in zip(_GDP_AGGREGATES, block, strict=True):
+        if len(row) != 5:
+            raise ValueError("official_context_table_schema_mismatch")
+        level, yoy, ytd_level = (_compact_text(cell) for cell in row[1:4])
+        if quarter == 1 and level == yoy == "…":
+            # The first quarter is the year to date; its month columns are left out.
+            level, yoy = ytd_level, _compact_text(row[4])
+        elif level.endswith(quarter_tag) and yoy.endswith(quarter_tag):
+            level, yoy = level.removesuffix(quarter_tag), yoy.removesuffix(quarter_tag)
+        else:
+            raise ValueError("official_context_table_schema_mismatch")
+        rows[aggregate] = _GdpRow(
+            quarter_level=_bounded_number(level, minimum=0),
+            quarter_yoy=_percent(yoy),
+            ytd_level=_bounded_number(ytd_level, minimum=0),
+        )
+    return rows
+
+
 def _validate_registered_gdp_table(content: bytes, period: str) -> None:
     """Check new-catalog source semantics without rewriting the v4 parser contract."""
     parser = _OfficialHtmlParser()
     parser.feed(_decode_document(content))
-    members = {"GDP", "第一产业", "第二产业", "第三产业"}
-    table = _table_with_first_column_members(parser.tables, members)
+    composite, table = _gdp_table(parser.tables)
+    table_text = "".join(_compact_text(cell) for row in table for cell in row)
+    if composite:
+        # Its columns are checked as it is read; levels are at current prices, as every
+        # NBS level is, and its note says the growth is real.
+        if "国内生产总值及其分类项目增长速度按不变价计算" not in table_text:
+            raise ValueError("registered_gdp_table_contract_mismatch")
+        return
     header = tuple(_compact_text(cell) for cell in table[0])
     if header != ("", "绝对额（亿元）", "比上年同期增长（%）"):
         raise ValueError("registered_gdp_table_contract_mismatch")
@@ -1807,10 +1946,9 @@ def _validate_registered_gdp_table(content: bytes, period: str) -> None:
             raise ValueError("registered_gdp_table_contract_mismatch")
     if any(
         len(_unique_first_cell_row(table, member)) != (3 if quarter == 1 else 5)
-        for member in members
+        for member in _GDP_RELEASE_LABELS
     ):
         raise ValueError("registered_gdp_table_contract_mismatch")
-    table_text = "".join(_compact_text(cell) for row in table for cell in row)
     bases = re.findall(r"绝对额按([^，,；;。]+)[，,]增长速度按([^，,；;。]+)", table_text)
     if bases != [("现价计算", "不变价计算")]:
         raise ValueError("registered_gdp_table_contract_mismatch")
@@ -1825,21 +1963,11 @@ def _parse_gdp(
     quarter = int(quarter_text)
     quarter_start = f"{year}-{(quarter - 1) * 3 + 1:02d}-01"
     quarter_end = month_bounds(f"{year}-{quarter * 3:02d}")[1]
-    level_index = 1 if quarter == 1 else 2
-    yoy_index = 2 if quarter == 1 else 3
-    rows = _table_with_first_column_members(
-        tables,
-        {"GDP", "第一产业", "第二产业", "第三产业"},
-    )
+    rows = _gdp_rows(tables, period)
     return tuple(
         scalar
-        for label, aggregate, prefix in (
-            ("GDP", "total", "gdp"),
-            ("第一产业", "primary", "pi"),
-            ("第二产业", "secondary", "si"),
-            ("第三产业", "tertiary", "ti"),
-        )
-        for row in (_unique_first_cell_row(rows, label),)
+        for aggregate, prefix in _GDP_AGGREGATES
+        for row in (rows[aggregate],)
         for scalar in (
             _official_scalar(
                 "CN_GDP",
@@ -1849,7 +1977,7 @@ def _parse_gdp(
                 f"{year}-01-01",
                 quarter_end,
                 {"aggregate": aggregate, "measure": "nominal_ytd_level"},
-                _bounded_number(row[level_index], minimum=0),
+                row.ytd_level,
                 "hundred_million_cny",
                 release_at,
             ),
@@ -1861,7 +1989,7 @@ def _parse_gdp(
                 quarter_start,
                 quarter_end,
                 {"aggregate": aggregate, "measure": "real_quarter_yoy"},
-                _percent(row[yoy_index]),
+                row.quarter_yoy,
                 "percent",
                 release_at,
             ),

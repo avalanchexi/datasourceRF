@@ -431,6 +431,37 @@ class EvidenceRepository:
                 stated[str(row["period_end"])] = float(row["value"])
         return delivered
 
+    def provider_acquisitions(
+        self,
+        metric_id: str,
+        period_end: str,
+        *,
+        provider: str,
+        definition_version: str,
+        as_of: datetime,
+    ) -> tuple[SourceClaimAcquisition, ...]:
+        """The hash-checked originals behind a provider's claims of one metric's period,
+        whichever member they state; only claims available by ``as_of`` count."""
+        if as_of.tzinfo is None:
+            raise ValueError("as_of_must_be_timezone_aware")
+        with self._connect() as connection:
+            alike, versions = self._defined_alike_clause(
+                connection, definition_version, metric_id=metric_id
+            )
+            rows = connection.execute(
+                f"""SELECT claim_id, available_at FROM source_claim
+                    WHERE metric_id=? AND provider=? AND period_end=? AND {alike}""",
+                (metric_id, provider, period_end, *versions),
+            ).fetchall()
+        claim_ids = tuple(
+            str(row["claim_id"]) for row in rows if _required_datetime(row["available_at"]) <= as_of
+        )
+        unique: dict[str, SourceClaimAcquisition] = {}
+        for acquisitions in self.source_claim_acquisitions_many(claim_ids).values():
+            for acquisition in acquisitions:
+                unique.setdefault(acquisition.receipt.acquisition_id, acquisition)
+        return tuple(unique.values())
+
     def source_claim_acquisitions_many(
         self, claim_ids: tuple[str, ...]
     ) -> dict[str, tuple[SourceClaimAcquisition, ...]]:
