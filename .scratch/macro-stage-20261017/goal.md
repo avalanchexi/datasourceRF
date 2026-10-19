@@ -50,5 +50,6 @@
 | 票 | 状态 | 执行者／分支 |
 |---|---|---|
 | 01 回测重跑＋对照表 | done（对照表定稿 24 格，da9ba92） | ticket-ms01／prototype/macro-stage |
-| 02–09 | 等 golive 全套通过 | — |
+| 02 宏观判断贯通 | 进行中（10-19 19:0x 派出） | ticket-ms02／ms-02 |
+| 03–09 | 等 02 | — |
 | 10 | ready-for-human | — |
