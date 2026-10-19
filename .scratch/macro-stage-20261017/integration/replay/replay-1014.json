@@ -1,0 +1,651 @@
+{
+ "original_run": "run-0eb9553118ba92a183b9",
+ "run_id": "run-358f89501f349691cb28",
+ "target": "2026-10-14",
+ "system_as_of": "2026-10-15T02:00:36.571145+00:00",
+ "status": "completed",
+ "error": null,
+ "projection_set_id": "projection-814b0fb0cb7730a7081d",
+ "seconds": 834.0,
+ "formal_stage": null,
+ "stage_reason": "noncanonical_combination",
+ "core_assets": [
+  {
+   "asset": "bond",
+   "state": "bull",
+   "reason": "validated",
+   "candidate_30d": "bull",
+   "observation_count": 120
+  },
+  {
+   "asset": "stock",
+   "state": "bear",
+   "reason": "validated",
+   "candidate_30d": "bear",
+   "observation_count": 120
+  },
+  {
+   "asset": "commodity",
+   "state": "bull",
+   "reason": "validated",
+   "candidate_30d": "bull",
+   "observation_count": 120
+  }
+ ],
+ "offline": 1,
+ "macro_judgement": {
+  "conclusion": {
+   "confidence": "explicit",
+   "direction": "forward",
+   "formed": {
+    "basis": "unique_top",
+    "confidence": "explicit",
+    "fallback": null,
+    "known": 5,
+    "matched": 4,
+    "on": "2026-10-14",
+    "reference_stage": "stage_iii",
+    "scores": {
+     "stage_i": 2,
+     "stage_ii": 0,
+     "stage_iii": 2,
+     "stage_iv": 2,
+     "stage_v": 4,
+     "stage_vi": 3
+    },
+    "stage": "stage_v",
+    "threshold": 3,
+    "tied": [],
+    "unknown": []
+   },
+   "known": 5,
+   "matched": 4,
+   "reference_stage": "stage_iii",
+   "stage": "stage_v",
+   "steps": 2
+  },
+  "dimensions": [
+   {
+    "basis": "no_action",
+    "dimension": "policy",
+    "group": "monetary",
+    "indicators": [
+     {
+      "action": "none",
+      "actions": [],
+      "evidence_status": "current",
+      "key": "policy_rate",
+      "name": "政策利率",
+      "voting": true
+     },
+     {
+      "action": "none",
+      "actions": [],
+      "evidence_status": "current",
+      "key": "lpr",
+      "name": "LPR",
+      "voting": true
+     },
+     {
+      "action": "none",
+      "actions": [],
+      "evidence_status": "current",
+      "key": "rrr",
+      "name": "降准",
+      "voting": true
+     },
+     {
+      "key": "liquidity",
+      "name": "流动性投放",
+      "voting": false
+     },
+     {
+      "key": "dr007",
+      "name": "DR007",
+      "voting": false
+     }
+    ],
+    "matches": true,
+    "position": null,
+    "value": "neutral"
+   },
+   {
+    "basis": "tie_broken",
+    "dimension": "credit",
+    "group": "monetary",
+    "indicators": [
+     {
+      "divergent": true,
+      "evidence_status": "current",
+      "key": "social_financing",
+      "name": "社融",
+      "period": "2026-08-31",
+      "vote": "down",
+      "voting": true
+     },
+     {
+      "divergent": true,
+      "evidence_status": "current",
+      "key": "money",
+      "name": "M1/M2",
+      "period": "2026-08-31",
+      "vote": "up",
+      "voting": true
+     },
+     {
+      "divergent": true,
+      "evidence_status": "current",
+      "key": "loans",
+      "name": "贷款",
+      "period": "2026-08-31",
+      "vote": null,
+      "voting": false
+     }
+    ],
+    "matches": true,
+    "position": "low",
+    "position_from": "social_financing",
+    "tally": {
+     "down": 1,
+     "up": 1
+    },
+    "tie_breaker": "social_financing",
+    "value": "down"
+   },
+   {
+    "basis": "majority",
+    "dimension": "overheat",
+    "group": "economic",
+    "indicators": [
+     {
+      "divergent": true,
+      "evidence_status": "current",
+      "key": "pmi",
+      "name": "PMI",
+      "period": "2026-09-30",
+      "vote": "up",
+      "voting": true
+     },
+     {
+      "divergent": false,
+      "evidence_status": "current",
+      "key": "industrial_va",
+      "name": "工业增加值",
+      "period": "2026-08-31",
+      "vote": "up",
+      "voting": true
+     },
+     {
+      "divergent": false,
+      "evidence_status": "current",
+      "key": "gdp",
+      "name": "GDP",
+      "period": "2026-06-30",
+      "vote": "down",
+      "voting": true
+     },
+     {
+      "divergent": false,
+      "evidence_status": "current",
+      "key": "capacity_utilization",
+      "name": "产能利用率",
+      "period": "2026-06-30",
+      "vote": "down",
+      "voting": true
+     },
+     {
+      "divergent": true,
+      "evidence_status": "current",
+      "key": "industrial_profit",
+      "name": "工业企业盈利",
+      "period": "2026-08-31",
+      "vote": "down",
+      "voting": true
+     }
+    ],
+    "matches": true,
+    "position": "middle",
+    "position_from": "industrial_va",
+    "tally": {
+     "down": 3,
+     "up": 2
+    },
+    "value": "down"
+   },
+   {
+    "basis": "majority",
+    "dimension": "price",
+    "group": "economic",
+    "indicators": [
+     {
+      "divergent": false,
+      "evidence_status": "current",
+      "key": "ppi",
+      "name": "PPI",
+      "period": "2026-09-30",
+      "vote": "up",
+      "voting": true
+     },
+     {
+      "divergent": false,
+      "evidence_status": "current",
+      "key": "cpi",
+      "name": "CPI",
+      "period": "2026-09-30",
+      "vote": "up",
+      "voting": true
+     },
+     {
+      "divergent": false,
+      "evidence_status": "current",
+      "key": "pmi_prices",
+      "name": "PMI 价格",
+      "period": "2026-09-30",
+      "vote": "up",
+      "voting": true
+     }
+    ],
+    "matches": true,
+    "position": "high",
+    "position_from": "ppi",
+    "tally": {
+     "up": 3
+    },
+    "value": "up"
+   },
+   {
+    "basis": "quadrant",
+    "dimension": "inventory",
+    "group": "inventory",
+    "indicators": [
+     {
+      "divergent": true,
+      "evidence_status": "current",
+      "key": "inventory_quadrant",
+      "name": "库存象限",
+      "period": "2026-08-31",
+      "quadrant": "active_restocking",
+      "voting": true
+     }
+    ],
+    "matches": false,
+    "position": null,
+    "value": "active_restocking"
+   }
+  ],
+  "effective_from": "2026-10-14",
+  "hysteresis": {
+   "basis": "initial",
+   "candidate": null,
+   "sessions": 0,
+   "sessions_required": 10
+  },
+  "price_verification": {
+   "combination": {
+    "bond": "bull",
+    "commodity": "bull",
+    "stock": "bear"
+   },
+   "comparisons": [
+    {
+     "asset": "commodity",
+     "candidate_30d": "bull",
+     "candidate_days": 0,
+     "candidate_state": null,
+     "current_state": "bull",
+     "persistence_required": 8,
+     "required_state": "bear",
+     "stage": "stage_i"
+    },
+    {
+     "asset": "stock",
+     "candidate_30d": "bear",
+     "candidate_days": 0,
+     "candidate_state": null,
+     "current_state": "bear",
+     "persistence_required": 8,
+     "required_state": "bull",
+     "stage": "stage_iii"
+    },
+    {
+     "asset": "bond",
+     "candidate_30d": "bull",
+     "candidate_days": 0,
+     "candidate_state": null,
+     "current_state": "bull",
+     "persistence_required": 8,
+     "required_state": "bear",
+     "stage": "stage_v"
+    }
+   ],
+   "deviations": [
+    "bond"
+   ],
+   "expected": {
+    "bond": "bear",
+    "commodity": "bull",
+    "stock": "bear"
+   },
+   "expected_stage": "stage_v",
+   "price_stage": null,
+   "reason": "noncanonical_combination",
+   "verdict": "deviates"
+  },
+  "raw": {
+   "basis": "unique_top",
+   "confidence": "explicit",
+   "fallback": null,
+   "known": 5,
+   "matched": 4,
+   "stage": "stage_v",
+   "threshold": 3,
+   "tied": []
+  },
+  "rules_version": "macro-judgement-v0001",
+  "scores": {
+   "stage_i": 2,
+   "stage_ii": 0,
+   "stage_iii": 2,
+   "stage_iv": 2,
+   "stage_v": 4,
+   "stage_vi": 3
+  },
+  "signals": [
+   {
+    "group": "back",
+    "id": "D-social_financing",
+    "indicator": {
+     "dimension": "credit",
+     "key": "social_financing",
+     "main_direction": "down",
+     "name": "社融",
+     "period": "2026-08-31"
+    },
+    "kind": "divergence",
+    "maturity": "sprout",
+    "minority": {
+     "direction": "up",
+     "members": [
+      "外币贷款（折人民币）存量同比",
+      "委托贷款存量同比",
+      "企业债券存量同比",
+      "非金融企业境内股票存量同比"
+     ]
+    },
+    "periods": 1,
+    "rejudged": {
+     "basis": "tied",
+     "confidence": "tendency",
+     "dimension": {
+      "dimension": "credit",
+      "value": "up"
+     },
+     "joined": false,
+     "known": 5,
+     "matched": 3,
+     "stage": "stage_iii",
+     "tied": [
+      "stage_iii",
+      "stage_iv",
+      "stage_v"
+     ]
+    },
+    "same_source": false,
+    "steps": -2,
+    "transition": {
+     "from": "stage_v",
+     "to": "stage_iii"
+    }
+   },
+   {
+    "group": "back",
+    "id": "D-loans",
+    "indicator": {
+     "dimension": "credit",
+     "key": "loans",
+     "main_direction": "down",
+     "name": "贷款",
+     "period": "2026-08-31"
+    },
+    "kind": "divergence",
+    "maturity": "sprout",
+    "minority": {
+     "direction": "up",
+     "members": [
+      "票据融资当月增量（较去年同月）",
+      "非银行业金融机构贷款当月增量（较去年同月）"
+     ]
+    },
+    "periods": 1,
+    "rejudged": {
+     "basis": "tied",
+     "confidence": "tendency",
+     "dimension": {
+      "dimension": "credit",
+      "value": "up"
+     },
+     "joined": true,
+     "known": 5,
+     "matched": 3,
+     "stage": "stage_iii",
+     "tied": [
+      "stage_iii",
+      "stage_iv",
+      "stage_v"
+     ]
+    },
+    "same_source": false,
+    "steps": -2,
+    "transition": {
+     "from": "stage_v",
+     "to": "stage_iii"
+    }
+   },
+   {
+    "group": "hold",
+    "id": "D-money",
+    "indicator": {
+     "dimension": "credit",
+     "key": "money",
+     "main_direction": "up",
+     "name": "M1/M2",
+     "period": "2026-08-31"
+    },
+    "kind": "divergence",
+    "maturity": "sprout",
+    "minority": {
+     "direction": "down",
+     "members": [
+      "M2 同比"
+     ]
+    },
+    "periods": 1,
+    "rejudged": {
+     "basis": "unique_top",
+     "confidence": "explicit",
+     "dimension": {
+      "dimension": "credit",
+      "value": "down"
+     },
+     "joined": false,
+     "known": 5,
+     "matched": 4,
+     "stage": "stage_v",
+     "tied": []
+    },
+    "same_source": false,
+    "steps": 0,
+    "transition": {
+     "from": "stage_v",
+     "to": "stage_v"
+    }
+   },
+   {
+    "group": "hold",
+    "id": "D-pmi",
+    "indicator": {
+     "dimension": "overheat",
+     "key": "pmi",
+     "main_direction": "up",
+     "name": "PMI",
+     "period": "2026-09-30"
+    },
+    "kind": "divergence",
+    "maturity": "sprout",
+    "minority": {
+     "direction": "down",
+     "members": [
+      "新订单"
+     ]
+    },
+    "periods": 1,
+    "rejudged": {
+     "basis": "unique_top",
+     "confidence": "explicit",
+     "dimension": {
+      "dimension": "overheat",
+      "value": "down"
+     },
+     "joined": false,
+     "known": 5,
+     "matched": 4,
+     "stage": "stage_v",
+     "tied": []
+    },
+    "same_source": false,
+    "steps": 0,
+    "transition": {
+     "from": "stage_v",
+     "to": "stage_v"
+    }
+   },
+   {
+    "group": "back",
+    "id": "D-industrial_profit",
+    "indicator": {
+     "dimension": "overheat",
+     "key": "industrial_profit",
+     "main_direction": "down",
+     "name": "工业企业盈利",
+     "period": "2026-08-31"
+    },
+    "kind": "divergence",
+    "maturity": "sprout",
+    "minority": {
+     "direction": "up",
+     "members": [
+      "营业收入累计同比（累计口径）",
+      "营业成本累计同比（累计口径）"
+     ]
+    },
+    "periods": 1,
+    "rejudged": {
+     "basis": "tied",
+     "confidence": "tendency",
+     "dimension": {
+      "dimension": "overheat",
+      "value": "up"
+     },
+     "joined": false,
+     "known": 5,
+     "matched": 3,
+     "stage": "stage_iii",
+     "tied": [
+      "stage_iii",
+      "stage_iv",
+      "stage_v"
+     ]
+    },
+    "same_source": false,
+    "steps": -2,
+    "transition": {
+     "from": "stage_v",
+     "to": "stage_iii"
+    }
+   },
+   {
+    "group": "open",
+    "id": "D-inventory_quadrant",
+    "indicator": {
+     "dimension": "inventory",
+     "key": "inventory_quadrant",
+     "main_direction": null,
+     "name": "库存象限",
+     "period": "2026-08-31"
+    },
+    "kind": "divergence",
+    "maturity": "sprout",
+    "minority": {
+     "direction": "down",
+     "members": [
+      "库存：PMI 产成品库存"
+     ]
+    },
+    "periods": 1,
+    "rejudged": null,
+    "same_source": false,
+    "steps": null,
+    "transition": {
+     "from": "stage_v",
+     "to": null
+    }
+   }
+  ],
+  "sprouts": [
+   {
+    "group": "back",
+    "id": "R1",
+    "kind": "price",
+    "maturity": "sprout",
+    "momentum": {
+     "against": "bond",
+     "change_pp": 3.4309523459073343,
+     "label": "商品对债",
+     "level": "down",
+     "of": "commodity",
+     "pair": "commodity_vs_bond",
+     "turn": "up",
+     "turn_sessions": 20,
+     "value_pp": -0.26703502573590665
+    },
+    "same_source": true,
+    "sessions": 1,
+    "source": "relative_momentum",
+    "steps": -2,
+    "transition": {
+     "from": "stage_ii",
+     "to": "stage_iii"
+    }
+   },
+   {
+    "group": "hold",
+    "id": "R11",
+    "kind": "price",
+    "maturity": "sprout",
+    "momentum": {
+     "against": "commodity",
+     "change_pp": -11.868972810374434,
+     "label": "股票对商品",
+     "level": "down",
+     "of": "stock",
+     "pair": "stock_vs_commodity",
+     "turn": "down",
+     "turn_sessions": 20,
+     "value_pp": -13.992478437611167
+    },
+    "same_source": true,
+    "sessions": 1,
+    "source": "relative_momentum",
+    "steps": 0,
+    "transition": {
+     "from": "stage_iv",
+     "to": "stage_v"
+    }
+   }
+  ]
+ },
+ "served_requests": 154,
+ "offline_requests": [
+  "https://api.eia.gov/v2/petroleum/pri/spt/data/?api_key=offline-placeholder&data%5B%5D=value&end=2026-10-14&facets%5Bseries%5D%5B%5D=RBRTE&facets%5Bseries%5D%5B%5D=RWTC&frequency=daily&length=5000&offset=0&sort%5B0%5D%5Bcolumn%5D=period&sort%5B0%5D%5Bdirection%5D=asc&start=2026-04-02"
+ ]
+}
