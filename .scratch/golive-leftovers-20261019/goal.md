@@ -19,4 +19,4 @@
 | 04 指数范围 | done（0da4150，合并 4a9ff2e） | ticket-gl04／gl-04 |
 | 02 报告输入精简 | done（3bbf8f6，快进合入；10-19 提示词 91,805→65,430 字节） | ticket-gl02／gl-02 |
 | 06 | needs-triage | — |
-| 07 | ready-for-human | — |
+| 07 | ready-for-human：全套 2756 过（main b3a8ada，2026-10-20 00:04–01:56）；待用户同意上线（Q38） | — |
