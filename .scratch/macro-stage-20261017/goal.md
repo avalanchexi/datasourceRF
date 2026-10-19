@@ -42,6 +42,12 @@
 - 08：每日记 `conclusion.stage` 与 `conclusion.confidence`，两者可同为 None，色带要能显示"无可取阶段"空格；`raw.basis`、`raw.fallback.source` 可标注来源，但阶段史只记主结论。
 - `_judge_macro` 新增 `readiness`、`decided` 参数；三核心组合 `combination` 同时传给主判断与 04 的分化重判。
 
+## 票 06 留下的接口（78254fc，合并 9917b08）
+
+- `cycle_overview.macro_judgement.price_verification`：`price_stage`、`reason`、`combination{bond,stock,commodity}`（bull／bear／None）、`expected_stage`（即主结论阶段）、`expected{...}`、`deviations[]`（债、股、商顺序）、`verdict`（consistent／deviates／unavailable）、`comparisons[]`（非典型时即 `noncanonical_basis.comparisons`）。
+- 写入点 `P0ProjectionService.publish`，**排在 05 滞回与 04 信号之后**，读最终主结论；纯函数与校验在 `macro_verification.py`；整句 `macro_board.verification_line(block)`。
+- 06 的偏离：抽屉另收 02 暂留的原因、上次确认、核心沿用、判法；新投影右栏去掉确认度，标题暂定"旁注"（待用户验收）；relink 用 `restated` 重算价格验证（未单测）。
+
 ## 单票规程（02–09）
 
 1. **worktree**：从 `macro-stage` 建 `ms-NN` 分支与 worktree `/home/tywin/worktrees/datasourceRF-ms-NN`；开工前确认基于 `macro-stage` 最新头，不是就 rebase 上去。
@@ -76,7 +82,8 @@
 | 02 宏观判断贯通 | done（80e8932，快进合入；冒烟＋新测 17 过） | ticket-ms02／ms-02 |
 | 03 兜底 | done（736169d，合并 4fb29cf；55 过） | ticket-ms03／ms-03 |
 | 04 信号清单 | done（3f0d1c1，快进合入；36 过） | ticket-ms04／ms-04 |
-| 06 价格验证 | 进行中（20:1x 派出） | ticket-ms06／ms-06 |
+| 06 价格验证 | done（78254fc，合并 9917b08） | ticket-ms06／ms-06 |
 | 07 ④ | 进行中（20:4x 派出） | ticket-ms07／ms-07 |
-| 05、08、09 | 等依赖 | — |
+| 05 滞回 | 进行中（21:0x 派出） | ticket-ms05／ms-05 |
+| 08、09 | 等 05（08）／已可派（09，名额满后排队） | — |
 | 10 | ready-for-human | — |
