@@ -15,6 +15,7 @@ from pring_cycle.bond_attribution import DRIVERS as ATTRIBUTION_DRIVERS
 from pring_cycle.confirmation import DIMENSIONS as CONFIRMATION_DIMENSIONS
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.confirmation import RELATIONS as CONFIRMATION_RELATIONS
+from pring_cycle.macro_judgement import validate as validate_macro_judgement
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
 from pring_cycle.publication_corrections import (
     PUBLICATION_CORRECTION_SCHEMA,
@@ -623,6 +624,11 @@ def validate_analytical_projection(
             != INVENTORY_CARD_NAMES
         ):
             raise ValueError("projection_inventory_card_manifest_invalid")
+    if "macro_judgement" in overview:
+        # Judged from the dimension summary's key indicators only (ADR-0043).
+        if structure != CONFIRMATION_STRUCTURE:
+            raise ValueError("projection_macro_judgement_invalid")
+        validate_macro_judgement(overview["macro_judgement"])
     release_events = datasets["release_calendar"].get("events")
     stage_events = datasets["stage_history"].get("events")
     if not isinstance(release_events, list) or not isinstance(stage_events, list):

@@ -480,6 +480,23 @@ def effective_model_manifest() -> dict[str, Any]:
     return model_v0015_manifest()
 
 
+def model_v0016_manifest() -> dict[str, Any]:
+    """model-v0016: the macro stage judgement leads, the price stage verifies (ADR-0043).
+
+    v0015's rules and catalog, with the macro judgement rules frozen in: the dimension
+    voters and positions, the macro cycle signature table and the threshold. v0015's
+    confirmation (its caps, loan count and expectation table) is kept as it is. Built up
+    ticket by ticket (macro stage 02-05) and never registered before ticket 10; it is not
+    the newest model until the user approves it, and activating it stays an explicit step
+    (ADR-0022).
+    """
+    from pring_cycle.macro_judgement import MANIFEST_FIELD, rules_v0001
+
+    manifest = copy.deepcopy(model_v0015_manifest())
+    manifest.update({"model_version_id": "model-v0016", MANIFEST_FIELD: rules_v0001()})
+    return manifest
+
+
 def model_v0015_manifest() -> dict[str, Any]:
     """model-v0015: the stage narrative confirmed by key indicators (ADR-0037).
 

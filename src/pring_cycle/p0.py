@@ -10,6 +10,7 @@ from pring_cycle.batches import current_batch_id
 from pring_cycle.display_projection import display_days, history_display
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.domain.stage import StageResult, derive_formal_stage
+from pring_cycle.macro_judgement import with_reference
 from pring_cycle.noncanonical import build_basis
 from pring_cycle.projections import (
     ANALYTICAL_DATASETS,
@@ -134,6 +135,7 @@ class P0ProjectionService:
         decided: StageResult | None = None,
         core_history_basis: str | None = None,
         corrects: SummaryCorrection | None = None,
+        macro_judgement: Mapping[str, object] | None = None,
     ) -> P0PublishResult:
         """Publish the day's set; ``decided`` is its formal stage when already decided.
 
@@ -143,6 +145,7 @@ class P0ProjectionService:
         day's assessment keeps what the window's history says. The assessment states the
         ``core_history_basis`` the cores were read on, and the summary it ``corrects``. A
         ``freshness_calendar`` says the gap list's freshness stood on weekdays (ticket 06).
+        A ``macro_judgement`` (ADR-0043), judged before publishing, goes with the overview.
         """
         gaps = _core_gaps(assets)
         decided = decided or formal_stage(assets)
@@ -151,9 +154,7 @@ class P0ProjectionService:
             decided, last_confirmed_stage=decided.last_confirmed_stage or last_confirmed_stage
         )
         lookback_document = lookback.document() if lookback is not None else None
-        shown_stage = stage.last_confirmed_stage or (
-            lookback.stage if lookback is not None and lookback.status == FOUND else None
-        )
+        shown_stage = stated_last_confirmed(decided, last_confirmed_stage, lookback)
         resolved_macro_document = macro_document or _default_macro_document()
         resolved_inventory_document = inventory_document or _default_inventory_document()
         asset_documents = [_asset_document(item) for item in assets]
@@ -218,6 +219,8 @@ class P0ProjectionService:
             identity_document["core_history_basis"] = core_history_basis
         if freshness_calendar is not None:
             identity_document["freshness_calendar"] = dict(freshness_calendar)
+        if macro_judgement is not None:
+            identity_document["macro_judgement"] = dict(macro_judgement)
         if corrects is not None:
             # A correction is a set of its own, even computed as the one it corrects was.
             identity_document["corrects"] = corrects.document()
@@ -288,6 +291,9 @@ class P0ProjectionService:
         )
         if noncanonical_basis is not None:
             datasets["cycle_overview"]["noncanonical_basis"] = noncanonical_basis
+        if macro_judgement is not None:
+            # Only a model with the macro judgement rules publishes one (ADR-0043).
+            datasets["cycle_overview"]["macro_judgement"] = dict(macro_judgement)
         if freshness_calendar is not None:
             # Only when weekdays stood in for the calendar; a set without it states none.
             datasets["cycle_overview"]["freshness_calendar"] = dict(freshness_calendar)
@@ -408,6 +414,9 @@ class P0ProjectionService:
                 }
             overview.pop("last_confirmed_lookback", None)
             datasets["stage_history"].pop("last_confirmed_lookback", None)
+            if isinstance(judgement := overview.get("macro_judgement"), dict):
+                # Its conclusion is stated against that stage; nothing is judged again.
+                overview["macro_judgement"] = with_reference(judgement, last_confirmed_stage)
         datasets["stage_history"]["events"] = [*history, assessment]
         if isinstance(shown := datasets["stage_history"].get("display"), dict):
             datasets["stage_history"]["display"] = history_display(
@@ -426,6 +435,20 @@ class P0ProjectionService:
             as_current=False,
         )
         return str(assessment["assessment_id"])
+
+
+def stated_last_confirmed(
+    decided: StageResult,
+    last_confirmed_stage: FormalStage | None,
+    lookback: StageLookback | None = None,
+) -> FormalStage | None:
+    """The last confirmed stage a day's set states: the cores' own when typical, else the one
+    the history before the day gives, else the one a lookback found (ADR-0040)."""
+    return (
+        decided.last_confirmed_stage
+        or last_confirmed_stage
+        or (lookback.stage if lookback is not None and lookback.status == FOUND else None)
+    )
 
 
 def formal_stage(

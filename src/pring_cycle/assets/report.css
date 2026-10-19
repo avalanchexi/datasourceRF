@@ -30,6 +30,11 @@ html, body { font-size: 14px; }
 .conclusion-board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 20px; padding: 14px 16px; background: var(--surface-panel); border: 1px solid var(--line); border-radius: 8px; }
 .conclusion-board .stage-value { font-family: inherit; font-size: 30px; font-weight: 700; margin: 5px 0 10px; }
 .conclusion-board > div { min-width: 0; }
+.conclusion-board .macro-title { font-size: 20px; line-height: 1.4; }
+.macro-dimensions { display: grid; gap: 8px; margin: 0 0 14px; }
+.macro-group-title { margin: 0 0 2px; font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+.macro-dimension-list { margin: 0; padding-left: 16px; font-size: 13px; color: var(--ink-strong); overflow-wrap: anywhere; }
+.price-stage-value { margin: 2px 0 10px; font-size: 16px; font-weight: 600; color: var(--ink-strong); }
 .conclusion-board > div + div { border-left: 1px solid var(--line); padding-left: 22px; }
 .board-rows { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 6px 10px; margin: 0; font-size: 13px; align-items: baseline; }
 .board-rows dt { color: var(--ink-muted); font-size: 12px; }

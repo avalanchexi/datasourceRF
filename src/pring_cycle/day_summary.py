@@ -68,6 +68,7 @@ from pring_cycle.freshness import (
     release_schedule_scope,
     use_release_schedule,
 )
+from pring_cycle.macro_judgement import MacroJudgementRules, judge
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import (
     CARRIED_FORWARD,
@@ -79,6 +80,7 @@ from pring_cycle.p0 import (
     SummaryCorrection,
     context_not_recomputed,
     formal_stage,
+    stated_last_confirmed,
 )
 from pring_cycle.price_consistency import CorePrices
 from pring_cycle.projections import ProjectionSetRepository
@@ -210,6 +212,8 @@ class ModelRules:
     definition_version: str
     trend_rules: TrendRules
     definitions: tuple[MetricDefinition, ...] = field(default=())
+    # A model with them judges the macro stage before publishing each day (ADR-0043).
+    macro_judgement: MacroJudgementRules | None = None
 
     @classmethod
     def of(cls, models: ModelRepository, model_version_id: str) -> ModelRules:
@@ -221,6 +225,7 @@ class ModelRules:
             rules.metric_catalog_version,
             trend_rules_from_manifest(manifest),
             rules.metric_definitions,
+            rules.macro_judgement,
         )
 
 
@@ -313,6 +318,9 @@ class DaySummaries:
                 if decided.current_stage is None and last_stage is None
                 else None
             )
+            macro_judgement = self._judge_macro(
+                context, stated_last_confirmed(decided, last_stage, lookback)
+            )
             snapshot_id = self._freeze(readiness, context, system_as_of=system_as_of)
             if snapshot_id is not None:
                 run_materials.snapshot_frozen(snapshot_id)
@@ -331,6 +339,7 @@ class DaySummaries:
                 inventory_document=context.inventory,
                 decided=decided,
                 core_history_basis=backfilled.basis,
+                macro_judgement=macro_judgement,
                 release_calendar_events=run_materials.release_calendar_events,
                 freshness_calendar=run_materials.freshness_calendar,
                 gap_list=tuple(
@@ -550,11 +559,12 @@ class DaySummaries:
         basis: str | None,
         corrects: SummaryCorrection | None,
     ) -> None:
+        last_stage = self._last_confirmed_stage(day)
         P0ProjectionService(self._projections).publish(
             target_business_date=day,
             system_as_of=system_as_of,
             assets=readiness,
-            last_confirmed_stage=self._last_confirmed_stage(day),
+            last_confirmed_stage=last_stage,
             model_version_id=self._model.model_version_id,
             warnings=context.warnings,
             evidence_snapshot_id=self._freeze(readiness, context, system_as_of=system_as_of),
@@ -564,7 +574,20 @@ class DaySummaries:
             decided=decided,
             core_history_basis=basis,
             corrects=corrects,
+            macro_judgement=self._judge_macro(context, stated_last_confirmed(decided, last_stage)),
         )
+
+    def _judge_macro(
+        self, context: ContextProjection, reference: FormalStage | None
+    ) -> dict[str, object] | None:
+        """The macro judgement a day publishes, the target and each backfilled day alike,
+        once its context is read and the last confirmed stage its set states is known
+        (ADR-0043). None for a model without the rules, or a context not recomputed."""
+        rules = self._model.macro_judgement
+        confirmation = context.macro.get("confirmation")
+        if rules is None or not isinstance(confirmation, Mapping):
+            return None
+        return judge(rules, confirmation, reference=reference)
 
     def _freeze(
         self, readiness: CoreReadiness, context: ContextProjection, *, system_as_of: datetime

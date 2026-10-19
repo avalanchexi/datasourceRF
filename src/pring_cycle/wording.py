@@ -32,6 +32,34 @@ STAGE_TITLES = {
 }
 
 
+# The macro stage judgement's words (ADR-0043, GLOSSARY: 宏观判断阶段, 维度方向).
+MACRO_JUDGEMENT = "宏观判断"
+NO_MACRO_JUDGEMENT = "该投影生成时尚无宏观判断"
+MACRO_CONFIDENCES = {"explicit": "明确", "tendency": "倾向", "weak": "弱"}
+MACRO_GROUPS = {"monetary": "货币周期", "economic": "经济周期", "inventory": "库存周期"}
+MACRO_DIMENSIONS = {
+    "policy": "政策",
+    "credit": "信用",
+    "overheat": "增长",
+    "price": "物价",
+    "inventory": "库存",
+}
+MACRO_VALUES = {
+    "up": "上行",
+    "down": "下行",
+    "flat": "持平",
+    "easing": "宽松",
+    "tightening": "收紧",
+    "neutral": "中性",
+    "active_destocking": "主动去库存",
+    "passive_destocking": "被动去库存",
+    "active_restocking": "主动补库存",
+    "passive_restocking": "被动补库存",
+}
+MACRO_POSITIONS = {"high": "高位", "middle": "中位", "low": "低位"}
+MACRO_UNKNOWN = "不明"
+
+
 # How a report's formal stage changed on its day, as its verified results record it.
 STAGE_CHANGE_LABELS = {"formal": "形成正式阶段", "gap": NO_FORMAL_STAGE}
 NONCANONICAL_NO_STAGE = "非典型组合，暂无正式阶段"

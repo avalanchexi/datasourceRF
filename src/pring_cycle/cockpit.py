@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 from dash import dcc, html
 
 from pring_cycle import dashboard as view
+from pring_cycle import macro_board
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.domain.trend import TrendRules
 from pring_cycle.drawer import drawer_key, drawer_panel, drawer_trigger, unique_key
@@ -27,6 +28,7 @@ from pring_cycle.wording import (
     _GDP_MEASURES,
     CORE_STATE_LABELS,
     NO_CHINESE_NAME,
+    NO_MACRO_JUDGEMENT,
     NO_MEMBER_NAME,
     NONCANONICAL_NO_STAGE,
     DisplayName,
@@ -652,10 +654,16 @@ def conclusion_left(projection: ProjectionSet | None, trend_rules: TrendRules | 
         ("核心沿用", carry_forward_line(projection)),
         ("判法", method_line(projection, trend_rules)),
     )
+    stage_label = view._stage_label(overview.get("current_stage"))
+    if (judgement := macro_board.judgement(overview)) is not None:
+        # The macro judgement heads the board; the price stage verifies it (ADR-0043).
+        return macro_board.conclusion_left(judgement, stage_label, rows)
     return html.Div(
         [
             html.P("正式阶段", className="section-kicker"),
-            html.H2(view._stage_label(overview.get("current_stage")), className="stage-value"),
+            html.H2(stage_label, className="stage-value"),
+            # An older set is shown as it was: no judgement is made on the page.
+            *([html.P(NO_MACRO_JUDGEMENT, className="empty-note")] if projection else []),
             html.Dl(
                 [item for label, value in rows for item in (html.Dt(label), html.Dd(value))],
                 className="board-rows",
