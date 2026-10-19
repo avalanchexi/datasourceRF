@@ -36,9 +36,10 @@ from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.trading_calendar import TradingCalendar
 from pring_cycle.tushare_context import MARKET_INDEX_IDENTITIES
+from tests.integration.test_backfill import summary
 from tests.integration.test_confirmation_cumulative_quarterly import LESS, LOAN_PAIRS, MORE, loan
 from tests.integration.test_confirmation_monthly_indicators import append
-from tests.integration.test_confirmation_projection import confirmation_manifest
+from tests.integration.test_confirmation_projection import append_pmi, confirmation_manifest
 from tests.integration.test_confirmation_publish import publish
 from tests.integration.test_core_carry_forward import CORES, CUTOFF, seed_cores, sessions
 from tests.integration.test_day_summary import stock_conflict
@@ -567,3 +568,36 @@ def test_a_peer_short_of_its_sessions_reads_no_candidate(
     # and only the CNY030 full price turns bear against the bond core.
     bond = {item["id"]: item for item in (*published["signals"], *published["sprouts"])}["P1"]
     assert bond["peers"] == {"against": ["中债 030 全价"], "read": 1}
+
+
+def test_a_divergence_two_periods_running_is_formed(tmp_path: Path) -> None:
+    # April too: the PMI's June diverges as its July does, manufacturing falling while new
+    # orders rise. The rules take effect the day before July is out.
+    paths = seeded(tmp_path)
+    repository = EvidenceRepository(paths.database)
+    append_pmi(
+        repository, "manufacturing", (50.8,), months=("2026-04",), definition_version=CATALOG
+    )
+    append_pmi(repository, "new_orders", (49.5,), months=("2026-04",), definition_version=CATALOG)
+    june, july, after = "2026-07-30", "2026-07-31", "2026-08-03"
+    take_effect(paths, june)
+    DaySummaries(
+        repository,
+        ProjectionSetRepository(paths.database),
+        ModelRules.of(ModelRepository(paths.database), MODEL),
+        calendar=TradingCalendar(sessions()),
+    ).backfill((july, after), target="2026-08-04", system_as_of=CUTOFF)
+
+    def pmi(day: str) -> dict[str, Any]:
+        return signals(summary(paths, day))["D-pmi"]
+
+    # Decision 43 for a divergence: its second period divergent forms it, and a session of
+    # the same period counts no more.
+    assert [
+        (pmi(day)["indicator"]["period"], pmi(day)["periods"], pmi(day)["maturity"])
+        for day in (june, july, after)
+    ] == [
+        ("2026-06-30", 1, "sprout"),
+        ("2026-07-31", 2, "forming"),
+        ("2026-07-31", 2, "forming"),
+    ]
