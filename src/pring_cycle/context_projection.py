@@ -60,6 +60,8 @@ from pring_cycle.evidence import selected_claim as _selected_claim
 from pring_cycle.evidence import usable_point as _usable_point
 from pring_cycle.freshness import FRESHNESS_REGISTRY, backtracked, period_status
 from pring_cycle.freshness import assess as freshness_assess
+from pring_cycle.macro_judgement import MacroJudgementRules
+from pring_cycle.macro_signals import SignalRules
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS, evidence_frequency
 from pring_cycle.price_consistency import (
     CorePrices,
@@ -182,6 +184,10 @@ class ContextProjectionRules:
     metric_definitions: tuple[MetricDefinition, ...]
     formula_versions: Mapping[str, str]
     confirmation: ConfirmationRules | None = None
+    # The macro stage judgement's rules (ADR-0043), read from the confirmation's indicators.
+    macro_judgement: MacroJudgementRules | None = None
+    # The price signal table its signal list reads by (macro stage ticket 04).
+    macro_signals: SignalRules | None = None
 
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, object]) -> ContextProjectionRules:
@@ -212,7 +218,18 @@ class ContextProjectionRules:
         confirmation = ConfirmationRules.from_manifest(manifest)
         if confirmation is not None and not confirmation.metric_ids() <= set(metric_ids):
             raise ValueError("confirmation_key_indicator_metric_missing")
-        return cls(catalog_version, definitions, formulas, confirmation)
+        macro_judgement = MacroJudgementRules.from_manifest(
+            manifest,
+            {item.key: item.dimension for item in confirmation.indicators}
+            if confirmation is not None
+            else None,
+        )
+        macro_signals = SignalRules.from_manifest(
+            manifest, confirmation.prices if confirmation is not None else None
+        )
+        return cls(
+            catalog_version, definitions, formulas, confirmation, macro_judgement, macro_signals
+        )
 
 
 # The cores' rows skip the family recheck here: core readiness rechecks them.

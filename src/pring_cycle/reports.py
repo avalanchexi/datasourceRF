@@ -37,6 +37,11 @@ PROMPT_CONTRACT_VERSION = "report-prompt-v0008"
 # relations and counts are conclusions the AI must echo, as the labels before them were.
 CONFIRMATION_REPORT_SCHEMA_VERSION = "report-schema-v0005"
 CONFIRMATION_PROMPT_CONTRACT_VERSION = "report-prompt-v0009"
+# A projection's macro judgement (ADR-0043) leads its report under its own contract: its
+# stage and confidence are conclusions the AI must echo, and the prose explains the five
+# dimensions, then the turn signals, then the price verification (macro stage ticket 09).
+MACRO_REPORT_SCHEMA_VERSION = "report-schema-v0006"
+MACRO_PROMPT_CONTRACT_VERSION = "report-prompt-v0011"
 
 
 @dataclass(frozen=True)
@@ -178,7 +183,10 @@ class ReportInput:
             "core_carry_forward": list(self.results.get("core_carry_forward", [])),
         }
         basis = self.results.get("noncanonical_basis")
-        if self.stage_reason == "noncanonical_combination" and isinstance(basis, dict):
+        if isinstance(macro := self.results.get("macro_judgement"), dict):
+            body["ai_explanation"] = macro_sections(macro)
+            body["explanation_source"] = "deterministic_template"
+        elif self.stage_reason == "noncanonical_combination" and isinstance(basis, dict):
             body["ai_explanation"] = [fallback_section(basis)]
             body["explanation_source"] = "deterministic_template"
         return body
@@ -310,7 +318,13 @@ def report_input_from_projection(projection: ProjectionSet) -> ReportInput:
             else {}
         ),
     }
-    if stage_reason == "noncanonical_combination" and isinstance(
+    block = overview.get("macro_judgement")
+    if isinstance(block, dict):
+        # A noncanonical day is read as the prices off the judgement: its one-asset
+        # comparisons travel with the price verification, not as the old reading's basis.
+        conclusions = {**conclusions, **_macro_conclusions(block)}
+        results["macro_judgement"] = _macro_results(block)
+    elif stage_reason == "noncanonical_combination" and isinstance(
         overview.get("noncanonical_basis"), dict
     ):
         results["noncanonical_basis"] = overview["noncanonical_basis"]
@@ -521,10 +535,222 @@ def _price_notes(macro: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _macro_conclusions(block: dict[str, Any]) -> dict[str, Any]:
+    """The judgement's stage and confidence: the rules', for the AI to echo (ADR-0003)."""
+    conclusion = block.get("conclusion")
+    conclusion = conclusion if isinstance(conclusion, dict) else {}
+    return {
+        "macro_stage": _text_or_none(conclusion.get("stage")),
+        "macro_confidence": _text_or_none(conclusion.get("confidence")),
+    }
+
+
+_MACRO_PAIRS = ("stage", "confidence", "matched", "known")
+# The report's order under the judgement (decision 12, spec story 36).
+MACRO_SECTIONS = ("宏观判断与五维依据", "转折信号", "价格验证与偏离")
+
+
+def _macro_results(block: dict[str, Any]) -> dict[str, Any]:
+    """What the report says of the judgement, as the board words it: the title, how a
+    tendency or a weak judgement took its stage, the five dimensions, the signals and the
+    price verification. Only the fields the prose needs; no evidence identifiers."""
+    # The board's wording, so the report says what the page says.
+    from pring_cycle import macro_board
+
+    conclusion = _mapping(block.get("conclusion"))
+    raw = _mapping(block.get("raw"))
+    taken = _mapping(raw.get("fallback"))
+    hysteresis = block.get("hysteresis")
+    verification = _mapping(block.get("price_verification"))
+    return {
+        "title": macro_board.title(conclusion, block),
+        "held": _held(block),
+        "fallback": macro_board.fallback(block),
+        "raw_fallback": macro_board.raw_fallback(block),
+        "conclusion": {
+            **{
+                field: conclusion.get(field)
+                for field in (*_MACRO_PAIRS, "reference_stage", "steps", "direction")
+            },
+            # What a held conclusion was taken from (decision 24).
+            "formed": (
+                {
+                    field: formed.get(field)
+                    for field in ("on", "stage", "confidence", "basis", "tied", "reference_stage")
+                }
+                | {
+                    "fallback": {
+                        "candidates": _mapping(formed.get("fallback")).get("candidates") or []
+                    }
+                }
+                if (formed := _mapping(conclusion.get("formed")))
+                else None
+            ),
+        },
+        "raw": {
+            **{field: raw.get(field) for field in (*_MACRO_PAIRS, "basis", "tied", "threshold")},
+            "fallback": (
+                {
+                    field: taken.get(field)
+                    for field in ("source", "combination", "differences", "candidates")
+                }
+                if taken
+                else None
+            ),
+        },
+        # Scalars only: the counting state, never the judgements it was counted on.
+        "hysteresis": (
+            {key: value for key, value in hysteresis.items() if not isinstance(value, dict | list)}
+            if isinstance(hysteresis, dict)
+            else None
+        ),
+        "scores": dict(_mapping(block.get("scores"))),
+        "dimensions": [
+            {
+                **{
+                    field: item.get(field)
+                    for field in ("dimension", "group", "value", "position", "matches")
+                },
+                "line": macro_board.dimension_line(item),
+                "indicators": [
+                    {
+                        field: indicator.get(field)
+                        for field in ("name", "voting", "vote", "divergent", "period")
+                    }
+                    for indicator in _list(item.get("indicators"))
+                    if isinstance(indicator, dict)
+                ],
+            }
+            for item in _list(block.get("dimensions"))
+            if isinstance(item, dict)
+        ],
+        "signals": [
+            {
+                **{
+                    field: item.get(field)
+                    for field in ("id", "kind", "group", "transition", "maturity", "same_source")
+                },
+                # A divergence's recount judges a stage of its own (decision 47).
+                "rejudged": (
+                    {field: rejudged.get(field) for field in ("stage", "confidence", "tied")}
+                    if isinstance(rejudged := item.get("rejudged"), dict)
+                    else None
+                ),
+                "line": macro_board.describe(item),
+            }
+            for item in _list(block.get("signals"))
+            if isinstance(item, dict)
+        ],
+        "price_verification": (
+            {
+                **{
+                    field: verification.get(field)
+                    for field in (
+                        "price_stage",
+                        "reason",
+                        "combination",
+                        "expected_stage",
+                        "expected",
+                        "deviations",
+                        "verdict",
+                    )
+                },
+                "comparisons": [
+                    {
+                        field: row.get(field)
+                        for field in (
+                            "stage",
+                            "asset",
+                            "current_state",
+                            "required_state",
+                            "candidate_30d",
+                            "candidate_state",
+                            "candidate_days",
+                        )
+                    }
+                    for row in _list(verification.get("comparisons"))
+                    if isinstance(row, dict)
+                ],
+                "line": macro_board.verification_line(block),
+            }
+            if verification
+            else None
+        ),
+    }
+
+
+def macro_sections(macro: dict[str, Any]) -> list[dict[str, str]]:
+    """The template's reading under the judgement, in the report's order: why the five
+    dimensions point to the stage and how sure it is, the turn signals, then the price
+    verification read as the prices off the judgement. Each a single paragraph, saying only
+    what the input's lines say."""
+    from pring_cycle.wording import MACRO_ASSETS, MACRO_NO_SIGNALS, MACRO_SIGNAL_GROUPS
+
+    judged = [
+        str(macro.get("title")),
+        *(str(macro[field]) for field in ("held", "fallback", "raw_fallback") if macro.get(field)),
+        # A dimension a sentence: its own line joins its votes by semicolons.
+        *(str(item.get("line")) for item in _list(macro.get("dimensions"))),
+    ]
+    signals = _list(macro.get("signals"))
+    grouped = [
+        f"{label}："
+        + "；".join(str(item.get("line")) for item in signals if item.get("group") == group)
+        for group, label in MACRO_SIGNAL_GROUPS.items()
+        if any(item.get("group") == group for item in signals)
+    ]
+    verification = _mapping(macro.get("price_verification"))
+    checked = [str(verification.get("line") or "该投影未提供价格验证")]
+    if verification.get("verdict") == "consistent":
+        checked.append("价格表象与宏观判断一致")
+    elif verification.get("verdict") == "deviates":
+        off = "、".join(
+            MACRO_ASSETS.get(str(asset), str(asset)) for asset in verification["deviations"]
+        )
+        checked.append(
+            f"价格偏离宏观判断：{off}与{stage_name(str(verification.get('expected_stage')))}预期相反"
+        )
+        if verification.get("reason") == "noncanonical_combination":
+            near = "、".join(
+                stage_name(str(row.get("stage")))
+                for row in _list(verification.get("comparisons"))
+                if isinstance(row, dict)
+            )
+            checked.append(
+                "三核心为非典型组合，暂无价格阶段，宏观判断不因此改变"
+                + (f"；价格组合与{near}各只差一项" if near else "")
+            )
+    return [
+        {"title": title, "explanation": "。".join(sentences) + "。"}
+        for title, sentences in zip(
+            MACRO_SECTIONS, (judged, grouped or [MACRO_NO_SIGNALS], checked), strict=True
+        )
+    ]
+
+
+def _held(block: dict[str, Any]) -> str | None:
+    """滞回保持，当日原始判断：第三阶段（倾向） -- when the hysteresis keeps the conclusion
+    from the day's raw judgement (decision 45); None otherwise."""
+    from pring_cycle.wording import MACRO_CONFIDENCES
+
+    conclusion, raw = _mapping(block.get("conclusion")), _mapping(block.get("raw"))
+    if not isinstance(block.get("hysteresis"), dict) or all(
+        raw.get(field) == conclusion.get(field) for field in ("stage", "confidence")
+    ):
+        return None
+    confidence = MACRO_CONFIDENCES.get(str(raw.get("confidence")), "")
+    judged = (
+        f"{stage_name(str(raw['stage']))}（{confidence}）" if raw.get("stage") else "无可取阶段"
+    )
+    return f"滞回保持，当日原始判断：{judged}"
+
+
 def _contract(
     conclusions: dict[str, Any], results: dict[str, Any] | None = None
 ) -> tuple[str, str]:
     """The schema and prompt contract a report's conclusions are written under."""
+    if "macro_stage" in conclusions:
+        return MACRO_REPORT_SCHEMA_VERSION, MACRO_PROMPT_CONTRACT_VERSION
     schema, prompt = (
         (CONFIRMATION_REPORT_SCHEMA_VERSION, CONFIRMATION_PROMPT_CONTRACT_VERSION)
         if "confirmation_applicable" in conclusions
@@ -592,6 +818,10 @@ def _without_evidence_identifiers(value: Any) -> Any:
 
 def _list(value: object) -> list[Any]:
     return value if isinstance(value, list) else []
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
 
 
 def _text_or_none(value: object) -> str | None:
@@ -1175,8 +1405,28 @@ class CliReportAdapter:
             "确认度的各维度计数与各关键指标的确认关系同样只能解释、不得改写；"
             "正文提及时须与 conclusions 一致（如“PMI 记为支持”“过热维度支持 1、反证 0”），"
             "未确认须说明缺什么，不得把仅观察或未确认说成支持。"
-            if schema_version == CONFIRMATION_REPORT_SCHEMA_VERSION
+            if "confirmation_applicable" in bundle.conclusions
             else ""
+        )
+        macro_contract = (
+            {
+                "sections_in_order": list(MACRO_SECTIONS),
+                "instruction": (
+                    "宏观判断阶段与把握程度由确定性规则算出（conclusions.macro_stage、"
+                    "macro_confidence），AI 只解释、不得改写，也不另作判定。"
+                    "按 sections_in_order 的顺序写：先解释五维为何指向该阶段、把握程度为何是明确、"
+                    "倾向或弱；把握程度为倾向或弱时正文须如实写出“倾向”或“弱”，并写明并列的阶段与"
+                    "得分，或缺了哪些维度、为何退回价格组合推断，不得写成明确或已确定的结论；"
+                    "滞回保持时写明主结论保持原阶段与把握程度及当日原始判断。"
+                    "再写信号清单中的转折信号及其支持的阶段转换与成熟度，同源价格信号只提示转换、"
+                    "不参与投票。最后写价格验证：价格阶段或非典型组合，与宏观判断阶段预期的三资产"
+                    "是否一致、哪项资产偏离；三核心为非典型组合时从“价格偏离宏观判断”的视角解读，"
+                    "不推测价格阶段。写宏观判断用“宏观判断为第N阶段”，写价格阶段用“价格阶段为"
+                    "第N阶段”，二者不得混同；“当前处于”只用于宏观判断阶段。"
+                ),
+            }
+            if "macro_stage" in bundle.conclusions
+            else None
         )
         basis = bundle.results.get("noncanonical_basis")
         reading_contract = (
@@ -1199,6 +1449,7 @@ class CliReportAdapter:
         prompt = _canonical_json(
             {
                 **({"noncanonical_reading_contract": reading_contract} if reading_contract else {}),
+                **({"macro_reading_contract": macro_contract} if macro_contract else {}),
                 "instruction": (
                     "仅解释报告输入中的已验证结果，输出共同报告 JSON；不得调用工具或给出交易建议。"
                     "正式阶段、三核心状态与宏观、库存结论只能解释、不得改写，"
@@ -1263,8 +1514,7 @@ def _report_output_schema(bundle: ReportInput) -> dict[str, Any]:
         "properties": {
             name: (
                 _const_schema(value)
-                if _contract(bundle.conclusions, bundle.results)[0]
-                == CONFIRMATION_REPORT_SCHEMA_VERSION
+                if _contract(bundle.conclusions, bundle.results)[0] != REPORT_SCHEMA_VERSION
                 else {"type": ["string", "null"], "const": value}
             )
             for name, value in bundle.conclusions.items()
@@ -1393,6 +1643,223 @@ def _stated_stages(section: dict[str, Any]) -> set[str]:
     """The formal stages a paragraph says the market is in now."""
     text = f"{section['title']}。{section['explanation']}"
     return {_ROMAN_STAGES[roman or chinese] for roman, chinese in _STATED_STAGE.findall(text)}
+
+
+_CONFIDENCE_WORDS = {"明确": "explicit", "倾向": "tendency", "弱": "weak"}
+_STAGE_CODES = ("stage_i", "stage_ii", "stage_iii", "stage_iv", "stage_v", "stage_vi")
+# A stage's number as the prose may write it: 五, 5, ５, Ⅴ or V.
+_NUMBERS = {
+    **{numeral: index for index, numeral in enumerate("一二三四五六", 1)},
+    **{numeral: index for index, numeral in enumerate("123456", 1)},
+    **{numeral: index for index, numeral in enumerate("１２３４５６", 1)},
+    **{numeral: index for index, numeral in enumerate("ⅠⅡⅢⅣⅤⅥ", 1)},
+    **{numeral: index for index, numeral in enumerate(("I", "II", "III", "IV", "V", "VI"), 1)},
+}
+_NUMBER = r"(?:VI|IV|V|III|II|I|[ⅠⅡⅢⅣⅤⅥ一二三四五六1-6１-６])"
+# A stage however the prose names it: 第三阶段, 第5阶段, 第Ⅴ阶段, 阶段 III, 阶段Ⅴ, Stage 5,
+# V 阶段, and 第三 before →、至 another ("第三→第四阶段"). "阶段 3 维", "阶段一致" are none.
+_MENTION = re.compile(
+    rf"第\s*(?P<a>{_NUMBER})\s*阶段"
+    rf"|第\s*(?P<b>{_NUMBER})(?=\s*(?:→|->|～|~|至|到|、|和|与|或|及)\s*第)"
+    rf"|(?:阶段|[Ss]tage)\s*(?P<c>{_NUMBER})"
+    r"(?![A-Za-z0-9０-９]|\s*[维个日项步年月致样直般些起旦度])"
+    rf"|(?<![A-Za-z])(?P<d>VI|IV|V|III|II|I|[ⅠⅡⅢⅣⅤⅥ])\s*阶段"
+)
+# What a stage is said of, by the nearest word before it in its sentence; a stage said of
+# nothing is said of the judgement: under it, the stage the market is in now is the judged
+# one. A dimension's name says what a confidence word is of, never a stage.
+_SUBJECTS = tuple(
+    (subject, re.compile(words))
+    for subject, words in (
+        ("raw", r"原始判断|当日判断"),
+        ("price", r"价格阶段|价格表象"),
+        ("candidate", r"价格组合|三核心组合|只差一项|各差|候选|兜底|退回"),
+        ("reference", r"上次确认|上一确认|此前确认"),
+        ("tied", r"并列|介于"),
+        ("expected", r"预期"),
+        (
+            "signal",
+            r"信号|转换|转向|符合|→|分化|改投|少数方向|重判|翻转|转折|萌芽|成形"
+            r"|支持(?:前进|后退|维持)",
+        ),
+        ("conclusion", r"宏观(?:判断|阶段|周期)?|主结论|把握程度|当前|目前|现在|当下"),
+        ("dimension", r"政策|信用|增长|过热|物价|库存|维度"),
+    )
+)
+# Said right after a stage, or a list of them: what it expects, what it is tied with, or
+# its score.
+_FOLLOWING = (
+    ("expected", re.compile(r"\s*(?:的)?预期")),
+    ("tied", re.compile(r"\s*并列")),
+    (
+        "score",
+        re.compile(
+            r"\s*(?:同为|均为|都是|各|得分为|得分|得|为|[:：])?\s*(?P<score>\d+)\s*(?:分|维)"
+        ),
+    ),
+)
+_LISTED = re.compile(r"\s*[、和与及或/]\s*")
+# "走弱", "转弱", "偏弱" say a move and "弱于" a comparison, not a weak judgement.
+_CONFIDENCE = re.compile(r"明确|倾向|(?<![走转偏减削较变衰增])弱(?![于势化小])")
+_LINK = r"\s*(?:为|是|处于|属于|在|于|指向|落在|进入|[:：])?\s*"
+_CONFIDENCE_TO_STAGE = re.compile(r"(?:判断|判定)?" + _LINK)
+# A judgement short of explicit said to be settled.
+_STATED_CERTAINTY = re.compile(r"(?<![不未非没])(?:已经?确定|确定无疑|毫无疑问|可以确定|确定结论)")
+
+
+@dataclass(frozen=True)
+class _Stated:
+    """What a paragraph says of the judgement: the first check it fails, if any, and whether
+    it tells the main conclusion's confidence."""
+
+    failed: str | None
+    confidence_told: bool
+
+
+def _macro_statements(bundle: ReportInput, text: str) -> _Stated:
+    """Each stage the prose names, read against what it is said of: the main conclusion,
+    the day's raw judgement, the price stage, the last confirmed stage, what the judged
+    stage expects, the stages tied, a signal's transition or recount, or the stages the
+    cores' combination is one asset off; a confidence word bound to the stage or subject
+    it is said of (ADR-0003, spec stories 37, 39)."""
+    macro = _mapping(bundle.results.get("macro_judgement"))
+    conclusion, raw = _mapping(macro.get("conclusion")), _mapping(macro.get("raw"))
+    formed = _mapping(conclusion.get("formed"))
+    verification = _mapping(macro.get("price_verification"))
+    signals = [_mapping(item) for item in _list(macro.get("signals"))]
+    rejudged = [_mapping(item.get("rejudged")) for item in signals if item.get("rejudged")]
+    taken = [_mapping(raw.get("fallback")), _mapping(formed.get("fallback"))]
+    allowed: dict[str, set[object]] = {
+        "conclusion": {conclusion.get("stage")},
+        "raw": {raw.get("stage")},
+        "price": {bundle.current_stage},
+        "reference": {conclusion.get("reference_stage"), formed.get("reference_stage")},
+        "expected": {verification.get("expected_stage"), conclusion.get("stage")},
+        "tied": {
+            *_list(raw.get("tied")),
+            *_list(formed.get("tied")),
+            *(stage for item in rejudged for stage in _list(item.get("tied"))),
+        },
+        "signal": {
+            *(
+                _mapping(item.get("transition")).get(end)
+                for item in signals
+                for end in ("from", "to")
+            ),
+            *(item.get("stage") for item in rejudged),
+            *(stage for item in rejudged for stage in _list(item.get("tied"))),
+        },
+        "candidate": {
+            bundle.current_stage,
+            *(stage for item in taken for stage in _list(item.get("candidates"))),
+            *(_mapping(row).get("stage") for row in _list(verification.get("comparisons"))),
+        },
+    }
+    pairs = {
+        (item.get("stage"), item.get("confidence")) for item in (conclusion, raw, formed, *rejudged)
+    }
+    told = False
+    for sentence in re.split(r"[。；;！!？?]", text):
+        mentions = list(_MENTION.finditer(sentence))
+        markers = sorted(
+            (match.start(), subject)
+            for subject, pattern in _SUBJECTS
+            for match in pattern.finditer(sentence)
+        )
+        said: list[str] = []
+        for index, mention in enumerate(mentions):
+            stage = _mention_stage(mention)
+            subject = _following(sentence, mentions, index) or next(
+                (
+                    subject
+                    for at, subject in reversed(markers)
+                    if at < mention.start() and subject != "dimension"
+                ),
+                "conclusion",
+            )
+            said.append(subject)
+            if subject == "score":
+                score = _following_score(sentence, mentions, index)
+                if score != _mapping(macro.get("scores")).get(stage):
+                    return _Stated("macro_stated_score", told)
+            elif stage not in allowed[subject]:
+                return _Stated(
+                    "price_stated_stage" if subject == "price" else "macro_stated_stage", told
+                )
+        for word in _CONFIDENCE.finditer(sentence):
+            confidence = _CONFIDENCE_WORDS[word.group()]
+            bound = _bound(sentence, word, mentions, markers)
+            if bound is None:
+                continue
+            of, subject = bound
+            if of is not None:
+                subject = said[of]
+                stage = _mention_stage(mentions[of])
+            if subject == "conclusion":
+                if confidence != conclusion.get("confidence"):
+                    return _Stated("macro_stated_confidence", told)
+                told = True
+            elif subject == "raw":
+                if confidence != raw.get("confidence"):
+                    return _Stated("macro_stated_confidence", told)
+            elif of is not None and subject != "dimension":
+                judged = (
+                    {(item.get("stage"), item.get("confidence")) for item in rejudged}
+                    if subject == "signal"
+                    else pairs
+                )
+                if (stage, confidence) not in judged:
+                    return _Stated("macro_stated_confidence", told)
+    if conclusion.get("confidence") != "explicit" and _STATED_CERTAINTY.search(text):
+        return _Stated("macro_stated_confidence", told)
+    return _Stated(None, told)
+
+
+def _mention_stage(mention: re.Match[str]) -> str:
+    return _STAGE_CODES[_NUMBERS[next(group for group in mention.groups() if group)] - 1]
+
+
+def _chain_end(sentence: str, mentions: list[re.Match[str]], index: int) -> int:
+    """Where the list a stage leads ends: 第五阶段、第六阶段."""
+    while index + 1 < len(mentions) and _LISTED.fullmatch(
+        sentence[mentions[index].end() : mentions[index + 1].start()]
+    ):
+        index += 1
+    return mentions[index].end()
+
+
+def _following(sentence: str, mentions: list[re.Match[str]], index: int) -> str | None:
+    rest = sentence[_chain_end(sentence, mentions, index) :]
+    return next((subject for subject, pattern in _FOLLOWING if pattern.match(rest)), None)
+
+
+def _following_score(sentence: str, mentions: list[re.Match[str]], index: int) -> int | None:
+    found = _FOLLOWING[-1][1].match(sentence[_chain_end(sentence, mentions, index) :])
+    return int(found.group("score")) if found else None
+
+
+def _bound(
+    sentence: str,
+    word: re.Match[str],
+    mentions: list[re.Match[str]],
+    markers: list[tuple[int, str]],
+) -> tuple[int | None, str] | None:
+    """What a confidence word is said of: the stage it leads into ("倾向第三阶段"), else the
+    nearest stage or subject before it in its sentence; None for neither."""
+    link = _CONFIDENCE_TO_STAGE.match(sentence, word.end())
+    after = link.end() if link else word.end()
+    for index, mention in enumerate(mentions):
+        if mention.start() == after:
+            return index, ""
+    before: list[tuple[int, int | None, str]] = [
+        *((mention.end(), index, "") for index, mention in enumerate(mentions)),
+        *((at, None, subject) for at, subject in markers),
+    ]
+    earlier = [item for item in before if item[0] <= word.start()]
+    if not earlier:
+        return None
+    _at, of, subject = max(earlier, key=lambda item: item[0])
+    return of, subject
 
 
 _RELATION_WORDS = {
@@ -1690,6 +2157,8 @@ def _validate_ai_document(
     if not isinstance(sections, list) or not sections:
         return reject("schema_validation_failed", "sections", "sections")
     forbidden_terms = ("买入", "卖出", "目标价", "收益保证", "仓位建议")
+    macro = "macro_stage" in bundle.conclusions
+    confidence_told = False
     for index, section in enumerate(sections):
         path = f"sections[{index}]"
         if not isinstance(section, dict) or set(section) != {"title", "explanation"}:
@@ -1698,10 +2167,21 @@ def _validate_ai_document(
             return reject("schema_validation_failed", "section_types", path, index)
         if any(term in section["explanation"] for term in forbidden_terms):
             return reject("forbidden_content_rejected", "forbidden_terms", path, index)
-        if any(stage != bundle.current_stage for stage in _stated_stages(section)):
+        if macro:
+            # The judgement leads: its stage, its confidence and the price stage apart.
+            stated = _macro_statements(bundle, f"{section['title']}。{section['explanation']}")
+            if (check := stated.failed) is not None:
+                code = (
+                    "conclusion_mutation_rejected"
+                    if check in {"macro_stated_confidence", "macro_stated_score"}
+                    else "stage_mutation_rejected"
+                )
+                return reject(code, check, path, index)
+            confidence_told = confidence_told or stated.confidence_told
+        elif any(stage != bundle.current_stage for stage in _stated_stages(section)):
             return reject("stage_mutation_rejected", "stated_stage", path, index)
         basis = bundle.results.get("noncanonical_basis")
-        if not isinstance(basis, dict) and section["title"] == NONCANONICAL_TITLE:
+        if not macro and not isinstance(basis, dict) and section["title"] == NONCANONICAL_TITLE:
             return reject("schema_validation_failed", "noncanonical_basis_missing", path, index)
         if isinstance(basis, dict):
             text = section["title"] + "。" + section["explanation"]
@@ -1734,6 +2214,12 @@ def _validate_ai_document(
         and sum(section["title"] == NONCANONICAL_TITLE for section in sections) != 1
     ):
         return reject("schema_validation_failed", "noncanonical_section_count", "sections")
+    confidence = _mapping(_mapping(bundle.results.get("macro_judgement")).get("conclusion")).get(
+        "confidence"
+    )
+    if macro and confidence in {"tendency", "weak"} and not confidence_told:
+        # A tendency or a weak conclusion told as such, of the conclusion (spec story 37).
+        return reject("conclusion_mutation_rejected", "macro_confidence_unstated", "sections")
     return "succeeded"
 
 

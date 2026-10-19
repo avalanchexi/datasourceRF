@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import statistics
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 
@@ -232,6 +232,12 @@ def _directional_signal(
     if distance_pct <= -noise_band_pct and slope_pct < 0:
         return CoreAssetState.BEAR
     return None
+
+
+def candidate_direction(values: Sequence[float], window: int) -> CoreAssetState | None:
+    """The 30-day candidate's reading of ``values``, newest last: a peer's, as its core's
+    (GLOSSARY: 30 日候选方向)."""
+    return _simple_track(list(values), window)
 
 
 def _simple_track(values: list[float], window: int) -> CoreAssetState | None:

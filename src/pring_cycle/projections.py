@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime
@@ -15,6 +15,13 @@ from pring_cycle.bond_attribution import DRIVERS as ATTRIBUTION_DRIVERS
 from pring_cycle.confirmation import DIMENSIONS as CONFIRMATION_DIMENSIONS
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.confirmation import RELATIONS as CONFIRMATION_RELATIONS
+from pring_cycle.display_projection import macro_row
+from pring_cycle.macro_judgement import MacroJudgementRules
+from pring_cycle.macro_judgement import record as record_macro
+from pring_cycle.macro_judgement import validate as validate_macro_judgement
+from pring_cycle.macro_judgement import validate_inputs as validate_macro_inputs
+from pring_cycle.macro_signals import validate as validate_macro_signals
+from pring_cycle.macro_verification import validate as validate_price_verification
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
 from pring_cycle.publication_corrections import (
     PUBLICATION_CORRECTION_SCHEMA,
@@ -351,6 +358,46 @@ class ProjectionSetRepository:
             ).fetchall()
         return tuple((str(row[0]), str(row[1])) for row in rows)
 
+    def latest_macro_judgement(self, *, before: str) -> tuple[str, dict[str, object]] | None:
+        """The latest day before ``before`` whose latest summary, as ``stage_history`` lists
+        it, published a macro judgement, with that judgement; None when none did. What a
+        day's signals and hysteresis count on from (macro stage tickets 04, 05)."""
+        date.fromisoformat(before)
+        with self._connect() as connection:
+            row = connection.execute(
+                f"""
+                SELECT latest.target_business_date AS day, dataset.document_json FROM (
+                    SELECT target_business_date, document_json,
+                           row_number() OVER ({_NEWER_FIRST}) AS newer
+                    FROM p0_assessment WHERE target_business_date < ?
+                ) AS latest
+                JOIN analytical_dataset AS dataset
+                    ON dataset.projection_set_id
+                        = json_extract(latest.document_json, '$.projection_set_id')
+                    AND dataset.dataset_name = 'cycle_overview'
+                WHERE latest.newer = 1
+                    AND json_type(dataset.document_json, '$.macro_judgement') = 'object'
+                ORDER BY latest.target_business_date DESC
+                LIMIT 1
+                """,
+                (before,),
+            ).fetchone()
+        if row is None:
+            return None
+        return str(row["day"]), json.loads(str(row["document_json"]))["macro_judgement"]
+
+    def macro_effective_from(self) -> str | None:
+        """The business day the macro judgement rules took effect on, as the judgements
+        published since record it; None before any was published (decisions 5, 33)."""
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT min(json_extract(document_json, '$.macro_judgement.effective_from'))
+                FROM analytical_dataset WHERE dataset_name = 'cycle_overview'
+                """
+            ).fetchone()
+        return None if row is None or row[0] is None else str(row[0])
+
     def last_confirmed_stage(self, *, on_or_before: str) -> str | None:
         """The stage of the latest day on or before ``on_or_before`` that had one.
 
@@ -561,7 +608,11 @@ def _validate_projection(
 def validate_analytical_projection(
     envelope: ProjectionEnvelope,
     datasets: dict[str, dict[str, object]],
+    *,
+    macro_rules: MacroJudgementRules | None = None,
 ) -> None:
+    """A set as it may be published; one with a macro judgement only under the frozen
+    ``macro_rules`` of the model that judged it (ADR-0043)."""
     _validate_projection(envelope, datasets)
     if envelope.system_as_of.tzinfo is None or envelope.generated_at.tzinfo is None:
         raise ValueError("projection_envelope_times_must_be_timezone_aware")
@@ -623,10 +674,87 @@ def validate_analytical_projection(
             != INVENTORY_CARD_NAMES
         ):
             raise ValueError("projection_inventory_card_manifest_invalid")
+    if "macro_judgement" in overview:
+        # Judged from the dimension summary's key indicators only (ADR-0043); one carried
+        # over a context not recomputed says so, as its context does.
+        carried = _mapping(overview["macro_judgement"]).get("context_status")
+        if (carried is None and structure != CONFIRMATION_STRUCTURE) or carried not in (
+            None,
+            macro.get("context_status"),
+        ):
+            raise ValueError("projection_macro_judgement_invalid")
+        if macro_rules is None:
+            raise ValueError("projection_macro_judgement_rules_missing")
+        validate_macro_judgement(overview["macro_judgement"])
+        validate_macro_inputs(
+            overview["macro_judgement"],
+            macro_rules,
+            confirmation=macro.get("confirmation"),
+            last_confirmed=overview.get("last_confirmed_stage"),
+        )
+        _validate_macro_effective(overview["macro_judgement"], envelope.target_business_date)
+        validate_macro_signals(overview["macro_judgement"])
+        validate_price_verification(
+            overview["macro_judgement"],
+            price_stage=overview.get("current_stage"),
+            reason=overview.get("stage_reason"),
+            assets=list(by_asset.values()),
+            comparisons=basis.get("comparisons")
+            if isinstance(basis := overview.get("noncanonical_basis"), dict)
+            else None,
+        )
     release_events = datasets["release_calendar"].get("events")
     stage_events = datasets["stage_history"].get("events")
     if not isinstance(release_events, list) or not isinstance(stage_events, list):
         raise ValueError("projection_event_dataset_invalid")
+    _validate_macro_record(
+        overview,
+        stage_events,
+        datasets["stage_history"].get("display"),
+        envelope.target_business_date,
+    )
+
+
+def _mapping(value: object) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
+def _validate_macro_effective(block: object, day: str) -> None:
+    """A day judges the macro stage only from the day its rules took effect on (decision 5)."""
+    effective = block.get("effective_from") if isinstance(block, dict) else None
+    try:
+        before = date.fromisoformat(str(effective)) > date.fromisoformat(day)
+    except ValueError:
+        before = True
+    if before:
+        raise ValueError("projection_macro_judgement_invalid")
+
+
+def _validate_macro_record(
+    overview: dict[str, object], stage_events: list[object], display: object, day: str
+) -> None:
+    """The day's own stage history event records its macro main conclusion, the stage and
+    confidence the overview states, and only when it states one; with one, the day has
+    exactly that event, and its row on the band shows that record (macro stage ticket 08)."""
+    own = [
+        item for item in stage_events if isinstance(item, dict) and item.get("business_date") == day
+    ]
+    judgement = overview.get("macro_judgement")
+    if isinstance(judgement, dict):
+        if len(own) != 1 or own[0].get("macro_conclusion") != record_macro(judgement):
+            raise ValueError("projection_stage_history_macro_mismatch")
+    elif any(item.get("macro_conclusion") is not None for item in own):
+        raise ValueError("projection_stage_history_macro_mismatch")
+    rows = display.get("days") if isinstance(display, dict) else None
+    shown = [
+        row
+        for row in (rows if isinstance(rows, list) else [])
+        if isinstance(row, dict) and row.get("date") == day
+    ]
+    if shown and (shown[-1].get("macro"), shown[-1].get("macro_confidence")) != macro_row(
+        own[-1] if own else {}
+    ):
+        raise ValueError("projection_stage_history_macro_mismatch")
 
 
 _RETIRED_MACRO_LABELS = ("policy_direction", "credit_response", "overheat_state", "price_pressure")

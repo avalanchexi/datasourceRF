@@ -72,18 +72,45 @@ def coverage_display(
     }
 
 
+def macro_row(event: Mapping[str, Any]) -> tuple[str, str | None]:
+    """A day's macro row from its stage history event: its main conclusion's stage and
+    confidence; ``not_effective`` for a summary made without the rules, ``no_stage`` for
+    one with no stage to take (decision 49), ``unpublished`` with no summary."""
+    recorded = event.get("macro_conclusion")
+    if not event:
+        return "unpublished", None
+    if not isinstance(recorded, Mapping):
+        return "not_effective", None
+    confidence = recorded.get("confidence")
+    return str(recorded.get("stage") or "no_stage"), (
+        str(confidence) if confidence is not None else None
+    )
+
+
 def history_display(events: Sequence[Mapping[str, Any]], days: Sequence[str]) -> dict[str, Any]:
-    """Events are already the repository's daily winners, including correction precedence."""
+    """Events are already the repository's daily winners, including correction precedence.
+
+    A day's macro row is its own summary's main conclusion (ADR-0043): ``not_effective``
+    when that summary was made without the macro judgement rules, ``no_stage`` when it had
+    no stage to take (decision 49); never judged back from another day or the cores.
+    """
     by_day = {str(event["business_date"]): event for event in events}
     rows = []
     for day in days:
         event = by_day.get(day, {})
         official = event.get("current_stage") or event.get("stage_reason") or "unpublished"
         assets = {item["asset"]: item for item in event.get("core_assets", [])}
+        macro, macro_confidence = macro_row(event)
+        recorded = event.get("macro_conclusion")
+        note = recorded.get("context_status") if isinstance(recorded, Mapping) else None
         rows.append(
             {
                 "date": day,
                 "official": official,
+                "macro": macro,
+                "macro_confidence": macro_confidence,
+                # A conclusion kept over a context not recomputed is marked so (F4).
+                **({"macro_note": note} if note is not None else {}),
                 **{
                     asset: assets.get(asset, {}).get("state") or "unavailable"
                     for asset in ("bond", "stock", "commodity")
@@ -97,6 +124,12 @@ def history_display(events: Sequence[Mapping[str, Any]], days: Sequence[str]) ->
         "schema_version": "history-display-v0001",
         "days": rows,
         "counts": dict(Counter(item["official"] for item in rows)),
+        # A stage counts at each confidence apart: "stage_v:explicit".
+        "macro_counts": dict(
+            Counter(
+                ":".join(filter(None, (item["macro"], item["macro_confidence"]))) for item in rows
+            )
+        ),
     }
 
 

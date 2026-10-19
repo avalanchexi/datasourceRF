@@ -115,6 +115,19 @@
       applyTheme(next);
       return;
     }
+    // 06's interval list by the formal stage or by the macro judgement (macro stage 08).
+    const historyView = target.closest("button[data-history-view]");
+    if (historyView) {
+      const side = historyView.closest(".history-list");
+      if (!side) return;
+      side.querySelectorAll("button[data-history-view]").forEach(function (button) {
+        button.setAttribute("aria-pressed", String(button === historyView));
+      });
+      side.querySelectorAll("ul[data-history-view]").forEach(function (list) {
+        list.hidden = list.dataset.historyView !== historyView.dataset.historyView;
+      });
+      return;
+    }
     const runAction = target.closest("[data-run-action]");
     if (runAction) {
       const command = runAction.getAttribute("data-run-action");

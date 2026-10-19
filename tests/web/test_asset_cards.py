@@ -616,8 +616,11 @@ def test_an_observation_name_shows_its_full_name_and_code_on_hover() -> None:
     )
     (row,) = [item for item in _triggers(_by_id(page, "asset-stock")) if _text(item) == "上涨家数"]
 
-    # The link covers its row, so the hover title sits on the link itself.
-    assert getattr(row, "title", None) == "上涨家数\nCN_EQ_ADV_DEC · advances"
+    # The link covers its row, the direction cell too, so the hover title sits on the link
+    # itself: a reader hovering the direction reads the periods it compares there.
+    assert getattr(row, "title", None) == (
+        "上涨家数\nCN_EQ_ADV_DEC · advances\n较上期：2026-09-29 → 2026-09-30（非近 5 日）"
+    )
 
 
 def test_a_count_120_day_change_says_why_it_has_no_difference() -> None:

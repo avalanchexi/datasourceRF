@@ -96,6 +96,9 @@ bundle=prompt['report_input']
 if RECORD:
     Path(__file__).with_suffix('.prompt.json').write_text(json.dumps(prompt))
 document={'bundle_id':bundle['bundle_id'],'current_stage':bundle['current_stage'],'report_cutoff':bundle['report_cutoff'],'core_states':bundle['core_states'],'conclusions':bundle['conclusions'],'proxy_used':False,'sections':[{'title':'阶段依据','explanation':'债券与股票为牛市，商品为熊市，对应阶段II；宏观证据不参与正式阶段分类。'}]}
+if isinstance(bundle.get('results',{}).get('macro_judgement'),dict):
+    # A report led by the macro judgement says its stage as the rules did: its title.
+    document['sections']=[{'title':'宏观判断与五维依据','explanation':bundle['results']['macro_judgement']['title']+'。'}]
 if PRIMARY=='rewrite_conclusion':
     document['conclusions']=dict(document['conclusions'],policy_direction='tightening')
 if PRIMARY.startswith('tool_failure:'):

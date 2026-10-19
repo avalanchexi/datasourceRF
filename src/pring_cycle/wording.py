@@ -32,9 +32,65 @@ STAGE_TITLES = {
 }
 
 
+# The macro stage judgement's words (ADR-0043, GLOSSARY: 宏观判断阶段, 维度方向).
+MACRO_JUDGEMENT = "宏观判断"
+NO_MACRO_JUDGEMENT = "该投影生成时尚无宏观判断"
+MACRO_CONFIDENCES = {"explicit": "明确", "tendency": "倾向", "weak": "弱"}
+# A stage history day without a macro conclusion: summarized before the rules took effect,
+# or with no stage to take (decision 49).
+MACRO_HISTORY_BLANKS = {"not_effective": "生效前", "no_stage": "无可取阶段"}
+# A day corrected on its cores only keeps the conclusion it published (integration review F4).
+MACRO_NOT_RECOMPUTED = "未重算"
+MACRO_KEPT = "上下文明细已超出留存，只更正核心：沿用该日已发布的宏观判断，未重算"
+MACRO_GROUPS = {"monetary": "货币周期", "economic": "经济周期", "inventory": "库存周期"}
+MACRO_DIMENSIONS = {
+    "policy": "政策",
+    "credit": "信用",
+    "overheat": "增长",
+    "price": "物价",
+    "inventory": "库存",
+}
+MACRO_VALUES = {
+    "up": "上行",
+    "down": "下行",
+    "flat": "持平",
+    "easing": "宽松",
+    "tightening": "收紧",
+    "neutral": "中性",
+    "active_destocking": "主动去库存",
+    "passive_destocking": "被动去库存",
+    "active_restocking": "主动补库存",
+    "passive_restocking": "被动补库存",
+}
+MACRO_POSITIONS = {"high": "高位", "middle": "中位", "low": "低位"}
+MACRO_UNKNOWN = "不明"
+# Section 04 under a judgement: its five dimensions' basis (macro stage ticket 07).
+MACRO_BASIS = "宏观判断依据"
+# The signal list under the judgement (macro stage ticket 04).
+MACRO_SIGNAL_LIST = "信号清单"
+MACRO_NO_SIGNALS = "当日无成形以上的转折信号"
+MACRO_SAME_SOURCE = "同源，不参与投票"
+MACRO_SIGNAL_GROUPS = {
+    "forward": "支持前进",
+    "back": "支持后退",
+    "hold": "支持维持",
+    "open": "转换未定",
+    "unmapped": "资产转向（未映射阶段）",
+}
+MACRO_MATURITIES = {"sprout": "萌芽", "forming": "成形", "confirmed": "确认"}
+# A divergence recounted to the day's raw judgement while the hysteresis holds (decision 60).
+MACRO_RAW_UNCHANGED = "不改变当日原始判断"
+MACRO_ASSETS = {"bond": "债券", "stock": "股票", "commodity": "商品"}
+# The price verification row and its drawer (macro stage ticket 06).
+MACRO_VERIFICATION = "价格验证"
+MACRO_BOARD_NOTES = "补充说明"
+
+
 # How a report's formal stage changed on its day, as its verified results record it.
 STAGE_CHANGE_LABELS = {"formal": "形成正式阶段", "gap": NO_FORMAL_STAGE}
 NONCANONICAL_NO_STAGE = "非典型组合，暂无正式阶段"
+# Under the macro judgement the cores' stage is the price stage (GLOSSARY: 价格阶段).
+FORMAL_TERM, PRICE_TERM = "正式阶段", "价格阶段"
 
 
 def noncanonical_stage_change(change: object, reason: object) -> bool:

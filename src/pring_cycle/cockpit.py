@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime
 from typing import Any, cast
@@ -13,9 +13,11 @@ from urllib.parse import urlencode
 from dash import dcc, html
 
 from pring_cycle import dashboard as view
+from pring_cycle import macro_basis, macro_board
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.domain.trend import TrendRules
 from pring_cycle.drawer import drawer_key, drawer_panel, drawer_trigger, unique_key
+from pring_cycle.macro_judgement import NOT_RECOMPUTED
 from pring_cycle.page_identity import identity_fields
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
@@ -26,9 +28,19 @@ from pring_cycle.wording import (
     _GDP_AGGREGATES,
     _GDP_MEASURES,
     CORE_STATE_LABELS,
+    FORMAL_TERM,
+    MACRO_BOARD_NOTES,
+    MACRO_CONFIDENCES,
+    MACRO_HISTORY_BLANKS,
+    MACRO_JUDGEMENT,
+    MACRO_NOT_RECOMPUTED,
+    MACRO_SAME_SOURCE,
+    MACRO_SIGNAL_LIST,
     NO_CHINESE_NAME,
+    NO_MACRO_JUDGEMENT,
     NO_MEMBER_NAME,
     NONCANONICAL_NO_STAGE,
+    PRICE_TERM,
     DisplayName,
     core_state_label,
     display_name,
@@ -522,6 +534,7 @@ def report_board(
                 className="conclusion-board",
             ),
             gaps_drawer(projection),
+            price_verification_drawer(projection, trend_rules),
             html.P(
                 ["解读：", *reading_line(report, pinned, pending=report_pending)]
                 if projection
@@ -537,11 +550,13 @@ def report_board(
         ],
         [
             asset_cards(projection, macro, trend_rules),
-            *asset_notes(macro),
+            *asset_notes(macro, macro_board.judgement(view._dataset(projection, "cycle_overview"))),
             *view._supply_demand_sections(macro),
         ],
         [overseas_cards(macro, projection)],
-        [
+        macro_basis_section(judgement, confirmation, macro, projection)
+        if (judgement := macro_board.judgement(overview)) is not None
+        else [
             html.P(view._confirmation_scope(confirmation)),
             confirmation_cards(confirmation, macro, projection),
         ]
@@ -603,12 +618,13 @@ def report_board(
             html.A("打开报告历史与生成工作区 →", href="/reports" + pinned),
         ],
     ]
+    sections = section_titles(macro_board.judgement(overview))
     return html.Div(
         [
             html.Nav(
                 [
                     html.A([html.Span(f"{index:02d}"), title], href=pinned + "#" + key)
-                    for index, (key, title) in enumerate(SECTIONS, 1)
+                    for index, (key, title) in enumerate(sections, 1)
                 ],
                 className="report-toc",
                 **cast(Any, {"aria-label": "报告目录"}),
@@ -620,7 +636,12 @@ def report_board(
                             html.Header(
                                 [
                                     html.H2(f"{index:02d} {title}"),
-                                    html.P(BOARD_SUBTITLE, className="report-subtitle")
+                                    html.P(
+                                        MACRO_BOARD_SUBTITLE
+                                        if stage_term(projection) == PRICE_TERM
+                                        else BOARD_SUBTITLE,
+                                        className="report-subtitle",
+                                    )
                                     if key == "conclusion"
                                     else None,
                                 ],
@@ -632,7 +653,7 @@ def report_board(
                         className="report-section",
                     )
                     for index, ((key, title), body) in enumerate(
-                        zip(SECTIONS, bodies, strict=True), 1
+                        zip(sections, bodies, strict=True), 1
                     )
                 ],
                 className="report-body",
@@ -642,7 +663,27 @@ def report_board(
     )
 
 
+def section_titles(judgement: Mapping[str, Any] | None) -> tuple[tuple[str, str], ...]:
+    """The sections by their titles: under a judgement 04 is its basis (macro stage ticket
+    07); an older set's 04 keeps its name."""
+    if judgement is None:
+        return SECTIONS
+    return tuple(
+        (key, macro_basis.TITLE if key == "confirmation" else title) for key, title in SECTIONS
+    )
+
+
 BOARD_SUBTITLE = "正式阶段 · 三核心 · 确认度 · 一致性 · 库存 · 归因，一板看完"
+MACRO_BOARD_SUBTITLE = "五维定宏观阶段 · 价格表象作验证 · 库存 · 归因，一板看完"
+
+
+def stage_term(projection: ProjectionSet | None) -> str:
+    """What the page calls the cores' own stage: the price stage once the macro judgement
+    leads the set (ADR-0043, GLOSSARY: 价格阶段), the formal stage on an older set."""
+    overview = view._dataset(projection, "cycle_overview")
+    return PRICE_TERM if macro_board.judgement(overview) is not None else FORMAL_TERM
+
+
 CORE_ORDER = ("bond", "stock", "commodity")
 CORE_NAMES = {"bond": "债券", "stock": "股票", "commodity": "商品"}
 # A blocked stage reason, named before the board lists each core (spec: reason line).
@@ -657,10 +698,45 @@ CORE_READABLE = {"validated", "carried_forward_one_session"}
 def conclusion_left(projection: ProjectionSet | None, trend_rules: TrendRules | None) -> Any:
     """The board's left column: the formal stage and the five rows a reader checks it by."""
     overview = view._dataset(projection, "cycle_overview")
+    if (judgement := macro_board.judgement(overview)) is not None:
+        # The macro judgement heads the board; the price stage verifies it in one row, its
+        # own rows in that row's drawer (ADR-0043, macro stage tickets 02, 06).
+        return macro_board.conclusion_left(judgement)
+    rows = price_stage_rows(
+        projection,
+        trend_rules,
+        one_asset_difference_line(overview),
+        watch=transition_watch_line(projection),
+    )
+    return html.Div(
+        [
+            html.P("正式阶段", className="section-kicker"),
+            html.H2(view._stage_label(overview.get("current_stage")), className="stage-value"),
+            # An older set is shown as it was: no judgement is made on the page.
+            *([html.P(NO_MACRO_JUDGEMENT, className="empty-note")] if projection else []),
+            html.Dl(
+                [item for label, value in rows for item in (html.Dt(label), html.Dd(value))],
+                className="board-rows",
+            ),
+        ],
+        className="board-left",
+    )
+
+
+def price_stage_rows(
+    projection: ProjectionSet | None,
+    trend_rules: TrendRules | None,
+    difference: list[html.Div] | None,
+    *,
+    watch: str | None = None,
+) -> tuple[tuple[str, Any], ...]:
+    """The rows a reader checks the price stage by: its reason, the one-asset ``difference``
+    when there is one, the last confirmed stage, an older set's turn ``watch``, the cores
+    carried forward and the method."""
+    overview = view._dataset(projection, "cycle_overview")
     lookback = overview.get("last_confirmed_lookback")
     last_confirmed = overview.get("last_confirmed_stage")
-    difference = one_asset_difference_line(overview)
-    rows = (
+    return (
         ("原因", stage_reason_line(projection)),
         *((("只差一项", difference),) if difference else ()),
         (
@@ -670,21 +746,51 @@ def conclusion_left(projection: ProjectionSet | None, trend_rules: TrendRules | 
             # A set without a lookback record never says none (spec: 不回填).
             else ("无" if projection is None else "未提供"),
         ),
-        ("转折观察", transition_watch_line(projection)),
+        *((("转折观察", watch),) if watch is not None else ()),
         ("核心沿用", carry_forward_line(projection)),
         ("判法", method_line(projection, trend_rules)),
     )
-    return html.Div(
-        [
-            html.P("正式阶段", className="section-kicker"),
-            html.H2(view._stage_label(overview.get("current_stage")), className="stage-value"),
-            html.Dl(
-                [item for label, value in rows for item in (html.Dt(label), html.Dd(value))],
-                className="board-rows",
-            ),
-        ],
-        className="board-left",
+
+
+def price_verification_drawer(
+    projection: ProjectionSet | None, trend_rules: TrendRules | None
+) -> Any:
+    """The price verification row's drawer (macro stage ticket 06): the price stage's rows,
+    the one-asset comparisons the verification carries and, with a price stage only, the
+    confirmation, counted against that stage (decision 11). None for an older set."""
+    judgement = macro_board.judgement(view._dataset(projection, "cycle_overview"))
+    if judgement is None:
+        return None
+    verification = obj(judgement.get("price_verification"))
+    rows = price_stage_rows(
+        projection,
+        trend_rules,
+        one_asset_difference_rows(objects(verification.get("comparisons"))),
     )
+    confirmation = obj(view._dataset(projection, "macro").get("confirmation"))
+    stage = verification.get("price_stage")
+    applicable = bool(obj(confirmation.get("summary")).get("applicable"))
+    if stage is None:
+        # 04 points here for the confirmation: with no price stage, say why there is none.
+        counted: list[Any] = [html.H3("确认度"), html.P(NO_PRICE_STAGE_CONFIRMATION)]
+    elif confirmation:
+        counted = [
+            html.H3(f"确认度（对价格阶段{stage_name(stage)}）"),
+            html.P(confirmation_heading(confirmation, term=PRICE_TERM)),
+            html.Div(
+                [
+                    dimension_cell(item, applicable=applicable)
+                    for item in objects(confirmation.get("dimensions"))
+                ],
+                className="confirmation-summary",
+            ),
+        ]
+    else:
+        counted = []
+    return macro_board.verification_panel(judgement, rows, counted)
+
+
+NO_PRICE_STAGE_CONFIRMATION = "无价格阶段，确认度不适用：确认度只对价格阶段计算"
 
 
 def _cores(projection: ProjectionSet | None) -> dict[str, dict[str, Any]]:
@@ -748,7 +854,13 @@ def one_asset_difference_line(overview: dict[str, object]) -> list[html.Div] | N
     """Each typical stage the noncanonical combination misses by one asset, one per line, as
     the Worker published it; an older set without that basis shows no row and none is
     derived here."""
-    comparisons = objects(obj(overview.get("noncanonical_basis")).get("comparisons"))
+    return one_asset_difference_rows(
+        objects(obj(overview.get("noncanonical_basis")).get("comparisons"))
+    )
+
+
+def one_asset_difference_rows(comparisons: list[dict[str, Any]]) -> list[html.Div] | None:
+    """Each published one-asset comparison in one line; none without one."""
     if not comparisons:
         return None
     return [
@@ -818,12 +930,17 @@ def method_line(projection: ProjectionSet | None, trend_rules: TrendRules | None
     model = projection.envelope.model_version_id
     if trend_rules is None:
         return f"该模型版本未提供趋势规则参数 · {model}"
+    # Under the judgement the macro leads and the price stage verifies it (ADR-0043).
+    macro = (
+        "宏观判断为主结论，价格阶段作验证"
+        if stage_term(projection) == PRICE_TERM
+        else "宏观与库存只做事后确认，不改写阶段"
+    )
     return (
         f"MA{trend_rules.window_days} + {trend_rules.slope_days} 日斜率定稳定牛熊，"
         f"噪声带 {trend_rules.noise_multiplier:g}×{trend_rules.volatility_days} 日波动，"
         f"持续 {trend_rules.persistence_days} 日确认，"
-        f"{trend_rules.candidate_window_days} 日候选只作转折观察；"
-        f"宏观与库存只做事后确认，不改写阶段 · {model}"
+        f"{trend_rules.candidate_window_days} 日候选只作转折观察；{macro} · {model}"
     )
 
 
@@ -864,15 +981,16 @@ RELATION_SHORT = {
 LEGACY_MACRO_STATES = ("policy_direction", "credit_response", "overheat_state", "price_pressure")
 
 
-def confirmation_heading(confirmation: dict[str, Any]) -> str:
-    """Whether the confirmation is assessed, over how many key indicators, by which rules."""
+def confirmation_heading(confirmation: dict[str, Any], *, term: str = FORMAL_TERM) -> str:
+    """Whether the confirmation is assessed, over how many key indicators, by which rules;
+    ``term`` is what the page calls the stage it is assessed against."""
     summary = obj(confirmation.get("summary"))
     if not summary:
         return "该版本未提供确认汇总"
     rules = confirmation.get("macro_rules_version") or "版本未提供"
     if summary.get("applicable"):
         return f"可评估 · {summary.get('total')} 项关键指标 · 规则 {rules}"
-    return f"不适用 · {summary.get('total')} 项关键指标 · 无正式阶段，不计数 · 规则 {rules}"
+    return f"不适用 · {summary.get('total')} 项关键指标 · 无{term}，不计数 · 规则 {rules}"
 
 
 def _dimension_total(dimension: dict[str, Any]) -> int | None:
@@ -977,13 +1095,13 @@ def _merged(pieces: list[Any]) -> list[Any]:
     return merged
 
 
-def asset_notes(macro: dict[str, object]) -> list[Any]:
+def asset_notes(macro: dict[str, object], judgement: Mapping[str, Any] | None = None) -> list[Any]:
     """Below the cards, side by side: the cores' price internal consistency and the bond's
     attribution, each its core line on the page and its details in the drawer."""
     notes = [
         note
         for note in (
-            consistency_card(obj(macro.get("price_consistency"))),
+            consistency_card(obj(macro.get("price_consistency")), judgement),
             attribution_card(obj(macro.get("bond_attribution"))),
         )
         if note
@@ -1009,16 +1127,59 @@ def _note_card(name: str, title: str, line: Any, details: list[Any]) -> tuple[An
     )
 
 
-def consistency_card(consistency: dict[str, Any]) -> tuple[Any, Any] | None:
-    """The cores' price internal consistency: its line, details in the drawer."""
+def consistency_card(
+    consistency: dict[str, Any], judgement: Mapping[str, Any] | None = None
+) -> tuple[Any, Any] | None:
+    """The cores' price internal consistency: its line, details in the drawer. A set with a
+    macro judgement says it is of the cores' own source and points to its signals in the
+    01 list (macro stage ticket 04)."""
     if not consistency:
         return None
-    return _note_card(
+    if judgement is None:
+        return _note_card(
+            "consistency",
+            "价格内部一致性（不计数）",
+            price_consistency_line(consistency),
+            [html.Ul([html.Li(line) for line in view._consistency_lines(consistency)])],
+        )
+    card, panel = _note_card(
         "consistency",
-        "价格内部一致性（不计数）",
+        f"价格内部一致性（{MACRO_SAME_SOURCE}）",
         price_consistency_line(consistency),
         [html.Ul([html.Li(line) for line in view._consistency_lines(consistency)])],
     )
+    card.children.insert(
+        2,
+        signal_pointers(
+            judgement, {"relative_momentum", "stock_breadth", "basket_breadth"}, empty=True
+        ),
+    )
+    return card, panel
+
+
+def signal_pointers(
+    judgement: Mapping[str, Any],
+    sources: set[str],
+    *,
+    empty: bool = False,
+    asset: str | None = None,
+) -> Any:
+    """见 01 信号清单：each listed signal of ``sources`` (of ``asset``'s turn, if given),
+    linked to its entry; with none, that none is listed, or nothing."""
+    listed = [
+        item
+        for item in objects(judgement.get("signals"))
+        if item.get("source") in sources
+        and (asset is None or obj(item.get("asset_turn")).get("asset") == asset)
+    ]
+    if not listed:
+        return html.P(f"01 {MACRO_SIGNAL_LIST}当日未列此类信号") if empty else None
+    links: list[Any] = [f"见 01 {MACRO_SIGNAL_LIST}："]
+    for index, item in enumerate(listed):
+        links += (["、"] if index else []) + [
+            html.A(macro_board.pointer(item), href=macro_board.signal_anchor(item))
+        ]
+    return html.P(links, className="signal-pointers")
 
 
 def attribution_card(note: dict[str, Any]) -> tuple[Any, Any] | None:
@@ -1135,13 +1296,16 @@ def conclusion_right(projection: ProjectionSet | None) -> Any:
     confirmation = obj(macro.get("confirmation"))
     applicable = bool(obj(confirmation.get("summary")).get("applicable"))
     noncanonical = is_noncanonical(projection)
+    judgement = macro_board.judgement(view._dataset(projection, "cycle_overview"))
+    attribution = obj(macro.get("bond_attribution"))
+    apart = macro_board.bond_policy_apart(judgement, attribution) if judgement else None
     rows: tuple[tuple[str, Any], ...] = (
         ("价格一致性", price_consistency_line(obj(macro.get("price_consistency")))),
         (
             "库存象限",
             inventory_quadrant_line(confirmation, view._dataset(projection, "inventory")),
         ),
-        ("债券归因", bond_attribution_line(obj(macro.get("bond_attribution")))),
+        ("债券归因", bond_attribution_line(attribution) + (f"；{apart}" if apart else "")),
         (
             "数据边界",
             data_boundary_line(
@@ -1151,6 +1315,16 @@ def conclusion_right(projection: ProjectionSet | None) -> Any:
             ),
         ),
     )
+    listed = html.Dl(
+        [item for label, value in rows for item in (html.Dt(label), html.Dd(value))],
+        className="board-rows",
+    )
+    if judgement is not None:
+        # The confirmation is read in the price verification drawer (decision 11).
+        return html.Div(
+            [html.P(MACRO_BOARD_NOTES, className="section-kicker"), listed],
+            className="board-right",
+        )
     return html.Div(
         [
             html.P("确认度", className="section-kicker"),
@@ -1169,10 +1343,7 @@ def conclusion_right(projection: ProjectionSet | None) -> Any:
             else view._macro_summary(macro)
             if any(key in macro for key in LEGACY_MACRO_STATES)
             else None,
-            html.Dl(
-                [item for label, value in rows for item in (html.Dt(label), html.Dd(value))],
-                className="board-rows",
-            ),
+            listed,
         ],
         className="board-right",
     )
@@ -1213,8 +1384,9 @@ def reading_line(
             html.A("生成报告", href=pinned + "#generate-report-command"),
         ]
     if report.adapter == "deterministic":
+        term = view.report_stage_term(report.body if report.body_retained else {})
         failures = "；".join(
-            f"{adapter} {ADAPTER_FAILURES.get(outcome, outcome)}"
+            f"{adapter} {ADAPTER_FAILURES.get(outcome, outcome).replace(FORMAL_TERM, term)}"
             for adapter, outcome in report.adapter_outcomes
             if outcome != "succeeded"
         )
@@ -1242,7 +1414,10 @@ def report_summary(report: ReportSnapshot | None, pinned: str) -> list[Any]:
     stage = obj(obj(body.get("verified_results")).get("formal_stage"))
     # A reading may call a noncanonical day's empty stage a gap; it is no data gap.
     stage_note = (
-        html.P("阶段变化：" + NONCANONICAL_NO_STAGE, className="secondary-copy")
+        html.P(
+            "阶段变化：" + NONCANONICAL_NO_STAGE.replace(FORMAL_TERM, view.report_stage_term(body)),
+            className="secondary-copy",
+        )
         if noncanonical_stage_change(stage.get("change"), stage.get("reason"))
         else None
     )
@@ -1492,12 +1667,6 @@ def _own_reading(item: dict[str, Any]) -> list[Any]:
     """A key indicator read through its main member alone: value, period and direction, each
     from the latest source when the member lacks it. No stage, so nothing is counted."""
     member = _main_member(item)
-    source = obj(member.get("latest_source"))
-
-    def read(field: str) -> object:
-        return member[field] if member.get(field) is not None else source.get(field)
-
-    label = str(member.get("label") or "")
     if member.get("direction") is not None:
         direction = _direction_arrow(member["direction"])
     elif member.get("quadrant") is not None:
@@ -1505,11 +1674,26 @@ def _own_reading(item: dict[str, Any]) -> list[Any]:
     else:
         direction = "方向未提供"
     return [
+        *_main_reading(item),
+        html.Span(direction),
+        html.Span("不计数", className="uncounted-tag"),
+    ]
+
+
+def _main_reading(item: dict[str, Any]) -> list[Any]:
+    """The main member's name when it is not the indicator's, its value and its period, each
+    from the latest source when the member lacks it."""
+    member = _main_member(item)
+    source = obj(member.get("latest_source"))
+
+    def read(field: str) -> object:
+        return member[field] if member.get(field) is not None else source.get(field)
+
+    label = str(member.get("label") or "")
+    return [
         html.Small(label) if label and label != item.get("name") else None,
         html.Span(number(read("value"), read("unit")), className="card-value"),
         html.Span(str(read("period") or "—")),
-        html.Span(direction),
-        html.Span("不计数", className="uncounted-tag"),
     ]
 
 
@@ -1587,7 +1771,7 @@ def _indicator_drawer(
                     html.P(
                         "非典型组合不判定命题与成熟度"
                         if is_noncanonical(projection)
-                        else "无正式阶段，不判定命题与成熟度",
+                        else f"无{stage_term(projection)}，不判定命题与成熟度",
                         className="empty-note",
                     )
                 ]
@@ -1657,6 +1841,40 @@ def confirmation_cards(
     )
 
 
+def macro_basis_section(
+    judgement: Mapping[str, Any],
+    confirmation: dict[str, Any],
+    macro: dict[str, object],
+    projection: ProjectionSet | None,
+) -> list[Any]:
+    """Section 04 under a judgement (macro stage ticket 07): the five cards of its basis; a
+    key indicator's row reads its main member, says where it went in the vote and opens the
+    drawer of its members, as the confirmation reads them."""
+    applicable = confirmation.get("applicable") is True
+    readings = {
+        (str(dimension.get("dimension")), str(item.get("key"))): item
+        for dimension in objects(confirmation.get("dimensions"))
+        for item in objects(dimension.get("key_indicators"))
+    }
+    keys: list[str] = []
+    drawers: list[Any] = []
+
+    def row(dimension: str, indicator: Mapping[str, Any], vote: str) -> Any:
+        item = readings.get((dimension, str(indicator.get("key"))))
+        name = html.Strong(str(indicator.get("name") or indicator.get("key")))
+        went = html.Span(vote, className="macro-vote")
+        if item is None:
+            return html.Div([name, went], className="indicator-row")
+        key = unique_key(drawer_key("confirmation", item.get("metric_id"), item.get("key")), keys)
+        keys.append(key)
+        drawers.append(_indicator_drawer(item, key, macro, projection, applicable=applicable))
+        return drawer_trigger(key, [name, *_main_reading(item), went], class_name="indicator-row")
+
+    grid = macro_basis.cards(judgement, row)
+    # Panels sit outside the cards so the drawer is fixed to the viewport.
+    return [html.P(macro_basis.SCOPE), grid, *drawers]
+
+
 LINE_CARDS = (("demand", "需求"), ("production", "生产"), ("inventory", "库存"))
 FIRST_RUN = "等待首次完整运行。"
 LINE_ROLES = {"line": "主线成员", "auxiliary": "辅助成员"}
@@ -1697,13 +1915,13 @@ def inventory_section(confirmation: dict[str, Any], projection: ProjectionSet | 
     members = objects(indicator.get("members"))
     available = {str(card.get("label")): card for card in objects(document.get("cards"))}
     return [
-        quadrant_card(indicator),
+        quadrant_card(indicator, term=stage_term(projection)),
         line_cards(members, available, projection),
         *warrant_line(document, projection),
     ]
 
 
-def quadrant_card(indicator: dict[str, Any]) -> Any:
+def quadrant_card(indicator: dict[str, Any], *, term: str = FORMAL_TERM) -> Any:
     member = next((item for item in objects(indicator.get("members")) if "quadrant" in item), {})
     relation = str(indicator.get("relation"))
     return html.Div(
@@ -1721,7 +1939,7 @@ def quadrant_card(indicator: dict[str, Any]) -> Any:
             html.Span(
                 f"确认关系：{view._RELATION_LABELS[relation]}（象限仅计一项）"
                 if relation in RELATION_COUNTED
-                else "确认关系：不适用（无正式阶段，不计数）",
+                else f"确认关系：不适用（无{term}，不计数）",
                 className="secondary-copy",
             ),
         ],
@@ -1899,6 +2117,7 @@ def related_assets(
         for evidence in objects(member.get("evidence")) or [{}]
     ]
     keys = _row_keys("assets", [evidence for _member, evidence in readings], prefix=(asset,))
+    judgement = macro_board.judgement(view._dataset(projection, "cycle_overview"))
     rows = []
     panels = []
     for (member, evidence), key in zip(readings, keys, strict=True):
@@ -1910,12 +2129,15 @@ def related_assets(
         rows.append(
             (
                 # A long name is cut to one line; hovering shows it whole with its code.
-                # The link covers its row, so the title sits on the link.
+                # The link covers its row, the direction cell too, so the title sits on the
+                # link and names the periods the direction compares.
                 drawer_trigger(
                     key,
                     name.name,
                     class_name="row-trigger",
-                    title="\n".join(part for part in (name.name, name.code) if part),
+                    title="\n".join(
+                        part for part in (name.name, name.code, direction_hover(evidence)) if part
+                    ),
                 ),
                 number(evidence.get("value"), evidence.get("unit")),
                 change_cell(window_change(evidence, "change_5")),
@@ -1932,7 +2154,9 @@ def related_assets(
                 extra=(
                     (
                         "用途",
-                        view._state_label(member.get("reads_as"))
+                        _peer_usage(member, judgement, asset)
+                        if judgement is not None
+                        else view._state_label(member.get("reads_as"))
                         if member.get("reads_as")
                         else "仅观察，不计数",
                     ),
@@ -1945,6 +2169,21 @@ def related_assets(
             )
         )
     return table(("名称", "值", "近 5 日", "较上期方向"), rows), panels
+
+
+def _peer_usage(member: dict[str, Any], judgement: Mapping[str, Any], asset: str) -> list[Any]:
+    """Of the cores' own source, never voting; a peer its asset's listed signal reads points
+    to that signal in the 01 list (macro stage ticket 04)."""
+    reads = [view._state_label(member.get("reads_as")) + "；"] if member.get("reads_as") else []
+    pointed = [
+        item
+        for item in objects(judgement.get("signals"))
+        if item.get("source") == "peers"
+        and obj(item.get("asset_turn")).get("asset") == asset
+        and member.get("label") in (obj(item.get("peers")).get("against") or ())
+    ]
+    links = signal_pointers({"signals": pointed}, {"peers"}) if pointed else None
+    return [*reads, MACRO_SAME_SOURCE, *([" · ", *links.children] if links is not None else [])]
 
 
 def coverage_table(
@@ -2228,10 +2467,12 @@ HISTORY_LABELS = {
 }
 
 
-def history_label(value: object) -> str:
-    """A day's state in Chinese once: a stage's code stays in its drawer's title."""
+def history_label(value: object, *, term: str = FORMAL_TERM) -> str:
+    """A day's state in Chinese once: a stage's code stays in its drawer's title; ``term``
+    is what the page calls the cores' stage."""
     text = str(value)
-    return HISTORY_LABELS.get(text, stage_name(value) if text.startswith("stage_") else text)
+    label = HISTORY_LABELS.get(text, stage_name(value) if text.startswith("stage_") else text)
+    return label.replace(FORMAL_TERM, term)
 
 
 def lookback_note(lookback: object) -> list[Any]:
@@ -2259,16 +2500,7 @@ def stage_history(
     return [
         html.Div(
             [
-                html.Div(
-                    [
-                        html.P(
-                            "正式阶段由债券、股票、商品的 120 日稳定方向映射；"
-                            "宏观事实只做事后确认。"
-                        ),
-                        *bands,
-                    ],
-                    className="history-side",
-                ),
+                html.Div(bands, className="history-side"),
                 html.Div(intervals, className="history-side history-list"),
             ],
             className="history-layout",
@@ -2278,32 +2510,105 @@ def stage_history(
     ]
 
 
+def macro_recorded(days: Sequence[dict[str, Any]]) -> bool:
+    """Whether the days show the macro row: a set published from ticket 08 on carries
+    it, and it shows once a day records a conclusion, or that it had no stage to take."""
+    return (
+        bool(days)
+        and all("macro" in day for day in days)
+        and any(day["macro"] not in {"not_effective", "unpublished"} for day in days)
+    )
+
+
+def macro_history_label(day: Mapping[str, Any]) -> str:
+    """A day's macro main conclusion, its stage with its confidence, or why there is none."""
+    value = str(day.get("macro"))
+    if value.startswith("stage_"):
+        notes = [MACRO_CONFIDENCES.get(str(day.get("macro_confidence")), "")]
+        if day.get("macro_note") == NOT_RECOMPUTED:
+            notes.append(MACRO_NOT_RECOMPUTED)
+        noted = "，".join(note for note in notes if note)
+        return f"{stage_name(value)}（{noted}）" if noted else stage_name(value)
+    return MACRO_HISTORY_BLANKS.get(value) or history_label(value)
+
+
+def macro_count_label(key: str) -> str:
+    stage, _, confidence = key.partition(":")
+    return macro_history_label({"macro": stage, "macro_confidence": confidence or None})
+
+
+# A stage's colour on every row of the bands, whatever else they show; a macro conclusion
+# less than explicit is a lighter shade of it.
+STAGE_COLORS = {
+    "stage_i": "#36566b",
+    "stage_ii": "#278a96",
+    "stage_iii": "#c58b42",
+    "stage_iv": "#976269",
+    "stage_v": "#668c7a",
+    "stage_vi": "#747d9a",
+}
+OTHER_COLORS = ("#9c8b59", "#647487", "#8a7f74", "#5f7f8c", "#a07f86", "#7d8f6b")
+_SHADES = {"explicit": 0.0, "tendency": 0.4, "weak": 0.65}
+_SHADE_TOWARD = (0xD6, 0xDD, 0xE0)
+
+
+def band_color(category: str, others: Sequence[str]) -> str:
+    """``category``'s colour: a stage's own, shaded by a macro confidence after a colon;
+    any other state one of the rest, by its place among ``others``."""
+    stage, _, confidence = category.partition(":")
+    if stage not in STAGE_COLORS:
+        return OTHER_COLORS[others.index(category) % len(OTHER_COLORS)]
+    base = STAGE_COLORS[stage]
+    share = _SHADES.get(confidence, 0.0)
+    channels = (int(base[i : i + 2], 16) for i in (1, 3, 5))
+    return "#" + "".join(
+        f"{round(value + (toward - value) * share):02x}"
+        for value, toward in zip(channels, _SHADE_TOWARD, strict=True)
+    )
+
+
+def _band_category(day: Mapping[str, Any], key: str) -> str | None:
+    """The colour category of a day's cell; None leaves the macro row blank."""
+    if key != "macro":
+        return str(day[key])
+    value = str(day.get("macro"))
+    if value in MACRO_HISTORY_BLANKS:
+        return None
+    if value.startswith("stage_"):
+        return f"{value}:{day.get('macro_confidence')}"
+    return value
+
+
 def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]:
-    """The four bands with their day counts, and the trading-day table's drawer."""
+    """The bands with their day counts, and the trading-day table's drawer; the macro
+    judgement's row leads them on a set that records it (ticket 08)."""
     document = view._dataset(projection, "stage_history")
     display = obj(document.get("display"))
     days = objects(display.get("days"))
     if not days:
-        return [html.P("旧投影未提供对齐的交易日色带；历史事件仍可阅读。")], []
-    kinds = ("official", "bond", "stock", "commodity")
-    labels = ("正式阶段", "债券", "股票", "商品")
+        return [
+            html.P("正式阶段由债券、股票、商品的 120 日稳定方向映射；宏观事实只做事后确认。"),
+            html.P("旧投影未提供对齐的交易日色带；历史事件仍可阅读。"),
+        ], []
+    macro = macro_recorded(days)
+    term = PRICE_TERM if macro else FORMAL_TERM
+    kinds = (("macro",) if macro else ()) + ("official", "bond", "stock", "commodity")
+    labels = ((MACRO_JUDGEMENT,) if macro else ()) + (term, "债券", "股票", "商品")
+
+    def label(day: Mapping[str, Any], key: str) -> str:
+        return macro_history_label(day) if key == "macro" else history_label(day[key], term=term)
+
     calendar = drawer_key("history-calendar")
-    categories = list(dict.fromkeys(str(day[key]) for day in days for key in kinds))
+    cells = [[_band_category(day, key) for day in days] for key in kinds]
+    categories = list(dict.fromkeys(item for row in cells for item in row if item is not None))
+    others = [item for item in categories if item.partition(":")[0] not in STAGE_COLORS]
+    colors = [band_color(item, others) for item in categories]
+    top = max(1, len(categories) - 1)
     # A few upright ticks fit the bands' column at any width; within one year month and day
     # say enough, and the hover still names the full date.
     dates = [str(day["date"]) for day in days]
     one_year = len({date[:4] for date in dates}) == 1
     ticks = dates[:: -(-len(dates) // (6 if one_year else 4))]
-    colors = [
-        "#36566b",
-        "#278a96",
-        "#c58b42",
-        "#747d9a",
-        "#976269",
-        "#668c7a",
-        "#9c8b59",
-        "#647487",
-    ]
     graph = dcc.Graph(
         figure={
             "data": [
@@ -2311,21 +2616,23 @@ def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]
                     "type": "heatmap",
                     "x": [day["date"] for day in days],
                     "y": labels,
-                    "z": [[categories.index(str(day[key])) for day in days] for key in kinds],
-                    "text": [[history_label(day[key]) for day in days] for key in kinds],
-                    "colorscale": [
-                        [i / max(1, len(categories) - 1), colors[i % len(colors)]]
-                        for i in range(len(categories))
+                    "z": [
+                        [categories.index(item) if item is not None else None for item in row]
+                        for row in cells
                     ],
+                    "text": [[label(day, key) for day in days] for key in kinds],
+                    # Each category's own colour at its index, also when there is one.
+                    "colorscale": [[i / top, colors[i]] for i in range(len(categories))]
+                    + ([[1, colors[0]]] if len(categories) == 1 else []),
                     "zmin": 0,
-                    "zmax": max(1, len(categories) - 1),
+                    "zmax": top,
                     "showscale": False,
                     "ygap": 5,
                     "hovertemplate": "%{x} · %{y}<br>%{text}<extra></extra>",
                 }
             ],
             "layout": {
-                "height": 210,
+                "height": 250 if macro else 210,
                 "margin": {"l": 70, "r": 8, "t": 10, "b": 35},
                 "paper_bgcolor": "rgba(0,0,0,0)",
                 "plot_bgcolor": "rgba(0,0,0,0)",
@@ -2341,16 +2648,47 @@ def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]
         },
         config={"displayModeBar": False},
     )
-    return (
-        [
-            graph,
+    counts = [
+        html.P(
+            f"{term}日数："
+            + " · ".join(
+                f"{history_label(key, term=term)} {value} 日"
+                for key, value in obj(display.get("counts")).items()
+            )
+        )
+    ]
+    if macro:
+        counts.insert(
+            0,
             html.P(
-                "正式阶段日数："
+                "宏观判断日数："
                 + " · ".join(
-                    f"{history_label(key)} {value} 日"
-                    for key, value in obj(display.get("counts")).items()
+                    f"{macro_count_label(str(key))} {value} 日"
+                    for key, value in obj(display.get("macro_counts")).items()
                 )
             ),
+        )
+    return (
+        [
+            *(
+                [
+                    html.P(
+                        "宏观判断由政策、信用、增长、物价、库存五维对照特征表得出，"
+                        "每日记滞回后的主结论，色深为明确、渐浅为倾向与弱；"
+                        "生效前与无可取阶段留空，不倒推。"
+                        "价格阶段由债券、股票、商品的 120 日稳定方向映射，作价格验证。"
+                    )
+                ]
+                if macro
+                else [
+                    html.P(
+                        "正式阶段由债券、股票、商品的 120 日稳定方向映射；宏观事实只做事后确认。"
+                    ),
+                    html.P(NO_MACRO_JUDGEMENT, className="secondary-copy"),
+                ]
+            ),
+            graph,
+            *counts,
             html.P(drawer_trigger(calendar, "交易日历与色带等价表格")),
         ],
         [
@@ -2365,7 +2703,7 @@ def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]
                         [
                             (
                                 day["date"],
-                                *(history_label(day[key]) for key in kinds),
+                                *(label(day, key) for key in kinds),
                                 projection_link(day.get("projection_set_id")),
                                 projection_link(obj(day.get("corrects")).get("projection_set_id"))
                                 if day.get("corrects")
@@ -2411,19 +2749,76 @@ def history_days(
 
 def history_intervals(days: Sequence[dict[str, Any]]) -> tuple[list[Any], list[Any]]:
     """Consecutive days of one state, a stage or the reason for none, as one row each, and
-    the drawers listing each interval's days."""
-    runs: list[list[dict[str, Any]]] = []
-    for day in days:
-        if runs and runs[-1][-1]["official"] == day["official"]:
-            runs[-1].append(day)
-        else:
-            runs.append([day])
+    the drawers listing each interval's days. On days that record the macro judgement, a
+    switch lists them by its main conclusion instead (ticket 08)."""
     heading = html.H3(f"阶段区间（最近 {HISTORY_WINDOW} 个交易日）")
-    if not runs:
+    if not days:
         return [
             heading,
             html.P("尚无阶段事件；首次完整投影发布后，区间会显示在这里。", className="empty-note"),
         ], []
+    macro = macro_recorded(days)
+    term = PRICE_TERM if macro else FORMAL_TERM
+    official, official_panels = _interval_list(
+        days,
+        lambda day: (day["official"],),
+        lambda day: history_label(day["official"], term=term),
+        "history-interval",
+        view="official" if macro else None,
+        term=term,
+    )
+    if not macro:
+        return [heading, official], official_panels
+    by_macro, macro_panels = _interval_list(
+        days,
+        lambda day: (day.get("macro"), day.get("macro_confidence")),
+        macro_history_label,
+        "history-macro-interval",
+        view="macro",
+        term=term,
+    )
+    views = (("official", term), ("macro", MACRO_JUDGEMENT))
+    # Only the switch's script shows the other list; without it the formal one stays.
+    switch = html.Div(
+        [
+            html.Button(
+                label,
+                type="button",
+                className="history-view",
+                **cast(
+                    Any,
+                    {
+                        "data-history-view": view_name,
+                        "aria-pressed": "true" if view_name == "official" else "false",
+                    },
+                ),
+            )
+            for view_name, label in views
+        ],
+        className="history-views",
+        role="group",
+        **cast(Any, {"aria-label": "区间按"}),
+    )
+    return [heading, switch, official, by_macro], [*official_panels, *macro_panels]
+
+
+def _interval_list(
+    days: Sequence[dict[str, Any]],
+    state: Callable[[dict[str, Any]], tuple[object, ...]],
+    label: Callable[[dict[str, Any]], str],
+    prefix: str,
+    *,
+    view: str | None = None,
+    term: str = FORMAL_TERM,
+) -> tuple[html.Ul, list[Any]]:
+    """The intervals of one ``state`` running over consecutive days, and their drawers; a
+    ``view`` names the list for the switch between them, shown only for the formal stage."""
+    runs: list[list[dict[str, Any]]] = []
+    for day in days:
+        if runs and state(runs[-1][-1]) == state(day):
+            runs[-1].append(day)
+        else:
+            runs.append([day])
     # Month and day read well while the window stays in one year.
     short = len({str(day["date"])[:4] for day in days}) == 1
 
@@ -2433,36 +2828,37 @@ def history_intervals(days: Sequence[dict[str, Any]]) -> tuple[list[Any], list[A
             first, last = first[5:], last[5:]
         return first if len(run) == 1 else f"{first}～{last}"
 
-    keys = [drawer_key("history-interval", run[0]["date"]) for run in runs]
+    keys = [drawer_key(prefix, run[0]["date"]) for run in runs]
     return (
-        [
-            heading,
-            html.Ul(
-                [
-                    html.Li(
-                        drawer_trigger(
-                            key,
-                            [
-                                html.Strong(span(run)),
-                                html.Span(history_label(run[0]["official"])),
-                                html.Span(f"{len(run)} 日"),
-                                *corrected_count(run),
-                            ],
-                            class_name="history-interval",
-                        )
+        html.Ul(
+            [
+                html.Li(
+                    drawer_trigger(
+                        key,
+                        [
+                            html.Strong(span(run)),
+                            html.Span(label(run[0])),
+                            html.Span(f"{len(run)} 日"),
+                            *corrected_count(run),
+                        ],
+                        class_name="history-interval",
                     )
-                    for key, run in zip(keys, runs, strict=True)
-                ],
-                className="history-intervals",
+                )
+                for key, run in zip(keys, runs, strict=True)
+            ],
+            className="history-intervals",
+            **cast(
+                Any,
+                {"data-history-view": view, "hidden": view == "macro"} if view is not None else {},
             ),
-        ],
+        ),
         [
             drawer_panel(
                 key,
-                f"{history_label(run[0]['official'])} · {span(run)}",
-                [html.Ul([history_day(day) for day in run], className="record-list")],
-                code=stage_code(run[0]["official"])
-                if str(run[0]["official"]).startswith("stage_")
+                f"{label(run[0])} · {span(run)}",
+                [html.Ul([history_day(day, term=term) for day in run], className="record-list")],
+                code=stage_code(state(run[0])[0])
+                if str(state(run[0])[0]).startswith("stage_")
                 else None,
             )
             for key, run in zip(keys, runs, strict=True)
@@ -2485,8 +2881,9 @@ def projection_link(projection_set_id: object) -> Any:
     )
 
 
-def history_day(day: dict[str, Any]) -> html.Li:
-    """One day of an interval: its state, its event's facts, the version it corrects and why."""
+def history_day(day: dict[str, Any], *, term: str = FORMAL_TERM) -> html.Li:
+    """One day of an interval: its state, its event's facts, the version it corrects and why;
+    ``term`` is what the page calls the cores' stage."""
     corrects = day.get("corrects")
     gaps = day.get("gaps")
     facts = (
@@ -2497,7 +2894,7 @@ def history_day(day: dict[str, Any]) -> html.Li:
                 if day.get("last_confirmed_stage")
                 else "尚无"
             ),
-            "原因 " + history_label(day.get("stage_reason") or "未记录"),
+            "原因 " + history_label(day.get("stage_reason") or "未记录", term=term),
             "；".join(view._gap_label(str(value)) for value in gaps)
             if isinstance(gaps, list) and gaps
             else "无 P0 缺口",
@@ -2508,14 +2905,17 @@ def history_day(day: dict[str, Any]) -> html.Li:
     )
     return html.Li(
         [
-            html.Strong(f"{day['date']} · {history_label(day['official'])}"),
+            html.Strong(f"{day['date']} · {history_label(day['official'], term=term)}"),
             html.Span(" · ".join(facts), className="secondary-copy") if facts else None,
             html.Span(
                 [
                     "更正版本：更正 ",
                     projection_link(corrects.get("projection_set_id")),
                     "（"
-                    + (view._stage_correction_note(corrects) or str(corrects.get("reason")))
+                    + (
+                        view._stage_correction_note(corrects).replace(FORMAL_TERM, term)
+                        or str(corrects.get("reason"))
+                    )
                     + "）",
                 ],
                 className="secondary-copy",
@@ -2569,12 +2969,18 @@ def _compared_periods(item: dict[str, Any]) -> str | None:
     return f"{previous} → {item.get('period') or '—'}" if previous else "上期日期未提供"
 
 
+def direction_hover(item: dict[str, Any]) -> str | None:
+    """The two periods the direction compares, as hovering names them; None for none."""
+    compared = _compared_periods(item)
+    return f"较上期：{compared}（非近 5 日）" if compared else None
+
+
 def direction_cell(item: dict[str, Any], *, label: str = "") -> Any:
     """The direction's arrow, after ``label`` when it compares two periods; hovering names
     them."""
-    compared = _compared_periods(item)
+    hover = direction_hover(item)
     arrow = _direction_arrow(item.get("direction"))
-    return html.Span(label + arrow, title=f"较上期：{compared}（非近 5 日）") if compared else arrow
+    return html.Span(label + arrow, title=hover) if hover else arrow
 
 
 # The derived Treasury spread's projected direction is the sign of its value, not a
