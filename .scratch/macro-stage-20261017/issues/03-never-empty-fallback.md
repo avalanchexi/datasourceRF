@@ -29,7 +29,8 @@
 - 两例冒烟（`PYTHONPATH=src`）→ 2 passed，46 秒。
 - 重装包副本（`uv sync --reinstall-package pring-cycle`）后不设 `PYTHONPATH` 复跑本票与 02 的四个宏观文件＋两例冒烟 → 36 passed，133 秒。
 - `ruff check src/pring_cycle/`、`mypy`（包）通过。
-- 收尾时 `macro-stage` 头仍为 fa7c0c2（04 未合入），本分支即基于它，无需合并。
+- 首次收尾时 `macro-stage` 头为 fa7c0c2（736169d 基于它）。
+- **合并 04 后（`macro-stage` 58d84a9）**：`day_summary._judge_macro` 冲突按两票意图合并——三核心组合 `combination` 同时传给主判断与 04 的分化重判回调 `judge(twin_rules, twin, reference=…, cores=combination)`；`macro_board` 两票函数并存，本票的 `CORE_ASSET_NAMES` 删去，改用 04 已加的同值 `MACRO_ASSETS`。PMI 分化重判由"三阶段并列 → 转换未定"变为"判第三阶段（倾向）· 支持后退（第五→第三阶段，-2 步）"，收紧 `tests/integration/test_macro_signals.py` 与 `tests/web/test_macro_signal_board.py` 的断言。复跑 04 的受影响范围加 `test_macro_fallback.py`（`PYTHONPATH=src`，flock）→ 671 passed，524 秒；重装包副本后两例冒烟 → 2 passed，48 秒；`ruff`、`mypy` 通过。
 
 ### 与票面／规格的偏离与取舍
 

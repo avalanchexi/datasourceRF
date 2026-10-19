@@ -21,7 +21,6 @@ CORE_STATE_LABELS = {
     "bear": "熊市",
     "bearish": "熊市",
 }
-CORE_ASSET_NAMES = {"bond": "债券", "stock": "股票", "commodity": "商品"}
 
 STAGE_TITLES = {
     "stage_i": "第一阶段 · Stage I",
@@ -59,6 +58,19 @@ MACRO_VALUES = {
 }
 MACRO_POSITIONS = {"high": "高位", "middle": "中位", "low": "低位"}
 MACRO_UNKNOWN = "不明"
+# The signal list under the judgement (macro stage ticket 04).
+MACRO_SIGNAL_LIST = "信号清单"
+MACRO_NO_SIGNALS = "当日无成形以上的转折信号"
+MACRO_SAME_SOURCE = "同源，不参与投票"
+MACRO_SIGNAL_GROUPS = {
+    "forward": "支持前进",
+    "back": "支持后退",
+    "hold": "支持维持",
+    "open": "转换未定",
+    "unmapped": "资产转向（未映射阶段）",
+}
+MACRO_MATURITIES = {"sprout": "萌芽", "forming": "成形", "confirmed": "确认"}
+MACRO_ASSETS = {"bond": "债券", "stock": "股票", "commodity": "商品"}
 
 
 # How a report's formal stage changed on its day, as its verified results record it.

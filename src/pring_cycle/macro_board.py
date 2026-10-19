@@ -16,14 +16,20 @@ from typing import Any
 from dash import html
 
 from pring_cycle.macro_judgement import ASSETS, GROUPS
+from pring_cycle.macro_signals import GROUPS as SIGNAL_GROUPS
 from pring_cycle.wording import (
-    CORE_ASSET_NAMES,
     CORE_STATE_LABELS,
+    MACRO_ASSETS,
     MACRO_CONFIDENCES,
     MACRO_DIMENSIONS,
     MACRO_GROUPS,
     MACRO_JUDGEMENT,
+    MACRO_MATURITIES,
+    MACRO_NO_SIGNALS,
     MACRO_POSITIONS,
+    MACRO_SAME_SOURCE,
+    MACRO_SIGNAL_GROUPS,
+    MACRO_SIGNAL_LIST,
     MACRO_UNKNOWN,
     MACRO_VALUES,
     stage_name,
@@ -54,6 +60,7 @@ def conclusion_left(
             ),
             *([html.P(line, className="macro-fallback")] if (line := fallback(block)) else []),
             dimensions(block),
+            signal_list(block),
             html.P("价格阶段", className="section-kicker"),
             html.P(price_stage, className="price-stage-value"),
             html.Dl(
@@ -132,7 +139,7 @@ def fallback(block: Mapping[str, Any]) -> str | None:
 
 def _cores(combination: Mapping[str, Any]) -> str:
     return " · ".join(
-        f"{CORE_ASSET_NAMES[asset]}{CORE_STATE_LABELS.get(str(combination.get(asset)), '不明')}"
+        f"{MACRO_ASSETS[asset]}{CORE_STATE_LABELS.get(str(combination.get(asset)), '不明')}"
         for asset in ASSETS
     )
 
@@ -242,6 +249,178 @@ def _lacking(voters: Sequence[Mapping[str, Any]]) -> str:
         if names:
             parts.append(lack + "、".join(names))
     return "；".join(parts)
+
+
+def signal_list(block: Mapping[str, Any]) -> html.Div:
+    """The signals by their groups against the main conclusion: forward, back and hold,
+    then the open and the unmapped (decisions 35, 41); each its own anchor, which the
+    same-source labels of 02 point to."""
+    listed = _mappings(block.get("signals"))
+    groups: list[Any] = [
+        html.Div(
+            [
+                html.H3(MACRO_SIGNAL_GROUPS[group], className="macro-group-title"),
+                html.Ul(
+                    [
+                        html.Li(describe(item), id=signal_anchor(item)[1:])
+                        for item in listed
+                        if item.get("group") == group
+                    ],
+                    className="macro-signal-list",
+                ),
+            ],
+            className="macro-group",
+        )
+        for group in SIGNAL_GROUPS
+        if any(item.get("group") == group for item in listed)
+    ]
+    return html.Div(
+        [
+            html.P(MACRO_SIGNAL_LIST, className="section-kicker"),
+            *(groups or [html.P(MACRO_NO_SIGNALS, className="empty-note")]),
+        ],
+        className="macro-signals",
+    )
+
+
+def signal_anchor(item: Mapping[str, Any]) -> str:
+    return f"#signal-{item.get('id')}"
+
+
+def describe(item: Mapping[str, Any]) -> str:
+    """A signal in one line: what it reads, the transition it supports, its maturity, and
+    for one of the cores' own source that it never votes."""
+    parts = [_reading(item)]
+    transition = _transition(item)
+    if transition:
+        parts.append(transition)
+    if item.get("maturity") in MACRO_MATURITIES:
+        parts.append(MACRO_MATURITIES[str(item["maturity"])])
+    if item.get("same_source"):
+        parts.append(MACRO_SAME_SOURCE)
+    return " · ".join(parts)
+
+
+def pointer(item: Mapping[str, Any]) -> str:
+    """How a same-source label of 02 names a signal: its subject and its group."""
+    group = MACRO_SIGNAL_GROUPS.get(str(item.get("group")), "")
+    momentum = _mapping(item.get("momentum"))
+    if momentum:
+        subject = str(momentum.get("label"))
+    elif item.get("breadth"):
+        subject = str(_mapping(item.get("breadth")).get("label"))
+    else:
+        turn = _mapping(item.get("asset_turn"))
+        kind = "同类" if item.get("source") == "peers" else "核心候选"
+        subject = f"{_asset(turn.get('asset'))}{kind}转{_state(turn.get('to'))}"
+    return f"{subject}（{group}）"
+
+
+def _reading(item: Mapping[str, Any]) -> str:
+    source = item.get("source")
+    if item.get("kind") == "divergence":
+        return _divergence(item)
+    if source == "relative_momentum":
+        momentum = _mapping(item.get("momentum"))
+        first, second = _pair_name(momentum.get("of")), _pair_name(momentum.get("against"))
+        level = "强于" if momentum.get("level") == "up" else "弱于"
+        moved = "走强" if momentum.get("turn") == "up" else "走弱"
+        return (
+            f"{momentum.get('label')}：{first}{level}{second} "
+            f"{abs(float(momentum.get('value_pp') or 0)):.2f} 个百分点，"
+            f"{momentum.get('turn_sessions')} 日{moved} "
+            f"{abs(float(momentum.get('change_pp') or 0)):.2f} 个百分点"
+        )
+    if source in {"stock_breadth", "basket_breadth"}:
+        breadth = _mapping(item.get("breadth"))
+        detail = (
+            f"站上 90 日均线 {float(breadth['share']):.1f}%"
+            if isinstance(breadth.get("share"), (int, float))
+            else f"{breadth.get('along')}/{breadth.get('of')} 个分项同向"
+            if breadth.get("along") is not None
+            else ""
+        )
+        return f"{breadth.get('label')}：{breadth.get('text')}" + (
+            f"（{detail}）" if detail else ""
+        )
+    turn = _mapping(item.get("asset_turn"))
+    asset, state = _asset(turn.get("asset")), CORE_STATE_LABELS.get(str(turn.get("state")), "")
+    if source == "peers":
+        peers = _mapping(item.get("peers"))
+        against = [str(label) for label in peers.get("against") or ()]
+        return (
+            f"{asset}同类 {len(against)}/{peers.get('read')} 转{_state(turn.get('to'))}"
+            f"（{'、'.join(against)}），与{asset}核心{state}背离"
+        )
+    candidates = _mapping(item.get("candidates"))
+    named = []
+    for kind in candidates.get("against") or ():
+        if kind == "candidate_30d":
+            named.append(f"30 日候选方向{_state(turn.get('to'))}")
+        else:
+            named.append(
+                f"资产候选状态{_state(turn.get('to'))}（已 {candidates.get('candidate_days')} 日）"
+            )
+    return f"{asset}核心{'、'.join(named)}，与当前{state}相反"
+
+
+def _transition(item: Mapping[str, Any]) -> str:
+    """符合第三→第四阶段 for a cell's own transition; an asset flipped, what it makes."""
+    if item.get("kind") == "divergence":
+        return ""
+    transition = _mapping(item.get("transition"))
+    origin, target = transition.get("from"), transition.get("to")
+    if target is None:
+        return "翻转后为非典型组合"
+    if origin is None:
+        return f"翻转后为{stage_name(target)}"
+    return f"符合{stage_name(origin).removesuffix('阶段')}→{stage_name(target)}"
+
+
+def _divergence(item: Mapping[str, Any]) -> str:
+    """PMI 分化：新订单上行（主成员下行）；若 PMI 改投少数方向，增长上行，判第三阶段（…）."""
+    indicator, minority = _mapping(item.get("indicator")), _mapping(item.get("minority"))
+    name = str(indicator.get("name"))
+    head = (
+        _spaced(name, "分化：")
+        + "、".join(str(member) for member in minority.get("members") or ())
+        + MACRO_VALUES.get(str(minority.get("direction")), MACRO_UNKNOWN)
+        + f"（主成员{MACRO_VALUES.get(str(indicator.get('main_direction')), MACRO_UNKNOWN)}）"
+    )
+    rejudged = item.get("rejudged")
+    if not isinstance(rejudged, Mapping):
+        dimension = MACRO_DIMENSIONS.get(str(indicator.get("dimension")), "")
+        return f"{head}；{dimension}维不由指标投票，不改判"
+    recounted = _mapping(rejudged.get("dimension"))
+    named = MACRO_DIMENSIONS.get(str(recounted.get("dimension")), "")
+    joined = (
+        f"若{name}按少数方向计入{named}维"
+        if rejudged.get("joined")
+        else "若" + (" " if name[:1].isascii() else "") + _spaced(name, "改投少数方向")
+    )
+    value = MACRO_VALUES.get(str(recounted.get("value")), MACRO_UNKNOWN)
+    stage = rejudged.get("stage")
+    judged = (
+        f"判{stage_name(stage)}"
+        f"（{MACRO_CONFIDENCES.get(str(rejudged.get('confidence')), '')}，"
+        f"{rejudged.get('known')} 维中 {rejudged.get('matched')} 维吻合）"
+        if stage is not None
+        else "未达明确判断"
+    )
+    return f"{head}；{joined}，{named}{value}，{judged}"
+
+
+def _pair_name(asset: object) -> str:
+    """A pair's side as its label names it: 债 for the bond."""
+    return "债" if asset == "bond" else _asset(asset)
+
+
+def _asset(asset: object) -> str:
+    return MACRO_ASSETS.get(str(asset), str(asset))
+
+
+def _state(state: object) -> str:
+    return CORE_STATE_LABELS.get(str(state), "")[:1]
 
 
 def _spaced(name: str, word: str) -> str:

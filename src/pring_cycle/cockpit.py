@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime
 from typing import Any, cast
@@ -27,6 +27,8 @@ from pring_cycle.wording import (
     _GDP_AGGREGATES,
     _GDP_MEASURES,
     CORE_STATE_LABELS,
+    MACRO_SAME_SOURCE,
+    MACRO_SIGNAL_LIST,
     NO_CHINESE_NAME,
     NO_MACRO_JUDGEMENT,
     NO_MEMBER_NAME,
@@ -517,7 +519,7 @@ def report_board(
         ],
         [
             asset_cards(projection, macro, trend_rules),
-            *asset_notes(macro),
+            *asset_notes(macro, macro_board.judgement(view._dataset(projection, "cycle_overview"))),
             *view._supply_demand_sections(macro),
         ],
         [overseas_cards(macro, projection)],
@@ -656,7 +658,9 @@ def conclusion_left(projection: ProjectionSet | None, trend_rules: TrendRules | 
     )
     stage_label = view._stage_label(overview.get("current_stage"))
     if (judgement := macro_board.judgement(overview)) is not None:
-        # The macro judgement heads the board; the price stage verifies it (ADR-0043).
+        # The macro judgement heads the board; the price stage verifies it (ADR-0043). The
+        # turn watch is merged into its signal list (macro stage ticket 04).
+        rows = tuple((label, value) for label, value in rows if label != "转折观察")
         return macro_board.conclusion_left(judgement, stage_label, rows)
     return html.Div(
         [
@@ -963,13 +967,13 @@ def _merged(pieces: list[Any]) -> list[Any]:
     return merged
 
 
-def asset_notes(macro: dict[str, object]) -> list[Any]:
+def asset_notes(macro: dict[str, object], judgement: Mapping[str, Any] | None = None) -> list[Any]:
     """Below the cards, side by side: the cores' price internal consistency and the bond's
     attribution, each its core line on the page and its details in the drawer."""
     notes = [
         note
         for note in (
-            consistency_card(obj(macro.get("price_consistency"))),
+            consistency_card(obj(macro.get("price_consistency")), judgement),
             attribution_card(obj(macro.get("bond_attribution"))),
         )
         if note
@@ -995,16 +999,59 @@ def _note_card(name: str, title: str, line: Any, details: list[Any]) -> tuple[An
     )
 
 
-def consistency_card(consistency: dict[str, Any]) -> tuple[Any, Any] | None:
-    """The cores' price internal consistency: its line, details in the drawer."""
+def consistency_card(
+    consistency: dict[str, Any], judgement: Mapping[str, Any] | None = None
+) -> tuple[Any, Any] | None:
+    """The cores' price internal consistency: its line, details in the drawer. A set with a
+    macro judgement says it is of the cores' own source and points to its signals in the
+    01 list (macro stage ticket 04)."""
     if not consistency:
         return None
-    return _note_card(
+    if judgement is None:
+        return _note_card(
+            "consistency",
+            "价格内部一致性（不计数）",
+            price_consistency_line(consistency),
+            [html.Ul([html.Li(line) for line in view._consistency_lines(consistency)])],
+        )
+    card, panel = _note_card(
         "consistency",
-        "价格内部一致性（不计数）",
+        f"价格内部一致性（{MACRO_SAME_SOURCE}）",
         price_consistency_line(consistency),
         [html.Ul([html.Li(line) for line in view._consistency_lines(consistency)])],
     )
+    card.children.insert(
+        2,
+        signal_pointers(
+            judgement, {"relative_momentum", "stock_breadth", "basket_breadth"}, empty=True
+        ),
+    )
+    return card, panel
+
+
+def signal_pointers(
+    judgement: Mapping[str, Any],
+    sources: set[str],
+    *,
+    empty: bool = False,
+    asset: str | None = None,
+) -> Any:
+    """见 01 信号清单：each listed signal of ``sources`` (of ``asset``'s turn, if given),
+    linked to its entry; with none, that none is listed, or nothing."""
+    listed = [
+        item
+        for item in objects(judgement.get("signals"))
+        if item.get("source") in sources
+        and (asset is None or obj(item.get("asset_turn")).get("asset") == asset)
+    ]
+    if not listed:
+        return html.P(f"01 {MACRO_SIGNAL_LIST}当日未列此类信号") if empty else None
+    links: list[Any] = [f"见 01 {MACRO_SIGNAL_LIST}："]
+    for index, item in enumerate(listed):
+        links += (["、"] if index else []) + [
+            html.A(macro_board.pointer(item), href=macro_board.signal_anchor(item))
+        ]
+    return html.P(links, className="signal-pointers")
 
 
 def attribution_card(note: dict[str, Any]) -> tuple[Any, Any] | None:
@@ -1885,6 +1932,7 @@ def related_assets(
         for evidence in objects(member.get("evidence")) or [{}]
     ]
     keys = _row_keys("assets", [evidence for _member, evidence in readings], prefix=(asset,))
+    judgement = macro_board.judgement(view._dataset(projection, "cycle_overview"))
     rows = []
     panels = []
     for (member, evidence), key in zip(readings, keys, strict=True):
@@ -1918,7 +1966,9 @@ def related_assets(
                 extra=(
                     (
                         "用途",
-                        view._state_label(member.get("reads_as"))
+                        _peer_usage(member, judgement, asset)
+                        if judgement is not None
+                        else view._state_label(member.get("reads_as"))
                         if member.get("reads_as")
                         else "仅观察，不计数",
                     ),
@@ -1931,6 +1981,21 @@ def related_assets(
             )
         )
     return table(("名称", "值", "近 5 日", "方向"), rows), panels
+
+
+def _peer_usage(member: dict[str, Any], judgement: Mapping[str, Any], asset: str) -> list[Any]:
+    """Of the cores' own source, never voting; a peer its asset's listed signal reads points
+    to that signal in the 01 list (macro stage ticket 04)."""
+    reads = [view._state_label(member.get("reads_as")) + "；"] if member.get("reads_as") else []
+    pointed = [
+        item
+        for item in objects(judgement.get("signals"))
+        if item.get("source") == "peers"
+        and obj(item.get("asset_turn")).get("asset") == asset
+        and member.get("label") in (obj(item.get("peers")).get("against") or ())
+    ]
+    links = signal_pointers({"signals": pointed}, {"peers"}) if pointed else None
+    return [*reads, MACRO_SAME_SOURCE, *([" · ", *links.children] if links is not None else [])]
 
 
 def coverage_table(

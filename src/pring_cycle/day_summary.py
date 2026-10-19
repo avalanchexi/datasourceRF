@@ -69,6 +69,7 @@ from pring_cycle.freshness import (
     use_release_schedule,
 )
 from pring_cycle.macro_judgement import MacroJudgementRules, judge
+from pring_cycle.macro_signals import SignalDay, SignalRules, signal_list
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import (
     CARRIED_FORWARD,
@@ -82,7 +83,7 @@ from pring_cycle.p0 import (
     formal_stage,
     stated_last_confirmed,
 )
-from pring_cycle.price_consistency import CorePrices
+from pring_cycle.price_consistency import CorePrices, PriceRules
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.stage_lookback import StageLookback
 from pring_cycle.trading_calendar import TradingCalendar, run_calendar_scope, use_run_calendar
@@ -111,6 +112,22 @@ def _core_prices(item: CoreAssetReadiness) -> CorePrices:
         item.closes,
         item.state.value if item.state is not None else None,
     )
+
+
+def _core_facts(item: CoreAssetReadiness) -> dict[str, object]:
+    """A core's state and its turn watch, as the set publishes them."""
+    return {
+        "state": item.state.value if item.state is not None else None,
+        "candidate_30d": item.candidate_30d.value if item.candidate_30d is not None else None,
+        "candidate_state": (
+            item.candidate_state.value if item.candidate_state is not None else None
+        ),
+        "candidate_days": item.candidate_days,
+    }
+
+
+def _mapping(value: object) -> Mapping[str, object]:
+    return value if isinstance(value, Mapping) else {}
 
 
 def _no_warnings(_context: ContextProjection) -> tuple[str, ...]:
@@ -214,6 +231,9 @@ class ModelRules:
     definitions: tuple[MetricDefinition, ...] = field(default=())
     # A model with them judges the macro stage before publishing each day (ADR-0043).
     macro_judgement: MacroJudgementRules | None = None
+    # With them, the signal list under the judgement (macro stage ticket 04).
+    macro_signals: SignalRules | None = None
+    price_rules: PriceRules | None = None
 
     @classmethod
     def of(cls, models: ModelRepository, model_version_id: str) -> ModelRules:
@@ -226,6 +246,8 @@ class ModelRules:
             trend_rules_from_manifest(manifest),
             rules.metric_definitions,
             rules.macro_judgement,
+            rules.macro_signals,
+            rules.confirmation.prices if rules.confirmation is not None else None,
         )
 
 
@@ -319,7 +341,11 @@ class DaySummaries:
                 else None
             )
             macro_judgement = self._judge_macro(
-                context, readiness, decided, stated_last_confirmed(decided, last_stage, lookback)
+                day,
+                readiness,
+                decided,
+                context,
+                stated_last_confirmed(decided, last_stage, lookback),
             )
             snapshot_id = self._freeze(readiness, context, system_as_of=system_as_of)
             if snapshot_id is not None:
@@ -575,33 +601,81 @@ class DaySummaries:
             core_history_basis=basis,
             corrects=corrects,
             macro_judgement=self._judge_macro(
-                context, readiness, decided, stated_last_confirmed(decided, last_stage)
+                day, readiness, decided, context, stated_last_confirmed(decided, last_stage)
             ),
         )
 
     def _judge_macro(
         self,
-        context: ContextProjection,
+        day: str,
         readiness: CoreReadiness,
         decided: StageResult,
+        context: ContextProjection,
         reference: FormalStage | None,
     ) -> dict[str, object] | None:
         """The macro judgement a day publishes, the target and each backfilled day alike,
         once its context is read and the last confirmed stage its set states is known
         (ADR-0043). None for a model without the rules, or a context not recomputed.
 
+        The judgement first, then its main conclusion, then the signal list grouped
+        against that conclusion and counted on from the previous session's (ticket 04).
         A weak judgement falls back on the day's three cores while their combination is
-        read, typical or not; with a core unavailable or pending, on ``reference``."""
+        read, typical or not; with a core unavailable or pending, on ``reference``.
+        """
         rules = self._model.macro_judgement
         confirmation = context.macro.get("confirmation")
         if rules is None or not isinstance(confirmation, Mapping):
             return None
-        cores = (
+        combination = (
             {item.asset: item.state.value for item in readiness if item.state is not None}
             if decided.reason in {"canonical_combination", "noncanonical_combination"}
             else None
         )
-        return judge(rules, confirmation, reference=reference, cores=cores)
+        block = judge(rules, confirmation, reference=reference, cores=combination)
+        signals, prices = self._model.macro_signals, self._model.price_rules
+        if signals is None or prices is None:
+            return block
+        listed, sprouts = signal_list(
+            signals,
+            prices,
+            rules,
+            SignalDay(
+                confirmation,
+                context.macro,
+                cores={item.asset: _core_facts(item) for item in readiness},
+                core_prices={item.asset: _core_prices(item) for item in readiness},
+                sessions=self._sessions_to(day, prices.points + signals.turn_sessions),
+                price_stage=decided.current_stage.value if decided.current_stage else None,
+                previous=self._previous_judgement(day),
+            ),
+            conclusion=_text_or_none(_mapping(block.get("conclusion")).get("stage")),
+            rejudge=lambda twin_rules, twin: judge(
+                twin_rules, twin, reference=reference, cores=combination
+            ),
+        )
+        return {**block, "signals": listed, "sprouts": sprouts}
+
+    def _previous_judgement(self, day: str) -> Mapping[str, object] | None:
+        """The macro judgement the session before ``day`` last published; none when that
+        session has no summary, or one without a judgement: nothing is counted across it."""
+        try:
+            previous = self._window_calendar.latest_on_or_before(
+                date.fromisoformat(day) - timedelta(days=1)
+            )
+        except LookupError:
+            return None
+        return self._projections.macro_judgement_on(previous.isoformat())
+
+    def _sessions_to(self, day: str, count: int) -> tuple[str, ...] | None:
+        """The ``count`` SSE sessions to ``day``, as the window's calendar states them."""
+        try:
+            calendar = self._window_calendar
+            sessions = calendar.sessions_back(
+                calendar.latest_on_or_before(date.fromisoformat(day)), count
+            )
+        except LookupError:
+            return None
+        return tuple(item.isoformat() for item in sessions)
 
     def _freeze(
         self, readiness: CoreReadiness, context: ContextProjection, *, system_as_of: datetime
