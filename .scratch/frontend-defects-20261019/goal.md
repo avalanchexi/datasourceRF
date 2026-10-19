@@ -17,5 +17,5 @@
 |---|---|---|
 | 01 线图 | done（05fbc03，快进合入 main；首月不打刻度） | ticket-fd01／fd-01 |
 | 02 较上期方向 | done（ca843a1，合并 85b3976） | ticket-fd02／fd-02 |
-| 03 利差与缺日 | 进行中（22:4x 派出） | ticket-fd03／fd-03 |
+| 03 利差与缺日 | done（6aae2fe，快进合入 main；下一次运行后生效） | ticket-fd03／fd-03 |
 | 04 | ready-for-human | — |
