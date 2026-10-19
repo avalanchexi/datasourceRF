@@ -355,6 +355,23 @@ def formed(block: Mapping[str, object], day: str) -> dict[str, object]:
     }
 
 
+# A day corrected on its cores only, its context past retention, keeps the judgement it
+# published, restated against its last confirmed stage and marked so (integration review F4).
+NOT_RECOMPUTED = "not_recomputed"
+
+
+def record(block: Mapping[str, object]) -> dict[str, object]:
+    """What the stage history records of a day's judgement: its main conclusion's stage
+    and confidence, after the hysteresis, never the run counted toward replacing it
+    (decision 33); both None on a day with no stage to take (decision 49), and marked when
+    the day's context was not recomputed."""
+    main = _object(block.get("conclusion"))
+    recorded: dict[str, object] = {"stage": main.get("stage"), "confidence": main.get("confidence")}
+    if block.get("context_status") == NOT_RECOMPUTED:
+        recorded["context_status"] = NOT_RECOMPUTED
+    return recorded
+
+
 def conclusion(raw: Mapping[str, object], reference: FormalStage | str | None) -> dict[str, object]:
     """The main conclusion the raw judgement makes, stated against ``reference``."""
     stage = raw.get("stage")

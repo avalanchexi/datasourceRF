@@ -39,6 +39,9 @@ MACRO_CONFIDENCES = {"explicit": "明确", "tendency": "倾向", "weak": "弱"}
 # A stage history day without a macro conclusion: summarized before the rules took effect,
 # or with no stage to take (decision 49).
 MACRO_HISTORY_BLANKS = {"not_effective": "生效前", "no_stage": "无可取阶段"}
+# A day corrected on its cores only keeps the conclusion it published (integration review F4).
+MACRO_NOT_RECOMPUTED = "未重算"
+MACRO_KEPT = "上下文明细已超出留存，只更正核心：沿用该日已发布的宏观判断，未重算"
 MACRO_GROUPS = {"monetary": "货币周期", "economic": "经济周期", "inventory": "库存周期"}
 MACRO_DIMENSIONS = {
     "policy": "政策",

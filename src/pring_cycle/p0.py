@@ -11,6 +11,7 @@ from pring_cycle.display_projection import display_days, history_display
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.domain.stage import StageResult, derive_formal_stage
 from pring_cycle.macro_judgement import Earlier, MacroJudgementRules, judge, with_reference
+from pring_cycle.macro_judgement import record as record_macro
 from pring_cycle.macro_signals import regrouped, rejudged
 from pring_cycle.macro_verification import combination_of, restated, verified
 from pring_cycle.noncanonical import build_basis
@@ -457,7 +458,7 @@ class P0ProjectionService:
                 "system_as_of": system_as_of.isoformat(),
                 # The stage history records the conclusion as restated (ticket 08).
                 **(
-                    {"macro_conclusion": macro_conclusion(judgement)}
+                    {"macro_conclusion": record_macro(judgement)}
                     if isinstance(judgement, dict)
                     else {}
                 ),
@@ -665,14 +666,5 @@ def _assessment_document(
     if corrects is not None:
         document["corrects"] = corrects.document()
     if macro_judgement is not None:
-        document["macro_conclusion"] = macro_conclusion(macro_judgement)
+        document["macro_conclusion"] = record_macro(macro_judgement)
     return document
-
-
-def macro_conclusion(judgement: Mapping[str, object]) -> dict[str, object]:
-    """What the stage history records of a day's macro judgement: its main conclusion's
-    stage and confidence, after the hysteresis, never the run counted toward replacing it
-    (decision 33). Both are None on a day with no stage to take (decision 49)."""
-    main = judgement.get("conclusion")
-    main = main if isinstance(main, Mapping) else {}
-    return {"stage": main.get("stage"), "confidence": main.get("confidence")}

@@ -100,12 +100,16 @@ def history_display(events: Sequence[Mapping[str, Any]], days: Sequence[str]) ->
         official = event.get("current_stage") or event.get("stage_reason") or "unpublished"
         assets = {item["asset"]: item for item in event.get("core_assets", [])}
         macro, macro_confidence = macro_row(event)
+        recorded = event.get("macro_conclusion")
+        note = recorded.get("context_status") if isinstance(recorded, Mapping) else None
         rows.append(
             {
                 "date": day,
                 "official": official,
                 "macro": macro,
                 "macro_confidence": macro_confidence,
+                # A conclusion kept over a context not recomputed is marked so (F4).
+                **({"macro_note": note} if note is not None else {}),
                 **{
                     asset: assets.get(asset, {}).get("state") or "unavailable"
                     for asset in ("bond", "stock", "commodity")

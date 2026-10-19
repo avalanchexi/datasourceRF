@@ -68,8 +68,21 @@ from pring_cycle.freshness import (
     release_schedule_scope,
     use_release_schedule,
 )
-from pring_cycle.macro_judgement import Earlier, MacroJudgementRules, hold, judge
-from pring_cycle.macro_signals import SignalDay, SignalRules, signal_list, with_progress
+from pring_cycle.macro_judgement import (
+    NOT_RECOMPUTED,
+    Earlier,
+    MacroJudgementRules,
+    hold,
+    judge,
+    with_reference,
+)
+from pring_cycle.macro_signals import (
+    SignalDay,
+    SignalRules,
+    regrouped,
+    signal_list,
+    with_progress,
+)
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import (
     CARRIED_FORWARD,
@@ -582,6 +595,7 @@ class DaySummaries:
                     basis=basis,
                     corrects=replace(corrects, scope=CORE_ONLY),
                     effective=effective,
+                    carried=self._published_judgement(corrects.projection_set_id),
                 )
             except (KeyError, LookupError, TypeError, ValueError) as error:
                 raise _Uncorrectable(f"{type(error).__name__}:{error}") from error
@@ -615,8 +629,17 @@ class DaySummaries:
         basis: str | None,
         corrects: SummaryCorrection | None,
         effective: str | None,
+        carried: Mapping[str, object] | None = None,
     ) -> None:
+        """Publish an earlier day's summary; a judgement it ``carried`` from the summary it
+        corrects stands when its context cannot be judged again."""
         last_stage = self._last_confirmed_stage(day)
+        reference = stated_last_confirmed(decided, last_stage)
+        macro_judgement = self._judge_macro(
+            day, readiness, decided, context, reference, effective=effective
+        )
+        if macro_judgement is None and carried is not None:
+            macro_judgement = self._carry_judgement(day, carried, reference, effective=effective)
         P0ProjectionService(self._projections).publish(
             target_business_date=day,
             system_as_of=system_as_of,
@@ -631,16 +654,44 @@ class DaySummaries:
             decided=decided,
             core_history_basis=basis,
             corrects=corrects,
-            macro_judgement=self._judge_macro(
-                day,
-                readiness,
-                decided,
-                context,
-                stated_last_confirmed(decided, last_stage),
-                effective=effective,
-            ),
+            macro_judgement=macro_judgement,
             macro_rules=self._model.macro_judgement,
         )
+
+    def _published_judgement(self, projection_set_id: str | None) -> Mapping[str, object] | None:
+        if projection_set_id is None:
+            return None
+        block = (
+            self._projections.get(projection_set_id)
+            .datasets["cycle_overview"]
+            .get("macro_judgement")
+        )
+        return block if isinstance(block, Mapping) else None
+
+    def _carry_judgement(
+        self,
+        day: str,
+        carried: Mapping[str, object],
+        reference: FormalStage | None,
+        *,
+        effective: str | None,
+    ) -> dict[str, object] | None:
+        """The judgement a day corrected on its cores only keeps (integration review F4):
+        the one it published, its context past retention, restated against the last
+        confirmed stage the corrected set states, as a relink restates it, its hysteresis
+        counted on as it stands now, and marked not recomputed. None before the rules took
+        effect."""
+        rules = self._model.macro_judgement
+        if rules is None or effective is None or day < effective:
+            return None
+        block = with_reference(
+            carried,
+            reference.value if reference is not None else None,
+            earlier=self._earlier_judgement(day),
+            rules=rules,
+            day=day,
+        )
+        return {**regrouped(block), "context_status": NOT_RECOMPUTED}
 
     def _judge_macro(
         self,

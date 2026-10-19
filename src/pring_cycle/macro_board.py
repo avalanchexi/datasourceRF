@@ -16,7 +16,7 @@ from typing import Any
 from dash import html
 
 from pring_cycle.drawer import drawer_key, drawer_panel, drawer_trigger
-from pring_cycle.macro_judgement import ASSETS, GROUPS
+from pring_cycle.macro_judgement import ASSETS, GROUPS, NOT_RECOMPUTED
 from pring_cycle.macro_signals import GROUPS as SIGNAL_GROUPS
 from pring_cycle.wording import (
     CORE_STATE_LABELS,
@@ -25,6 +25,7 @@ from pring_cycle.wording import (
     MACRO_DIMENSIONS,
     MACRO_GROUPS,
     MACRO_JUDGEMENT,
+    MACRO_KEPT,
     MACRO_MATURITIES,
     MACRO_NO_SIGNALS,
     MACRO_POSITIONS,
@@ -61,6 +62,11 @@ def conclusion_left(block: Mapping[str, Any]) -> html.Div:
             html.P(MACRO_JUDGEMENT, className="section-kicker"),
             html.H2(
                 title(_mapping(block.get("conclusion")), block), className="stage-value macro-title"
+            ),
+            *(
+                [html.P(MACRO_KEPT, className="macro-held")]
+                if block.get("context_status") == NOT_RECOMPUTED
+                else []
             ),
             *([html.P(line, className="macro-held")] if (line := held(block)) else []),
             *([html.P(line, className="macro-fallback")] if (line := fallback(block)) else []),

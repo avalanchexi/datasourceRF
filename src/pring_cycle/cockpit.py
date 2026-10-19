@@ -17,6 +17,7 @@ from pring_cycle import macro_basis, macro_board
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.domain.trend import TrendRules
 from pring_cycle.drawer import drawer_key, drawer_panel, drawer_trigger, unique_key
+from pring_cycle.macro_judgement import NOT_RECOMPUTED
 from pring_cycle.page_identity import identity_fields
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
@@ -31,6 +32,7 @@ from pring_cycle.wording import (
     MACRO_CONFIDENCES,
     MACRO_HISTORY_BLANKS,
     MACRO_JUDGEMENT,
+    MACRO_NOT_RECOMPUTED,
     MACRO_SAME_SOURCE,
     MACRO_SIGNAL_LIST,
     NO_CHINESE_NAME,
@@ -2460,8 +2462,11 @@ def macro_history_label(day: Mapping[str, Any]) -> str:
     """A day's macro main conclusion, its stage with its confidence, or why there is none."""
     value = str(day.get("macro"))
     if value.startswith("stage_"):
-        confidence = MACRO_CONFIDENCES.get(str(day.get("macro_confidence")), "")
-        return f"{stage_name(value)}（{confidence}）" if confidence else stage_name(value)
+        notes = [MACRO_CONFIDENCES.get(str(day.get("macro_confidence")), "")]
+        if day.get("macro_note") == NOT_RECOMPUTED:
+            notes.append(MACRO_NOT_RECOMPUTED)
+        noted = "，".join(note for note in notes if note)
+        return f"{stage_name(value)}（{noted}）" if noted else stage_name(value)
     return MACRO_HISTORY_BLANKS.get(value) or history_label(value)
 
 

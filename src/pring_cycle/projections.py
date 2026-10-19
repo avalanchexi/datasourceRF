@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime
@@ -17,6 +17,7 @@ from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.confirmation import RELATIONS as CONFIRMATION_RELATIONS
 from pring_cycle.display_projection import macro_row
 from pring_cycle.macro_judgement import MacroJudgementRules
+from pring_cycle.macro_judgement import record as record_macro
 from pring_cycle.macro_judgement import validate as validate_macro_judgement
 from pring_cycle.macro_judgement import validate_inputs as validate_macro_inputs
 from pring_cycle.macro_signals import validate as validate_macro_signals
@@ -674,8 +675,13 @@ def validate_analytical_projection(
         ):
             raise ValueError("projection_inventory_card_manifest_invalid")
     if "macro_judgement" in overview:
-        # Judged from the dimension summary's key indicators only (ADR-0043).
-        if structure != CONFIRMATION_STRUCTURE:
+        # Judged from the dimension summary's key indicators only (ADR-0043); one carried
+        # over a context not recomputed says so, as its context does.
+        carried = _mapping(overview["macro_judgement"]).get("context_status")
+        if (carried is None and structure != CONFIRMATION_STRUCTURE) or carried not in (
+            None,
+            macro.get("context_status"),
+        ):
             raise ValueError("projection_macro_judgement_invalid")
         if macro_rules is None:
             raise ValueError("projection_macro_judgement_rules_missing")
@@ -709,6 +715,10 @@ def validate_analytical_projection(
     )
 
 
+def _mapping(value: object) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
 def _validate_macro_effective(block: object, day: str) -> None:
     """A day judges the macro stage only from the day its rules took effect on (decision 5)."""
     effective = block.get("effective_from") if isinstance(block, dict) else None
@@ -731,10 +741,7 @@ def _validate_macro_record(
     ]
     judgement = overview.get("macro_judgement")
     if isinstance(judgement, dict):
-        main = judgement.get("conclusion")
-        main = main if isinstance(main, dict) else {}
-        expected = {"stage": main.get("stage"), "confidence": main.get("confidence")}
-        if len(own) != 1 or own[0].get("macro_conclusion") != expected:
+        if len(own) != 1 or own[0].get("macro_conclusion") != record_macro(judgement):
             raise ValueError("projection_stage_history_macro_mismatch")
     elif any(item.get("macro_conclusion") is not None for item in own):
         raise ValueError("projection_stage_history_macro_mismatch")
