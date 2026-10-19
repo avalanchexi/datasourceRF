@@ -331,11 +331,16 @@ BOND_PEERS = ("CN_BOND_10Y_930916", "CN_BOND_FULL_PRICE_CNY030")
 STOCK_PEERS = ("CN_EQ_CSI300", "CN_EQ_CSI500", "CN_EQ_CSI1000")
 
 
-def seed_peer(paths: RuntimePaths, metric_id: str, step: float) -> None:
-    """A peer index over the last 40 sessions, ``step`` a session from 1000."""
+def seed_peer(
+    paths: RuntimePaths, metric_id: str, step: float, *, missing: tuple[int, ...] = ()
+) -> None:
+    """A peer index over the last 40 sessions, ``step`` a session from 1000; without the
+    closes of the sessions ``missing`` (their places among the 40)."""
     api_name, _code = MARKET_INDEX_IDENTITIES[metric_id]
     repository = EvidenceRepository(paths.database)
     for index, observed in enumerate(sessions()[-40:]):
+        if index in missing:
+            continue
         public = datetime.combine(observed, time(10), tzinfo=UTC)
         repository.append_source_claim(
             SourceClaimInput(
@@ -535,3 +540,30 @@ def test_a_relink_while_a_run_is_counted_judges_the_divergence_again(tmp_path: P
         "forward",
         1,
     )
+
+
+@pytest.mark.parametrize(
+    "missing",
+    [
+        # A close missing inside its 31 sessions: the window is not whole.
+        (38,),
+        # Its latest close not out: what it shows is not the day's.
+        (39,),
+    ],
+)
+def test_a_peer_short_of_its_sessions_reads_no_candidate(
+    tmp_path: Path, missing: tuple[int, ...]
+) -> None:
+    paths = runtime(tmp_path)
+    seed_shaped_cores(paths, lambda i: 100.0 * 1.006**i)
+    register(paths, *BOND_PEERS)
+    seed_macro(paths)
+    seed_peer(paths, BOND_PEERS[0], -2.0, missing=missing)
+    seed_peer(paths, BOND_PEERS[1], -2.0)
+
+    published = judgement(publish(paths, MODEL))
+
+    # The 10-year index's closes skip a session of the SSE calendar: it reads nothing,
+    # and only the CNY030 full price turns bear against the bond core.
+    bond = {item["id"]: item for item in (*published["signals"], *published["sprouts"])}["P1"]
+    assert bond["peers"] == {"against": ["中债 030 全价"], "read": 1}

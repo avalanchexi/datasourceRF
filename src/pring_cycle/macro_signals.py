@@ -530,14 +530,21 @@ def _flip(
 
 
 def _peer_candidate(member: Mapping[str, Any], window: int) -> str | None:
-    """A peer's 30-day candidate from the closes its rows show, the newest public last."""
+    """A peer's 30-day candidate from the closes its rows show, the newest public last.
+
+    Only a row shown on its market's calendar is read, and only when it holds a close for
+    each of the ``window`` + 1 sessions to the day: a session missing, or the day's close
+    not out, reads no candidate (integration review F8)."""
     for row in _objects(member.get("evidence")):
-        values = [
-            float(point["value"])
-            for point in _objects(_object(row.get("display")).get("points"))
-            if isinstance(point.get("value"), (int, float))
-        ]
-        candidate = candidate_direction(values, window)
+        display = _object(row.get("display"))
+        if display.get("calendar_status") != "available":
+            continue
+        points = _objects(display.get("points"))[-(window + 1) :]
+        if len(points) < window + 1 or not all(
+            isinstance(point.get("value"), (int, float)) for point in points
+        ):
+            continue
+        candidate = candidate_direction([float(point["value"]) for point in points], window)
         if candidate is not None:
             return candidate.value
     return None
