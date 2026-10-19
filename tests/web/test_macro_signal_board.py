@@ -42,8 +42,12 @@ def test_the_board_lists_the_signals_by_their_groups(tmp_path: Path) -> None:
     ) in board
     # A divergence is no price signal: it votes in its dimension, by its main member.
     pmi = board[board.index("PMI 分化：") :].split(" · 萌芽")[0]
-    assert pmi.startswith("PMI 分化：新订单上行（主成员下行）；若 PMI 改投少数方向，增长上行，")
-    assert SAME_SOURCE not in pmi
+    # Its tie is broken toward the last confirmed stage III (ticket 03): a step back.
+    assert pmi == (
+        "PMI 分化：新订单上行（主成员下行）；若 PMI 改投少数方向，增长上行，"
+        "判第三阶段（倾向，5 维中 3 维吻合）"
+    )
+    assert board.index("支持后退") < board.index("PMI 分化：") < board.index("支持维持")
     # The groups keep their order; the turn watch row is merged into the list.
     assert board.index("支持后退") < board.index("支持维持") < board.index("资产转向（未映射阶段）")
     assert "转折观察 " not in board

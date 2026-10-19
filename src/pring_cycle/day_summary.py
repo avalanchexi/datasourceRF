@@ -619,12 +619,19 @@ class DaySummaries:
 
         The judgement first, then its main conclusion, then the signal list grouped
         against that conclusion and counted on from the previous session's (ticket 04).
+        A weak judgement falls back on the day's three cores while their combination is
+        read, typical or not; with a core unavailable or pending, on ``reference``.
         """
         rules = self._model.macro_judgement
         confirmation = context.macro.get("confirmation")
         if rules is None or not isinstance(confirmation, Mapping):
             return None
-        block = judge(rules, confirmation, reference=reference)
+        combination = (
+            {item.asset: item.state.value for item in readiness if item.state is not None}
+            if decided.reason in {"canonical_combination", "noncanonical_combination"}
+            else None
+        )
+        block = judge(rules, confirmation, reference=reference, cores=combination)
         signals, prices = self._model.macro_signals, self._model.price_rules
         if signals is None or prices is None:
             return block
@@ -642,7 +649,9 @@ class DaySummaries:
                 previous=self._previous_judgement(day),
             ),
             conclusion=_text_or_none(_mapping(block.get("conclusion")).get("stage")),
-            rejudge=lambda twin_rules, twin: judge(twin_rules, twin, reference=reference),
+            rejudge=lambda twin_rules, twin: judge(
+                twin_rules, twin, reference=reference, cores=combination
+            ),
         )
         return {**block, "signals": listed, "sprouts": sprouts}
 
