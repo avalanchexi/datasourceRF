@@ -31,7 +31,8 @@ from pring_cycle.reports import (
 )
 from tests.integration.test_confirmation_publish import publish
 from tests.integration.test_macro_fallback import tied, weak_off_typical
-from tests.integration.test_macro_judgement import MODEL
+from tests.integration.test_macro_hysteresis import SF_REVISED, last, macro_day, revise_credit
+from tests.integration.test_macro_judgement import MODEL, publish_from
 from tests.integration.test_macro_signals import with_peers
 from tests.integration.test_price_verification import verified
 from tests.reports.test_cli_protocol import install_cli
@@ -178,6 +179,30 @@ def written(source: ReportInput, text: str, **conclusions: Any) -> dict[str, Any
         # A tendency or a weak judgement never told as such.
         ("tendency", "宏观判断为第三阶段，五维指向清楚。", {}, "macro_confidence_unstated"),
         ("weak", "宏观判断为第三阶段，股票走弱。", {}, "macro_confidence_unstated"),
+        # Another stage however its number is written, or however the judgement is named.
+        ("tendency", "宏观判断为第5阶段（倾向）。", {}, "macro_stated_stage"),
+        ("tendency", "宏观判断为阶段Ⅴ（倾向）。", {}, "macro_stated_stage"),
+        ("tendency", "宏观判断为 Stage 5，倾向判断。", {}, "macro_stated_stage"),
+        ("tendency", "主结论已经进入第五阶段，属倾向判断。", {}, "macro_stated_stage"),
+        ("tendency", "宏观阶段为第六阶段，属于倾向判断。", {}, "macro_stated_stage"),
+        ("tendency", "第五阶段（倾向）的五维依据如下。", {}, "macro_stated_stage"),
+        # A tendency told by a word that says something else.
+        (
+            "tendency",
+            "宏观判断为第三阶段；PMI 分化提示转向倾向。",
+            {},
+            "macro_confidence_unstated",
+        ),
+        # The scores of the stages tied, told right, or otherwise.
+        ("tendency", "宏观判断为第三阶段（倾向），第五阶段、第六阶段同为 3 分。", {}, None),
+        ("tendency", "宏观判断为第三阶段（倾向），第五阶段 4 分。", {}, "macro_stated_score"),
+        # The day's raw judgement told as another stage.
+        (
+            "held",
+            "宏观判断为第五阶段（明确）；原始判断为第五阶段（倾向）。",
+            {},
+            "macro_stated_stage",
+        ),
     ],
 )
 def test_a_report_rewriting_the_judged_stage_or_its_confidence_is_rejected(
@@ -292,15 +317,34 @@ def test_the_template_written_back_as_a_reading_is_accepted(
     assert reports.attempts(result.report_snapshot_id)[0].outcome == "succeeded"
 
 
-def held(published: ProjectionSet) -> ProjectionSet:
-    """``published`` with its stage V held by the hysteresis against the day's raw stage III
-    tendency (decision 45): the block as ticket 05 publishes it, its state's fields aside."""
-    datasets = copy.deepcopy(published.datasets)
+@pytest.fixture(scope="module")
+def held(tmp_path_factory: pytest.TempPathFactory) -> ProjectionSet:
+    """Stage V explicit held by the hysteresis against the day's raw stage III tendency, on
+    its second session (decision 45), as the day summary publishes it."""
+    paths = macro_day(tmp_path_factory.mktemp("held"))
+    revise_credit(paths, SF_REVISED, on=-2)
+    return publish_from(paths, last(3))
+
+
+def test_a_divergence_s_confidence_is_not_the_conclusion_s(
+    tmp_path: Path, signalled: ProjectionSet
+) -> None:
+    # The conclusion stage V a tendency, the PMI's recount stage V explicit: the explicit
+    # one is the recount's, never the conclusion's (spec story 37).
+    datasets = copy.deepcopy(signalled.datasets)
     block: dict[str, Any] = datasets["cycle_overview"]["macro_judgement"]  # type: ignore[assignment]
-    block["raw"].update(stage="stage_iii", confidence="tendency", basis="tied")
-    block["raw"]["tied"] = ["stage_iii", "stage_iv", "stage_v"]
-    block["hysteresis"] = {"basis": "held", "candidate": "stage_iii", "sessions": 1}
-    return replace(published, datasets=datasets)
+    block["conclusion"]["confidence"] = "tendency"
+    pmi = next(item for item in block["signals"] if item["id"] == "D-pmi")
+    pmi["rejudged"].update(stage="stage_v", confidence="explicit")
+    source = report_input_from_projection(replace(signalled, datasets=datasets))
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    told = "宏观判断为第五阶段（明确）；PMI 分化提示转向倾向。"
+    first = FakeAdapter("codex_cli", AdapterResponse.succeeded(written(source, told)))
+
+    result = ReportService(reports, (first,)).generate(source)
+
+    (attempt,) = reports.attempts(result.report_snapshot_id)
+    assert attempt.process_audit["rejection"]["check"] == "macro_stated_confidence"
 
 
 @pytest.mark.parametrize(
@@ -312,9 +356,9 @@ def held(published: ProjectionSet) -> ProjectionSet:
     ],
 )
 def test_a_judgement_the_hysteresis_holds_is_told_as_held(
-    tmp_path: Path, explicit: ProjectionSet, text: str, check: str | None
+    tmp_path: Path, held: ProjectionSet, text: str, check: str | None
 ) -> None:
-    source = report_input_from_projection(held(explicit))
+    source = report_input_from_projection(held)
     assert source.results["macro_judgement"]["held"] == "滞回保持，当日原始判断：第三阶段（倾向）"
     assert (
         "滞回保持，当日原始判断：第三阶段（倾向）。"
