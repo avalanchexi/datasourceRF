@@ -17,6 +17,6 @@
 | 01 CLI 写入 | done（ddbba45，快进合入 main） | ticket-gl01／gl-01 |
 | 03 回看重展 | done（gl-03，待主 agent 核验合入） | ticket-gl03／gl-03 |
 | 04 指数范围 | done（0da4150，合并 4a9ff2e） | ticket-gl04／gl-04 |
-| 02 报告输入精简 | 进行中（23:3x 派出） | ticket-gl02／gl-02 |
+| 02 报告输入精简 | done（3bbf8f6，快进合入；10-19 提示词 91,805→65,430 字节） | ticket-gl02／gl-02 |
 | 06 | needs-triage | — |
 | 07 | ready-for-human | — |
