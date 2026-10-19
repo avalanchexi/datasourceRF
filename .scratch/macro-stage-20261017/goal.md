@@ -109,3 +109,11 @@
 - assessment 新增 `macro_conclusion{stage, confidence}`；`stage_history.display.days` 每行加 `macro`（阶段／not_effective／no_stage／unpublished）与 `macro_confidence`，另 `macro_counts`；校验 `projection_stage_history_macro_mismatch`。⑥ 首行为宏观判断色带（倾向、弱同色渐浅，生效前与无可取阶段留空），右栏区间可切换"正式阶段｜宏观判断"。
 - 08 的偏离：v0015 投影不显示宏观行；页面仍用"正式阶段"字样（留 10 统一为"价格阶段"）；生效边界沿用 05 口径（首个用 v0016 汇总的日子即生效首日，含首次补算——10 需确认是否按激活日划界）；区间切换（dashboard.js）未做浏览器验证；宏观投影的区间抽屉两套，同日明细出现两次。
 - 2026-10-19 23:2x：02–09 全部合入 macro-stage；Codex 两轴审查进行中（会话 scratchpad `ms-review/`），之后一个子代理修复全部审查项，再进入 10。
+
+## 审查修复（ms-fix，3131444，快进合入；425 过）
+
+F1–F12 已修，F13 部分（B／K 组缺单日汇总层用例：测试目录 v0001 无相应指标，需 v0006 夹具）。F3 生效日 = 每个已发布宏观块的 `effective_from`（首个成功发布宏观块的目标日），生效前一律不判；F4 核心单独更正保留原宏观块并标 `not_recomputed`。性能：120 日补算宏观步骤合计约 1.1 s（前态 SQL 0.99 s）。逐项见 review-fixes-20261019.md。
+
+## 票 10 自动化部分（2026-10-20 02:1x 派给 ticket-ms10）
+
+合并 main（含 ddbba45 CLI 写入、gl-02 报告输入剔 ID、fd-01..03、gl-03..05）→ 全套 → 正式库副本激活 v0016 跑 10-14～10-19 并与 01 回测按各运行截止对照 → Codex 浏览器验收 → 写用户验收清单。正式库激活 v0016 与并入 main 须用户明确同意。
