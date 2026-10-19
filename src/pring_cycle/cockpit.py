@@ -1908,7 +1908,7 @@ def related_assets(
                 ),
                 number(evidence.get("value"), evidence.get("unit")),
                 change_cell(window_change(evidence, "change_5")),
-                _direction_arrow(evidence.get("direction")),
+                direction_cell(evidence),
             )
         )
         panels.append(
@@ -1933,7 +1933,7 @@ def related_assets(
                 ),
             )
         )
-    return table(("名称", "值", "近 5 日", "方向"), rows), panels
+    return table(("名称", "值", "近 5 日", "较上期方向"), rows), panels
 
 
 def coverage_table(
@@ -2540,6 +2540,56 @@ def _direction_arrow(value: object) -> str:
     return DIRECTION_ARROWS.get(str(value), "— " + view._state_label(value))
 
 
+def _compared_periods(item: dict[str, Any]) -> str | None:
+    """The two periods a row's direction compares, latest against the previous available one
+    (not the 5-day window): the earlier is the display point reading the direction's input.
+    A row whose direction reads no earlier period has none."""
+    inputs = item.get("direction_input_observation_version_ids") or ()
+    if not inputs:
+        return None
+    previous = next(
+        (
+            point["date"]
+            for point in objects(obj(item.get("display")).get("points"))
+            if point.get("selected_claim_id") in inputs and point.get("date")
+        ),
+        None,
+    )
+    return f"{previous} → {item.get('period') or '—'}" if previous else "上期日期未提供"
+
+
+def direction_cell(item: dict[str, Any], *, label: str = "") -> Any:
+    """The direction's arrow, after ``label`` when it compares two periods; hovering names
+    them."""
+    compared = _compared_periods(item)
+    arrow = _direction_arrow(item.get("direction"))
+    return html.Span(label + arrow, title=f"较上期：{compared}（非近 5 日）") if compared else arrow
+
+
+# The derived Treasury spread's projected direction is the sign of its value, not a
+# comparison with an earlier period, so it reads as positive or inverted.
+SPREAD_METRIC = "UST_2S10S_SPREAD"
+
+
+def _spread_sign(item: dict[str, Any], *, short: bool) -> str:
+    value = item.get("value")
+    if not isinstance(value, int | float):
+        return "—"
+    if value > 0:
+        return "正值（未倒挂）" if short else "正值（10 年高于 2 年）"
+    if value < 0:
+        return "倒挂" if short else "倒挂（10 年低于 2 年）"
+    return "零" if short else "零（10 年等于 2 年）"
+
+
+def _direction_field(item: dict[str, Any]) -> tuple[str, str]:
+    if item.get("metric_id") == SPREAD_METRIC:
+        return ("利差正负", _spread_sign(item, short=False))
+    compared = _compared_periods(item)
+    arrow = _direction_arrow(item.get("direction"))
+    return ("较上期方向", f"{arrow}（{compared}）") if compared else ("方向", arrow)
+
+
 def _overseas_card(item: dict[str, Any], key: str) -> Any:
     name = row_name(item)
     return drawer_trigger(
@@ -2549,7 +2599,9 @@ def _overseas_card(item: dict[str, Any], key: str) -> Any:
             html.Small(name.code) if name.code != name.name else None,
             html.Span(number(item.get("value"), item.get("unit")), className="card-value"),
             html.Span(str(item.get("period") or "—")),
-            html.Span(_direction_arrow(item.get("direction"))),
+            html.Span(_spread_sign(item, short=True), title="按利差正负，不是较上期方向")
+            if item.get("metric_id") == SPREAD_METRIC
+            else html.Span(direction_cell(item, label="较上期 ")),
             html.Span(["近 5 日 ", change_cell(obj(item.get("display")).get("change_5"))]),
         ],
         class_name="overseas-card",
@@ -2598,7 +2650,7 @@ def _context_drawer(
             f"{item.get('period') or '—'} / "
             + view._state_label(item.get("frequency") or "未提供"),
         ),
-        ("方向", _direction_arrow(item.get("direction"))),
+        _direction_field(item),
         ("近 5 日", _change_text(window_change(item, "change_5"))),
         ("近 120 日", _change_text(window_change(item, "change_120"))),
         ("时效", view._state_label(item.get("status"))),
