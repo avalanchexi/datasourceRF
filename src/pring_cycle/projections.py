@@ -673,6 +673,29 @@ def validate_analytical_projection(
     stage_events = datasets["stage_history"].get("events")
     if not isinstance(release_events, list) or not isinstance(stage_events, list):
         raise ValueError("projection_event_dataset_invalid")
+    _validate_macro_record(overview, stage_events, envelope.target_business_date)
+
+
+def _validate_macro_record(
+    overview: dict[str, object], stage_events: list[object], day: str
+) -> None:
+    """The day's own stage history event records its macro main conclusion, the stage and
+    confidence the overview states, and only when it states one (macro stage ticket 08)."""
+    own = [
+        item for item in stage_events if isinstance(item, dict) and item.get("business_date") == day
+    ]
+    if not own:
+        return
+    recorded = own[-1].get("macro_conclusion")
+    judgement = overview.get("macro_judgement")
+    if not isinstance(judgement, dict):
+        if recorded is not None:
+            raise ValueError("projection_stage_history_macro_mismatch")
+        return
+    main = judgement.get("conclusion")
+    main = main if isinstance(main, dict) else {}
+    if recorded != {"stage": main.get("stage"), "confidence": main.get("confidence")}:
+        raise ValueError("projection_stage_history_macro_mismatch")
 
 
 _RETIRED_MACRO_LABELS = ("policy_direction", "credit_response", "overheat_state", "price_pressure")

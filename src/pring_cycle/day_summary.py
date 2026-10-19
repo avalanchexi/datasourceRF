@@ -433,7 +433,15 @@ class DaySummaries:
                     continue
                 try:
                     self._summarize_day(
-                        day, system_as_of=system_as_of, basis=basis, corrects=corrects
+                        day,
+                        system_as_of=system_as_of,
+                        basis=basis,
+                        corrects=corrects,
+                        # A day summarized before the macro rules took effect is corrected
+                        # without them: its stage history is not judged back (ticket 08).
+                        judged=held is None
+                        or "macro_conclusion" in held
+                        or held.get("model_version_id") == self._model.model_version_id,
                     )
                 except _Uncorrectable as error:
                     # Only a correction is uncorrectable, and only a run on a basis corrects.
@@ -524,12 +532,13 @@ class DaySummaries:
         system_as_of: datetime,
         basis: str | None,
         corrects: SummaryCorrection | None,
+        judged: bool = True,
     ) -> None:
         """Publish one earlier day's summary from what was public by that day's end.
 
         A correction whose summary cites a context detail no longer held is published on its
         cores only; one whose cores cannot be read from their closes, or that fails on its
-        cores only, is ``_Uncorrectable``.
+        cores only, is ``_Uncorrectable``. Unless ``judged``, it publishes no macro judgement.
         """
         public_end = datetime.combine(date.fromisoformat(day), time.max, tzinfo=SHANGHAI)
         if (
@@ -554,6 +563,7 @@ class DaySummaries:
                     system_as_of=system_as_of,
                     basis=basis,
                     corrects=replace(corrects, scope=CORE_ONLY),
+                    judged=judged,
                 )
             except (KeyError, LookupError, TypeError, ValueError) as error:
                 raise _Uncorrectable(f"{type(error).__name__}:{error}") from error
@@ -573,6 +583,7 @@ class DaySummaries:
             system_as_of=system_as_of,
             basis=basis,
             corrects=corrects,
+            judged=judged,
         )
 
     def _publish_day(
@@ -585,6 +596,7 @@ class DaySummaries:
         system_as_of: datetime,
         basis: str | None,
         corrects: SummaryCorrection | None,
+        judged: bool,
     ) -> None:
         last_stage = self._last_confirmed_stage(day)
         P0ProjectionService(self._projections).publish(
@@ -603,7 +615,9 @@ class DaySummaries:
             corrects=corrects,
             macro_judgement=self._judge_macro(
                 day, readiness, decided, context, stated_last_confirmed(decided, last_stage)
-            ),
+            )
+            if judged
+            else None,
         )
 
     def _judge_macro(

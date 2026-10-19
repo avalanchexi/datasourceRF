@@ -36,6 +36,9 @@ STAGE_TITLES = {
 MACRO_JUDGEMENT = "宏观判断"
 NO_MACRO_JUDGEMENT = "该投影生成时尚无宏观判断"
 MACRO_CONFIDENCES = {"explicit": "明确", "tendency": "倾向", "weak": "弱"}
+# A stage history day without a macro conclusion: summarized before the rules took effect,
+# or with no stage to take (decision 49).
+MACRO_HISTORY_BLANKS = {"not_effective": "生效前", "no_stage": "无可取阶段"}
 MACRO_GROUPS = {"monetary": "货币周期", "economic": "经济周期", "inventory": "库存周期"}
 MACRO_DIMENSIONS = {
     "policy": "政策",

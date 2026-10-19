@@ -196,6 +196,10 @@ div.line-card:hover { border-color: var(--line); }
 .history-side > p:first-child, .history-list h3 { margin-top: 0; }
 .history-side > :last-child { margin-bottom: 0; }
 .history-list .history-intervals { margin: 0; border-width: 1px 0 0; border-radius: 0; background: none; }
+.history-intervals[hidden] { display: none; }
+.history-views { display: flex; gap: 6px; margin: 0 0 8px; }
+.history-view { padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--ink-muted); font: inherit; font-size: 12px; cursor: pointer; }
+.history-view[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 /* Wide screens: bands on the left (3/5), intervals on the right (2/5). The list adds no
    height of its own (size containment), so both cards end with the bands and the list
    scrolls inside its card; the row's floor keeps a bandless set's list readable. */

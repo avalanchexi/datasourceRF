@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime
 from typing import Any, cast
@@ -28,6 +28,9 @@ from pring_cycle.wording import (
     _GDP_MEASURES,
     CORE_STATE_LABELS,
     MACRO_BOARD_NOTES,
+    MACRO_CONFIDENCES,
+    MACRO_HISTORY_BLANKS,
+    MACRO_JUDGEMENT,
     MACRO_SAME_SOURCE,
     MACRO_SIGNAL_LIST,
     NO_CHINESE_NAME,
@@ -2433,16 +2436,7 @@ def stage_history(
     return [
         html.Div(
             [
-                html.Div(
-                    [
-                        html.P(
-                            "正式阶段由债券、股票、商品的 120 日稳定方向映射；"
-                            "宏观事实只做事后确认。"
-                        ),
-                        *bands,
-                    ],
-                    className="history-side",
-                ),
+                html.Div(bands, className="history-side"),
                 html.Div(intervals, className="history-side history-list"),
             ],
             className="history-layout",
@@ -2452,32 +2446,101 @@ def stage_history(
     ]
 
 
+def macro_recorded(days: Sequence[dict[str, Any]]) -> bool:
+    """Whether the days show the macro row: a set published from ticket 08 on carries
+    it, and it shows once a day records a conclusion, or that it had no stage to take."""
+    return (
+        bool(days)
+        and all("macro" in day for day in days)
+        and any(day["macro"] not in {"not_effective", "unpublished"} for day in days)
+    )
+
+
+def macro_history_label(day: Mapping[str, Any]) -> str:
+    """A day's macro main conclusion, its stage with its confidence, or why there is none."""
+    value = str(day.get("macro"))
+    if value.startswith("stage_"):
+        confidence = MACRO_CONFIDENCES.get(str(day.get("macro_confidence")), "")
+        return f"{stage_name(value)}（{confidence}）" if confidence else stage_name(value)
+    return MACRO_HISTORY_BLANKS.get(value) or history_label(value)
+
+
+def macro_count_label(key: str) -> str:
+    stage, _, confidence = key.partition(":")
+    return macro_history_label({"macro": stage, "macro_confidence": confidence or None})
+
+
+# A stage's colour on every row of the bands, whatever else they show; a macro conclusion
+# less than explicit is a lighter shade of it.
+STAGE_COLORS = {
+    "stage_i": "#36566b",
+    "stage_ii": "#278a96",
+    "stage_iii": "#c58b42",
+    "stage_iv": "#976269",
+    "stage_v": "#668c7a",
+    "stage_vi": "#747d9a",
+}
+OTHER_COLORS = ("#9c8b59", "#647487", "#8a7f74", "#5f7f8c", "#a07f86", "#7d8f6b")
+_SHADES = {"explicit": 0.0, "tendency": 0.4, "weak": 0.65}
+_SHADE_TOWARD = (0xD6, 0xDD, 0xE0)
+
+
+def band_color(category: str, others: Sequence[str]) -> str:
+    """``category``'s colour: a stage's own, shaded by a macro confidence after a colon;
+    any other state one of the rest, by its place among ``others``."""
+    stage, _, confidence = category.partition(":")
+    if stage not in STAGE_COLORS:
+        return OTHER_COLORS[others.index(category) % len(OTHER_COLORS)]
+    base = STAGE_COLORS[stage]
+    share = _SHADES.get(confidence, 0.0)
+    channels = (int(base[i : i + 2], 16) for i in (1, 3, 5))
+    return "#" + "".join(
+        f"{round(value + (toward - value) * share):02x}"
+        for value, toward in zip(channels, _SHADE_TOWARD, strict=True)
+    )
+
+
+def _band_category(day: Mapping[str, Any], key: str) -> str | None:
+    """The colour category of a day's cell; None leaves the macro row blank."""
+    if key != "macro":
+        return str(day[key])
+    value = str(day.get("macro"))
+    if value in MACRO_HISTORY_BLANKS:
+        return None
+    if value.startswith("stage_"):
+        return f"{value}:{day.get('macro_confidence')}"
+    return value
+
+
 def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]:
-    """The four bands with their day counts, and the trading-day table's drawer."""
+    """The bands with their day counts, and the trading-day table's drawer; the macro
+    judgement's row leads them on a set that records it (ticket 08)."""
     document = view._dataset(projection, "stage_history")
     display = obj(document.get("display"))
     days = objects(display.get("days"))
     if not days:
-        return [html.P("旧投影未提供对齐的交易日色带；历史事件仍可阅读。")], []
-    kinds = ("official", "bond", "stock", "commodity")
-    labels = ("正式阶段", "债券", "股票", "商品")
+        return [
+            html.P("正式阶段由债券、股票、商品的 120 日稳定方向映射；宏观事实只做事后确认。"),
+            html.P("旧投影未提供对齐的交易日色带；历史事件仍可阅读。"),
+        ], []
+    macro = macro_recorded(days)
+    kinds = (("macro",) if macro else ()) + ("official", "bond", "stock", "commodity")
+    labels = ((MACRO_JUDGEMENT,) if macro else ()) + ("正式阶段", "债券", "股票", "商品")
+
+    def label(day: Mapping[str, Any], key: str) -> str:
+        return macro_history_label(day) if key == "macro" else history_label(day[key])
+
     calendar = drawer_key("history-calendar")
-    categories = list(dict.fromkeys(str(day[key]) for day in days for key in kinds))
+    cells = [[_band_category(day, key) for day in days] for key in kinds]
+    categories = list(dict.fromkeys(item for row in cells for item in row if item is not None))
+    others = [item for item in categories if item.partition(":")[0] not in STAGE_COLORS]
+    colors = [band_color(item, others) for item in categories]
+    top = max(1, len(categories) - 1)
     # A few upright ticks fit the bands' column at any width; within one year month and day
     # say enough, and the hover still names the full date.
     dates = [str(day["date"]) for day in days]
     one_year = len({date[:4] for date in dates}) == 1
     ticks = dates[:: -(-len(dates) // (6 if one_year else 4))]
-    colors = [
-        "#36566b",
-        "#278a96",
-        "#c58b42",
-        "#747d9a",
-        "#976269",
-        "#668c7a",
-        "#9c8b59",
-        "#647487",
-    ]
     graph = dcc.Graph(
         figure={
             "data": [
@@ -2485,21 +2548,23 @@ def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]
                     "type": "heatmap",
                     "x": [day["date"] for day in days],
                     "y": labels,
-                    "z": [[categories.index(str(day[key])) for day in days] for key in kinds],
-                    "text": [[history_label(day[key]) for day in days] for key in kinds],
-                    "colorscale": [
-                        [i / max(1, len(categories) - 1), colors[i % len(colors)]]
-                        for i in range(len(categories))
+                    "z": [
+                        [categories.index(item) if item is not None else None for item in row]
+                        for row in cells
                     ],
+                    "text": [[label(day, key) for day in days] for key in kinds],
+                    # Each category's own colour at its index, also when there is one.
+                    "colorscale": [[i / top, colors[i]] for i in range(len(categories))]
+                    + ([[1, colors[0]]] if len(categories) == 1 else []),
                     "zmin": 0,
-                    "zmax": max(1, len(categories) - 1),
+                    "zmax": top,
                     "showscale": False,
                     "ygap": 5,
                     "hovertemplate": "%{x} · %{y}<br>%{text}<extra></extra>",
                 }
             ],
             "layout": {
-                "height": 210,
+                "height": 250 if macro else 210,
                 "margin": {"l": 70, "r": 8, "t": 10, "b": 35},
                 "paper_bgcolor": "rgba(0,0,0,0)",
                 "plot_bgcolor": "rgba(0,0,0,0)",
@@ -2515,16 +2580,47 @@ def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]
         },
         config={"displayModeBar": False},
     )
-    return (
-        [
-            graph,
+    counts = [
+        html.P(
+            "正式阶段日数："
+            + " · ".join(
+                f"{history_label(key)} {value} 日"
+                for key, value in obj(display.get("counts")).items()
+            )
+        )
+    ]
+    if macro:
+        counts.insert(
+            0,
             html.P(
-                "正式阶段日数："
+                "宏观判断日数："
                 + " · ".join(
-                    f"{history_label(key)} {value} 日"
-                    for key, value in obj(display.get("counts")).items()
+                    f"{macro_count_label(str(key))} {value} 日"
+                    for key, value in obj(display.get("macro_counts")).items()
                 )
             ),
+        )
+    return (
+        [
+            *(
+                [
+                    html.P(
+                        "宏观判断由政策、信用、增长、物价、库存五维对照特征表得出，"
+                        "每日记滞回后的主结论，色深为明确、渐浅为倾向与弱；"
+                        "生效前与无可取阶段留空，不倒推。"
+                        "正式阶段由债券、股票、商品的 120 日稳定方向映射，作价格验证。"
+                    )
+                ]
+                if macro
+                else [
+                    html.P(
+                        "正式阶段由债券、股票、商品的 120 日稳定方向映射；宏观事实只做事后确认。"
+                    ),
+                    html.P(NO_MACRO_JUDGEMENT, className="secondary-copy"),
+                ]
+            ),
+            graph,
+            *counts,
             html.P(drawer_trigger(calendar, "交易日历与色带等价表格")),
         ],
         [
@@ -2539,7 +2635,7 @@ def stage_bands(projection: ProjectionSet | None) -> tuple[list[Any], list[Any]]
                         [
                             (
                                 day["date"],
-                                *(history_label(day[key]) for key in kinds),
+                                *(label(day, key) for key in kinds),
                                 projection_link(day.get("projection_set_id")),
                                 projection_link(obj(day.get("corrects")).get("projection_set_id"))
                                 if day.get("corrects")
@@ -2585,19 +2681,72 @@ def history_days(
 
 def history_intervals(days: Sequence[dict[str, Any]]) -> tuple[list[Any], list[Any]]:
     """Consecutive days of one state, a stage or the reason for none, as one row each, and
-    the drawers listing each interval's days."""
-    runs: list[list[dict[str, Any]]] = []
-    for day in days:
-        if runs and runs[-1][-1]["official"] == day["official"]:
-            runs[-1].append(day)
-        else:
-            runs.append([day])
+    the drawers listing each interval's days. On days that record the macro judgement, a
+    switch lists them by its main conclusion instead (ticket 08)."""
     heading = html.H3(f"阶段区间（最近 {HISTORY_WINDOW} 个交易日）")
-    if not runs:
+    if not days:
         return [
             heading,
             html.P("尚无阶段事件；首次完整投影发布后，区间会显示在这里。", className="empty-note"),
         ], []
+    macro = macro_recorded(days)
+    official, official_panels = _interval_list(
+        days,
+        lambda day: (day["official"],),
+        lambda day: history_label(day["official"]),
+        "history-interval",
+        view="official" if macro else None,
+    )
+    if not macro:
+        return [heading, official], official_panels
+    by_macro, macro_panels = _interval_list(
+        days,
+        lambda day: (day.get("macro"), day.get("macro_confidence")),
+        macro_history_label,
+        "history-macro-interval",
+        view="macro",
+    )
+    views = (("official", "正式阶段"), ("macro", MACRO_JUDGEMENT))
+    # Only the switch's script shows the other list; without it the formal one stays.
+    switch = html.Div(
+        [
+            html.Button(
+                label,
+                type="button",
+                className="history-view",
+                **cast(
+                    Any,
+                    {
+                        "data-history-view": view_name,
+                        "aria-pressed": "true" if view_name == "official" else "false",
+                    },
+                ),
+            )
+            for view_name, label in views
+        ],
+        className="history-views",
+        role="group",
+        **cast(Any, {"aria-label": "区间按"}),
+    )
+    return [heading, switch, official, by_macro], [*official_panels, *macro_panels]
+
+
+def _interval_list(
+    days: Sequence[dict[str, Any]],
+    state: Callable[[dict[str, Any]], tuple[object, ...]],
+    label: Callable[[dict[str, Any]], str],
+    prefix: str,
+    *,
+    view: str | None = None,
+) -> tuple[html.Ul, list[Any]]:
+    """The intervals of one ``state`` running over consecutive days, and their drawers; a
+    ``view`` names the list for the switch between them, shown only for the formal stage."""
+    runs: list[list[dict[str, Any]]] = []
+    for day in days:
+        if runs and state(runs[-1][-1]) == state(day):
+            runs[-1].append(day)
+        else:
+            runs.append([day])
     # Month and day read well while the window stays in one year.
     short = len({str(day["date"])[:4] for day in days}) == 1
 
@@ -2607,36 +2756,37 @@ def history_intervals(days: Sequence[dict[str, Any]]) -> tuple[list[Any], list[A
             first, last = first[5:], last[5:]
         return first if len(run) == 1 else f"{first}～{last}"
 
-    keys = [drawer_key("history-interval", run[0]["date"]) for run in runs]
+    keys = [drawer_key(prefix, run[0]["date"]) for run in runs]
     return (
-        [
-            heading,
-            html.Ul(
-                [
-                    html.Li(
-                        drawer_trigger(
-                            key,
-                            [
-                                html.Strong(span(run)),
-                                html.Span(history_label(run[0]["official"])),
-                                html.Span(f"{len(run)} 日"),
-                                *corrected_count(run),
-                            ],
-                            class_name="history-interval",
-                        )
+        html.Ul(
+            [
+                html.Li(
+                    drawer_trigger(
+                        key,
+                        [
+                            html.Strong(span(run)),
+                            html.Span(label(run[0])),
+                            html.Span(f"{len(run)} 日"),
+                            *corrected_count(run),
+                        ],
+                        class_name="history-interval",
                     )
-                    for key, run in zip(keys, runs, strict=True)
-                ],
-                className="history-intervals",
+                )
+                for key, run in zip(keys, runs, strict=True)
+            ],
+            className="history-intervals",
+            **cast(
+                Any,
+                {"data-history-view": view, "hidden": view == "macro"} if view is not None else {},
             ),
-        ],
+        ),
         [
             drawer_panel(
                 key,
-                f"{history_label(run[0]['official'])} · {span(run)}",
+                f"{label(run[0])} · {span(run)}",
                 [html.Ul([history_day(day) for day in run], className="record-list")],
-                code=stage_code(run[0]["official"])
-                if str(run[0]["official"]).startswith("stage_")
+                code=stage_code(state(run[0])[0])
+                if str(state(run[0])[0]).startswith("stage_")
                 else None,
             )
             for key, run in zip(keys, runs, strict=True)

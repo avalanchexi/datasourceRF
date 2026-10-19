@@ -282,6 +282,7 @@ class P0ProjectionService:
                 projection_set_id=projection_set_id,
                 core_history_basis=core_history_basis,
                 corrects=corrects,
+                macro_judgement=macro_judgement,
             )
         )
         datasets: dict[str, dict[str, object]] = {
@@ -405,15 +406,6 @@ class P0ProjectionService:
                 :20
             ]
         )
-        assessment = self._projections.prepare_p0_assessment(
-            {
-                **{key: value for key, value in held.items() if key != "assessment_id"},
-                "corrects": corrects.document(),
-                "last_confirmed_stage": last_confirmed_stage,
-                "projection_set_id": projection_set_id,
-                "system_as_of": system_as_of.isoformat(),
-            }
-        )
         datasets = {
             name: {**document, "projection_set_id": projection_set_id}
             for name, document in kept.datasets.items()
@@ -435,6 +427,22 @@ class P0ProjectionService:
                 overview["macro_judgement"] = restated(
                     regrouped(with_reference(judgement, last_confirmed_stage, earlier=counted_from))
                 )
+        judgement = overview.get("macro_judgement")
+        assessment = self._projections.prepare_p0_assessment(
+            {
+                **{key: value for key, value in held.items() if key != "assessment_id"},
+                "corrects": corrects.document(),
+                "last_confirmed_stage": last_confirmed_stage,
+                "projection_set_id": projection_set_id,
+                "system_as_of": system_as_of.isoformat(),
+                # The stage history records the conclusion as restated (ticket 08).
+                **(
+                    {"macro_conclusion": macro_conclusion(judgement)}
+                    if isinstance(judgement, dict)
+                    else {}
+                ),
+            }
+        )
         datasets["stage_history"]["events"] = [*history, assessment]
         if isinstance(shown := datasets["stage_history"].get("display"), dict):
             datasets["stage_history"]["display"] = history_display(
@@ -596,6 +604,7 @@ def _assessment_document(
     projection_set_id: str | None,
     core_history_basis: str | None = None,
     corrects: SummaryCorrection | None = None,
+    macro_judgement: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     document: dict[str, object] = {
         "business_date": target_business_date,
@@ -625,4 +634,15 @@ def _assessment_document(
         document["core_history_basis"] = core_history_basis
     if corrects is not None:
         document["corrects"] = corrects.document()
+    if macro_judgement is not None:
+        document["macro_conclusion"] = macro_conclusion(macro_judgement)
     return document
+
+
+def macro_conclusion(judgement: Mapping[str, object]) -> dict[str, object]:
+    """What the stage history records of a day's macro judgement: its main conclusion's
+    stage and confidence, after the hysteresis, never the run counted toward replacing it
+    (decision 33). Both are None on a day with no stage to take (decision 49)."""
+    main = judgement.get("conclusion")
+    main = main if isinstance(main, Mapping) else {}
+    return {"stage": main.get("stage"), "confidence": main.get("confidence")}

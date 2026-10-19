@@ -72,17 +72,34 @@ def coverage_display(
 
 
 def history_display(events: Sequence[Mapping[str, Any]], days: Sequence[str]) -> dict[str, Any]:
-    """Events are already the repository's daily winners, including correction precedence."""
+    """Events are already the repository's daily winners, including correction precedence.
+
+    A day's macro row is its own summary's main conclusion (ADR-0043): ``not_effective``
+    when that summary was made without the macro judgement rules, ``no_stage`` when it had
+    no stage to take (decision 49); never judged back from another day or the cores.
+    """
     by_day = {str(event["business_date"]): event for event in events}
     rows = []
     for day in days:
         event = by_day.get(day, {})
         official = event.get("current_stage") or event.get("stage_reason") or "unpublished"
         assets = {item["asset"]: item for item in event.get("core_assets", [])}
+        recorded = event.get("macro_conclusion")
+        macro = (
+            "unpublished"
+            if not event
+            else "not_effective"
+            if not isinstance(recorded, Mapping)
+            else recorded.get("stage") or "no_stage"
+        )
         rows.append(
             {
                 "date": day,
                 "official": official,
+                "macro": macro,
+                "macro_confidence": recorded.get("confidence")
+                if isinstance(recorded, Mapping)
+                else None,
                 **{
                     asset: assets.get(asset, {}).get("state") or "unavailable"
                     for asset in ("bond", "stock", "commodity")
@@ -96,6 +113,12 @@ def history_display(events: Sequence[Mapping[str, Any]], days: Sequence[str]) ->
         "schema_version": "history-display-v0001",
         "days": rows,
         "counts": dict(Counter(item["official"] for item in rows)),
+        # A stage counts at each confidence apart: "stage_v:explicit".
+        "macro_counts": dict(
+            Counter(
+                ":".join(filter(None, (item["macro"], item["macro_confidence"]))) for item in rows
+            )
+        ),
     }
 
 
