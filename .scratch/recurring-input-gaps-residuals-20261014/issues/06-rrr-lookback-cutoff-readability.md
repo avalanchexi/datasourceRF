@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: done
 Category: bug
 Type: task
 
@@ -11,3 +11,7 @@ Type: task
 ## 来源
 
 [验收记录](../../recurring-input-gaps-20261013/acceptance-20261014.md) 遗留 10；[票 06](../../recurring-input-gaps-20261013/issues/06-news-window-and-rrr-lookback-use-run-cutoff.md)。
+
+## 收尾预审关闭（2026-10-20）
+
+已被取代：继任票 11（done，083a7c7）实现截止可读性复核。 依据：`.scratch/wrapup-20261020/phase3-pretriage.md`（Codex 只读预审，主 agent 核对提交与继任票状态）。

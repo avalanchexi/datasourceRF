@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: done
 Category: bug
 Type: task
 
@@ -30,3 +30,7 @@ Windows 宿主时钟比 NTP 快约 3 秒（`w32tm` Leap 3，未同步，上次�
 - 用户 15:2x 同意后执行 `wsl.exe -u root systemctl disable --now systemd-timesyncd`：两个 wants 链接已删除，`is-active` inactive、`is-enabled` disabled，WSL 重启不再自启。
 - 65 秒检查（每 0.5 秒比较 `time.time()-time.monotonic()`）：最大偏移 +0.0000 秒，无回拨。`timedatectl`：NTP service inactive。
 - 回滚：`wsl.exe -u root systemctl enable --now systemd-timesyncd`。宿主时钟仍比 NTP 快约 3 秒，偶尔用 `w32tm /query /status` 查看即可。
+
+## 收尾预审关闭（2026-10-20）
+
+已解决：7ad3e31 永久停用 timesyncd，10-15 重启后验收与本次 clock_check 均无回拨。 依据：`.scratch/wrapup-20261020/phase3-pretriage.md`（Codex 只读预审，主 agent 核对提交与继任票状态）。

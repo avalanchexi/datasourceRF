@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] 绑定地址、端口、允许 Host、允许 Origin 是显式统一配置，启动、健康、HTTP 及命令校验都读取它。
 - [x] 保持本机可用默认值，允许指定新宿主值；不以通配全部 Host/Origin 绕过校验。
@@ -18,3 +18,7 @@
 
 
 2026-10-15 收尾：本票实施与受影响验证完成，转人工复核；勾选代表实施检查通过，不代替用户关口 C。证据、全套失败修复与真实运行限制见 [验收记录](../acceptance.md) 和 [浏览器证据](../browser-verification.md)。
+
+## 收尾关闭（2026-10-20，用户"全部确认"）
+
+浏览器上无法核对的项（真实运行生命周期、测试退出码）以 10-20 全套 3036 passed（macro-followups，exit 0）与 10-19／10-20 两次真实完整运行（completed）为证据关闭；逐项核对见 `.scratch/wrapup-20261020/phase2/ui-rebuild-report.md`。

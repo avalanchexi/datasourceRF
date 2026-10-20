@@ -37,3 +37,13 @@ worktree（`git worktree remove`）与同名分支（`git branch -d`），约 5.
 ## D. 需要你看（不在本次删除范围）
 
 - `/home/tywin/worktrees/datasourceRF-window-20260922/ticket-01～06`：分支已并入 main，但每个 worktree 有约 25 个已修改的 `.scratch` 票文件和约 870 个未跟踪文件（共约 3.6G）。删除会丢掉这些本地改动，是否要先看一下内容再定？
+
+## 执行记录（2026-10-20 16:00，用户"全部确认"）
+
+- A 组：删 23 个 worktree 与分支（cb、cl、cl-11～15、igr、ms、wg、wg-01～07、6 个 .claude 代理 worktree）及 report-reading-20261015、worktree-agent-ad5379ac 两个分支；删前逐个复核工作区干净且已并入 main，分支均 `git branch -d`。
+- B 组（上线后）：删 macro-followups 与 ms-11～16、ms-rf、ms-rf2a/2b/2c、ms-rf3a、ms-rf4 共 13 个 worktree 与分支。
+- 测试 venv：删除 48 个，只留正式 dev-venv。
+- 备份：删 fub09、acc05、acc13、golive-20261019；保留 smallbatches、v0016、macro-followups 三份。
+- 旧 Worker 启动脚本、meta/out、guard 日志与旧 web 日志已删，resident 与 v0016 起的保留。
+- D 组 window-20260922 六个 worktree 按推荐保留未动。
+- 磁盘：WSL 内部已用 136G → 121G（另有全套与子代理临时目录约 31G 已清）；C 盘余量 24G → 23G 未回升，因 WSL 虚拟磁盘不自动收缩，需用户在 Windows 侧 `wsl --shutdown` 后压缩 VHD 才能回到 C 盘。

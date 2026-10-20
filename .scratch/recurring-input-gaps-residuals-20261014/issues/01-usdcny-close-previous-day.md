@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: done
 Category: bug
 Type: task
 
@@ -20,3 +20,7 @@ Type: task
 ## 来源
 
 [验收记录](../../recurring-input-gaps-20261013/acceptance-20261014.md) 第六节第 9 条、遗留 6。
+
+## 收尾预审关闭（2026-10-20）
+
+已被取代：继任票 08（done）实现晚间取数与次晨补取。 依据：`.scratch/wrapup-20261020/phase3-pretriage.md`（Codex 只读预审，主 agent 核对提交与继任票状态）。

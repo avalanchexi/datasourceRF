@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] Worker 在成功、降级、失败、取消的终态留存适用摘要，包含运行/命令/投影身份、时间、总/分段耗时、请求、结果、预算及已有缺口信息。
 - [x] 运行中展示真实进度和已知数据，不伪造终态；中断和恢复基于真实记录收尾，未发布新投影时不把旧分析标为本次成功。
@@ -18,3 +18,7 @@
 
 
 2026-10-15 收尾：本票实施与受影响验证完成，转人工复核；勾选代表实施检查通过，不代替用户关口 C。证据、全套失败修复与真实运行限制见 [验收记录](../acceptance.md) 和 [浏览器证据](../browser-verification.md)。
+
+## 收尾关闭（2026-10-20，用户"全部确认"）
+
+浏览器上无法核对的项（真实运行生命周期、测试退出码）以 10-20 全套 3036 passed（macro-followups，exit 0）与 10-19／10-20 两次真实完整运行（completed）为证据关闭；逐项核对见 `.scratch/wrapup-20261020/phase2/ui-rebuild-report.md`。

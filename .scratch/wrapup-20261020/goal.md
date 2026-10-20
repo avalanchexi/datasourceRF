@@ -40,6 +40,16 @@
 - 删除前把清单写入 `.scratch/wrapup-20261020/phase5-cleanup-list.md` 给用户批准；分支一律 `git branch -d`。
 - 完成标准：用户批准的清单已执行完，清理前后磁盘余量记入进度；或清单已给出、等用户批准。
 
+## 当前状态（2026-10-20 16:05，用户 15:48"全部确认"推荐方案后）
+
+| 阶段 | 状态 | 说明 |
+|---|---|---|
+| 1 运行后核对 | 已完成 | phase1-run-check.md；宏观 10 已于上线后补生成报告通过并关闭 |
+| 2 关旧验收票 | 已完成 | 关 ui-rebuild 01–13、conclusion-board 07、cockpit-layout 10/15；worker-gap-fixes 07 清单 1–3 用户接受，清单 6 待 10-21 运行发布后复核（宏观 15 已上线），复核由 10-21 定时任务进行 |
+| 3 积压分流 | 等用户 | 已关 6 张；剩 9 张由用户方便时调用 `/mattpocock-skills:triage`（用户确认"这次不动"） |
+| 4 后续开发 | 已完成 | macro-followups 并入 main（f3fb425），正式环境重装并逐文件核对，Worker 与 8069 重启（8069 写 PID 文件），10-19 报告补生成 codex_cli 成功；浏览器复核见进度 |
+| 5 环境清理 | 已完成 | phase5-cleanup-list.md 执行记录；D 组按推荐保留 |
+
 ## 进度
 
 - 2026-10-20 09:30 写入目标文件，开始。
@@ -60,6 +70,7 @@
   - 阶段 3：已关 6 张；等用户调用 `/mattpocock-skills:triage` 分流剩余 9 张。
   - 阶段 4：全部通过测试，等用户回复"上线"（golive-plan.md）。
   - 阶段 5：清单已给出（phase5-cleanup-list.md），等用户批准；B 组待上线后。
+- 15:48–16:05 用户确认推荐方案后执行：停 Worker/8069（按 PID）→ 备份 before-macro-followups-20261020（integrity ok，0039）→ 并入 main f3fb425 → 重装 dev-venv（首次 uv sync 未换副本，加 --reinstall-package 后 153 文件一致）→ init ok → 重启 Worker（pid 907339）与 8069（pid 907336，web-8069.pid）→ 补生成 10-19 报告 report-7e4ac01e v4 codex_cli succeeded（70,650 B 全送达）→ 关宏观 10 → 关阶段 2 旧票 → 清理 A、B 组。
 
 ## 复盘待定项（不在本目标内）
 

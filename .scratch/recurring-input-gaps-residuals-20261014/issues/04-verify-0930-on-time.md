@@ -1,4 +1,4 @@
-Status: ready-for-human
+Status: done
 Category: enhancement
 Type: task
 
@@ -15,3 +15,7 @@ Type: task
 ## 来源
 
 [验收记录](../../recurring-input-gaps-20261013/acceptance-20261014.md) 结论、遗留 3。
+
+## 收尾关闭（2026-10-20）
+
+10-20 调度运行 run-3ebbe323 于 09:30:04 受理、10:03 完成（completed／changed）。

@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: done
 Category: enhancement
 Type: research
 
@@ -24,3 +24,7 @@ Type: research
 ## 来源
 
 [验收记录](../../recurring-input-gaps-20261013/acceptance-20261014.md) 结论“体检达标”、第五节体检段。
+
+## 收尾预审关闭（2026-10-20）
+
+已被取代：继任票 09、12（均 done）接入 Nasdaq 来源与体检路径。 依据：`.scratch/wrapup-20261020/phase3-pretriage.md`（Codex 只读预审，主 agent 核对提交与继任票状态）。

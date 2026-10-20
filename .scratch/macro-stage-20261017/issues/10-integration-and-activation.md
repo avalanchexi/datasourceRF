@@ -4,12 +4,12 @@
 
 **Blocked by:** 01–09
 
-**Status:** ready-for-human
+**Status:** done
 
-- [ ] 全套测试通过（或失败逐条说明并处理）
-- [ ] 副本单日汇总与回测对照表
-- [ ] 浏览器验收截图与数值经主 agent 核验
-- [ ] 用户验收清单勾选；用户明确同意激活 v0016
+- [x] 全套测试通过（macro-stage 2920 passed 10-20 05:07；macro-followups 3036 passed 10-20 15:37）
+- [x] 副本单日汇总与回测对照表
+- [x] 浏览器验收截图与数值经主 agent 核验
+- [x] 用户验收清单勾选；用户明确同意激活 v0016（10-20 "全部确认"，07:19 激活）
 
 ## Comments
 
@@ -25,3 +25,9 @@
 ### 2026-10-20 07:19 激活（用户"全部确认"，决定 61）
 
 激活前小修 6116f3c、6321459（D1、决定 51/59/60、三处旧文案、方向悬停提示）合入 macro-stage 后 440 过。停常驻 Worker 与 8069 → 备份 `backups/pring-cycle-before-v0016-20261020.sqlite3`（quick_check ok，0039）→ macro-stage 并入 main（426ea1d，无冲突）→ 重装正式 dev-venv（与 HEAD 0 差异，init ok，冒烟＋宏观 22 过）→ 导出 `.scratch/macro-stage-20261017/model-v0016-manifest.json` → `model-register`（hash f58cd825…）→ `model-activate --confirm`，active 为 model-v0016 → 重启常驻 Worker（PID 618991）与 8069。待办：首个成功发布宏观块的运行即生效首日，核对 ① 标题（预期第三阶段（倾向），滞回 initial）、⑥ 首格、报告新校验与提示词完整发送；之后勾验收清单、本票改 done。
+
+## 生效首日核对与关闭（2026-10-20）
+
+- v0016 首个运行 run-3ebbe323（目标日 10-19，projection-59421326）：主结论第三阶段（倾向，5 维中 3 维吻合），滞回 initial；⑥ 首格 10-19；提示词 70,650 B 全部送达（`.scratch/wrapup-20261020/phase1-run-check.md`）。
+- 当次 AI 报告被 `macro_stated_stage` 误拒、退模板 → 宏观 13（及三轮审查修复）修复，随 macro-followups 于 10-20 15:52 上线。
+- 上线后补生成 report-7e4ac01e（第 4 版，request repair-report-20261019-macro-01）：codex_cli succeeded，prompt 70,650 B 全部送达，51 s。新校验通过，关闭。
