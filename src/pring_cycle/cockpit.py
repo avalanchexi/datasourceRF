@@ -674,7 +674,7 @@ def section_titles(judgement: Mapping[str, Any] | None) -> tuple[tuple[str, str]
 
 
 BOARD_SUBTITLE = "正式阶段 · 三核心 · 确认度 · 一致性 · 库存 · 归因，一板看完"
-MACRO_BOARD_SUBTITLE = "五维定宏观阶段 · 价格表象作验证 · 库存 · 归因，一板看完"
+MACRO_BOARD_SUBTITLE = "五维定宏观判断阶段 · 价格表象作验证 · 库存 · 归因，一板看完"
 
 
 def stage_term(projection: ProjectionSet | None) -> str:
@@ -1102,7 +1102,10 @@ def asset_notes(macro: dict[str, object], judgement: Mapping[str, Any] | None = 
         note
         for note in (
             consistency_card(obj(macro.get("price_consistency")), judgement),
-            attribution_card(obj(macro.get("bond_attribution"))),
+            attribution_card(
+                obj(macro.get("bond_attribution")),
+                term=FORMAL_TERM if judgement is None else PRICE_TERM,
+            ),
         )
         if note
     ]
@@ -1182,10 +1185,14 @@ def signal_pointers(
     return html.P(links, className="signal-pointers")
 
 
-def attribution_card(note: dict[str, Any]) -> tuple[Any, Any] | None:
+def attribution_card(note: dict[str, Any], *, term: str = FORMAL_TERM) -> tuple[Any, Any] | None:
     """What drives the bond: the driver with the bond's price and each axis on the page;
-    why it is unclear, the signals read and the notes in the drawer."""
-    lines = view._attribution_lines({"bond_attribution": note})
+    why it is unclear, the signals read and the notes in the drawer, the cores' stage
+    called ``term`` (ticket 16: the model's note says 正式阶段)."""
+    lines = [
+        line.replace(FORMAL_TERM, term)
+        for line in view._attribution_lines({"bond_attribution": note})
+    ]
     if not lines:
         return None
     return _note_card(
@@ -1367,6 +1374,22 @@ ADAPTER_FAILURES = {
     "forbidden_content_rejected": "输出含禁用内容被拒",
     "paragraph_structure_invalid": "段落结构不合规",
 }
+# A refused reading by the check its audit recorded, where the outcome alone says too little
+# (macro stage ticket 16); an audit without the check keeps the outcome's reason.
+REJECTION_CHECKS = {
+    "current_stage": "输出改写正式阶段被拒",
+    "stated_stage": "输出改写正式阶段被拒",
+    "price_stated_stage": "输出改写正式阶段被拒",
+    "macro_stated_stage": "输出所写宏观判断阶段与规则结论不符被拒",
+    "macro_stated_score": "输出所写阶段得分与规则结论不符被拒",
+    "macro_stated_confidence": "输出所写把握程度与规则结论不符被拒",
+    "macro_confidence_unstated": "输出未写明把握程度被拒",
+}
+
+
+def adapter_failure(outcome: str, check: str | None) -> str:
+    """Why an adapter attempt produced no reading, in reader's words."""
+    return REJECTION_CHECKS.get(str(check)) or ADAPTER_FAILURES.get(outcome, outcome)
 
 
 def reading_line(
@@ -1385,9 +1408,13 @@ def reading_line(
         ]
     if report.adapter == "deterministic":
         term = view.report_stage_term(report.body if report.body_retained else {})
+        checks = report.adapter_rejections
         failures = "；".join(
-            f"{adapter} {ADAPTER_FAILURES.get(outcome, outcome).replace(FORMAL_TERM, term)}"
-            for adapter, outcome in report.adapter_outcomes
+            f"{adapter} "
+            + adapter_failure(outcome, checks[index] if index < len(checks) else None).replace(
+                FORMAL_TERM, term
+            )
+            for index, (adapter, outcome) in enumerate(report.adapter_outcomes)
             if outcome != "succeeded"
         )
         return [
@@ -2198,9 +2225,12 @@ def coverage_table(
                 "按最终计划的指标 × 统计期计数；期内缺维度仍算缺失。"
                 "模型口径为三核心与确认规则所需，目录口径包含纯观察指标。"
                 "等待发布等门禁单列，不计作已持有。"
+                # Later than the period due: no gap (2026-10-13 decision, macro stage 15).
+                "晚于应有期、尚未持有的计划期还未到应有期（如已发布的下一期），计在门禁一列，不列为缺口；"
+                "有已持有期的指标沿用其最新一期。"
             ),
             table(
-                ("口径", "应有期", "已持有", "门禁 / 等待发布", "其他缺失"),
+                ("口径", "计划期数", "已持有", "门禁 / 等待发布 / 未到应有期", "其他缺失"),
                 [
                     (
                         label,
@@ -2532,6 +2562,46 @@ def macro_history_label(day: Mapping[str, Any]) -> str:
     return MACRO_HISTORY_BLANKS.get(value) or history_label(value)
 
 
+# How the hysteresis left a day's main conclusion, as its interval's drawer tells it; the
+# run counted toward replacing it is the day's signal list's, not the history's (decision 33).
+MACRO_HYSTERESIS = {"initial": "无既往主结论，取当日原始判断", "agrees": "与当日原始判断一致"}
+
+
+def macro_hysteresis_label(state: object) -> str:
+    """滞回保持，当日原始判断：第 X 阶段（倾向） while held (decision 45); replaced, the
+    sessions its raw judgement ran; a day that recorded none says so."""
+    state = obj(state)
+    basis = state.get("basis")
+    if basis == "held":
+        raw = state.get("raw_stage")
+        if raw is None:
+            return f"滞回保持，当日原始判断：{MACRO_HISTORY_BLANKS['no_stage']}"
+        confidence = MACRO_CONFIDENCES.get(str(state.get("raw_confidence")), "")
+        return f"滞回保持，当日原始判断：{stage_name(raw)}（{confidence}）"
+    if basis == "replaced":
+        return f"滞回替换：当日原始判断已连续 {state.get('sessions_required')} 日，取代原主结论"
+    return MACRO_HYSTERESIS.get(str(basis), "滞回状态未记录")
+
+
+def macro_history_day(day: dict[str, Any]) -> html.Li:
+    """One day of a macro interval: its main conclusion with its confidence and how the
+    hysteresis left it, the version it corrects; its price stage is the price drawer's (D2)."""
+    recorded = str(day.get("macro")).startswith("stage_")
+    return html.Li(
+        [
+            html.Strong(f"{day['date']} · {macro_history_label(day)}"),
+            html.Span(
+                macro_hysteresis_label(day.get("macro_hysteresis")), className="secondary-copy"
+            )
+            if recorded
+            else None,
+            *correction_note(day, term=PRICE_TERM),
+            html.Span(["投影 ", projection_link(day.get("projection_set_id"))]),
+        ],
+        className="record-row",
+    )
+
+
 def macro_count_label(key: str) -> str:
     stage, _, confidence = key.partition(":")
     return macro_history_label({"macro": stage, "macro_confidence": confidence or None})
@@ -2775,7 +2845,7 @@ def history_intervals(days: Sequence[dict[str, Any]]) -> tuple[list[Any], list[A
         macro_history_label,
         "history-macro-interval",
         view="macro",
-        term=term,
+        row=macro_history_day,
     )
     views = (("official", term), ("macro", MACRO_JUDGEMENT))
     # Only the switch's script shows the other list; without it the formal one stays.
@@ -2810,9 +2880,13 @@ def _interval_list(
     *,
     view: str | None = None,
     term: str = FORMAL_TERM,
+    row: Callable[[dict[str, Any]], html.Li] | None = None,
 ) -> tuple[html.Ul, list[Any]]:
     """The intervals of one ``state`` running over consecutive days, and their drawers; a
-    ``view`` names the list for the switch between them, shown only for the formal stage."""
+    ``view`` names the list for the switch between them, shown only for the formal stage.
+    A drawer lists its days by ``row``, by default their stage, called ``term``."""
+    if row is None:
+        row = lambda day: history_day(day, term=term)  # noqa: E731
     runs: list[list[dict[str, Any]]] = []
     for day in days:
         if runs and state(runs[-1][-1]) == state(day):
@@ -2856,7 +2930,7 @@ def _interval_list(
             drawer_panel(
                 key,
                 f"{label(run[0])} · {span(run)}",
-                [html.Ul([history_day(day, term=term) for day in run], className="record-list")],
+                [html.Ul([row(day) for day in run], className="record-list")],
                 code=stage_code(state(run[0])[0])
                 if str(state(run[0])[0]).startswith("stage_")
                 else None,
@@ -2884,7 +2958,6 @@ def projection_link(projection_set_id: object) -> Any:
 def history_day(day: dict[str, Any], *, term: str = FORMAL_TERM) -> html.Li:
     """One day of an interval: its state, its event's facts, the version it corrects and why;
     ``term`` is what the page calls the cores' stage."""
-    corrects = day.get("corrects")
     gaps = day.get("gaps")
     facts = (
         [
@@ -2907,25 +2980,33 @@ def history_day(day: dict[str, Any], *, term: str = FORMAL_TERM) -> html.Li:
         [
             html.Strong(f"{day['date']} · {history_label(day['official'], term=term)}"),
             html.Span(" · ".join(facts), className="secondary-copy") if facts else None,
-            html.Span(
-                [
-                    "更正版本：更正 ",
-                    projection_link(corrects.get("projection_set_id")),
-                    "（"
-                    + (
-                        view._stage_correction_note(corrects).replace(FORMAL_TERM, term)
-                        or str(corrects.get("reason"))
-                    )
-                    + "）",
-                ],
-                className="secondary-copy",
-            )
-            if isinstance(corrects, dict)
-            else None,
+            *correction_note(day, term=term),
             html.Span(["投影 ", projection_link(day.get("projection_set_id"))]),
         ],
         className="record-row",
     )
+
+
+def correction_note(day: Mapping[str, Any], *, term: str) -> list[html.Span]:
+    """The version a day corrects and why; none for a day that corrects none."""
+    corrects = day.get("corrects")
+    if not isinstance(corrects, dict):
+        return []
+    return [
+        html.Span(
+            [
+                "更正版本：更正 ",
+                projection_link(corrects.get("projection_set_id")),
+                "（"
+                + (
+                    view._stage_correction_note(corrects).replace(FORMAL_TERM, term)
+                    or str(corrects.get("reason"))
+                )
+                + "）",
+            ],
+            className="secondary-copy",
+        )
+    ]
 
 
 # The page's "海外与汇率" list, in reading order: FX, US Treasuries, then risk and oil. The

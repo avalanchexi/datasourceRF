@@ -308,3 +308,61 @@ def test_a_report_past_retention_keeps_its_identity_and_invents_no_reading() -> 
     assert "正文已不在保留期" in visible and "与阶段 V只差债券一项" not in _text(section)
     panel = _panel(section, _trigger(section, "查看报告详情"))
     assert "报告身份 report-projection-board-1" in panel
+
+
+def _coverage_rows(section: Component) -> list[list[object]]:
+    """Section 07's completeness rows, each cell as published (the counts are numbers)."""
+    rows = _find(section, lambda item: type(item).__name__ == "Tr")
+    return [
+        [
+            cell.children
+            for cell in getattr(row, "children", [])
+            if type(cell).__name__ in {"Th", "Td"}
+        ]
+        for row in rows
+    ]
+
+
+def test_the_gated_column_also_counts_periods_not_due_yet_and_says_why_no_gap() -> None:
+    """Macro stage 15: a period later than the one due, the one held carried, is counted
+    with the gated ones; the page says why the gap list does not name it. The total counts
+    every period planned, those not due yet among them (review 2026-10-20 r2)."""
+    coverage = {
+        "available": True,
+        "model": {"total": 1, "counts": {"held": 1}},
+        "catalog": {"total": 4, "counts": {"held": 1, "release_gated": 2, "missing": 1}},
+    }
+    projection = _projection(
+        [_asset("bond", "bull"), _asset("stock", "bear"), _asset("commodity", "bull")],
+        macro={"coverage": coverage},
+    )
+    section = _reading(projection)
+
+    assert _coverage_rows(section)[:3] == [
+        ["口径", "计划期数", "已持有", "门禁 / 等待发布 / 未到应有期", "其他缺失"],
+        ["模型所需", 1, 1, 0, 0],
+        ["目录全部", 4, 1, 2, 1],
+    ]
+    assert (
+        "晚于应有期、尚未持有的计划期还未到应有期（如已发布的下一期），计在门禁一列，不列为缺口；"
+        "有已持有期的指标沿用其最新一期。"
+    ) in _words(_visible(section))
+
+
+def test_an_older_projection_shows_its_completeness_as_published() -> None:
+    """A set published before macro stage 15 counted VIX 10-19 missing: shown as it is,
+    never recounted on the reader's side."""
+    vix = {"complete": False, "metric_id": "CBOE_VIX_INDEX", "required_period": "2026-10-19"}
+    coverage = {
+        "available": True,
+        "model": {"total": 1, "counts": {"held": 1}, "periods": []},
+        "catalog": {"total": 2, "counts": {"held": 1, "missing": 1}, "periods": [vix]},
+    }
+    projection = _projection(
+        [_asset("bond", "bull"), _asset("stock", "bear"), _asset("commodity", "bull")],
+        macro={"coverage": coverage},
+    )
+    section = _reading(projection)
+
+    assert _coverage_rows(section)[2] == ["目录全部", 2, 1, 0, 1]
+    assert "本次运行没有缺口。" in _words(_visible(section))

@@ -21,6 +21,7 @@ from pring_cycle.batches import processing_batch
 from pring_cycle.day_summary import DaySummaries, ModelRules, RunMaterials
 from pring_cycle.eia_html import FetchedEiaHistory, refresh_eia_history
 from pring_cycle.evidence import EvidenceRepository
+from pring_cycle.freshness import MetricFreshness
 from pring_cycle.models import ModelRepository, effective_model_manifest
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runs import RunRepository
@@ -197,7 +198,8 @@ def test_a_requested_session_its_page_says_is_not_out_yet_awaits_release(
         "2026-10-15",
         system_as_of=datetime(2026, 10, 16, 8, 8, tzinfo=UTC),
         run_materials=RunMaterials(
-            plan_gaps=(requested,), held_periods={"EIA_BRENT_RBRTE": "2026-10-14"}
+            plan_gaps=(requested,),
+            freshness={"EIA_BRENT_RBRTE": MetricFreshness("current", "2026-10-14", "2026-10-14")},
         ),
     )
 

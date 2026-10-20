@@ -63,8 +63,10 @@ from pring_cycle.domain.trend import (
 )
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
 from pring_cycle.freshness import (
+    MetricFreshness,
     add_projection_gaps,
     awaiting_stated_release,
+    not_yet_due,
     release_schedule_scope,
     use_release_schedule,
 )
@@ -202,13 +204,14 @@ class RunMaterials:
     ``freshness_calendar`` states the run's freshness stood on weekdays its calendar did not
     cover (ticket 06); ``None`` when the calendar covered every day judged.
 
-    ``held_periods`` is the latest period the run's timeliness found held, per metric: a
-    plan period before it is a historical gap (worker gaps 04).
+    ``freshness`` is what the run's timeliness recorded, per metric: a plan period before
+    the one held is a historical gap (worker gaps 04), one later than the period due is not
+    due yet (macro stage 15).
     """
 
     freshness_gaps: tuple[Mapping[str, object], ...] = ()
     freshness_calendar: Mapping[str, str] | None = None
-    held_periods: Mapping[str, object] = field(default_factory=dict)
+    freshness: Mapping[str, MetricFreshness] = field(default_factory=dict)
     plan_gaps: tuple[Mapping[str, object], ...] = ()
     derived_requirements: tuple[Mapping[str, object], ...] = ()
     release_calendar_events: tuple[dict[str, object], ...] = ()
@@ -331,12 +334,20 @@ class DaySummaries:
                     item.metric_id for item in self._model.definitions if item.priority == "P1"
                 )
             # A requested period its source's original says is not out yet is awaiting
-            # release in both the coverage and the gap list.
-            plan_gaps = awaiting_stated_release(
-                run_materials.plan_gaps,
-                (context.macro, context.inventory),
-                held_periods=run_materials.held_periods,
-                judged_at=system_as_of,
+            # release in both the coverage and the gap list; one out and not due yet is
+            # counted with them and is no gap.
+            held_periods = {
+                metric_id: record.held_period
+                for metric_id, record in run_materials.freshness.items()
+            }
+            plan_gaps = not_yet_due(
+                awaiting_stated_release(
+                    run_materials.plan_gaps,
+                    (context.macro, context.inventory),
+                    held_periods=held_periods,
+                    judged_at=system_as_of,
+                ),
+                freshness=run_materials.freshness,
             )
             context.macro["coverage"] = coverage_display(plan_gaps, model_metrics)
             effective = self._macro_effective_from(day)
@@ -391,7 +402,7 @@ class DaySummaries:
                         (context.macro, context.inventory),
                         derived_requirements=run_materials.derived_requirements,
                         plan_gaps=plan_gaps,
-                        held_periods=run_materials.held_periods,
+                        held_periods=held_periods,
                         definitions=self._model.definitions,
                     )
                 ),

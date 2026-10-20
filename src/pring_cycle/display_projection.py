@@ -45,8 +45,9 @@ def coverage_display(
             "held"
             if row.get("complete")
             else "release_gated"
-            # Gated, or let through and not out yet on its source's word (worker gaps 03).
-            if row.get("release_gate") or row.get("awaiting_release")
+            # Gated, or let through and not out yet on its source's word (worker gaps 03),
+            # or out and not due yet, the period before carried (macro stage 15).
+            if row.get("release_gate") or row.get("awaiting_release") or row.get("not_due")
             else "missing"
             for row in rows
         )
@@ -87,13 +88,42 @@ def macro_row(event: Mapping[str, Any]) -> tuple[str, str | None]:
     )
 
 
-def history_display(events: Sequence[Mapping[str, Any]], days: Sequence[str]) -> dict[str, Any]:
+def macro_hysteresis_row(judgement: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    """How the hysteresis left a judgement's main conclusion, as its day's row tells it:
+    held, against the day's raw judgement (decision 45); replaced, after the sessions it
+    takes. Never the run counted toward replacing it (decision 33). None without one."""
+    judgement = judgement or {}
+    state = judgement.get("hysteresis")
+    if not isinstance(state, Mapping):
+        return None
+    basis = state.get("basis")
+    if basis == "held":
+        raw = judgement.get("raw")
+        raw = raw if isinstance(raw, Mapping) else {}
+        return {
+            "basis": basis,
+            "raw_stage": raw.get("stage"),
+            "raw_confidence": raw.get("confidence"),
+        }
+    if basis == "replaced":
+        return {"basis": basis, "sessions_required": state.get("sessions_required")}
+    return {"basis": basis}
+
+
+def history_display(
+    events: Sequence[Mapping[str, Any]],
+    days: Sequence[str],
+    judgements: Mapping[str, Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Events are already the repository's daily winners, including correction precedence.
 
     A day's macro row is its own summary's main conclusion (ADR-0043): ``not_effective``
     when that summary was made without the macro judgement rules, ``no_stage`` when it had
-    no stage to take (decision 49); never judged back from another day or the cores.
+    no stage to take (decision 49); never judged back from another day or the cores. A day
+    with one tells how the hysteresis left it from its own set's judgement in
+    ``judgements``, by set (D2).
     """
+    judgements = judgements or {}
     by_day = {str(event["business_date"]): event for event in events}
     rows = []
     for day in days:
@@ -103,6 +133,11 @@ def history_display(events: Sequence[Mapping[str, Any]], days: Sequence[str]) ->
         macro, macro_confidence = macro_row(event)
         recorded = event.get("macro_conclusion")
         note = recorded.get("context_status") if isinstance(recorded, Mapping) else None
+        hysteresis = (
+            macro_hysteresis_row(judgements.get(str(event.get("projection_set_id"))))
+            if isinstance(recorded, Mapping)
+            else None
+        )
         rows.append(
             {
                 "date": day,
@@ -111,6 +146,7 @@ def history_display(events: Sequence[Mapping[str, Any]], days: Sequence[str]) ->
                 "macro_confidence": macro_confidence,
                 # A conclusion kept over a context not recomputed is marked so (F4).
                 **({"macro_note": note} if note is not None else {}),
+                **({"macro_hysteresis": hysteresis} if hysteresis is not None else {}),
                 **{
                     asset: assets.get(asset, {}).get("state") or "unavailable"
                     for asset in ("bond", "stock", "commodity")

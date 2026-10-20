@@ -5,6 +5,7 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
+from typing import Any
 
 from pring_cycle.batches import current_batch_id
 from pring_cycle.display_projection import display_days, history_display
@@ -332,6 +333,7 @@ class P0ProjectionService:
             datasets["stage_history"]["display"] = history_display(
                 history,
                 display_days(next(iter(display.values()))),
+                self._macro_judgements(history, projection_set_id, macro_judgement),
             )
         validate_analytical_projection(envelope, datasets, macro_rules=macro_rules)
         try:
@@ -360,6 +362,27 @@ class P0ProjectionService:
             (),
             str(assessment["assessment_id"]),
         )
+
+    def _macro_judgements(
+        self,
+        history: list[dict[str, object]],
+        projection_set_id: str,
+        judgement: object,
+    ) -> dict[str, Mapping[str, Any]]:
+        """The macro judgements the history's days published, by set, the day's own being
+        ``judgement``: what each row tells of the hysteresis from (D2)."""
+        judgements: dict[str, Mapping[str, Any]] = dict(
+            self._projections.macro_hysteresis(
+                [
+                    str(item["projection_set_id"])
+                    for item in history
+                    if item.get("macro_conclusion") is not None and item.get("projection_set_id")
+                ]
+            )
+        )
+        if isinstance(judgement, dict):
+            judgements[projection_set_id] = judgement
+        return judgements
 
     def relink(
         self,
@@ -469,6 +492,7 @@ class P0ProjectionService:
             datasets["stage_history"]["display"] = history_display(
                 [*history, assessment],
                 [str(point["date"]) for point in shown["days"]],
+                self._macro_judgements(history, projection_set_id, judgement),
             )
         envelope = replace(
             kept.envelope,

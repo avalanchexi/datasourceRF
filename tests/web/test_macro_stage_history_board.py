@@ -156,6 +156,8 @@ def test_the_intervals_can_be_listed_by_the_macro_judgement() -> None:
     panel = _by_id(page, str(trigger.href)[1:])
     assert _words(panel.children[0]).startswith("第五阶段（明确） · 10-13～10-14")
     assert "2026-10-13" in _words(panel) and "2026-10-14" in _words(panel)
+    # A set from before its days told how the hysteresis left them says so.
+    assert "滞回状态未记录" in _words(panel)
 
 
 def test_a_set_from_before_the_macro_row_shows_its_four_rows_and_says_why() -> None:
@@ -187,31 +189,139 @@ def test_a_set_whose_days_all_precede_the_rules_shows_its_four_rows() -> None:
     assert _views(intervals) == ([], [])
 
 
+def _drawer(page: Component, item: Component) -> Component:
+    """The drawer an interval's trigger opens."""
+    [trigger] = _find(item, lambda part: getattr(part, "href", None))
+    return _by_id(page, str(trigger.href)[1:])
+
+
+def _rows(drawer: Component) -> list[Component]:
+    return _find(drawer, lambda part: "record-row" in str(getattr(part, "className", "")))
+
+
+def _hrefs(item: Component) -> list[str]:
+    return [str(link.href) for link in _find(item, lambda part: type(part).__name__ == "A")]
+
+
 def test_a_correction_under_the_macro_judgement_names_the_price_stage() -> None:
     # D1: the cores' stage is the price stage on a set the judgement leads, in a day's
-    # correction note too.
+    # correction note too; the macro drawer keeps the note, both sets' links, and the
+    # hysteresis the correcting set recorded.
     corrected = {
         "projection_set_id": "projection-old-10-14",
         "reason": "core_history_basis_changed",
         "scope": "core_only",
     }
+    held = {"basis": "held", "raw_stage": "stage_iii", "raw_confidence": "tendency"}
     projection = _with_macro_counts(
         _history(
             [
-                _macro("2026-10-13", "stage_iii", "stage_v", "explicit"),
+                _macro("2026-10-13", "stage_iii", "stage_v", "explicit")
+                | {"macro_hysteresis": {"basis": "agrees"}},
                 _day(
                     "2026-10-14",
                     "stage_iii",
                     macro="stage_v",
                     macro_confidence="explicit",
                     corrects=corrected,
+                    macro_hysteresis=held,
                 ),
             ]
         )
     )
-
+    page = dashboard_page("/", projection, (), ())
     bands, intervals, rest = _sides(projection)
-    text = " ".join(_words(part) for part in (bands, intervals, *rest))
+    [macro] = _views(intervals)[1][1:]
 
-    assert "（核心历史口径变更；只更正核心与价格阶段，上下文与确认度未重算" in text
-    assert "正式阶段" not in text
+    [_first, row] = _rows(_drawer(page, macro.children[0]))
+
+    text = _words(row)
+    assert text.startswith(
+        "2026-10-14 · 第五阶段（明确） 滞回保持，当日原始判断：第三阶段（倾向） "
+        "更正版本：更正 projection-old-10-14 （核心历史口径变更；只更正核心与价格阶段，"
+        "上下文与确认度未重算"
+    )
+    assert _hrefs(row) == [
+        "/?projection=projection-old-10-14#history",
+        "/?projection=projection-2026-10-14#history",
+    ]
+    assert "正式阶段" not in " ".join(_words(part) for part in (bands, intervals, *rest))
+
+
+def test_a_first_conclusion_after_a_day_with_no_stage_is_not_called_the_rules_first_day() -> None:
+    # The rules took effect with no stage to take; the next day's first conclusion is
+    # initial too, for no main conclusion came before it.
+    projection = _with_macro_counts(
+        _history(
+            [
+                _macro("2026-10-12", "stage_iii", "not_effective", None),
+                _macro("2026-10-13", "stage_iii", "no_stage", None)
+                | {"macro_hysteresis": {"basis": "initial"}},
+                _macro("2026-10-14", "stage_iii", "stage_v", "explicit")
+                | {"macro_hysteresis": {"basis": "initial"}},
+            ]
+        )
+    )
+    page = dashboard_page("/", projection, (), ())
+    _bands_side, intervals, _rest = _sides(projection)
+    [macro] = _views(intervals)[1][1:]
+
+    [row] = _rows(_drawer(page, macro.children[2]))
+
+    assert _words(row).startswith("2026-10-14 · 第五阶段（明确） 无既往主结论，取当日原始判断")
+    assert "生效首日" not in _words(page)
+
+
+def _event(day: str, official: str) -> dict[str, Any]:
+    """The day's stage history event: its price stage facts, which a row carries beside it."""
+    return {
+        "business_date": day,
+        "current_stage": official if official.startswith("stage_") else None,
+        "stage_reason": None if official.startswith("stage_") else official,
+        "last_confirmed_stage": "stage_iii",
+        "gaps": [],
+        "model_version_id": "model-v0016",
+    }
+
+
+def test_a_macro_interval_lists_each_days_conclusion_and_hysteresis_not_its_price_stage() -> None:
+    # D2: the macro drawer tells each day's main conclusion, its confidence and how the
+    # hysteresis left it; the price stage stays in the price drawer.
+    held = {"basis": "held", "raw_stage": "stage_iii", "raw_confidence": "tendency"}
+    days = [
+        _macro("2026-10-13", "stage_iii", "stage_v", "explicit")
+        | {"macro_hysteresis": {"basis": "initial"}},
+        _macro("2026-10-14", "noncanonical_combination", "stage_v", "explicit")
+        | {"macro_hysteresis": held},
+        _macro("2026-10-15", "noncanonical_combination", "stage_v", "explicit")
+        | {"macro_hysteresis": {"basis": "agrees"}},
+        _macro("2026-10-16", "noncanonical_combination", "stage_iii", "tendency")
+        | {"macro_hysteresis": {"basis": "replaced", "sessions_required": 10}},
+    ]
+    projection = _with_macro_counts(
+        _history(days, events=[_event(day["date"], day["official"]) for day in days])
+    )
+    page = dashboard_page("/", projection, (), ())
+    _bands_side, intervals, _rest = _sides(projection)
+    [official, macro] = _views(intervals)[1]
+
+    [first, _second] = (_drawer(page, item) for item in macro.children)
+    rows = [_words(row) for row in _rows(first)]
+    assert [row.split(" 投影 ")[0] for row in rows] == [
+        "2026-10-13 · 第五阶段（明确） 无既往主结论，取当日原始判断",
+        "2026-10-14 · 第五阶段（明确） 滞回保持，当日原始判断：第三阶段（倾向）",
+        "2026-10-15 · 第五阶段（明确） 与当日原始判断一致",
+    ]
+    replaced = _words(_drawer(page, macro.children[1]))
+    assert "2026-10-16 · 第三阶段（倾向） 滞回替换：当日原始判断已连续 10 日，取代原主结论" in (
+        replaced
+    )
+    # No price stage, its reason or last confirmed stage, in the macro drawer.
+    for text in (*rows, replaced):
+        assert "价格阶段" not in text and "上一确认" not in text and "原因" not in text
+    # The price drawer keeps its days as they were.
+    price = _words(_drawer(page, official.children[1]))
+    assert (
+        "2026-10-14 · 非典型组合，暂无价格阶段 上一确认 第三阶段 · Stage III · "
+        "原因 非典型组合，暂无价格阶段" in price
+    )

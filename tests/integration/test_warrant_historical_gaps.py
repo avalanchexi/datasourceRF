@@ -136,7 +136,11 @@ def test_every_other_missing_period_of_coverage_is_found_in_the_gap_list(
     missing = [
         row
         for row in coverage["periods"]
-        if not row.get("complete") and not row.get("release_gate")
+        if not row.get("complete")
+        and not row.get("release_gate")
+        # Awaiting release, or out and not due yet: counted with the gated (macro stage 15).
+        and not row.get("awaiting_release")
+        and not row.get("not_due")
     ]
     assert len(missing) == coverage["counts"]["missing"]
     assert {(row["metric_id"], row["required_period"]) for row in missing} >= {
