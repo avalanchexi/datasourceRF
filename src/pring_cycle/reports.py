@@ -957,6 +957,9 @@ class ReportSnapshot:
     corrections: dict[str, Any] = field(default_factory=dict)
     # Each recorded adapter attempt as (adapter, outcome), in order: why a template stood in.
     adapter_outcomes: tuple[tuple[str, str], ...] = ()
+    # Beside each outcome, the check that refused its reading, None where the attempt was
+    # not refused or its audit predates the rejection record (macro stage ticket 16).
+    adapter_rejections: tuple[str | None, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1247,6 +1250,7 @@ class ReportRepository:
             ),
             corrections=corrections,
             adapter_outcomes=tuple((item.adapter, item.outcome) for item in attempts),
+            adapter_rejections=tuple(_rejection_check(item.process_audit) for item in attempts),
         )
 
     @contextmanager
@@ -1657,13 +1661,16 @@ _NUMBERS = {
 }
 _NUMBER = r"(?:VI|IV|V|III|II|I|[ⅠⅡⅢⅣⅤⅥ一二三四五六1-6１-６])"
 # A stage however the prose names it: 第三阶段, 第5阶段, 第Ⅴ阶段, 阶段 III, 阶段Ⅴ, Stage 5,
-# V 阶段, and 第三 before →、至 another ("第三→第四阶段"). "阶段 3 维", "阶段一致" are none.
+# V 阶段, 五阶段 with its 第 left out, and 第三 before →、至 another ("第三→第四阶段").
+# "阶段 3 维", "阶段一致", "上一阶段", "同一阶段", "前三阶段" are none.
 _MENTION = re.compile(
     rf"第\s*(?P<a>{_NUMBER})\s*阶段"
     rf"|第\s*(?P<b>{_NUMBER})(?=\s*(?:→|->|～|~|至|到|、|和|与|或|及)\s*第)"
     rf"|(?:阶段|[Ss]tage)\s*(?P<c>{_NUMBER})"
     r"(?![A-Za-z0-9０-９]|\s*[维个日项步年月致样直般些起旦度])"
     rf"|(?<![A-Za-z])(?P<d>VI|IV|V|III|II|I|[ⅠⅡⅢⅣⅤⅥ])\s*阶段"
+    r"|(?<![第单唯统同每任这那某上下前后另逐首几数两整全各此该本共一二三四五六七八九十])"
+    r"(?P<e>[一二三四五六])\s*阶段"
 )
 # What a stage is said of, by the nearest word before it in its sentence; a stage said of
 # nothing is said of the judgement: under it, the stage the market is in now is the judged
@@ -1699,20 +1706,82 @@ _FOLLOWING = (
     ),
 )
 _LISTED = re.compile(r"\s*[、和与及或/]\s*")
-# "如果 PMI 改按少数方向计票，判断会变为第五阶段，把握程度为明确": under a condition the
-# judgement and its confidence are a signal's recount, until the prose says what is now.
+# "如果 PMI 改按少数方向计票，判断会变为第五阶段，把握程度为明确": under a condition
+# naming one divergence and its change, the judgement, its confidence and its transition are
+# that divergence's recount, until a turn or the prose says what is now. Any other condition
+# ("如果读者需要一句话概括") recounts nothing: what follows it is said of the conclusion.
 _CONDITION = re.compile(r"如果|假如|倘若|假设|一旦|若(?!干)")
-_ACTUAL = re.compile(r"主结论|当前|目前|现在|当下|实际")
+_CHANGED = re.compile(
+    r"改投|改按|计票|计入|少数方向|转为|转弱|转强|走弱|走强|上行|下行|回落|回升|反转|翻转|改判|重判"
+)
+# A clause recounting a divergence holds as a condition with no condition word ("假使 PMI 改投
+# 少数方向", "社融分化（…），按少数方向重判仍是第三阶段"): of the divergence it names, else the
+# one whose line ("社融分化") it follows; of none, it recounts nothing.
+_RECOUNTED = re.compile(r"改投|改按|少数方向|改判|重判")
+# What is now: a turn, a word for now, or the judgement said as it is ("本次判断为", "报告结论
+# 已经是", "主结论为"), not as it would become ("宏观判断会变为").
+_ACTUAL = re.compile(
+    r"但|不过|然而|可是|本次|本期|实际|事实上|当前|目前|现在|当下"
+    r"|(?:宏观|主|报告|本日|今日)?(?:判断|结论)(?:已经?|仍然?|依然|依旧|也)?(?:为|是|处于|落在|属于)"
+)
+_CLAUSE = re.compile(r"[，,：:（()）]")
+# "第三阶段向第五阶段转换", "第三→第四阶段", "第三阶段转向第五阶段": a transition, in order.
+_TRANSITION = re.compile(r"\s*(?:向|→|->|转向|转为|转到|转入|到|至)\s*")
 # "走弱", "转弱", "偏弱" say a move and "弱于" a comparison, not a weak judgement.
 _CONFIDENCE = re.compile(r"明确|倾向|(?<![走转偏减削较变衰增])弱(?![于势化小])")
 _LINK = r"\s*(?:为|是|处于|属于|在|于|指向|落在|进入|[:：])?\s*"
-# A confidence word denied right before it: "不是明确", "不能解释为明确", "并非倾向".
+# A confidence word denied right before it: "不是明确", "不能解释为明确", "并非倾向",
+# "倾向而非明确".
 _DENIED_CONFIDENCE = re.compile(
-    r"(?:不是|并非|不算|不属于?|不能|不应|无法)(?:被)?(?:解释|视|看|读|理解|算|称)?(?:作|成|为)?\s*$"
+    r"(?:不是|并非|而非|不算|不属于?|不能|不应|无法)(?:被)?(?:解释|视|看|读|理解|算|称)?(?:作|成|为)?\s*$"
 )
+_NEGATING = re.compile(r"[不非未没无否别勿莫]")
+# Where a denial before a confidence word ends: a comma, a turn to what holds ("不是明确而是
+# 倾向") or another predicate joined on ("没有滞回保持且把握程度为倾向"); a colon or bracket
+# only with no denial left open before it, so "并非：不是明确" and "不能说（不是明确" deny a
+# denial. "没有改变倾向" says the tendency holds: no denial of it.
+_DENIAL_ENDS = re.compile(r"[，,]|而是|且")
+_DENIAL_PAUSES = re.compile(r"[：:（()）]")
+_OPEN_DENIAL = re.compile(r"[不非未没无否别勿莫][能应可会]?[说讲称算是为]?\s*$")
+_UNCHANGED = re.compile(r"(?:没有|没|未|不)(?:改变|变化|变)")
 _CONFIDENCE_TO_STAGE = re.compile(r"(?:判断|判定)?" + _LINK)
 # A judgement short of explicit said to be settled.
 _STATED_CERTAINTY = re.compile(r"(?<![不未非没])(?:已经?确定|确定无疑|毫无疑问|可以确定|确定结论)")
+
+
+@dataclass(frozen=True)
+class _Recount:
+    """Where a condition holds in a sentence, and the divergence whose recount it says; None
+    for a condition recounting nothing."""
+
+    start: int
+    end: int
+    signal: dict[str, Any] | None
+
+    @property
+    def rejudged(self) -> dict[str, Any]:
+        return _mapping(_mapping(self.signal).get("rejudged"))
+
+    @property
+    def judged(self) -> tuple[object, object]:
+        return self.rejudged.get("stage"), self.rejudged.get("confidence")
+
+    @property
+    def transition(self) -> tuple[object, object]:
+        transition = _mapping(_mapping(self.signal).get("transition"))
+        return transition.get("from"), transition.get("to")
+
+
+@dataclass(frozen=True)
+class _Sentence:
+    """A sentence read once for the stage, confidence and transition checks: the stages it
+    names, what each is said of, the subjects it marks in order, and where each recount
+    holds."""
+
+    mentions: list[re.Match[str]]
+    said: list[str]
+    markers: list[tuple[int, str]]
+    recounts: list[_Recount]
 
 
 @dataclass(frozen=True)
@@ -1766,39 +1835,48 @@ def _macro_statements(bundle: ReportInput, text: str) -> _Stated:
     pairs = {
         (item.get("stage"), item.get("confidence")) for item in (conclusion, raw, formed, *rejudged)
     }
+    transitions = {
+        (_mapping(item.get("transition")).get("from"), _mapping(item.get("transition")).get("to"))
+        for item in signals
+    }
+    names = _indicator_names(macro, signals)
     told = False
     for sentence in re.split(r"[。；;！!？?]", text):
-        mentions = list(_MENTION.finditer(sentence))
-        scopes = _conditions(sentence)
-        markers = sorted(
-            [
-                (
-                    match.start(),
-                    "signal"
-                    if subject == "conclusion" and _scope(scopes, match.start())
-                    else subject,
+        read = _read(sentence, names)
+        mentions, said, markers, recounts = read.mentions, read.said, read.markers, read.recounts
+        # Two stages a transition joins, one of them said of a signal: told in their order.
+        paired: dict[int, int] = {}
+        for index in range(len(mentions) - 1):
+            if (
+                index not in paired.values()
+                and "signal" in said[index : index + 2]
+                and not {*said[index : index + 2]} & {"score", "tied", "expected"}
+                and _TRANSITION.fullmatch(
+                    sentence[mentions[index].end() : mentions[index + 1].start()]
                 )
-                for subject, pattern in _SUBJECTS
-                for match in pattern.finditer(sentence)
-            ]
-            + [(start, "signal") for start, _end in scopes]
-        )
-        said: list[str] = []
+            ):
+                paired[index] = index + 1
         for index, mention in enumerate(mentions):
-            stage = _mention_stage(mention)
-            subject = _following(sentence, mentions, index) or next(
-                (
-                    subject
-                    for at, subject in reversed(markers)
-                    if at < mention.start() and subject != "dimension"
-                ),
-                "conclusion",
-            )
-            said.append(subject)
-            if subject == "score":
+            if index in paired.values():
+                continue
+            stage, subject = _mention_stage(mention), said[index]
+            recount = _scope(recounts, mention.start())
+            if index in paired:
+                told_pair = (stage, _mention_stage(mentions[paired[index]]))
+                if told_pair not in ({recount.transition} if recount else transitions):
+                    return _Stated("macro_stated_stage", told)
+            elif subject == "score":
                 score = _following_score(sentence, mentions, index)
                 if score != _mapping(macro.get("scores")).get(stage):
                     return _Stated("macro_stated_score", told)
+            elif recount is not None and subject in {"signal", "tied"}:
+                # Under its condition, the stage the named divergence's recount judged.
+                if stage not in (
+                    {recount.rejudged.get("stage")}
+                    if subject == "signal"
+                    else set(_list(recount.rejudged.get("tied")))
+                ):
+                    return _Stated("macro_stated_stage", told)
             elif stage not in allowed[subject]:
                 return _Stated(
                     "price_stated_stage" if subject == "price" else "macro_stated_stage", told
@@ -1809,53 +1887,220 @@ def _macro_statements(bundle: ReportInput, text: str) -> _Stated:
             if bound is None:
                 continue
             of, subject = bound
-            if of is None and (scope := _scope(scopes, word.start())) is not None:
+            recount = _scope(recounts, word.start())
+            if of is None and recount is not None:
                 # "把握程度为明确" under a condition: of the stage the recount is said to be.
                 of = next(
                     (
                         index
                         for index, mention in reversed(list(enumerate(mentions)))
-                        if scope[0] <= mention.start() and mention.end() <= word.start()
+                        if recount.start <= mention.start() and mention.end() <= word.start()
                     ),
                     None,
                 )
             if of is not None:
                 subject = said[of]
                 stage = _mention_stage(mentions[of])
+                recount = _scope(recounts, mentions[of].start())
             # "不是明确的结论" says the judgement is anything but explicit: it holds when the
-            # judged confidence is another, and never tells the conclusion's.
-            denied = _DENIED_CONFIDENCE.search(sentence, 0, word.start()) is not None
+            # judged confidence is another, and never tells the conclusion's. A denial
+            # denied, "并非不是明确", is read neither way, so it never holds.
+            denied = _denied(sentence, word)
             if subject == "conclusion":
-                if (confidence == conclusion.get("confidence")) == denied:
+                if denied is None or (confidence == conclusion.get("confidence")) == denied:
                     return _Stated("macro_stated_confidence", told)
                 told = told or not denied
             elif subject == "raw":
-                if (confidence == raw.get("confidence")) == denied:
+                if denied is None or (confidence == raw.get("confidence")) == denied:
+                    return _Stated("macro_stated_confidence", told)
+            elif subject == "signal" and recount is not None:
+                judged = (stage if of is not None else recount.judged[0], confidence)
+                if denied is None or (judged == recount.judged) == denied:
                     return _Stated("macro_stated_confidence", told)
             elif of is not None and subject != "dimension":
-                judged = (
+                judged_pairs = (
                     {(item.get("stage"), item.get("confidence")) for item in rejudged}
                     if subject == "signal"
                     else pairs
                 )
-                if ((stage, confidence) in judged) == denied:
+                if denied is None or ((stage, confidence) in judged_pairs) == denied:
                     return _Stated("macro_stated_confidence", told)
     if conclusion.get("confidence") != "explicit" and _STATED_CERTAINTY.search(text):
         return _Stated("macro_stated_confidence", told)
     return _Stated(None, told)
 
 
-def _conditions(sentence: str) -> list[tuple[int, int]]:
-    """Where each condition in a sentence holds: from its word to what is now, else the end."""
-    scopes = []
+def _read(
+    sentence: str, names: dict[str, tuple[re.Pattern[str], dict[str, Any] | None]]
+) -> _Sentence:
+    """What each stage and word of a sentence is said of: the nearest subject before it, read
+    under the condition it falls in. Where a condition ends, the judgement is the
+    conclusion's again until another subject is named."""
+    mentions = list(_MENTION.finditer(sentence))
+    scopes = _conditions(sentence, names)
+    ends = [
+        (scope.end, _under(_scope(scopes, scope.end), "conclusion"))
+        for scope in scopes
+        if scope.end < len(sentence)
+    ]
+    marked = [
+        (match.start(), _under(_scope(scopes, match.start()), subject))
+        for subject, pattern in _SUBJECTS
+        for match in pattern.finditer(sentence)
+    ]
+    # A subject named where a condition ends is what follows: listed last, it is read first.
+    markers = sorted(
+        ends + [(scope.start, _under(scope, "conclusion")) for scope in scopes] + marked,
+        key=lambda marker: marker[0],
+    )
+    said = [
+        _following(sentence, mentions, index)
+        or next(
+            (
+                subject
+                for at, subject in reversed(markers)
+                if at < mention.start() and subject != "dimension"
+            ),
+            "conclusion",
+        )
+        for index, mention in enumerate(mentions)
+    ]
+    recounts = [scope for scope in scopes if scope.signal is not None]
+    return _Sentence(mentions, said, markers, recounts)
+
+
+def _indicator_names(
+    macro: Mapping[str, Any], signals: list[dict[str, Any]]
+) -> dict[str, tuple[re.Pattern[str], dict[str, Any] | None]]:
+    """Each key indicator the prose may name, with the divergence recounting it, if any: a
+    divergence is named as its line begins ("PMI 分化：")."""
+    named: dict[str, dict[str, Any] | None] = {
+        str(indicator.get("name")): None
+        for dimension in _list(macro.get("dimensions"))
+        for indicator in _list(_mapping(dimension).get("indicators"))
+        if _mapping(indicator).get("name")
+    }
+    for item in signals:
+        name = str(item.get("line") or "").partition("分化")[0].strip()
+        if item.get("kind") == "divergence" and item.get("rejudged") and name:
+            named[name] = item
+    return {
+        name: (re.compile(r"\s*".join(map(re.escape, name.split()))), item)
+        for name, item in named.items()
+    }
+
+
+def _conditions(
+    sentence: str, names: dict[str, tuple[re.Pattern[str], dict[str, Any] | None]]
+) -> list[_Recount]:
+    """Where each condition holds in a sentence: from its word, or a recounting clause's start,
+    to the next condition, a turn or what is now, else the sentence's end; with the
+    divergence it recounts when its own clause names one and its change ("社融若改投少数方向").
+    A recounting clause under a condition is its result ("规则重判为第五阶段") unless it names
+    another divergence."""
+    marks = list(_CLAUSE.finditer(sentence))
+    starts = [0, *(mark.end() for mark in marks)]
+    clauses = list(zip(starts, [*(mark.start() for mark in marks), len(sentence)], strict=True))
+    opened: list[tuple[int, int, dict[str, Any] | None]] = []
     for condition in _CONDITION.finditer(sentence):
-        actual = _ACTUAL.search(sentence, condition.end())
-        scopes.append((condition.start(), actual.start() if actual else len(sentence)))
+        start, end = next((s, e) for s, e in clauses if s <= condition.start() < e)
+        clause = sentence[start:end]
+        signal = _named(clause, names) if _CHANGED.search(clause) else None
+        opened.append((condition.start(), condition.end(), signal))
+    held = _hold(sentence, opened)
+    for start, end in clauses:
+        clause = sentence[start:end]
+        if not _RECOUNTED.search(clause) or _CONDITION.search(clause):
+            continue
+        signal = _named(clause, names)
+        if signal is None and _scope(held, start) is not None:
+            continue
+        if signal is None and not _naming(clause, names):
+            signal = _divergence_before(sentence, start, names)
+        opened.append((start, start, signal))
+    return _hold(sentence, sorted(opened, key=lambda item: item[0]))
+
+
+def _hold(sentence: str, opened: list[tuple[int, int, dict[str, Any] | None]]) -> list[_Recount]:
+    """Where each condition, opened in order, holds: to the next one or what is now."""
+    scopes = []
+    for index, (start, after, signal) in enumerate(opened):
+        until = opened[index + 1][0] if index + 1 < len(opened) else len(sentence)
+        actual = _ACTUAL.search(sentence, after, until)
+        scopes.append(_Recount(start, actual.start() if actual else until, signal))
     return scopes
 
 
-def _scope(scopes: list[tuple[int, int]], at: int) -> tuple[int, int] | None:
-    return next((scope for scope in scopes if scope[0] <= at < scope[1]), None)
+def _naming(clause: str, names: dict[str, tuple[re.Pattern[str], dict[str, Any] | None]]) -> bool:
+    return any(pattern.search(clause) for pattern, _item in names.values())
+
+
+def _divergence_before(
+    sentence: str, at: int, names: dict[str, tuple[re.Pattern[str], dict[str, Any] | None]]
+) -> dict[str, Any] | None:
+    """The divergence whose line ("社融分化") the sentence names last before ``at``."""
+    found = [
+        (match.end(), item)
+        for _name, (pattern, item) in names.items()
+        if item is not None
+        for match in re.finditer(pattern.pattern + r"\s*分化", sentence[:at])
+    ]
+    return max(found, key=lambda item: item[0])[1] if found else None
+
+
+def _named(
+    clause: str, names: dict[str, tuple[re.Pattern[str], dict[str, Any] | None]]
+) -> dict[str, Any] | None:
+    """The divergence a clause names when it names one key indicator and no other: the
+    longest name read ("PMI 价格" is not the PMI)."""
+    found = [
+        (match.start(), match.end(), name)
+        for name, (pattern, _item) in names.items()
+        for match in pattern.finditer(clause)
+    ]
+    named = {
+        name
+        for start, end, name in found
+        if not any(
+            other <= start and end <= until and until - other > end - start
+            for other, until, _name in found
+        )
+    }
+    return names[named.pop()][1] if len(named) == 1 else None
+
+
+def _scope(scopes: list[_Recount], at: int) -> _Recount | None:
+    return next((scope for scope in scopes if scope.start <= at < scope.end), None)
+
+
+def _under(scope: _Recount | None, subject: str) -> str:
+    """What a word says under a condition: the judgement is the recount's under one naming
+    a divergence's change, and a signal's word the conclusion's under any other."""
+    if scope is None:
+        return subject
+    if scope.signal is not None:
+        return "signal" if subject == "conclusion" else subject
+    return "conclusion" if subject == "signal" else subject
+
+
+def _denied(sentence: str, word: re.Match[str]) -> bool | None:
+    """Whether a confidence word is denied where its denial reaches: once, right before it
+    ("不是明确", "不能解释为明确"); None for a denial denied ("并非不是明确", "不能说：不是
+    明确") or a negation not right before it, which says neither."""
+    start = max(
+        (mark.end() for mark in _DENIAL_ENDS.finditer(sentence, 0, word.start())), default=0
+    )
+    for mark in _DENIAL_PAUSES.finditer(sentence, start, word.start()):
+        if not _OPEN_DENIAL.search(sentence, start, mark.start()):
+            start = mark.end()
+    before = _UNCHANGED.sub("_", sentence[start : word.start()])
+    negations = len(_NEGATING.findall(before))
+    if not negations:
+        return False
+    denial = _DENIED_CONFIDENCE.search(before)
+    if denial is not None and len(_NEGATING.findall(denial.group())) == negations:
+        return True
+    return None
 
 
 def _mention_stage(mention: re.Match[str]) -> str:
@@ -2337,6 +2582,12 @@ def _report_attempt(row: sqlite3.Row) -> ReportAttempt:
         output_hash=(str(row["output_hash"]) if row["output_hash"] is not None else None),
         process_audit=audit,
     )
+
+
+def _rejection_check(audit: dict[str, Any]) -> str | None:
+    rejection = audit.get("rejection")
+    check = rejection.get("check") if isinstance(rejection, dict) else None
+    return check if isinstance(check, str) else None
 
 
 def _timing_duration(audit: dict[str, Any], field: str) -> int | None:

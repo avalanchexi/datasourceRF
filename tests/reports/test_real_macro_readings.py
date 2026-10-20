@@ -105,6 +105,11 @@ TOLD = "宏观判断为第三阶段，把握程度为倾向。"
         # Denying the confidence the rules judged, or denying without telling it.
         ("宏观判断为第三阶段，把握程度不是倾向。", "macro_stated_confidence"),
         ("宏观判断为第三阶段，不是明确的结论。", "macro_confidence_unstated"),
+        ("宏观判断为第三阶段，把握程度为倾向而非明确。", None),
+        # A denial denied, or a negation not right before the word, is never read as one.
+        (TOLD + "宏观判断为第三阶段，把握程度并非不是明确。", "macro_stated_confidence"),
+        (TOLD + "宏观判断为第三阶段，不能说不是明确的结论。", "macro_stated_confidence"),
+        (TOLD + "宏观判断为第三阶段，把握程度并非不是倾向。", "macro_stated_confidence"),
         # Rewriting the stage or the confidence is still refused.
         ("宏观判断为第四阶段，把握程度为倾向。", "macro_stated_stage"),
         ("宏观判断为第三阶段，把握程度为明确。", "macro_stated_confidence"),
@@ -130,11 +135,47 @@ RECOUNT = (
         # A recount told otherwise than the rules recounted it.
         (TOLD + RECOUNT.replace("把握程度为明确", "把握程度为倾向"), "macro_stated_confidence"),
         (TOLD + RECOUNT.replace("变为第五阶段", "变为第六阶段"), "macro_stated_stage"),
-        (
-            TOLD + RECOUNT.replace("变为第五阶段", "变为第四阶段"),
-            "macro_stated_confidence",
-        ),
+        (TOLD + RECOUNT.replace("变为第五阶段", "变为第四阶段"), "macro_stated_stage"),
         (TOLD + RECOUNT.replace("向第五阶段", "向第六阶段"), "macro_stated_stage"),
+        # Another signal's recount, or its transition, told as the PMI's.
+        (
+            TOLD
+            + RECOUNT.replace(
+                "变为第五阶段，把握程度为明确", "变为第三阶段，把握程度为倾向"
+            ).replace("第三阶段向第五阶段", "第三阶段向第三阶段"),
+            "macro_stated_stage",
+        ),
+        (TOLD + RECOUNT.replace("变为第五阶段", "变为第三阶段"), "macro_stated_stage"),
+        (TOLD + RECOUNT.replace("向第五阶段", "向第四阶段"), "macro_stated_stage"),
+        (TOLD + "如果 PMI 改投少数方向，把握程度为倾向。", "macro_stated_confidence"),
+        (
+            TOLD + "若 PMI 改投少数方向，仍指向第三阶段、倾向，并与第四阶段并列。",
+            "macro_stated_stage",
+        ),
+        (
+            TOLD + "若社融改投少数方向，信用转为上行，规则重判为第五阶段、明确。",
+            "macro_stated_stage",
+        ),
+        # Two signals changed at once are no one signal's recount.
+        (
+            TOLD + "如果 PMI 和社融都改投少数方向，判断会变为第五阶段，把握程度为明确。",
+            "macro_stated_stage",
+        ),
+        # A transition told the other way round.
+        (
+            TOLD + "PMI 新订单下行与主指标上行分化，是指向第五阶段转向第三阶段的条件性信号。",
+            "macro_stated_stage",
+        ),
+        # The codex reading's own recounts, each of the signal it names.
+        (
+            TOLD + "PMI 新订单下行与主指标上行分化，是指向第三阶段转向第五阶段的条件性信号：若 PMI"
+            " 改投少数方向，增长维度转为下行，规则重判为第五阶段、明确。",
+            None,
+        ),
+        (
+            TOLD + "社融若改投少数方向，信用转为上行，仍指向第三阶段、倾向，并与第四阶段并列。",
+            None,
+        ),
         # What the conclusion is now is read as the conclusion, after the condition too.
         (TOLD + RECOUNT.replace("目前只是萌芽", "目前宏观判断为第五阶段"), "macro_stated_stage"),
         (TOLD + RECOUNT.replace("目前只是萌芽", "当前把握程度为明确"), "macro_stated_confidence"),
@@ -144,6 +185,21 @@ def test_a_recount_under_a_condition_is_read_as_the_recount(
     tmp_path: Path, frozen: ReportInput, text: str, check: str | None
 ) -> None:
     assert rejection(tmp_path, frozen, "codex_cli", told(text)) == check
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # A condition of how the prose is read, not of an indicator changing.
+        "如果读者需要一句话概括，宏观判断为第五阶段，把握程度为明确。",
+        # What this run judged, said after the condition is done.
+        "如果 PMI 转弱则需要关注，但本次宏观判断为第五阶段，把握程度为明确。",
+    ],
+)
+def test_a_conclusion_said_after_a_condition_is_read_as_the_conclusion(
+    tmp_path: Path, frozen: ReportInput, text: str
+) -> None:
+    assert rejection(tmp_path, frozen, "codex_cli", told(TOLD + text)) == "macro_stated_stage"
 
 
 DENIED = (
@@ -169,3 +225,76 @@ def test_a_relation_denied_of_every_key_indicator(
     tmp_path: Path, frozen: ReportInput, text: str, check: str | None
 ) -> None:
     assert rejection(tmp_path, frozen, "codex_cli", told(text)) == check
+
+
+# The third review's probes (review-report-check-20261020-r3.md), each after the judgement
+# told: a stage or confidence told otherwise than the rules judged it is refused however the
+# condition, the stage or the denial is written.
+@pytest.mark.parametrize(
+    "text",
+    [
+        "如果 PMI 改投少数方向且主结论为第五阶段，把握程度为明确。",
+        "假如 PMI 改投少数方向，判断会变为第三阶段，把握程度为倾向。",
+        "一旦 PMI 改投少数方向，判断会变为第三阶段，把握程度为倾向。",
+        "倘若 PMI 改投少数方向，判断会变为第三阶段，把握程度为倾向。",
+        "如果 PMI 改投少数方向，报告结论已经是第五阶段，把握程度为明确。",
+        "如果 PMI 改投少数方向，本日判断为第五阶段，把握程度为明确。",
+        "如果 PMI 改投少数方向，本次判断为第五阶段，把握程度为明确。",
+        "宏观判断为第三阶段，把握程度较为明确。",
+        "宏观判断为第三阶段，把握程度基本明确。",
+        "宏观判断为第三阶段，明确度高。",
+        "宏观判断为第5阶段，把握程度为倾向。",
+        "宏观判断为第５阶段，把握程度为倾向。",
+        "宏观判断为五阶段，把握程度为倾向。",
+        "宏观判断为Stage V，把握程度为倾向。",
+        "如果 PMI 改投少数方向，判断会变为三阶段，把握程度为明确。",
+        "如果 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确，对应三阶段向四阶段转换。",
+        "宏观判断并非：不是明确的结论。",
+        "宏观判断不能说（不是明确的结论）。",
+        "假如 PMI 改投少数方向，判断会变为第五阶段，把握程度并非（不是明确）。",
+        "假使 PMI 改投少数方向，判断会变为第三阶段，把握程度为倾向。",
+        "若是 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确，对应第三阶段转至第四阶段。",
+        "社融分化若延续，报告结论为第五阶段，把握程度为明确。",
+        "如果 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确，本次判断为第五阶段。",
+        "如果 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确，但结论为第五阶段。",
+        "若社融改投少数方向，判断会变为第三阶段，把握程度为倾向，对应第三阶段转至第四阶段。",
+        "如果 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确，但本次判断为第五阶段。",
+        "如果 PMI 改投少数方向，本次判断为第五阶段。",
+        "宏观判断并非（不是明确的结论）。",
+        "宏观判断不能说：不是明确的结论。",
+        "如果 PMI 改投少数方向且本次判断为第五阶段。",
+    ],
+    ids=[f"N{number}" for number in range(1, 31)],
+)
+def test_a_judgement_told_otherwise_is_refused_however_written(
+    tmp_path: Path, frozen: ReportInput, text: str
+) -> None:
+    check = rejection(tmp_path, frozen, "codex_cli", told(TOLD + text))
+
+    assert check in {"macro_stated_stage", "macro_stated_confidence"}
+
+
+# The third review's lawful rewrites: a denial of the other confidence, a condition's result
+# said of the macro judgement, and a negation of something else are all read as told.
+@pytest.mark.parametrize(
+    "text",
+    [
+        "宏观判断为第三阶段，把握程度为倾向而非明确。",
+        "宏观判断为第三阶段，把握程度不是明确而是倾向。",
+        "宏观判断为第三阶段，没有改变倾向的把握程度。",
+        "宏观判断为第三阶段，本次没有滞回保持且把握程度为倾向。",
+        "宏观判断为第三阶段，把握程度不变，仍为倾向。",
+        "如果 PMI 改投少数方向，宏观判断会变为第五阶段，把握程度为明确。",
+        "假如 PMI 改投少数方向，增长维度转为下行，判断会变为第五阶段，把握程度为明确。",
+        "一旦 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确。",
+        "倘若 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确。",
+        "宏观判断为第三阶段，把握程度为倾向，不能视为明确结论。",
+        "宏观判断为第三阶段，与上次确认没有变化且仍为倾向。",
+        "宏观判断为第三阶段，并非明确，而是倾向。",
+    ],
+    ids=[f"L{number}" for number in range(1, 13)],
+)
+def test_a_judgement_told_right_is_accepted_however_written(
+    tmp_path: Path, frozen: ReportInput, text: str
+) -> None:
+    assert rejection(tmp_path, frozen, "codex_cli", told(TOLD + text)) is None

@@ -674,7 +674,7 @@ def section_titles(judgement: Mapping[str, Any] | None) -> tuple[tuple[str, str]
 
 
 BOARD_SUBTITLE = "正式阶段 · 三核心 · 确认度 · 一致性 · 库存 · 归因，一板看完"
-MACRO_BOARD_SUBTITLE = "五维定宏观阶段 · 价格表象作验证 · 库存 · 归因，一板看完"
+MACRO_BOARD_SUBTITLE = "五维定宏观判断阶段 · 价格表象作验证 · 库存 · 归因，一板看完"
 
 
 def stage_term(projection: ProjectionSet | None) -> str:
@@ -1102,7 +1102,10 @@ def asset_notes(macro: dict[str, object], judgement: Mapping[str, Any] | None = 
         note
         for note in (
             consistency_card(obj(macro.get("price_consistency")), judgement),
-            attribution_card(obj(macro.get("bond_attribution"))),
+            attribution_card(
+                obj(macro.get("bond_attribution")),
+                term=FORMAL_TERM if judgement is None else PRICE_TERM,
+            ),
         )
         if note
     ]
@@ -1182,10 +1185,14 @@ def signal_pointers(
     return html.P(links, className="signal-pointers")
 
 
-def attribution_card(note: dict[str, Any]) -> tuple[Any, Any] | None:
+def attribution_card(note: dict[str, Any], *, term: str = FORMAL_TERM) -> tuple[Any, Any] | None:
     """What drives the bond: the driver with the bond's price and each axis on the page;
-    why it is unclear, the signals read and the notes in the drawer."""
-    lines = view._attribution_lines({"bond_attribution": note})
+    why it is unclear, the signals read and the notes in the drawer, the cores' stage
+    called ``term`` (ticket 16: the model's note says 正式阶段)."""
+    lines = [
+        line.replace(FORMAL_TERM, term)
+        for line in view._attribution_lines({"bond_attribution": note})
+    ]
     if not lines:
         return None
     return _note_card(
@@ -1367,6 +1374,22 @@ ADAPTER_FAILURES = {
     "forbidden_content_rejected": "输出含禁用内容被拒",
     "paragraph_structure_invalid": "段落结构不合规",
 }
+# A refused reading by the check its audit recorded, where the outcome alone says too little
+# (macro stage ticket 16); an audit without the check keeps the outcome's reason.
+REJECTION_CHECKS = {
+    "current_stage": "输出改写正式阶段被拒",
+    "stated_stage": "输出改写正式阶段被拒",
+    "price_stated_stage": "输出改写正式阶段被拒",
+    "macro_stated_stage": "输出所写宏观判断阶段与规则结论不符被拒",
+    "macro_stated_score": "输出所写阶段得分与规则结论不符被拒",
+    "macro_stated_confidence": "输出所写把握程度与规则结论不符被拒",
+    "macro_confidence_unstated": "输出未写明把握程度被拒",
+}
+
+
+def adapter_failure(outcome: str, check: str | None) -> str:
+    """Why an adapter attempt produced no reading, in reader's words."""
+    return REJECTION_CHECKS.get(str(check)) or ADAPTER_FAILURES.get(outcome, outcome)
 
 
 def reading_line(
@@ -1385,9 +1408,13 @@ def reading_line(
         ]
     if report.adapter == "deterministic":
         term = view.report_stage_term(report.body if report.body_retained else {})
+        checks = report.adapter_rejections
         failures = "；".join(
-            f"{adapter} {ADAPTER_FAILURES.get(outcome, outcome).replace(FORMAL_TERM, term)}"
-            for adapter, outcome in report.adapter_outcomes
+            f"{adapter} "
+            + adapter_failure(outcome, checks[index] if index < len(checks) else None).replace(
+                FORMAL_TERM, term
+            )
+            for index, (adapter, outcome) in enumerate(report.adapter_outcomes)
             if outcome != "succeeded"
         )
         return [
