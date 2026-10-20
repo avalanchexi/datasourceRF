@@ -7,6 +7,11 @@ a newer period out and not held only notes, it never makes a gap), so no row nam
 the coverage counted it missing all the same. The v0015 projection before it left both
 bond observation indices out the same way (worker gaps 07, check 6). Such a period is
 counted with the gated ones, the run carrying the one before.
+
+The second review (2026-10-20) found the check let a period through that no row showed:
+DR007, behind, due 08-27, and 08-28 taken as said for by its timeliness row. A period is
+explained only where a row shows it by name. One later than the period due is not due
+yet, behind or not; one between the period held and the one due is listed by its row.
 """
 
 from __future__ import annotations
@@ -16,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from pring_cycle.day_summary import RunMaterials
+from pring_cycle.freshness import MetricFreshness
 from tests.integration.test_core_carry_forward import seed_cores
 from tests.integration.test_day_summary import target_projection
 from tests.integration.test_worker_execution import runtime
@@ -51,22 +57,40 @@ PLAN = (
         "missing_members": ["EIA_BRENT_RBRTE:{}"],
         "release_gate": "awaiting_release",
     },
-    # Behind its due period: its timeliness row names it.
+    # Behind its due period: its timeliness row names the period due.
+    {
+        "complete": False,
+        "metric_id": "CN_DR007",
+        "period": "2026-08-27",
+        "missing_members": ["CN_DR007:{}"],
+    },
+    # Past it: not due yet, though the metric is behind (review 2026-10-20 r2).
     {
         "complete": False,
         "metric_id": "CN_DR007",
         "period": "2026-08-28",
         "missing_members": ["CN_DR007:{}"],
     },
+    # Two behind: the row states the period due, not the one between held and due.
+    *(
+        {
+            "complete": False,
+            "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+            "period": period,
+            "missing_members": ["CN_USDCNY_CENTRAL_PARITY:{}"],
+        }
+        for period in ("2026-08-26", "2026-08-27")
+    ),
 )
-HELD = {
-    "CBOE_VIX_INDEX": "2026-08-27",
-    "CN_BOND_FULL_PRICE_CNY030": "2026-08-27",
-    "CN_USDCNY_CLOSE_1630": "2026-08-28",
-    "EIA_BRENT_RBRTE": "2026-08-27",
-    "CN_DR007": "2026-08-26",
+# What the run's timeliness recorded: VIX states no due period, the bond's is the day held.
+FRESHNESS = {
+    "CBOE_VIX_INDEX": MetricFreshness("current", "2026-08-27", None),
+    "CN_BOND_FULL_PRICE_CNY030": MetricFreshness("current", "2026-08-27", "2026-08-27"),
+    "CN_USDCNY_CLOSE_1630": MetricFreshness("current", "2026-08-28", "2026-08-28"),
+    "EIA_BRENT_RBRTE": MetricFreshness("current", "2026-08-27", "2026-08-27"),
+    "CN_DR007": MetricFreshness("stale", "2026-08-26", "2026-08-27"),
+    "CN_USDCNY_CENTRAL_PARITY": MetricFreshness("stale", "2026-08-25", "2026-08-27"),
 }
-STATUS = {metric_id: "current" for metric_id in HELD} | {"CN_DR007": "stale"}
 DR007_ROW = {
     "metric_id": "CN_DR007",
     "priority": "P1",
@@ -77,6 +101,13 @@ DR007_ROW = {
     "periods_behind": 1,
     "no_web_fallback": True,
 }
+PARITY_ROW = DR007_ROW | {
+    "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+    "category": "missing",
+    "reason": "two_or_more_periods_behind",
+    "held_period": "2026-08-25",
+    "periods_behind": 2,
+}
 
 
 def _published(tmp_path: Path) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
@@ -85,9 +116,8 @@ def _published(tmp_path: Path) -> tuple[dict[str, Any], dict[str, dict[str, Any]
     projection = target_projection(
         paths,
         RunMaterials(
-            freshness_gaps=(DR007_ROW,),
-            held_periods=HELD,
-            freshness_status=STATUS,
+            freshness_gaps=(DR007_ROW, PARITY_ROW),
+            freshness=FRESHNESS,
             plan_gaps=PLAN,
         ),
     )
@@ -95,13 +125,22 @@ def _published(tmp_path: Path) -> tuple[dict[str, Any], dict[str, dict[str, Any]
     return projection.datasets["macro"]["coverage"]["catalog"], gaps
 
 
+# A row's details, each listing periods by name.
+_PERIOD_DETAILS = (
+    "missing_periods",
+    "not_requested",
+    "not_covered",
+    "members_missing",
+    "awaiting_release",
+)
+
+
 def _names(gap: Mapping[str, Any], period: str) -> bool:
-    held = str(gap.get("held_period") or "")
-    return (
-        any(item["period"] == period for item in gap.get("missing_periods") or ())
-        # A timeliness row speaks for every period after the one it holds.
-        or gap.get("due_period") is not None
-        and held[: len(period)] < period
+    """Whether the row shows ``period`` itself: the due period a timeliness row states, or
+    one its details list. A period merely past the one held is not named."""
+    due = str(gap.get("due_period") or "")
+    return due[: len(period)] == period or any(
+        str(item["period"]) == period for key in _PERIOD_DETAILS for item in gap.get(key) or ()
     )
 
 
@@ -111,9 +150,11 @@ def test_a_period_out_but_not_yet_due_is_counted_with_the_gated_and_carried(
     catalog, gaps = _published(tmp_path)
 
     rows = {(row["metric_id"], row["required_period"]): row for row in catalog["periods"]}
-    assert catalog["counts"] == {"held": 1, "release_gated": 3, "missing": 2}
+    assert catalog["counts"] == {"held": 1, "release_gated": 4, "missing": 4}
     assert rows[("CBOE_VIX_INDEX", "2026-08-28")]["not_due"] == {"carried_period": "2026-08-27"}
     assert "not_due" in rows[("CN_BOND_FULL_PRICE_CNY030", "2026-08-28")]
+    # Later than the period due, whatever the metric holds: behind, it carries 08-26.
+    assert rows[("CN_DR007", "2026-08-28")]["not_due"] == {"carried_period": "2026-08-26"}
     # No gap: the run's timeliness holds the due period (decided 2026-10-13).
     assert "CBOE_VIX_INDEX" not in gaps and "CN_BOND_FULL_PRICE_CNY030" not in gaps
 
@@ -131,9 +172,16 @@ def test_each_other_missing_period_is_one_the_gap_list_names(tmp_path: Path) -> 
     ]
 
     assert len(missing) == catalog["counts"]["missing"]
-    assert sorted(missing) == [("CN_DR007", "2026-08-28"), ("CN_USDCNY_CLOSE_1630", "2026-08-27")]
     assert [
         (metric_id, period)
         for metric_id, period in missing
         if metric_id not in gaps or not _names(gaps[metric_id], period)
     ] == []
+    assert sorted(missing) == [
+        ("CN_DR007", "2026-08-27"),
+        ("CN_USDCNY_CENTRAL_PARITY", "2026-08-26"),
+        ("CN_USDCNY_CENTRAL_PARITY", "2026-08-27"),
+        ("CN_USDCNY_CLOSE_1630", "2026-08-27"),
+    ]
+    # Named is shown: a period the row does not show is no period it explains.
+    assert not _names(gaps["CN_DR007"], "2099-01-01")

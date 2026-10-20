@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 CHECK = "结构化结论"
 PROJECTION = "projection-test"
@@ -98,20 +100,27 @@ def test_v0016_report_stating_the_projections_macro_judgement_is_consistent():
     assert row.rstrip(" |").endswith(layer.OK)
 
 
-def test_v0016_report_stating_another_macro_stage_is_inconsistent():
+@pytest.mark.parametrize(
+    ("key", "stated"),
+    [("macro_stage", "stage_iv"), ("macro_confidence", "explicit")],
+)
+def test_v0016_report_stating_another_macro_stage_or_confidence_is_inconsistent(
+    key: str, stated: str
+):
+    conclusions = {
+        "confirmation_applicable": None,
+        "macro_stage": "stage_iii",
+        "macro_confidence": "tendency",
+    }
     layer, run = audited_run(
         macro_rules=True,
         judgement={"stage": "stage_iii", "confidence": "tendency"},
-        conclusions={
-            "confirmation_applicable": None,
-            "macro_stage": "stage_iv",
-            "macro_confidence": "tendency",
-        },
+        conclusions=conclusions | {key: stated},
     )
 
     row = conclusions_row(layer.section(run))
 
-    assert "值不同的键：macro_stage" in row
+    assert f"值不同的键：{key}" in row
     assert row.rstrip(" |").endswith(layer.BAD)
 
 

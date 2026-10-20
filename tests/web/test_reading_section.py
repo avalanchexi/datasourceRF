@@ -324,8 +324,9 @@ def _coverage_rows(section: Component) -> list[list[object]]:
 
 
 def test_the_gated_column_also_counts_periods_not_due_yet_and_says_why_no_gap() -> None:
-    """Macro stage 15: a period out and not due yet, the one before carried, is counted
-    with the gated ones; the page says why the gap list does not name it."""
+    """Macro stage 15: a period later than the one due, the one held carried, is counted
+    with the gated ones; the page says why the gap list does not name it. The total counts
+    every period planned, those not due yet among them (review 2026-10-20 r2)."""
     coverage = {
         "available": True,
         "model": {"total": 1, "counts": {"held": 1}},
@@ -338,12 +339,13 @@ def test_the_gated_column_also_counts_periods_not_due_yet_and_says_why_no_gap() 
     section = _reading(projection)
 
     assert _coverage_rows(section)[:3] == [
-        ["口径", "应有期", "已持有", "门禁 / 等待发布 / 未到应有期", "其他缺失"],
+        ["口径", "计划期数", "已持有", "门禁 / 等待发布 / 未到应有期", "其他缺失"],
         ["模型所需", 1, 1, 0, 0],
         ["目录全部", 4, 1, 2, 1],
     ]
     assert (
-        "已发布但未到应有期的期沿用上一期，时效仍为当前，也计在门禁一列，不列为缺口。"
+        "晚于应有期的计划期未到应有期（如已发布、尚未持有的下一期），沿用已持有的一期，"
+        "也计在门禁一列，不列为缺口。"
     ) in _words(_visible(section))
 
 
