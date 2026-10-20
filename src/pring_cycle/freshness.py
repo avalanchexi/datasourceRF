@@ -505,6 +505,34 @@ def record_batch_freshness(
     )
 
 
+@dataclass(frozen=True)
+class MetricFreshness:
+    """One metric's timeliness as a run recorded it, for the day summary to read: its
+    status, the latest period held and the period due (macro stage 15 review)."""
+
+    status: str
+    held_period: str | None
+    due_period: str | None
+
+    @classmethod
+    def from_row(cls, row: Mapping[str, object]) -> MetricFreshness:
+        """From a recorded ``batch_freshness`` row."""
+        held, due = row.get("held_period"), row.get("due_period")
+        return cls(
+            str(row["status"]),
+            held if isinstance(held, str) else None,
+            due if isinstance(due, str) else None,
+        )
+
+    @property
+    def due_by(self) -> str | None:
+        """The latest period due, as far as the record tells: held is due enough for a
+        current metric that states none; ``None`` when nothing tells."""
+        if self.due_period is not None:
+            return self.due_period
+        return self.held_period if self.status == "current" else None
+
+
 def batch_freshness(database: Path, batch_id: str) -> dict[str, dict[str, object]]:
     """The freshness a batch recorded, by metric."""
     from pring_cycle.storage import connect
@@ -1050,30 +1078,32 @@ def awaiting_stated_release(
 def not_yet_due(
     plan_gaps: Iterable[Mapping[str, object]],
     *,
-    held_periods: Mapping[str, object],
-    statuses: Mapping[str, object],
+    freshness: Mapping[str, MetricFreshness],
 ) -> tuple[dict[str, object], ...]:
-    """The final plan's periods, each one requested and not had past the period held by a
-    metric whose timeliness is current marked ``not_due`` with the period carried instead:
-    the run holds its due period, and a newer one out and not held only notes, never a gap
-    (2026-10-13 decision). Coverage counts it with the gated periods, not missing (macro
-    stage 15: VIX 10-19, the run holding 10-16). Not a period gated or awaiting release,
-    which keep their own reason, nor one held in part, whose members missing are listed."""
+    """The final plan's periods, each one requested and not had later than the period its
+    metric's timeliness says is due marked ``not_due`` with the period held, carried
+    instead: not due yet, so never a gap (2026-10-13 decision: a newer period out and not
+    held only notes). Coverage counts it with the gated periods, not missing (macro stage
+    15: VIX 10-19, the run holding 10-16), also for a metric behind, whose timeliness row
+    states the period due (review 2026-10-20 r2: DR007 08-28, 08-27 due). Not a period
+    gated or awaiting release, which keep their own reason, nor one held in part, whose
+    members missing are listed."""
     marked: list[dict[str, object]] = []
     for gap in plan_gaps:
         row = dict(gap)
-        metric_id = str(gap["metric_id"])
-        held = held_periods.get(metric_id)
+        record = freshness.get(str(gap["metric_id"]))
+        period = str(gap.get("period"))
         if (
             not gap.get("complete", True)
             and gap.get("release_gate") is None
             and "awaiting_release" not in gap
             and not _members(gap.get("held_members"))
-            and statuses.get(metric_id) == "current"
-            and isinstance(held, str)
-            and not _held_through(held, str(gap.get("period")))
+            and record is not None
+            and (due := record.due_by) is not None
+            and not _held_through(due, period)
+            and not _held_through(record.held_period, period)
         ):
-            row["not_due"] = {"carried_period": held}
+            row["not_due"] = {"carried_period": record.held_period}
         marked.append(row)
     return tuple(marked)
 
@@ -1153,8 +1183,9 @@ def add_projection_gaps(
     for document in documents:
         walk(document, None)
     listed = {str(gap["metric_id"]): dict(gap) for gap in gaps}
-    # What each timeliness row holds, before the projection's additions to the list.
+    # What each timeliness row holds and states due, before the projection's additions.
     listed_held = {metric_id: gap.get("held_period") for metric_id, gap in listed.items()}
+    listed_due = {metric_id: gap.get("due_period") for metric_id, gap in listed.items()}
     # The next release the source's original states, as its latest acquisition recorded.
     next_releases = stated_next_releases(rows)
 
@@ -1268,7 +1299,7 @@ def add_projection_gaps(
         if gap["category"] == "source_conflict":
             gap["held_period"] = items[-1]["period"]
         gap["conflicts"] = items
-    historical = _historical_periods(plan_gaps, listed_held, held_periods or {}, listed)
+    historical = _historical_periods(plan_gaps, listed_held, listed_due, held_periods or {}, listed)
     for metric_id, periods in historical.items():
         entry(metric_id, "missing", "historical_periods_missing")["missing_periods"] = periods
     for metric_id, periods in awaiting.items():
@@ -1318,16 +1349,18 @@ def _members_missing(
 def _historical_periods(
     plan_gaps: Iterable[Mapping[str, object]],
     listed_held: Mapping[str, object],
+    listed_due: Mapping[str, object],
     held_periods: Mapping[str, object],
     listed: Mapping[str, Mapping[str, object]],
 ) -> dict[str, list[dict[str, object]]]:
     """Per metric, each period the final plan could not complete although a later one is
-    held or the plan completed it, with the members it lacks (worker gaps 04): a warrant
-    symbol's day, say. Before the latest period held, not a period still to come.
+    held, is due or the plan completed it, with the members it lacks (worker gaps 04): a
+    warrant symbol's day, say, or a day between the one a metric two behind holds and
+    the one due (review 2026-10-20 r2). Not a period still to come.
 
     Not a period a gate kept from being requested or a listing did not reach, both listed
-    with their own reason; not one past the period the metric's timeliness row holds, which
-    that row speaks for; not one a formula's missing inputs already name.
+    with their own reason; not the period due a timeliness row states, nor one past it,
+    not due yet; not one a formula's missing inputs already name.
     """
     plan = list(plan_gaps)
     latest: dict[str, str] = {}
@@ -1344,19 +1377,26 @@ def _historical_periods(
     historical: dict[str, list[dict[str, object]]] = {}
     for gap in plan:
         metric_id, period = str(gap["metric_id"]), str(gap.get("period"))
+        due = listed_due.get(metric_id)
         if (
             gap.get("complete", True)
             or gap.get("release_gate") is not None
             or "awaiting_release" in gap
             or "not_due" in gap
             or isinstance(gap.get("listing_not_covered"), Mapping)
-            # Not a period still to come: neither the plan nor timeliness holds a later one.
+            # Not a period still to come: neither the plan nor timeliness holds a later one,
+            # and none later is due.
             or (
                 latest.get(metric_id, "") <= period
                 and not _holds_later(held_periods.get(metric_id), period)
+                and not _holds_later(due, period)
             )
-            # A period past the one a timeliness row holds is that row's to speak for.
-            or (metric_id in listed_held and not _held_through(listed_held[metric_id], period))
+            # Past the one a timeliness row holds: the row states the period due.
+            or (
+                metric_id in listed_held
+                and not _held_through(listed_held[metric_id], period)
+                and not _holds_later(due, period)
+            )
             or (metric_id, period) in named
         ):
             continue

@@ -15,6 +15,7 @@ import pring_cycle.day_summary as day_summary
 from pring_cycle.dashboard import dashboard_page
 from pring_cycle.day_summary import DaySummaries, FailedDay, ModelRules, RunMaterials
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
+from pring_cycle.freshness import MetricFreshness
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import P0ProjectionService
 from pring_cycle.projections import ProjectionSet, ProjectionSetRepository
@@ -887,7 +888,11 @@ def test_a_period_held_in_part_before_one_awaiting_release_keeps_its_gap_row(
     )
 
     projection = target_projection(
-        paths, RunMaterials(plan_gaps=plan, held_periods={"CN_SF_TOTAL": "2026-06-30"})
+        paths,
+        RunMaterials(
+            plan_gaps=plan,
+            freshness={"CN_SF_TOTAL": MetricFreshness("current", "2026-06-30", "2026-06-30")},
+        ),
     )
 
     (listed,) = (

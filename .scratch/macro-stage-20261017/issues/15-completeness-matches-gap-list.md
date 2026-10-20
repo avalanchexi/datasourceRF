@@ -30,3 +30,4 @@
   - 合并 macro-followups 6f05b5c（ms-rf）后复跑新测试与 ⑦／结论板／阶段史页面 47 passed，冒烟 2 passed（55 s）。
   - `ruff check`／`ruff format --check`／`mypy`（改动文件）通过；`find src tools -name __pycache__` 为空。
 - **偏离**：票面没写要改 Worker；为拿到时效状态，在 `worker.py` 给 `RunMaterials` 多传了 `freshness_status`。完整度表列名与说明句按主 agent 授权直接改（不在 ms-16 范围）。
+- 2026-10-20（ms-rf2b，第二轮审查 S3–S5）：严格对账后，晚于应有期的计划期（不论 current 或 stale）计入门禁列；持有期与应有期之间的未持有期作为历史缺期记在时效行；总数列改名"计划期数"；Worker 改传类型化逐指标时效摘要 `MetricFreshness`。处理与测试见 `../review-fixes-20261020-r2.md` S3–S5。
