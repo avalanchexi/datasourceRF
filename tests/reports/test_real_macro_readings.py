@@ -225,3 +225,76 @@ def test_a_relation_denied_of_every_key_indicator(
     tmp_path: Path, frozen: ReportInput, text: str, check: str | None
 ) -> None:
     assert rejection(tmp_path, frozen, "codex_cli", told(text)) == check
+
+
+# The third review's probes (review-report-check-20261020-r3.md), each after the judgement
+# told: a stage or confidence told otherwise than the rules judged it is refused however the
+# condition, the stage or the denial is written.
+@pytest.mark.parametrize(
+    "text",
+    [
+        "如果 PMI 改投少数方向且主结论为第五阶段，把握程度为明确。",
+        "假如 PMI 改投少数方向，判断会变为第三阶段，把握程度为倾向。",
+        "一旦 PMI 改投少数方向，判断会变为第三阶段，把握程度为倾向。",
+        "倘若 PMI 改投少数方向，判断会变为第三阶段，把握程度为倾向。",
+        "如果 PMI 改投少数方向，报告结论已经是第五阶段，把握程度为明确。",
+        "如果 PMI 改投少数方向，本日判断为第五阶段，把握程度为明确。",
+        "如果 PMI 改投少数方向，本次判断为第五阶段，把握程度为明确。",
+        "宏观判断为第三阶段，把握程度较为明确。",
+        "宏观判断为第三阶段，把握程度基本明确。",
+        "宏观判断为第三阶段，明确度高。",
+        "宏观判断为第5阶段，把握程度为倾向。",
+        "宏观判断为第５阶段，把握程度为倾向。",
+        "宏观判断为五阶段，把握程度为倾向。",
+        "宏观判断为Stage V，把握程度为倾向。",
+        "如果 PMI 改投少数方向，判断会变为三阶段，把握程度为明确。",
+        "如果 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确，对应三阶段向四阶段转换。",
+        "宏观判断并非：不是明确的结论。",
+        "宏观判断不能说（不是明确的结论）。",
+        "假如 PMI 改投少数方向，判断会变为第五阶段，把握程度并非（不是明确）。",
+        "假使 PMI 改投少数方向，判断会变为第三阶段，把握程度为倾向。",
+        "若是 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确，对应第三阶段转至第四阶段。",
+        "社融分化若延续，报告结论为第五阶段，把握程度为明确。",
+        "如果 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确，本次判断为第五阶段。",
+        "如果 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确，但结论为第五阶段。",
+        "若社融改投少数方向，判断会变为第三阶段，把握程度为倾向，对应第三阶段转至第四阶段。",
+        "如果 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确，但本次判断为第五阶段。",
+        "如果 PMI 改投少数方向，本次判断为第五阶段。",
+        "宏观判断并非（不是明确的结论）。",
+        "宏观判断不能说：不是明确的结论。",
+        "如果 PMI 改投少数方向且本次判断为第五阶段。",
+    ],
+    ids=[f"N{number}" for number in range(1, 31)],
+)
+def test_a_judgement_told_otherwise_is_refused_however_written(
+    tmp_path: Path, frozen: ReportInput, text: str
+) -> None:
+    check = rejection(tmp_path, frozen, "codex_cli", told(TOLD + text))
+
+    assert check in {"macro_stated_stage", "macro_stated_confidence"}
+
+
+# The third review's lawful rewrites: a denial of the other confidence, a condition's result
+# said of the macro judgement, and a negation of something else are all read as told.
+@pytest.mark.parametrize(
+    "text",
+    [
+        "宏观判断为第三阶段，把握程度为倾向而非明确。",
+        "宏观判断为第三阶段，把握程度不是明确而是倾向。",
+        "宏观判断为第三阶段，没有改变倾向的把握程度。",
+        "宏观判断为第三阶段，本次没有滞回保持且把握程度为倾向。",
+        "宏观判断为第三阶段，把握程度不变，仍为倾向。",
+        "如果 PMI 改投少数方向，宏观判断会变为第五阶段，把握程度为明确。",
+        "假如 PMI 改投少数方向，增长维度转为下行，判断会变为第五阶段，把握程度为明确。",
+        "一旦 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确。",
+        "倘若 PMI 改投少数方向，判断会变为第五阶段，把握程度为明确。",
+        "宏观判断为第三阶段，把握程度为倾向，不能视为明确结论。",
+        "宏观判断为第三阶段，与上次确认没有变化且仍为倾向。",
+        "宏观判断为第三阶段，并非明确，而是倾向。",
+    ],
+    ids=[f"L{number}" for number in range(1, 13)],
+)
+def test_a_judgement_told_right_is_accepted_however_written(
+    tmp_path: Path, frozen: ReportInput, text: str
+) -> None:
+    assert rejection(tmp_path, frozen, "codex_cli", told(TOLD + text)) is None
