@@ -565,6 +565,7 @@ TuShare 一侧：六格的 `fut_wsr` 单日请求在 2026-09-28～10-13 间各�
 
 - 取绑定本投影的最新版本报告（`report_snapshot` 按 `projection_set_id` 取最大 `version`），状态应为 `completed` 或降级完成 `completed_degraded`；降级报告没有 AI 解释，不核对报告自检。注意 `version` 是按目标日递增的，不能拿目标日的最新版本代表别的投影。
 - 核对报告身份、冻结证据包（属于本投影、哈希相同）、`report_snapshot.current_stage` 列、`formal_stage_basis`、`core_states`、结构化结论（`confirmation_applicable`、`dimension:*`、`key_indicator:*`）、`gap_list`、`core_carry_forward`；核对 `verified_results` 中的正式阶段、核心资产状态、确认度、缺口计数，以及它与冻结证据包 `results` 是否相同；最后列出报告自检的身份与结论校验结果。
+- 冻结清单含 `macro_judgement_rules`（model-v0016 起）时，结构化结论另含宏观判断的 `macro_stage`、`macro_confidence`，期望值取投影 `cycle_overview.macro_judgement.conclusion` 的 `stage`、`confidence`（宏观判断批次票 14）；投影没有该块时期望两键均为空值，报告写了阶段或把握程度即报不一致。更早的模型不期望这两个键，照旧核对。
 - `cycle_overview.macro_confirmation` 是旧版宏观标签的摘要，新版输出通常为空，不与 `macro.confirmation` 比较。
 
 不一致的检查在“实际”一列给出差异所在（不同的键或位置），避免长值被截断后看不出差别。
