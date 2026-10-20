@@ -45,8 +45,9 @@ def coverage_display(
             "held"
             if row.get("complete")
             else "release_gated"
-            # Gated, or let through and not out yet on its source's word (worker gaps 03).
-            if row.get("release_gate") or row.get("awaiting_release")
+            # Gated, or let through and not out yet on its source's word (worker gaps 03),
+            # or out and not due yet, the period before carried (macro stage 15).
+            if row.get("release_gate") or row.get("awaiting_release") or row.get("not_due")
             else "missing"
             for row in rows
         )

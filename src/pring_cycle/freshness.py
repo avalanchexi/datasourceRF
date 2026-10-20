@@ -1047,6 +1047,37 @@ def awaiting_stated_release(
     return tuple(marked)
 
 
+def not_yet_due(
+    plan_gaps: Iterable[Mapping[str, object]],
+    *,
+    held_periods: Mapping[str, object],
+    statuses: Mapping[str, object],
+) -> tuple[dict[str, object], ...]:
+    """The final plan's periods, each one requested and not had past the period held by a
+    metric whose timeliness is current marked ``not_due`` with the period carried instead:
+    the run holds its due period, and a newer one out and not held only notes, never a gap
+    (2026-10-13 decision). Coverage counts it with the gated periods, not missing (macro
+    stage 15: VIX 10-19, the run holding 10-16). Not a period gated or awaiting release,
+    which keep their own reason, nor one held in part, whose members missing are listed."""
+    marked: list[dict[str, object]] = []
+    for gap in plan_gaps:
+        row = dict(gap)
+        metric_id = str(gap["metric_id"])
+        held = held_periods.get(metric_id)
+        if (
+            not gap.get("complete", True)
+            and gap.get("release_gate") is None
+            and "awaiting_release" not in gap
+            and not _members(gap.get("held_members"))
+            and statuses.get(metric_id) == "current"
+            and isinstance(held, str)
+            and not _held_through(held, str(gap.get("period")))
+        ):
+            row["not_due"] = {"carried_period": held}
+        marked.append(row)
+    return tuple(marked)
+
+
 # A formula document that names no metric of its own.
 _FORMULA_DOCUMENTS = {"real_inventory_approximation": "CN_REAL_FINISHED_GOODS_INVENTORY_PROXY"}
 _USABLE_DERIVED_STATUSES = frozenset({"current", "stale", "available", "disabled_by_model"})
@@ -1317,6 +1348,7 @@ def _historical_periods(
             gap.get("complete", True)
             or gap.get("release_gate") is not None
             or "awaiting_release" in gap
+            or "not_due" in gap
             or isinstance(gap.get("listing_not_covered"), Mapping)
             # Not a period still to come: neither the plan nor timeliness holds a later one.
             or (
