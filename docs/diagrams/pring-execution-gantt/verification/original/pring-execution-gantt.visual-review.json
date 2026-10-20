@@ -1,0 +1,16 @@
+{
+  "status": "pass",
+  "artifact_sha256": "02656216c9b47565e3eff5c29247d6130ee8ed5204475055ccd6c7924c95adfe",
+  "reviewed_screenshots": [
+    "pring-execution-gantt.visual-check.1440x900.light.png",
+    "pring-execution-gantt.visual-check.1440x900.dark.png",
+    "pring-execution-gantt.visual-check.2048x1320.light.png",
+    "pring-execution-gantt.visual-check.2048x1320.dark.png"
+  ],
+  "findings": [
+    "深浅主题中文正常，12 行阶段、时间条、状态和盘点线清晰",
+    "四种桌面尺寸均无页面溢出，查看器控件与图表无重叠",
+    "已检查近期放大、待办内容及原生导出 PNG 的实际画面"
+  ],
+  "limitation": "自定义甘特图，不适用原生节点/箭头语义检查；条形表示记录窗口而非工时"
+}

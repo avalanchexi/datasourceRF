@@ -1,0 +1,122 @@
+{
+  "status": "passed",
+  "mode": "custom-gantt-template",
+  "native_gantt_schema": false,
+  "native_deliver_used": false,
+  "validation": "Archify basic artifact check; not native 9/9 showcase",
+  "specification": {
+    "path": "pring-progress-12h-20260910-0918.gantt.json",
+    "sha256": "5e01bd73ef2e9c140792c6b8c776237ba8e30dbba8359dd5c4e772886ccc3b84",
+    "bytes": 38614
+  },
+  "artifact": {
+    "path": "pring-progress-12h-20260910-0918.html",
+    "sha256": "f74dc87f771926abeeae7bdddd677218069deadb0b09f84690fa686bcb40dcb4",
+    "bytes": 769586
+  },
+  "template": {
+    "path": "/mnt/d/cursor/archify/archify/assets/template.html",
+    "sha256": "35b2210b120c56a6c58d953ffe0cf815c2e67d0a5ff3e8b9518c45b737dd3fc3"
+  },
+  "archify_check": {
+    "ok": true,
+    "file": "/mnt/d/cursor/datasourcerf/.scratch/pring-progress-12h-20260910-0918/candidate.html",
+    "checks": [
+      {
+        "name": "single_svg",
+        "ok": true,
+        "details": [
+          "found 1 <svg> block(s)"
+        ]
+      },
+      {
+        "name": "finite_svg",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "orthogonal_arrows",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "label_route_clearance",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "relationship_crossings",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "relationship_corridors",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "container_border_runs",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "route_rhythm",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "legend_clearance",
+        "ok": true,
+        "details": [
+          "no legend marker found"
+        ]
+      }
+    ],
+    "composition": {
+      "schemaVersion": 1,
+      "profile": "standard",
+      "status": "pass",
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      },
+      "metrics": {
+        "properCrossings": 0,
+        "ambiguousCorridors": 0,
+        "containerBorderRuns": 0,
+        "labelRouteClearanceIssues": 0,
+        "minLabelRouteClearance": null,
+        "desktopReadabilityIssues": 0,
+        "minProjectedNodeTextPx": null,
+        "maxBends": 0,
+        "routesOverSuggestedBends": 0,
+        "maxStretch": null,
+        "routesOverSuggestedStretch": 0,
+        "minSegmentPx": null,
+        "minInteriorSegmentPx": null,
+        "shortSegmentCount": 0,
+        "shortEndpointSegmentCount": 0,
+        "shortInteriorSegmentCount": 0,
+        "microSegmentCount": 0
+      },
+      "suggestedLimits": {
+        "bendsPerRelationship": 2,
+        "stretch": 1.35,
+        "segmentPx": 16,
+        "microSegmentPx": 8
+      },
+      "issues": []
+    }
+  },
+  "snapshot_at": "2026-09-10T09:18:53+08:00",
+  "browser_evidence": "passed",
+  "visual_review": "passed",
+  "correction_rounds": 1,
+  "source_snapshots": 54,
+  "protected_existing_files_unchanged": 17,
+  "supplementary_verification": ".scratch/pring-progress-12h-20260910-0918/verification.json",
+  "native_png_exports": [
+    "pring-progress-12h-20260910-0918.png",
+    "pring-progress-12h-20260910-0918-pending.png"
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "status": "p2_joint_regression_accepted",
+  "verified_at": "2026-09-10T00:13:03.991860+00:00",
+  "previous_goal_turn_classification": "progress",
+  "actual_exit_code": 0,
+  "passed": 484,
+  "failed": 0,
+  "seconds": 1545.32,
+  "process_terminal_verified": true,
+  "driver_pid": 34089,
+  "driver_start_ticks": "55656",
+  "scope": [
+    "tests/models/test_candidate_admission.py",
+    "tests/models/test_candidate_replay.py",
+    "tests/models/test_model_lifecycle.py",
+    "tests/integration/test_context_model_certification.py",
+    "tests/integration/test_derived_context_freshness.py"
+  ],
+  "frozen_inputs_unchanged": 228,
+  "protected_files_unchanged": 4,
+  "installed_sources_matched_before_after": 91,
+  "dependencies_matched_before_after": 53,
+  "mypy_files": 94,
+  "ruff_passed": true,
+  "standards_remaining": 0,
+  "spec_remaining": 0,
+  "evidence": [
+    {
+      "path": "verification-p2-terminal-130.json",
+      "bytes": 1396,
+      "sha256": "48bedf7778a69051c2caf1920ddae143ced7902fabedd476723b7e78cf358c55"
+    },
+    {
+      "path": "verification-p2-inputs-129.json",
+      "bytes": 66028,
+      "sha256": "53e0e87711b6d2868ecf25468232273db176943ba4aa6082675808bd609d61ca"
+    },
+    {
+      "path": "verification-p2-runtime-before-130.json",
+      "bytes": 345,
+      "sha256": "05ca76f476768a69b4f26499c7d7a4003a5e0653388eb986e3fda520e991ac1a"
+    },
+    {
+      "path": "verification-p2-runtime-after-130.json",
+      "bytes": 345,
+      "sha256": "d1cd3cb69f335e691d98380266cb8619c15dc589b9d1277a56f6a0dfe43f5f4b"
+    },
+    {
+      "path": "verification-p2-joint-130.txt",
+      "bytes": 593,
+      "sha256": "e760808f02157389935fcb164b0af3bb6310949fcf816e8add813f631f9be606"
+    },
+    {
+      "path": "verification-p2-durable-130.py",
+      "bytes": 3845,
+      "sha256": "f7039974e3feb813535492b54dd03c89940950a5232a45a0f9a2a02cf9fabf06"
+    },
+    {
+      "path": "verification-p2-runtime-129.py",
+      "bytes": 1859,
+      "sha256": "cb912783c880621389b94a4be8057fb6986efad34254ec0c43ca64ab7ed15172"
+    },
+    {
+      "path": "verification-p2-mypy-129.txt",
+      "bytes": 92,
+      "sha256": "69c23a9163ff7caf6d99263d038462046690c6dd6078a8fa7f6ba6a2b3704e82"
+    },
+    {
+      "path": "verification-p2-ruff-129.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": "verification-p2-format-128.txt",
+      "bytes": 50,
+      "sha256": "01940b7440ee52d6283865c7ef48ab83ac4efe6451c882ef4bb5dbe6550e3464"
+    },
+    {
+      "path": "verification-p2-standards-review-129.md",
+      "bytes": 1494,
+      "sha256": "54662b9f8b3207aeca5f17ce30891048e381f4ad7896c2f8d4ddd12a921cb034"
+    },
+    {
+      "path": "verification-p2-spec-review-129.md",
+      "bytes": 1678,
+      "sha256": "d4e26448f6a9dfdd628c2cf7fd8ed2544d5b495f3b289bd8a3fdaec53a452da4"
+    }
+  ],
+  "default_suite_rerun": false,
+  "sqlite_lock_issue_fixed": false,
+  "committed": false,
+  "source_certification": false,
+  "real_complete_candidate": false,
+  "real_120_day_replay": false,
+  "real_qualified_ai_outputs": 0,
+  "production_cutover": false,
+  "next_action": "apply frozen Q1 public test patch and obtain actual RED before production changes"
+}

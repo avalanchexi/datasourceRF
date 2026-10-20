@@ -1,0 +1,28 @@
+{
+  "status": "archived",
+  "group": "pring-run-pipeline",
+  "title": "手动完整运行的执行链路",
+  "snapshot": "原流程快照",
+  "file_moves": [
+    {
+      "old": "docs/diagrams/pring-run-pipeline.html",
+      "sha256": "eca46d311ce4f21acea2baa942cbf9da0095a5cbc57b06452b83a2b0959e4c3a",
+      "bytes": 718191,
+      "group": "pring-run-pipeline",
+      "new": "docs/diagrams/pring-run-pipeline/pring-run-pipeline.html"
+    },
+    {
+      "old": "docs/diagrams/pring-run-pipeline.workflow.json",
+      "sha256": "f2d83a6c20dcef237a92f6a5528d0d8e942df304ecc4edd2943ac3ae90b26263",
+      "bytes": 4910,
+      "group": "pring-run-pipeline",
+      "new": "docs/diagrams/pring-run-pipeline/pring-run-pipeline.workflow.json"
+    }
+  ],
+  "support_snapshots": [],
+  "link_changes": [],
+  "main_html_sha256": "eca46d311ce4f21acea2baa942cbf9da0095a5cbc57b06452b83a2b0959e4c3a",
+  "historical_receipts": "verification/original; unchanged, bound to preserved original HTML/spec where applicable",
+  "support_semantics": "Historical construction and verification snapshots. Original .scratch tracking files remain unchanged.",
+  "archive_verification": "verification/archive/browser.json"
+}

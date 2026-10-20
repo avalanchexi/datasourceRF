@@ -1,0 +1,84 @@
+﻿{
+    "recorded_at":  "2026-09-09T16:54:49.4153031+00:00",
+    "status":  "ust_consumer_joint_regression_passed",
+    "main_session_id":  90491,
+    "actual_exit_code":  0,
+    "passed":  113,
+    "failed":  0,
+    "seconds":  369.84,
+    "new_ust_cases":  15,
+    "frozen_inputs_unchanged":  228,
+    "protected_files_unchanged":  4,
+    "installed_sources_matched":  91,
+    "dependencies_matched":  53,
+    "mypy_current_scope_files":  93,
+    "ruff_passed":  true,
+    "spec_remaining":  0,
+    "standards_remaining":  0,
+    "expanded_mypy_unchanged_treasury_test_errors":  23,
+    "default_suite_rerun":  false,
+    "sqlite_lock_issue_fixed":  false,
+    "committed":  false,
+    "source_certification":  false,
+    "real_complete_candidate":  false,
+    "real_120_day_replay":  false,
+    "real_qualified_ai_outputs":  0,
+    "production_cutover":  false,
+    "evidence":  [
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-consumer-running-98.json",
+                         "bytes":  1251,
+                         "sha256":  "d4b3a47c29d16034df974e90684ed57870e4fd00d58123d8d727e4bdd3d0d0ad"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-consumer-inputs-98.json",
+                         "bytes":  66057,
+                         "sha256":  "44a0cc8be5684bbd0ea4a87b9861699f11fe81e136fd61e61a2f6fcda39fc0bd"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-consumer-runtime-98.py",
+                         "bytes":  1880,
+                         "sha256":  "0536ccd5a1ed49efd48167f4f6bc9c2dc24b08be7bf4fbe827545dd5f43aacc1"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-consumer-runtime-before-98.json",
+                         "bytes":  732,
+                         "sha256":  "520576783eb5bac3d5cace0759254e8ded56ba6f4de03c8a9d012895f164a1bb"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-consumer-runtime-after-98.json",
+                         "bytes":  732,
+                         "sha256":  "063cc92be97d8816c96488757ef34088bb2af2fdab6c2bcfe91c5edc839184e4"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-consumer-joint-98.txt",
+                         "bytes":  392,
+                         "sha256":  "72654b87e973ef985b1c63b8d32cd46698e7772b7583ac2cd4c722948066cd0e"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-consumer-review-96.md",
+                         "bytes":  2036,
+                         "sha256":  "bd9bd47006b2eb728c75be9f5c14f5b3d8c255a6916a8c5ad9a102e03c8951cc"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-consumer-format-96.txt",
+                         "bytes":  92,
+                         "sha256":  "f876c3708bf27f7ad536597b9e78b318e94a5c03184aa82a60a373470c3a0ad4"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-consumer-ruff-96.txt",
+                         "bytes":  42,
+                         "sha256":  "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-consumer-mypy-97.txt",
+                         "bytes":  92,
+                         "sha256":  "2126b99d4b572ef9b87374466b4069c2befe90a34a384f77d5ca3b139e134b73"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-consumer-mypy-96.txt",
+                         "bytes":  7046,
+                         "sha256":  "f6928d713c2a3f3898b19b3829cfe0f060e0810d0a4d45a8a251c69119f90cfa"
+                     }
+                 ]
+}

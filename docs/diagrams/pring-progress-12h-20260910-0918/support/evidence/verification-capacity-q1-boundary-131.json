@@ -1,0 +1,180 @@
+﻿{
+    "kind":  "root_read_only_research_delivery_verification",
+    "verified_at":  "2026-09-10T00:00:58.0626540+00:00",
+    "report":  {
+                   "path":  "capacity-q1-implementation-boundary.md",
+                   "bytes":  26036,
+                   "sha256":  "056a04208ce0cf898f369a65c4a905849f9465b286cf8b76b3a019924de966ed"
+               },
+    "input_count":  27,
+    "inputs":  [
+                   {
+                       "path":  "capacity-q1-source-mapping-decision.md",
+                       "bytes":  12902,
+                       "sha256":  "c25614f3c356c9cb807de7a40b401bc0af0f5365927d652278b53556c7801266",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "a18-document-import-readiness.md",
+                       "bytes":  20348,
+                       "sha256":  "3a911f5a1cf84f1b092a1badaae59b10597ff9945ac33b0fef8cff533fff7ff4",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "p1-capacity-utilization-full-value-audit.md",
+                       "bytes":  13203,
+                       "sha256":  "5cce581124ccb722782eb94e6aef5a48bd36faa78d4396ec41568f49feeeb9ed",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "capacity-missing-ytd-boundary.md",
+                       "bytes":  1756,
+                       "sha256":  "b257622abe6acee719e6b014bb2ca5e39ee69c9b1b2b4c8a9efd21870dbbf978",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "evidence-a18-import-20260909/receipts.json",
+                       "bytes":  433467,
+                       "sha256":  "199e384c879ebbb7a7fc19278529e89492dc8deecb075be990abd56afffc3b6c",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "evidence-a18-import-20260909/0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a",
+                       "bytes":  128195,
+                       "sha256":  "0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "evidence-a18-import-20260909/433f26cf518cc9862b6d66b335f2dfdde4290da06ff5f12916f597627011df12",
+                       "bytes":  1749,
+                       "sha256":  "433f26cf518cc9862b6d66b335f2dfdde4290da06ff5f12916f597627011df12",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/source_contract_review.py",
+                       "bytes":  16042,
+                       "sha256":  "58a4590af6fb281edeab6a20c4162652bb1c572dd69fffef212ffeed285eb40c",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/official_context.py",
+                       "bytes":  86229,
+                       "sha256":  "32390379d5729d14c0b445ec2a895e3bd799d73ceb691942ed47810bf9cc2bde",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/metric_contracts.py",
+                       "bytes":  10252,
+                       "sha256":  "db57e40351114456ef31ee1befbaee038f7d90a80e78678dc843248343e549a6",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/candidate_admission.py",
+                       "bytes":  13193,
+                       "sha256":  "681d108eaba822cb538dd828e459e74c64e8909c415f9d3a8f83f17135673bc4",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/catalog_registry.py",
+                       "bytes":  4349,
+                       "sha256":  "e94a5417a900c111514addb5b3c3b320c3eb0ac723543fca9b116934bcd57ecc",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/catalog.py",
+                       "bytes":  25978,
+                       "sha256":  "fe8dd4e21d563448c31af535f3886fc7fb053133de6346d5d9c4a627a91e7c5c",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/evidence.py",
+                       "bytes":  60796,
+                       "sha256":  "d27332e14065b179f510c6253e06088f376341349657b598bc692070d9c35ec2",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/acquisition.py",
+                       "bytes":  14584,
+                       "sha256":  "ed81eef2b153417009c0beb356be64bbe8fd164a9f3ea0d6eafe9cdc66ad69f8",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/search_evidence.py",
+                       "bytes":  19703,
+                       "sha256":  "f87ae76b26f1e7d416a06047f3fd9444058b0cee1b429614d539edc10cf4cca1",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/context_projection.py",
+                       "bytes":  88193,
+                       "sha256":  "44c89b740c4c90c5e488ec6aac2fc39aa917034db7d15aa8bc5b50b11b559528",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/model_evaluation.py",
+                       "bytes":  50010,
+                       "sha256":  "ef8dc6d4f1b6c5257efafb839255986ab8dcf26f0c1b1423be4bfca0d860f2f1",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/tushare_context.py",
+                       "bytes":  78830,
+                       "sha256":  "ea66afd3b57969fbd2bcf76889e0bfb7e92037bd1ee12e931b4d14dde2b340a4",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../src/pring_cycle/runtime_fingerprint.py",
+                       "bytes":  2775,
+                       "sha256":  "d5976a3fe7530a27262dedbab4f763c259e296faa478cf82e72bb69f689ce46e",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../tests/models/test_candidate_admission.py",
+                       "bytes":  334953,
+                       "sha256":  "e4533108057fd2b19fdb9b8c327ba183735bb5f123644351e30ee196a3e2b111",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../tests/adapters/test_official_context.py",
+                       "bytes":  39860,
+                       "sha256":  "2ce28bec11a9095996045dfd673ccb187f85e56d62e0542b4fe9b5dbefe0de31",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "spec.md",
+                       "bytes":  27762,
+                       "sha256":  "f5c32c407f216841b2afed0aaab3863868bdc394d9057207d25dbc9e9a561cc4",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../CONTEXT.md",
+                       "bytes":  20103,
+                       "sha256":  "f0cdf13436e1dd178b86ac6181de916757c3ef59edb7024ec6e980f151e5a102",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../docs/adr/0006-dual-as-of-and-immutable-evidence-vintages.md",
+                       "bytes":  725,
+                       "sha256":  "acb0c307d24518d5e4551f457353535d5398d21c8bd0212c9f9445a82012cf8a",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../docs/adr/0012-atomic-model-versions-and-parallel-replay.md",
+                       "bytes":  1277,
+                       "sha256":  "172a1d28d5d67b7075930872032887fd0c4b5748903ed26a5a8760626681ef12",
+                       "matched":  true
+                   },
+                   {
+                       "path":  "../../docs/adr/0013-tushare-delivery-with-official-sampling.md",
+                       "bytes":  1089,
+                       "sha256":  "8580553c46299947b55e1dfef8718e43c121019a60e54b4f9b91f466ef4cac4b",
+                       "matched":  true
+                   }
+               ],
+    "local_link_occurrences":  106,
+    "local_links_all_exist":  true,
+    "application_or_tests_executed":  false,
+    "live_regression":  "verification-p2-running-130.json",
+    "source_certification_granted":  false,
+    "q1_mapping_implemented":  false
+}

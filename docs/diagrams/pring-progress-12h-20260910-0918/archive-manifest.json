@@ -1,0 +1,599 @@
+{
+  "status": "archived",
+  "group": "pring-progress-12h-20260910-0918",
+  "title": "最近12小时推进与后续执行",
+  "snapshot": "2026-09-09 21:18—2026-09-10 09:18",
+  "file_moves": [
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918-notes.md",
+      "sha256": "409c09b0aec67b80bdc28c331df5c045a90e1d2a18f74cf645f2ae1eafddf023",
+      "bytes": 5698,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/pring-progress-12h-20260910-0918-notes.md"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918-pending.png",
+      "sha256": "11735fd4284d5d596ede753f606cfc4e389bf628c175ee2f47a40d226d753c0b",
+      "bytes": 982830,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/pring-progress-12h-20260910-0918-pending.png"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918-pending.svg",
+      "sha256": "b21e85508225b720d4565a9c9019379bef1fe5b40882164b8351e10238f9de0e",
+      "bytes": 20606,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/pring-progress-12h-20260910-0918-pending.svg"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918.gantt.json",
+      "sha256": "5e01bd73ef2e9c140792c6b8c776237ba8e30dbba8359dd5c4e772886ccc3b84",
+      "bytes": 38614,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/pring-progress-12h-20260910-0918.gantt.json"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918.html",
+      "sha256": "f74dc87f771926abeeae7bdddd677218069deadb0b09f84690fa686bcb40dcb4",
+      "bytes": 769586,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/pring-progress-12h-20260910-0918.html",
+      "original_copy": "docs/diagrams/pring-progress-12h-20260910-0918/verification/original/pring-progress-12h-20260910-0918.html",
+      "new_sha256": "b73e36664f4ab4a7e04b9547dbbffadef32745428d2ed30bd0049deae375da6e"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918.png",
+      "sha256": "a696cadb800d4e4bf8a136ea98a37c4a7b29ea8fb46ee4e4a0054977f02d4ec8",
+      "bytes": 1221694,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/pring-progress-12h-20260910-0918.png"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918.receipt.json",
+      "sha256": "d98750f8a6645ee36b2cd69009b5dcafb9ea60f83d2e170fe72f26eeee0cce30",
+      "bytes": 3235,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/verification/original/pring-progress-12h-20260910-0918.receipt.json"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918.svg",
+      "sha256": "329ff4874a9be0fe56b08e178248aa68024a69e9e418197b05dc34648d773b73",
+      "bytes": 28344,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/pring-progress-12h-20260910-0918.svg"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918.visual-check.1440x900.dark.png",
+      "sha256": "5ec3637539b2a1e2f659415e54b80b77dc290d032c7522fdfd65a119b84daea7",
+      "bytes": 258712,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/verification/original/pring-progress-12h-20260910-0918.visual-check.1440x900.dark.png"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918.visual-check.1440x900.light.png",
+      "sha256": "131f54e5fab201e9456abef4a410e2319e93ccceac744f25efdf400a8e99d9c0",
+      "bytes": 256420,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/verification/original/pring-progress-12h-20260910-0918.visual-check.1440x900.light.png"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918.visual-check.2048x1320.dark.png",
+      "sha256": "03aef2ae162626ba6d803396e3fc902547bb18ba387ca89013a4cdaf64507cfe",
+      "bytes": 385600,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/verification/original/pring-progress-12h-20260910-0918.visual-check.2048x1320.dark.png"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918.visual-check.2048x1320.light.png",
+      "sha256": "ee38c4c75bd4cd9f1cffa34ddd49d321d3f6dd5e97ce002cdcc501e3785ccff5",
+      "bytes": 382137,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/verification/original/pring-progress-12h-20260910-0918.visual-check.2048x1320.light.png"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918.visual-check.html",
+      "sha256": "ca0ebdaf76e8489dad2d66753922514631ae69e9a00bc8fffabd36f852e617bc",
+      "bytes": 2036,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/verification/original/pring-progress-12h-20260910-0918.visual-check.html"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918.visual-check.json",
+      "sha256": "dbdc56e00c3a7587b50a00f7eecc4ce60af32cca1f02fc2dc17868f785e0c4a4",
+      "bytes": 16934,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/verification/original/pring-progress-12h-20260910-0918.visual-check.json"
+    },
+    {
+      "old": "docs/diagrams/pring-progress-12h-20260910-0918.visual-review.json",
+      "sha256": "71ffa985bf138d1d00f7d2a4a07ba1aa994068f415510803e008c33f5a95bc38",
+      "bytes": 1097,
+      "group": "pring-progress-12h-20260910-0918",
+      "new": "docs/diagrams/pring-progress-12h-20260910-0918/verification/original/pring-progress-12h-20260910-0918.visual-review.json"
+    }
+  ],
+  "support_snapshots": [
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/archify-check.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/archify-check.json",
+      "sha256": "c375904b0ad33ce92debbe985feb570c7f35e6b5ed05a26e2e17feda60874587",
+      "bytes": 1886
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/build_data.py",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/build_data.py",
+      "sha256": "0dd217d18c81d34b8e6a805fdc10fcea6f62d3a1ed092b976f7932fb8635df10",
+      "bytes": 16584
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/candidate.html",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/candidate.html",
+      "sha256": "f74dc87f771926abeeae7bdddd677218069deadb0b09f84690fa686bcb40dcb4",
+      "bytes": 769586
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/a18-audit-coverage-reconciliation.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/a18-audit-coverage-reconciliation.md",
+      "sha256": "0fde5e8657d4309114664cb09d7983e51df3113db4143c5b0ae69dfd88d285dc",
+      "bytes": 96967
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/capacity-q1-implementation-boundary.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/capacity-q1-implementation-boundary.md",
+      "sha256": "056a04208ce0cf898f369a65c4a905849f9465b286cf8b76b3a019924de966ed",
+      "bytes": 26036
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/continuation-status.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/continuation-status.md",
+      "sha256": "d82ab96be3d4de700d661ccc89550522aecb0277b350c476545c1b06125f88f9",
+      "bytes": 58092
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/credit-impulse-integrity-boundary.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/credit-impulse-integrity-boundary.md",
+      "sha256": "757b60ef1e86073004753bb9183fee084bb9ba6e48cdf61208c44dc1cb6aedff",
+      "bytes": 23526
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/implementation-14-optional-p2-replay.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/implementation-14-optional-p2-replay.md",
+      "sha256": "302b439329f2993519ee75b6c986ab7a05f4a7e5e34f6377d1cfeffa8a3521f1",
+      "bytes": 6343
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/implementation-14-ust-catalog.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/implementation-14-ust-catalog.md",
+      "sha256": "04a234eaba948eaae324fa5b6fcff923404a3717a5a668e9eeccca36acd4d9c6",
+      "bytes": 2025
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/implementation-14-ust-consumption.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/implementation-14-ust-consumption.md",
+      "sha256": "c353cda35d3507f97863672859638b17cfdd492d71c2b2514f3af46dbc3666a8",
+      "bytes": 5184
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/implementation-19-gdp-contract.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/implementation-19-gdp-contract.md",
+      "sha256": "674954a5aaa40a837ba2a8fe40ae03f2c7a5d2b7210b6884931e2627a14b64f5",
+      "bytes": 5087
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/implementation-report-clock.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/implementation-report-clock.md",
+      "sha256": "86f6b7d5ea3e2c4a89369257a2453db51e46970c8b0c759c88e18a8ecf090767",
+      "bytes": 5026
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/01-candidate-duration.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/01-candidate-duration.md",
+      "sha256": "7ea531f36a605eeadc9f7cfee3915badb5f2da2231a70d66608fe841c368ba29",
+      "bytes": 2655
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/02-core-acquisition-receipts.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/02-core-acquisition-receipts.md",
+      "sha256": "1adca41653ab10bf932b86e8b80221be886b70f2131868a4a617cd5c6b236b6d",
+      "bytes": 2848
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/03-context-acquisition-receipts.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/03-context-acquisition-receipts.md",
+      "sha256": "5903d8bf460fd53a694cf5929c9a819fc8373134eb6891829ed20fb4fd3fe755",
+      "bytes": 2792
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/04-core-public-time-certification.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/04-core-public-time-certification.md",
+      "sha256": "90a4e4da0f55a66e6dce45ffb71503da348949ba4fd089ed6d0b33dd67f9b524",
+      "bytes": 2990
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/05-margin-certification.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/05-margin-certification.md",
+      "sha256": "8f63989a97bc8ba1d219e5caa89aaa27d652342a9e230a6b7e1f4c0d59a6a6fb",
+      "bytes": 4128
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/06-market-index-certification.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/06-market-index-certification.md",
+      "sha256": "97c55db140f75bf59a82d9ec4598464db9a84744bcf8f9aa713b9303744eb9d8",
+      "bytes": 2892
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/07-valuation-certification.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/07-valuation-certification.md",
+      "sha256": "030715e2ad21ce6fc084b591faca1caec5ac3215b2f6408bb3af72351e6ac3be",
+      "bytes": 4062
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/08-breadth-daily-universe.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/08-breadth-daily-universe.md",
+      "sha256": "b6eed140d7f5fddafb274aa9378129025fe5cf3395a0f5c8b6bea9917b722fb1",
+      "bytes": 3113
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/09-breadth-window-metrics.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/09-breadth-window-metrics.md",
+      "sha256": "d7b550e5050883dff7e218796f65bb9bd3c123b944a5b9bd4bfa8405751a3122",
+      "bytes": 2379
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/10-breadth-amount-share.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/10-breadth-amount-share.md",
+      "sha256": "d4a5357f1606e75b4066a04e950a4f502d0c06ff7c4599900315d4d481f88596",
+      "bytes": 2293
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/11-futures-contract-evidence.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/11-futures-contract-evidence.md",
+      "sha256": "cea64d37121f53306a592b34ab95d33280586f5d92a0a993362d666194c144dc",
+      "bytes": 2974
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/12-commodity-basket.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/12-commodity-basket.md",
+      "sha256": "9da2e3818ae589d7929f87813a82edf0a2b3a8a43f2eedae3f1d61496bcba114",
+      "bytes": 2290
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/13-remaining-p1-evidence.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/13-remaining-p1-evidence.md",
+      "sha256": "a72ab16a82e0f548676e5748759052849749a060b4cb8ffcaa793708f4202ab7",
+      "bytes": 11144
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/14-p2-availability.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/14-p2-availability.md",
+      "sha256": "730a5a2db77a53edd9996719d01e67d162439419352f0cd43913af89870a51c4",
+      "bytes": 9323
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/15-retrieval-ledger-budgets.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/15-retrieval-ledger-budgets.md",
+      "sha256": "5d512f3cfedf8f3e4765a59c0911fff7c6648ea1b3bcf921986b3090f5610094",
+      "bytes": 3201
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/16-search-verified-evidence.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/16-search-verified-evidence.md",
+      "sha256": "92b720cc4b56167ee07a0dc0a689bb9d2ce288ec0a495a9ed7e0cf83c837dde0",
+      "bytes": 3347
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/17-full-run-gap-retrieval.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/17-full-run-gap-retrieval.md",
+      "sha256": "55b6066908f01a9c2249c30ef26c31386c6dc93c6ed180fdd2cc7166c40dccbe",
+      "bytes": 5111
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/18-report-cli-evidence.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/18-report-cli-evidence.md",
+      "sha256": "33b0b406a9a6e5588c139a60496c8fea4b31147c379c91c72228ad0bfb0a13af",
+      "bytes": 4528
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/19-immutable-candidate-catalog.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/19-immutable-candidate-catalog.md",
+      "sha256": "a95f4c278aac1c02ceeb38fc1b87dcd303604724232a6d5fcf3aec1d252059e1",
+      "bytes": 23329
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/20-retrieval-paired-benchmark.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/20-retrieval-paired-benchmark.md",
+      "sha256": "4627b29c5ae0efa42b0cc97c2cebd2fe6f81e5e932cfc7814f1f30df2f56d938",
+      "bytes": 3173
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/21-public-replay-120d.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/21-public-replay-120d.md",
+      "sha256": "901b0e5c90eb65caae0667ea402517d806c3283089b6942284624dceb1f97360",
+      "bytes": 6197
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/22-live-acceptance-cutover.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/issues/22-live-acceptance-cutover.md",
+      "sha256": "7e39f1f3239a1d07a15c30809f9ce6a5c2ebd229e529183ac7aab20f633f7ed0",
+      "bytes": 3747
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/margin-bse-official-followup-20260910.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/margin-bse-official-followup-20260910.md",
+      "sha256": "1a365278cbce8d077eb2beb5775ae0d32e9a82c22e2411f84b875bc42f4daa7b",
+      "bytes": 8860
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/progress-checkpoint-131.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/progress-checkpoint-131.md",
+      "sha256": "1869e1d6f841cdb8f3720aca7b1022404979adce04d2f866de8571eb13d0d7b1",
+      "bytes": 4460
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/spec.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/spec.md",
+      "sha256": "f5c32c407f216841b2afed0aaab3863868bdc394d9057207d25dbc9e9a561cc4",
+      "bytes": 27762
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-a18-reconciliation-132.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-a18-reconciliation-132.json",
+      "sha256": "595fbf6a8e4cecc199b86598d691c0a36b455c1bcbaa0ae21138fbeb69dc34b8",
+      "bytes": 122057
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-bse-followup-99.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-bse-followup-99.json",
+      "sha256": "cf6fec251fb4a0fde7114d66ca4d4a787e17b2f6dc1f84ca477d81480ab95503",
+      "bytes": 2420
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-capacity-q1-boundary-131.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-capacity-q1-boundary-131.json",
+      "sha256": "0b20877ae595257a2842251866a021c2a424334dea32da736633d396ca1d8064",
+      "bytes": 9103
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-capacity-red-134.txt",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-capacity-red-134.txt",
+      "sha256": "8264da015523171cca83ba5841a35caf31dfb6fa268e742ef7d2a17d2434cc1a",
+      "bytes": 3466
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-closure-progress-135.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-closure-progress-135.json",
+      "sha256": "af683b6b26368016e7fd5cc19f7d7992652de15dd66306cc9105cbddf2c50da2",
+      "bytes": 9406
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-gdp-running-87.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-gdp-running-87.json",
+      "sha256": "298c0079715b792645d3e207589aa1190b43b1682850a57e7bb727c38a316d27",
+      "bytes": 1840
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-gdp-terminal-87.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-gdp-terminal-87.json",
+      "sha256": "0e334e9aa0deccbbac54fff2c8c9e93144776d5a0dc7534ee71a25f753a7f9d3",
+      "bytes": 3595
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-interbank-full-running-59.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-interbank-full-running-59.json",
+      "sha256": "7623bbab30fc27eccdd024d3e1a89df04216cf37966485302ca90c050d54ec82",
+      "bytes": 1067
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-interbank-full-terminal-59.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-interbank-full-terminal-59.json",
+      "sha256": "2d2d2aae151e4ea094173ac4335dee31e4416ae2c297919904942ddafc06bdb7",
+      "bytes": 2106
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-p2-acceptance-133.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-p2-acceptance-133.json",
+      "sha256": "7ddaa022c26dbd37864b773fb0ddba77fd96e2c90709b7ed4805de7c034784f9",
+      "bytes": 3325
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-p2-interrupted-130.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-p2-interrupted-130.json",
+      "sha256": "7479f7886dffaa8e62d42b6115fcd3da06ee2e41db3639e5bce6a4e893aadc1d",
+      "bytes": 954
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-p2-running-129.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-p2-running-129.json",
+      "sha256": "b1e078b58243f58afedeb085110fc908d27d18dc59e7c25c8e860c0c29c9c1f3",
+      "bytes": 1123
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-p2-terminal-130.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-p2-terminal-130.json",
+      "sha256": "48bedf7778a69051c2caf1920ddae143ced7902fabedd476723b7e78cf358c55",
+      "bytes": 1396
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-report-clock-running-74.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-report-clock-running-74.json",
+      "sha256": "70dafe870c1b128885ce73682afb29c0a498cf52403d419f1f412aea54713259",
+      "bytes": 46166
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-report-clock-terminal-74.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-report-clock-terminal-74.json",
+      "sha256": "34be1138fa448d97bbcc89a41db9be5cf0c35555b3fd843055d11d00afbe87a0",
+      "bytes": 2770
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-sqlite-controlled-135.txt",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-sqlite-controlled-135.txt",
+      "sha256": "ea1ebc529e458cf4e7ad16012c0d859f095f12ea6a0bff5967b520c1e9e1ac15",
+      "bytes": 4138
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-ust-catalog-terminal-90.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-ust-catalog-terminal-90.json",
+      "sha256": "c28922ef2de11fbe358ae6d135382adf6e116c2f59242c39f6d5f2f3deb2825b",
+      "bytes": 3913
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-ust-consumer-running-98.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-ust-consumer-running-98.json",
+      "sha256": "d4b3a47c29d16034df974e90684ed57870e4fd00d58123d8d727e4bdd3d0d0ad",
+      "bytes": 1251
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-ust-consumer-terminal-98.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/verification-ust-consumer-terminal-98.json",
+      "sha256": "a8616256fb5153e89e977be970312fa5b4d3aa1baa00dfd4e96aeec6a4ef67c9",
+      "bytes": 4370
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/evidence/worker-registered-catalog-public-boundary.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/evidence/worker-registered-catalog-public-boundary.md",
+      "sha256": "608f1ef71a96a8ae5306583269249744175c2cb2368847682a573539cd45d489",
+      "bytes": 22093
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/final-archify-check.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/final-archify-check.json",
+      "sha256": "27c6c72e66697b6b69029e448e2d7dd9877945347206930c7758bf7792b7ffe6",
+      "bytes": 1881
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/fonts.conf",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/fonts.conf",
+      "sha256": "2b67975399a4d9e2db2091d8183719d162ceadbdcb1dbe727d654fbe849bca74",
+      "bytes": 306
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/issues/01-build-gantt.md",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/issues/01-build-gantt.md",
+      "sha256": "479fcf749870b31cf61c2f164502bacdc417dc10b133196dd24ee4f0fce8403f",
+      "bytes": 838
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/native-pending.svg",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/native-pending.svg",
+      "sha256": "d062bbdb0fc6164f5e222f1314bc00c7f36dddfd1003009ec63d6e98765a6cd1",
+      "bytes": 59652
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/native.svg",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/native.svg",
+      "sha256": "9f23c798b05449bedf21caf387ab6ad39f953086344bc16d0b3a82f5d204801e",
+      "bytes": 67390
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/overview-1440-light.png",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/overview-1440-light.png",
+      "sha256": "b0145e458b820ba97849b4bf6374e0a648d4ce3d5b315b5171d8142d4a56f086",
+      "bytes": 256419
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/overview-2048-dark.png",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/overview-2048-dark.png",
+      "sha256": "466fe50bdb706088b46c2476a5d8a472305f47d6561030d13e513eb066f28c30",
+      "bytes": 382578
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/overview-2048-light.png",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/overview-2048-light.png",
+      "sha256": "abe27aeeb7e57a1e8c115a5affcb8900a5dc8545fd0c196fb01e1214a53d35b0",
+      "bytes": 382159
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/plan-1440-light.png",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/plan-1440-light.png",
+      "sha256": "3018b3f6cc2f8771dbabc411006f382b9d7b25cb218f0efe2102658f463b934a",
+      "bytes": 208532
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/plan-2048-dark.png",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/plan-2048-dark.png",
+      "sha256": "58806a6fee3892f05f3c016675ee5823dd85842c202ac7eefaf61bbc828f5269",
+      "bytes": 305838
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/plan-2048-light.png",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/plan-2048-light.png",
+      "sha256": "29d2aafcc833797cd3a5f43a0bb493bf048719ca6ab0dad39b0e550e70611450",
+      "bytes": 303271
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/protected-before.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/protected-before.json",
+      "sha256": "87713cb64ed9d89f7d120c101bc8a593d2011ed57118d8f2c43373cba47aaa99",
+      "bytes": 2157
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/render.mjs",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/render.mjs",
+      "sha256": "39af01a9d6d5e10cdb57d51331597ea3b2f2e5a8c4d0d36346c30e98862495eb",
+      "bytes": 16172
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/verification.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/verification.json",
+      "sha256": "e97c503fa1d0d6adea4316db400d04077a9a6afbf51fa035091dce731dee4a2e",
+      "bytes": 1548
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/verify.py",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/verify.py",
+      "sha256": "09e979fe8c6ed4444fc9c91eb08ce23d9612171ba98edf850994be5cc669f22b",
+      "bytes": 4757
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/visual-command.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/visual-command.json",
+      "sha256": "dbdc56e00c3a7587b50a00f7eecc4ce60af32cca1f02fc2dc17868f785e0c4a4",
+      "bytes": 16934
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/visual-round-0/pring-progress-12h-20260910-0918-pending.png",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/visual-round-0/pring-progress-12h-20260910-0918-pending.png",
+      "sha256": "11735fd4284d5d596ede753f606cfc4e389bf628c175ee2f47a40d226d753c0b",
+      "bytes": 982830
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/visual-round-0/pring-progress-12h-20260910-0918-pending.svg",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/visual-round-0/pring-progress-12h-20260910-0918-pending.svg",
+      "sha256": "b21e85508225b720d4565a9c9019379bef1fe5b40882164b8351e10238f9de0e",
+      "bytes": 20606
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/visual-round-0/pring-progress-12h-20260910-0918.html",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/visual-round-0/pring-progress-12h-20260910-0918.html",
+      "sha256": "ed2891c4462855dcb52c177b292572661341d811fbbc598caa1c756c9a796d8e",
+      "bytes": 769676
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/visual-round-0/pring-progress-12h-20260910-0918.png",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/visual-round-0/pring-progress-12h-20260910-0918.png",
+      "sha256": "ebaa6408d1815b1d3d70afd64266244faf61cd66af2ddacb0de5ab37da10b929",
+      "bytes": 1222451
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/visual-round-0/pring-progress-12h-20260910-0918.receipt.json",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/visual-round-0/pring-progress-12h-20260910-0918.receipt.json",
+      "sha256": "985275d9e80c879c2ec4272f2613e0bf24357ab0e983a41115f4a6e873f3ea02",
+      "bytes": 2900
+    },
+    {
+      "source": ".scratch/pring-progress-12h-20260910-0918/visual-round-0/pring-progress-12h-20260910-0918.svg",
+      "archive": "docs/diagrams/pring-progress-12h-20260910-0918/support/visual-round-0/pring-progress-12h-20260910-0918.svg",
+      "sha256": "4d507480ca7428687d9710809498c288de2720476f49d8f6f64f06c08a4d5f5c",
+      "bytes": 28445
+    }
+  ],
+  "link_changes": [
+    "Frozen evidence links use this bundle support/evidence directory.",
+    "Current-record links now resolve from the extra directory level."
+  ],
+  "main_html_sha256": "b73e36664f4ab4a7e04b9547dbbffadef32745428d2ed30bd0049deae375da6e",
+  "historical_receipts": "verification/original; unchanged, bound to preserved original HTML/spec where applicable",
+  "support_semantics": "Historical construction and verification snapshots. Original .scratch tracking files remain unchanged.",
+  "archive_verification": "verification/archive/browser.json"
+}

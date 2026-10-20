@@ -1,0 +1,26 @@
+{
+  "source_checks": {
+    "groups": 12,
+    "tasks": 33,
+    "completed": 32,
+    "active": 1,
+    "source_links": "pass",
+    "committed_source_hashes": "pass",
+    "date_bounds": "pass",
+    "snapshot_at": "2026-09-09T10:02:38+08:00"
+  },
+  "browser_checks": {
+    "all_12_detail_dialogs": "pass",
+    "recent_filter": "pass",
+    "pending_4_items": "pass",
+    "keyboard_and_pointer": "pass",
+    "theme_toggle": "pass",
+    "native_svg_export": "pass",
+    "native_png_export": "pass",
+    "standalone_svg": "pass",
+    "summary_and_provenance": "pass"
+  },
+  "page_errors": [],
+  "status": "pass",
+  "artifact_sha256": "02656216c9b47565e3eff5c29247d6130ee8ed5204475055ccd6c7924c95adfe"
+}

@@ -1,0 +1,20 @@
+﻿{
+    "status":  "running",
+    "recorded_at":  "2026-09-09T16:45:15.0929098+00:00",
+    "main_session_id":  90491,
+    "run_name":  "official-ust-consumer-joint-98",
+    "test_scope":  [
+                       "tests/models/test_candidate_admission.py::test_registered_catalog_treasury_cli_keeps_real_receipt_and_unknown_public_time",
+                       "tests/models/test_candidate_admission.py::test_registered_treasury_original_supports_system_context_without_inventing_public_time",
+                       "tests/models/test_candidate_admission.py::test_registered_treasury_context_rechecks_hash_consistent_receipts",
+                       "tests/integration/test_treasury_csv_acquisition.py",
+                       "tests/integration/test_context_projection.py",
+                       "tests/integration/test_search_evidence.py",
+                       "tests/integration/test_source_contract_quarantine.py",
+                       "tests/catalog/test_metric_catalog.py"
+                   ],
+    "inputs_manifest":  "verification-ust-consumer-inputs-98.json",
+    "inputs_manifest_sha256":  "44a0cc8be5684bbd0ea4a87b9861699f11fe81e136fd61e61a2f6fcda39fc0bd",
+    "default_suite":  false,
+    "committed":  false
+}

@@ -1,0 +1,759 @@
+{
+  "title": "Pring · 最近12小时推进与后续执行",
+  "schema": "archify-custom-gantt-v1",
+  "period_start": "2026-09-09T21:18:53+08:00",
+  "snapshot_at": "2026-09-10T09:18:53+08:00",
+  "timezone": "Asia/Shanghai",
+  "tasks": [
+    {
+      "id": "full",
+      "label": "全套回归暴露故障",
+      "note": "1146通过 / 2失败",
+      "state": "issue",
+      "summary": "完整套件发现SQLite锁与报告时间倒序两项失败。报告时钟后来已有专项修复；SQLite仍未关闭。原失败记录保持不变。",
+      "goal": "识别妨碍稳定完整运行的真实故障。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/verification-interbank-full-running-59.json",
+        ".scratch/pring-data-acquisition-repair/verification-interbank-full-terminal-59.json"
+      ],
+      "start": "2026-09-09T17:54:01.675674+08:00",
+      "end": "2026-09-09T21:33:37.180581+08:00",
+      "kind": "window",
+      "result": "发现2项故障",
+      "details": [
+        "任务在窗口前已启动，只显示进入最近12小时的记录段。",
+        "运行记录到终态记录不是连续pytest工时；日志实际耗时7984.63秒。"
+      ]
+    },
+    {
+      "id": "clock",
+      "label": "报告时钟与隔离验证",
+      "note": "38项专项通过",
+      "state": "done",
+      "summary": "耗时改用单调计时，保留实际UTC及回拨标记；按请求ID等查询入口统一还原耗时。验证迁入独立环境。",
+      "goal": "报告超时和系统校时期间仍能保存可审计结果。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/implementation-report-clock.md",
+        ".scratch/pring-data-acquisition-repair/verification-report-clock-running-74.json",
+        ".scratch/pring-data-acquisition-repair/verification-report-clock-terminal-74.json"
+      ],
+      "start": "2026-09-09T23:15:43.239650+08:00",
+      "end": "2026-09-09T23:19:19.592840+08:00",
+      "kind": "window",
+      "result": "专项通过",
+      "details": [
+        "条形仅为本轮回归运行记录至验收记录窗口，不代表全部修复耗时。",
+        "38项用时29.33秒；未替代修复后的全套验收。"
+      ]
+    },
+    {
+      "id": "gdp",
+      "label": "GDP合同与消费修复",
+      "note": "95项关联通过",
+      "state": "done",
+      "summary": "补齐GDP八字段新目录合同与原件/规范化消费校验，覆盖单位、当季/累计及价格基础表头。",
+      "goal": "让GDP候选输入保持明确的口径与可追溯来源。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/implementation-19-gdp-contract.md",
+        ".scratch/pring-data-acquisition-repair/verification-gdp-running-87.json",
+        ".scratch/pring-data-acquisition-repair/verification-gdp-terminal-87.json"
+      ],
+      "start": "2026-09-10T00:02:36.257093+08:00",
+      "end": "2026-09-10T00:09:19.922659+08:00",
+      "kind": "window",
+      "result": "关联通过",
+      "details": [
+        "95项用时337.12秒；信用脉冲整窗与GDP修订基线仍需独立解决。"
+      ]
+    },
+    {
+      "id": "ust",
+      "label": "美债新目录与来源校验",
+      "note": "CLI 28项 / 消费113项",
+      "state": "done",
+      "summary": "修复CLI新目录查找，明确官方CSV来源合同；原件与规范化联合资格接入检索、上下文、派生及组件回放，坏最新父项不能恢复旧利差。",
+      "goal": "使美债值及中美利差只能采用合格的实际输入。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/implementation-14-ust-catalog.md",
+        ".scratch/pring-data-acquisition-repair/verification-ust-catalog-terminal-90.json",
+        ".scratch/pring-data-acquisition-repair/implementation-14-ust-consumption.md",
+        ".scratch/pring-data-acquisition-repair/verification-ust-consumer-running-98.json",
+        ".scratch/pring-data-acquisition-repair/verification-ust-consumer-terminal-98.json"
+      ],
+      "start": "2026-09-10T00:21:09.940707+08:00",
+      "end": "2026-09-10T00:54:49.415303+08:00",
+      "kind": "window",
+      "result": "两批通过",
+      "details": [
+        "条形连接CLI和消费两次终态记录，不是连续开发工时。",
+        "两批范围有重叠，28与113不相加；Worker官方路由与真实认证尚待完成。"
+      ]
+    },
+    {
+      "id": "bse",
+      "label": "北交所官方入口补证",
+      "note": "新目标样本仍为0",
+      "state": "blocked",
+      "summary": "完成3次逻辑搜索及1次有依据的官方GET，新入口返回自指302；没有获得目标日样本和历史公开时间证据。",
+      "goal": "补齐全市场融资认证所需的北交所证据。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/margin-bse-official-followup-20260910.md",
+        ".scratch/pring-data-acquisition-repair/verification-bse-followup-99.json"
+      ],
+      "start": "2026-09-10T00:52:58.903492+08:00",
+      "end": "2026-09-10T00:52:58.903492+08:00",
+      "kind": "milestone",
+      "result": "仍缺样本",
+      "details": []
+    },
+    {
+      "id": "p2fix",
+      "label": "P2回放边界修复与复审",
+      "note": "认证 / 鲜度 / 双版本范围",
+      "state": "done",
+      "summary": "修复可选P2被误作硬门、输出待认证、比较侧来源遗漏、陈旧值重标current、输出单独降级及双方禁用公式边界。",
+      "goal": "可选数据缺口诚实降级，必要父项继续严格验证。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/implementation-14-optional-p2-replay.md",
+        ".scratch/pring-data-acquisition-repair/verification-p2-running-129.json"
+      ],
+      "start": "2026-09-10T02:37:05.311117+08:00",
+      "end": "2026-09-10T02:37:05.311117+08:00",
+      "kind": "milestone",
+      "result": "复审完成",
+      "details": [
+        "02:37是修复/复审结果已记录并启动合并回归的时点，不是修复起点。",
+        "当时mypy94文件、Ruff及两轴复审通过；最终合并结果见持久回归行。"
+      ]
+    },
+    {
+      "id": "p2lost",
+      "label": "P2首次合并回归中断",
+      "note": "最后日志14% / 退出码未知",
+      "state": "interrupted",
+      "summary": "第129批工具会话与旧进程后来已不存在，未取得终态；保留原日志和未知结果，按相同范围重新验证。",
+      "goal": "保证只有真实完成的验证才能成为验收依据。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/verification-p2-running-129.json",
+        ".scratch/pring-data-acquisition-repair/verification-p2-interrupted-130.json"
+      ],
+      "start": "2026-09-10T02:37:05.311117+08:00",
+      "end": "2026-09-10T07:45:49.027867+08:00",
+      "kind": "unknown",
+      "result": "终态丢失",
+      "details": [
+        "虚线为启动记录至发现中断的观察窗口，实际停止时刻未知。",
+        "不能把整个窗口视为持续运行，更不能据此计算损失工时。"
+      ]
+    },
+    {
+      "id": "p2pass",
+      "label": "P2持久回归与最终核验",
+      "note": "484项通过 / 前后核验通过",
+      "state": "done",
+      "summary": "独立持久执行器完成五文件合并回归并自行保存终态；后续根验收确认228输入、4受保护文件、91安装源码及53依赖一致。",
+      "goal": "取得绑定明确版本、可恢复且可核验的回归结果。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/verification-p2-terminal-130.json",
+        ".scratch/pring-data-acquisition-repair/verification-p2-acceptance-133.json"
+      ],
+      "start": "2026-09-10T07:45:49.466010+08:00",
+      "end": "2026-09-10T08:12:04.732851+08:00",
+      "kind": "execution",
+      "result": "限定范围通过",
+      "details": [
+        "实线为持久执行器真实起止07:45:49—08:12:04，含前后核验。",
+        "pytest为484项、1545.32秒；08:13根验收通过。本批未提交，整票及全套仍未完成。"
+      ]
+    },
+    {
+      "id": "q1",
+      "label": "Q1映射研究到公开反例",
+      "note": "规则已明确 / 反例已失败",
+      "state": "issue",
+      "summary": "研究明确同一Jan–Mar区间源格的显式映射与绑定方式；首个公开测试5.09秒失败，命中mapping_unresolved，生产映射尚未实现。",
+      "goal": "让产能Q1累计值的来源复用有明确、可执行的证据约束。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/capacity-q1-implementation-boundary.md",
+        ".scratch/pring-data-acquisition-repair/verification-capacity-q1-boundary-131.json",
+        ".scratch/pring-data-acquisition-repair/verification-closure-progress-135.json",
+        ".scratch/pring-data-acquisition-repair/verification-capacity-red-134.txt"
+      ],
+      "start": "2026-09-10T08:00:58.062654+08:00",
+      "end": "2026-09-10T09:05:16.190881+08:00",
+      "kind": "window",
+      "result": "已复现待修",
+      "details": [
+        "条形为研究验收到反例结果记录的窗口。09:05是汇总记录时间，非反例精确结束时间。",
+        "映射需绑定原件、新定义和审查材料；旧字面审计和收据保持原结论。"
+      ]
+    },
+    {
+      "id": "a18",
+      "label": "A18原件与收据对账",
+      "note": "250原件 / 268有效收据",
+      "state": "research",
+      "summary": "对账1858标量身份及收据/规范化字段，核对v1/v2唯一M2数值变化已修。分类为1857字面相符与1个Q1映射待绑定。",
+      "goal": "确认既有采集准备材料覆盖完整、差异清楚且可追溯。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/a18-audit-coverage-reconciliation.md",
+        ".scratch/pring-data-acquisition-repair/verification-a18-reconciliation-132.json"
+      ],
+      "start": "2026-09-10T08:09:45.003772+08:00",
+      "end": "2026-09-10T08:09:45.003772+08:00",
+      "kind": "milestone",
+      "result": "对账完成",
+      "details": [
+        "本轮复核承接既有字面审计，不声称重新提取全部1858个官方原格。",
+        "对账完成不等于正式来源认证；未新增这250份原件或268份收据。"
+      ]
+    },
+    {
+      "id": "sqlite",
+      "label": "SQLite可控诊断与收口方案",
+      "note": "单一交叠未复现 / 根因未知",
+      "state": "issue",
+      "summary": "保持真实心跳写事务未提交，原件查询仍完成；10.45秒诊断证明该交叠未触发原故障。任务补充关闭条件、四消费路径矩阵及分层验收。",
+      "goal": "建立可控诊断反馈，减少无依据修改与反复整套重跑。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/verification-closure-progress-135.json",
+        ".scratch/pring-data-acquisition-repair/verification-sqlite-controlled-135.txt"
+      ],
+      "start": "2026-09-10T09:05:16.190881+08:00",
+      "end": "2026-09-10T09:05:16.190881+08:00",
+      "kind": "milestone",
+      "result": "继续定位",
+      "details": [
+        "09:05为结果记录时点；诊断未覆盖完整Worker执行，不构成锁问题已修复。"
+      ]
+    }
+  ],
+  "pending": [
+    {
+      "id": "S1",
+      "label": "SQLite锁根因与修复",
+      "note": "优先诊断",
+      "state": "issue",
+      "phase": 0,
+      "until": 1,
+      "depends": [],
+      "summary": "沿原完整Worker失败路径核对连接、事务、心跳及关闭交叠；已有一种交叠未复现。",
+      "acceptance": "建立原故障的可重复证据，修复后相关回归及最终全套通过。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/issues/17-full-run-gap-retrieval.md",
+        ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md"
+      ],
+      "start": null,
+      "end": null,
+      "scheduling": "待排期；阶段位置为建议顺序，不代表日期或工期"
+    },
+    {
+      "id": "S2",
+      "label": "Worker新目录与官方路由",
+      "note": "待合法执行样本",
+      "state": "blocked",
+      "phase": 0,
+      "until": 1,
+      "depends": [],
+      "summary": "修复两处数据库目录传递遗漏，接通官方定向刷新；区分必需失败阻断和可选失败降级。",
+      "acceptance": "经合法模型生命周期构建隔离样本，公开正常与异常路径通过，保留原始错误。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/issues/17-full-run-gap-retrieval.md",
+        ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md"
+      ],
+      "start": null,
+      "end": null,
+      "scheduling": "待排期；阶段位置为建议顺序，不代表日期或工期"
+    },
+    {
+      "id": "S3",
+      "label": "Q1产能显式映射",
+      "note": "反例已建立",
+      "state": "issue",
+      "phase": 0,
+      "until": 1,
+      "depends": [],
+      "summary": "将同区间映射材料绑定具体原件、新定义、审查证据和消费校验。",
+      "acceptance": "公开正例通过；错原格、错期次、错单位、坏制品及Q2—Q4误复用被拒绝。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/issues/13-remaining-p1-evidence.md",
+        ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md"
+      ],
+      "start": null,
+      "end": null,
+      "scheduling": "待排期；阶段位置为建议顺序，不代表日期或工期"
+    },
+    {
+      "id": "S4",
+      "label": "信用脉冲整窗与GDP修订",
+      "note": "依赖兼容修订基线",
+      "state": "blocked",
+      "phase": 0,
+      "until": 1,
+      "depends": [],
+      "summary": "校验24个月和8季度所需全部输入及差分基线；研究样本对应25社融+9GDP累计父项。",
+      "acceptance": "坏必需父项不被采用，坏最新输入不退回旧窗口；GDP跨修订口径不明时明确不可用。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/issues/13-remaining-p1-evidence.md",
+        ".scratch/pring-data-acquisition-repair/issues/14-p2-availability.md",
+        ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md"
+      ],
+      "start": null,
+      "end": null,
+      "scheduling": "待排期；阶段位置为建议顺序，不代表日期或工期"
+    },
+    {
+      "id": "D1",
+      "label": "来源认证与历史公开时间",
+      "note": "多项证据缺口",
+      "state": "blocked",
+      "phase": 0,
+      "until": 2,
+      "depends": [],
+      "summary": "补三核心历史公开时间、北交所、CNY030、估值口径与三指数样本；正式绑定PMI等来源包，补RRR事件/前置状态及P2日历鲜度。",
+      "acceptance": "来源身份、字段、单位、修订和PUBLIC/SYSTEM资格逐项有据；未知PUBLIC保持未知。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/issues/04-core-public-time-certification.md",
+        ".scratch/pring-data-acquisition-repair/issues/05-margin-certification.md",
+        ".scratch/pring-data-acquisition-repair/issues/06-market-index-certification.md",
+        ".scratch/pring-data-acquisition-repair/issues/07-valuation-certification.md",
+        ".scratch/pring-data-acquisition-repair/issues/13-remaining-p1-evidence.md",
+        ".scratch/pring-data-acquisition-repair/issues/14-p2-availability.md"
+      ],
+      "start": null,
+      "end": null,
+      "scheduling": "待排期；阶段位置为建议顺序，不代表日期或工期"
+    },
+    {
+      "id": "D2",
+      "label": "股票广度与成交金额",
+      "note": "依赖历史股票池",
+      "state": "blocked",
+      "phase": 0,
+      "until": 1,
+      "depends": [],
+      "summary": "历史股票池、停牌/新股、点时复权、MA120/新高新低预热、完整成交金额与上涨金额占比。",
+      "acceptance": "08股票池完成后验收09/10；未知盘后金额不填零，参与分母可复核。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/issues/08-breadth-daily-universe.md",
+        ".scratch/pring-data-acquisition-repair/issues/09-breadth-window-metrics.md",
+        ".scratch/pring-data-acquisition-repair/issues/10-breadth-amount-share.md"
+      ],
+      "start": null,
+      "end": null,
+      "scheduling": "待排期；阶段位置为建议顺序，不代表日期或工期"
+    },
+    {
+      "id": "D3",
+      "label": "商品合约与篮子规则",
+      "note": "依赖原件及规则冻结",
+      "state": "blocked",
+      "phase": 0,
+      "until": 1,
+      "depends": [],
+      "summary": "补PP官方行情、真实月份合约及历史可知映射、仓单单位；冻结选月/换月/权重/基点并重建去生猪篮子。",
+      "acceptance": "11真实合约证据支撑12篮子，七袖套贡献及每期血缘可以重建。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/issues/11-futures-contract-evidence.md",
+        ".scratch/pring-data-acquisition-repair/issues/12-commodity-basket.md"
+      ],
+      "start": null,
+      "end": null,
+      "scheduling": "待排期；阶段位置为建议顺序，不代表日期或工期"
+    },
+    {
+      "id": "G1",
+      "label": "最终版本软件回归",
+      "note": "当前全套仍有失败",
+      "state": "pending",
+      "phase": 2,
+      "until": 2,
+      "depends": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "summary": "统一最终代码、依赖及证据版本，先关联回归再完整套件，检查实际采用集合与四消费路径。",
+      "acceptance": "所有已确认软件缺陷关闭，真实退出码通过且前后指纹一致；历史失败保留。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/issues/17-full-run-gap-retrieval.md",
+        ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md",
+        ".scratch/pring-data-acquisition-repair/issues/22-live-acceptance-cutover.md"
+      ],
+      "start": null,
+      "end": null,
+      "scheduling": "待排期；阶段位置为建议顺序，不代表日期或工期"
+    },
+    {
+      "id": "G2",
+      "label": "完整真实候选与校准",
+      "note": "依赖完整来源和规则",
+      "state": "pending",
+      "phase": 3,
+      "until": 3,
+      "depends": [
+        "S2",
+        "S3",
+        "S4",
+        "D1",
+        "D2",
+        "D3"
+      ],
+      "summary": "汇总61项目录，验证42项P1及P2明确状态，绑定认证、公式、执行指纹并完成实际机器校准。",
+      "acceptance": "真实完整不可变候选成立；合成组件通过与正式认证分别记录。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md"
+      ],
+      "start": null,
+      "end": null,
+      "scheduling": "待排期；阶段位置为建议顺序，不代表日期或工期"
+    },
+    {
+      "id": "V1",
+      "label": "固定120交易日双时点回放",
+      "note": "候选完成后执行",
+      "state": "pending",
+      "phase": 4,
+      "until": 4,
+      "depends": [
+        "G2"
+      ],
+      "summary": "执行2026-03-09至2026-08-28固定120个中国交易日及预热，分别核PUBLIC与SYSTEM和新旧差异。",
+      "acceptance": "逐日输入、阶段及上下文可归因；不缩窗、挪窗或改写已发布历史。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/issues/21-public-replay-120d.md"
+      ],
+      "start": null,
+      "end": null,
+      "scheduling": "待排期；阶段位置为建议顺序，不代表日期或工期"
+    },
+    {
+      "id": "V2",
+      "label": "真实检索基准与AI报告",
+      "note": "依赖可用模型和运行链",
+      "state": "pending",
+      "phase": 4,
+      "until": 4,
+      "depends": [
+        "G2",
+        "S2"
+      ],
+      "summary": "按同组分层真实缺口测Tavily/Exa模型可用补齐率；验证真实CLI网络、报告证据及合格AI解释。",
+      "acceptance": "保留成功/失败样本与分母；候选网址、原文取得和模型实际采用分开统计。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/issues/18-report-cli-evidence.md",
+        ".scratch/pring-data-acquisition-repair/issues/20-retrieval-paired-benchmark.md"
+      ],
+      "start": null,
+      "end": null,
+      "scheduling": "待排期；阶段位置为建议顺序，不代表日期或工期"
+    },
+    {
+      "id": "V3",
+      "label": "目标日演练与正式切换",
+      "note": "最终验收前置未齐",
+      "state": "pending",
+      "phase": 5,
+      "until": 5,
+      "depends": [
+        "G1",
+        "V1",
+        "V2"
+      ],
+      "summary": "真实目标日演练、Worker中断恢复、API/Dashboard/报告一致性，完成既有激活与切换验收流程。",
+      "acceptance": "18/20/21完成；最终指纹匹配、具体清单及必要授权满足后切换，验证恢复/回退边界。",
+      "sources": [
+        ".scratch/pring-data-acquisition-repair/issues/22-live-acceptance-cutover.md"
+      ],
+      "start": null,
+      "end": null,
+      "scheduling": "待排期；阶段位置为建议顺序，不代表日期或工期"
+    }
+  ],
+  "sources": {
+    ".scratch/pring-data-acquisition-repair/verification-interbank-full-running-59.json": {
+      "sha256": "7623bbab30fc27eccdd024d3e1a89df04216cf37966485302ca90c050d54ec82",
+      "bytes": 1067,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-interbank-full-running-59.json"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-interbank-full-terminal-59.json": {
+      "sha256": "2d2d2aae151e4ea094173ac4335dee31e4416ae2c297919904942ddafc06bdb7",
+      "bytes": 2106,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-interbank-full-terminal-59.json"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-report-clock-running-74.json": {
+      "sha256": "70dafe870c1b128885ce73682afb29c0a498cf52403d419f1f412aea54713259",
+      "bytes": 46166,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-report-clock-running-74.json"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-report-clock-terminal-74.json": {
+      "sha256": "34be1138fa448d97bbcc89a41db9be5cf0c35555b3fd843055d11d00afbe87a0",
+      "bytes": 2770,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-report-clock-terminal-74.json"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-report-clock.md": {
+      "sha256": "86f6b7d5ea3e2c4a89369257a2453db51e46970c8b0c759c88e18a8ecf090767",
+      "bytes": 5026,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/implementation-report-clock.md"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-gdp-running-87.json": {
+      "sha256": "298c0079715b792645d3e207589aa1190b43b1682850a57e7bb727c38a316d27",
+      "bytes": 1840,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-gdp-running-87.json"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-gdp-terminal-87.json": {
+      "sha256": "0e334e9aa0deccbbac54fff2c8c9e93144776d5a0dc7534ee71a25f753a7f9d3",
+      "bytes": 3595,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-gdp-terminal-87.json"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-gdp-contract.md": {
+      "sha256": "674954a5aaa40a837ba2a8fe40ae03f2c7a5d2b7210b6884931e2627a14b64f5",
+      "bytes": 5087,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/implementation-19-gdp-contract.md"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-ust-catalog-terminal-90.json": {
+      "sha256": "c28922ef2de11fbe358ae6d135382adf6e116c2f59242c39f6d5f2f3deb2825b",
+      "bytes": 3913,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-ust-catalog-terminal-90.json"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-ust-consumer-terminal-98.json": {
+      "sha256": "a8616256fb5153e89e977be970312fa5b4d3aa1baa00dfd4e96aeec6a4ef67c9",
+      "bytes": 4370,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-ust-consumer-terminal-98.json"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-14-ust-catalog.md": {
+      "sha256": "04a234eaba948eaae324fa5b6fcff923404a3717a5a668e9eeccca36acd4d9c6",
+      "bytes": 2025,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/implementation-14-ust-catalog.md"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-14-ust-consumption.md": {
+      "sha256": "c353cda35d3507f97863672859638b17cfdd492d71c2b2514f3af46dbc3666a8",
+      "bytes": 5184,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/implementation-14-ust-consumption.md"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-ust-consumer-running-98.json": {
+      "sha256": "d4b3a47c29d16034df974e90684ed57870e4fd00d58123d8d727e4bdd3d0d0ad",
+      "bytes": 1251,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-ust-consumer-running-98.json"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-bse-followup-99.json": {
+      "sha256": "cf6fec251fb4a0fde7114d66ca4d4a787e17b2f6dc1f84ca477d81480ab95503",
+      "bytes": 2420,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-bse-followup-99.json"
+    },
+    ".scratch/pring-data-acquisition-repair/margin-bse-official-followup-20260910.md": {
+      "sha256": "1a365278cbce8d077eb2beb5775ae0d32e9a82c22e2411f84b875bc42f4daa7b",
+      "bytes": 8860,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/margin-bse-official-followup-20260910.md"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-p2-running-129.json": {
+      "sha256": "b1e078b58243f58afedeb085110fc908d27d18dc59e7c25c8e860c0c29c9c1f3",
+      "bytes": 1123,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-p2-running-129.json"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-14-optional-p2-replay.md": {
+      "sha256": "302b439329f2993519ee75b6c986ab7a05f4a7e5e34f6377d1cfeffa8a3521f1",
+      "bytes": 6343,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/implementation-14-optional-p2-replay.md"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-p2-interrupted-130.json": {
+      "sha256": "7479f7886dffaa8e62d42b6115fcd3da06ee2e41db3639e5bce6a4e893aadc1d",
+      "bytes": 954,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-p2-interrupted-130.json"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-p2-terminal-130.json": {
+      "sha256": "48bedf7778a69051c2caf1920ddae143ced7902fabedd476723b7e78cf358c55",
+      "bytes": 1396,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-p2-terminal-130.json"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-p2-acceptance-133.json": {
+      "sha256": "7ddaa022c26dbd37864b773fb0ddba77fd96e2c90709b7ed4805de7c034784f9",
+      "bytes": 3325,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-p2-acceptance-133.json"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-capacity-q1-boundary-131.json": {
+      "sha256": "0b20877ae595257a2842251866a021c2a424334dea32da736633d396ca1d8064",
+      "bytes": 9103,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-capacity-q1-boundary-131.json"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-closure-progress-135.json": {
+      "sha256": "af683b6b26368016e7fd5cc19f7d7992652de15dd66306cc9105cbddf2c50da2",
+      "bytes": 9406,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-closure-progress-135.json"
+    },
+    ".scratch/pring-data-acquisition-repair/capacity-q1-implementation-boundary.md": {
+      "sha256": "056a04208ce0cf898f369a65c4a905849f9465b286cf8b76b3a019924de966ed",
+      "bytes": 26036,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/capacity-q1-implementation-boundary.md"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-capacity-red-134.txt": {
+      "sha256": "8264da015523171cca83ba5841a35caf31dfb6fa268e742ef7d2a17d2434cc1a",
+      "bytes": 3466,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-capacity-red-134.txt"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-a18-reconciliation-132.json": {
+      "sha256": "595fbf6a8e4cecc199b86598d691c0a36b455c1bcbaa0ae21138fbeb69dc34b8",
+      "bytes": 122057,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-a18-reconciliation-132.json"
+    },
+    ".scratch/pring-data-acquisition-repair/a18-audit-coverage-reconciliation.md": {
+      "sha256": "0fde5e8657d4309114664cb09d7983e51df3113db4143c5b0ae69dfd88d285dc",
+      "bytes": 96967,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/a18-audit-coverage-reconciliation.md"
+    },
+    ".scratch/pring-data-acquisition-repair/verification-sqlite-controlled-135.txt": {
+      "sha256": "ea1ebc529e458cf4e7ad16012c0d859f095f12ea6a0bff5967b520c1e9e1ac15",
+      "bytes": 4138,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/verification-sqlite-controlled-135.txt"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/01-candidate-duration.md": {
+      "sha256": "7ea531f36a605eeadc9f7cfee3915badb5f2da2231a70d66608fe841c368ba29",
+      "bytes": 2655,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/01-candidate-duration.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/02-core-acquisition-receipts.md": {
+      "sha256": "1adca41653ab10bf932b86e8b80221be886b70f2131868a4a617cd5c6b236b6d",
+      "bytes": 2848,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/02-core-acquisition-receipts.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/03-context-acquisition-receipts.md": {
+      "sha256": "5903d8bf460fd53a694cf5929c9a819fc8373134eb6891829ed20fb4fd3fe755",
+      "bytes": 2792,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/03-context-acquisition-receipts.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/04-core-public-time-certification.md": {
+      "sha256": "90a4e4da0f55a66e6dce45ffb71503da348949ba4fd089ed6d0b33dd67f9b524",
+      "bytes": 2990,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/04-core-public-time-certification.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/05-margin-certification.md": {
+      "sha256": "8f63989a97bc8ba1d219e5caa89aaa27d652342a9e230a6b7e1f4c0d59a6a6fb",
+      "bytes": 4128,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/05-margin-certification.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/06-market-index-certification.md": {
+      "sha256": "97c55db140f75bf59a82d9ec4598464db9a84744bcf8f9aa713b9303744eb9d8",
+      "bytes": 2892,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/06-market-index-certification.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/07-valuation-certification.md": {
+      "sha256": "030715e2ad21ce6fc084b591faca1caec5ac3215b2f6408bb3af72351e6ac3be",
+      "bytes": 4062,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/07-valuation-certification.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/08-breadth-daily-universe.md": {
+      "sha256": "b6eed140d7f5fddafb274aa9378129025fe5cf3395a0f5c8b6bea9917b722fb1",
+      "bytes": 3113,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/08-breadth-daily-universe.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/09-breadth-window-metrics.md": {
+      "sha256": "d7b550e5050883dff7e218796f65bb9bd3c123b944a5b9bd4bfa8405751a3122",
+      "bytes": 2379,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/09-breadth-window-metrics.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/10-breadth-amount-share.md": {
+      "sha256": "d4a5357f1606e75b4066a04e950a4f502d0c06ff7c4599900315d4d481f88596",
+      "bytes": 2293,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/10-breadth-amount-share.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/11-futures-contract-evidence.md": {
+      "sha256": "cea64d37121f53306a592b34ab95d33280586f5d92a0a993362d666194c144dc",
+      "bytes": 2974,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/11-futures-contract-evidence.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/12-commodity-basket.md": {
+      "sha256": "9da2e3818ae589d7929f87813a82edf0a2b3a8a43f2eedae3f1d61496bcba114",
+      "bytes": 2290,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/12-commodity-basket.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/13-remaining-p1-evidence.md": {
+      "sha256": "a72ab16a82e0f548676e5748759052849749a060b4cb8ffcaa793708f4202ab7",
+      "bytes": 11144,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/13-remaining-p1-evidence.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/14-p2-availability.md": {
+      "sha256": "730a5a2db77a53edd9996719d01e67d162439419352f0cd43913af89870a51c4",
+      "bytes": 9323,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/14-p2-availability.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/15-retrieval-ledger-budgets.md": {
+      "sha256": "5d512f3cfedf8f3e4765a59c0911fff7c6648ea1b3bcf921986b3090f5610094",
+      "bytes": 3201,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/15-retrieval-ledger-budgets.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/16-search-verified-evidence.md": {
+      "sha256": "92b720cc4b56167ee07a0dc0a689bb9d2ce288ec0a495a9ed7e0cf83c837dde0",
+      "bytes": 3347,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/16-search-verified-evidence.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/17-full-run-gap-retrieval.md": {
+      "sha256": "55b6066908f01a9c2249c30ef26c31386c6dc93c6ed180fdd2cc7166c40dccbe",
+      "bytes": 5111,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/17-full-run-gap-retrieval.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/18-report-cli-evidence.md": {
+      "sha256": "33b0b406a9a6e5588c139a60496c8fea4b31147c379c91c72228ad0bfb0a13af",
+      "bytes": 4528,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/18-report-cli-evidence.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md": {
+      "sha256": "a95f4c278aac1c02ceeb38fc1b87dcd303604724232a6d5fcf3aec1d252059e1",
+      "bytes": 23329,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/19-immutable-candidate-catalog.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/20-retrieval-paired-benchmark.md": {
+      "sha256": "4627b29c5ae0efa42b0cc97c2cebd2fe6f81e5e932cfc7814f1f30df2f56d938",
+      "bytes": 3173,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/20-retrieval-paired-benchmark.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/21-public-replay-120d.md": {
+      "sha256": "901b0e5c90eb65caae0667ea402517d806c3283089b6942284624dceb1f97360",
+      "bytes": 6197,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/21-public-replay-120d.md"
+    },
+    ".scratch/pring-data-acquisition-repair/issues/22-live-acceptance-cutover.md": {
+      "sha256": "7e39f1f3239a1d07a15c30809f9ce6a5c2ebd229e529183ac7aab20f633f7ed0",
+      "bytes": 3747,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/issues/22-live-acceptance-cutover.md"
+    },
+    ".scratch/pring-data-acquisition-repair/spec.md": {
+      "sha256": "f5c32c407f216841b2afed0aaab3863868bdc394d9057207d25dbc9e9a561cc4",
+      "bytes": 27762,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/spec.md"
+    },
+    ".scratch/pring-data-acquisition-repair/continuation-status.md": {
+      "sha256": "d82ab96be3d4de700d661ccc89550522aecb0277b350c476545c1b06125f88f9",
+      "bytes": 58092,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/continuation-status.md"
+    },
+    ".scratch/pring-data-acquisition-repair/credit-impulse-integrity-boundary.md": {
+      "sha256": "757b60ef1e86073004753bb9183fee084bb9ba6e48cdf61208c44dc1cb6aedff",
+      "bytes": 23526,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/credit-impulse-integrity-boundary.md"
+    },
+    ".scratch/pring-data-acquisition-repair/worker-registered-catalog-public-boundary.md": {
+      "sha256": "608f1ef71a96a8ae5306583269249744175c2cb2368847682a573539cd45d489",
+      "bytes": 22093,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/worker-registered-catalog-public-boundary.md"
+    },
+    ".scratch/pring-data-acquisition-repair/progress-checkpoint-131.md": {
+      "sha256": "1869e1d6f841cdb8f3720aca7b1022404979adce04d2f866de8571eb13d0d7b1",
+      "bytes": 4460,
+      "snapshot": ".scratch/pring-progress-12h-20260910-0918/evidence/progress-checkpoint-131.md"
+    }
+  },
+  "time_semantics": "实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。",
+  "plan_semantics": "后续采用阶段轴，不设未经确认的日期；条宽不代表工期，具体前置见各项详情。",
+  "phases": [
+    "立即推进",
+    "补齐前置",
+    "软件验收",
+    "完整候选",
+    "真实验收",
+    "正式切换"
+  ],
+  "goal": "让完整运行稳定使用可信、点时正确的数据，并形成可验证的Pring输出与真实报告。",
+  "caution": "各批测试范围重叠，不累加。软件切片通过不代表真实认证、完整候选、120日回放或正式切换。",
+  "head": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+}

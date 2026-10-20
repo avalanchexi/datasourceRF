@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "artifact": "docs/diagrams/pring-architecture/pring-architecture.html",
+  "sha256": "0c3d8ed5ac778aa1896fcc95decbd1ec0940929b100daf7157b5805f5cdc6266",
+  "original_files_preserved": 2,
+  "support_files_preserved": 0,
+  "detail_dialogs_checked": 0,
+  "themes": "passed",
+  "links": "passed",
+  "scope": "Archive relocation only; no new product or diagram-content acceptance claimed."
+}

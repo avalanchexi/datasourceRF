@@ -1,0 +1,74 @@
+{
+  "status": "passed",
+  "evidence_snapshots": 54,
+  "past_tasks": 11,
+  "pending_groups": 12,
+  "date_window_hours": 12,
+  "plan_has_no_invented_dates": true,
+  "protected_existing_files": 17,
+  "errors": [],
+  "measurements": [
+    {
+      "width": 1440,
+      "height": 900,
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "view": "overview"
+    },
+    {
+      "width": 1600,
+      "height": 1000,
+      "scrollWidth": 1600,
+      "scrollHeight": 1000,
+      "view": "overview"
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "scrollWidth": 1920,
+      "scrollHeight": 1080,
+      "view": "overview"
+    },
+    {
+      "width": 2048,
+      "height": 1320,
+      "scrollWidth": 2048,
+      "scrollHeight": 1320,
+      "view": "overview"
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "scrollWidth": 1440,
+      "scrollHeight": 900,
+      "view": "plan"
+    },
+    {
+      "width": 1600,
+      "height": 1000,
+      "scrollWidth": 1600,
+      "scrollHeight": 1000,
+      "view": "plan"
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "scrollWidth": 1920,
+      "scrollHeight": 1080,
+      "view": "plan"
+    },
+    {
+      "width": 2048,
+      "height": 1320,
+      "scrollWidth": 2048,
+      "scrollHeight": 1320,
+      "view": "plan"
+    }
+  ],
+  "detail_dialogs": 27,
+  "keyboard_and_pointer": "passed",
+  "native_svg_and_png_exports": "passed",
+  "themes": "passed",
+  "standalone_svgs": "passed",
+  "artifact_sha256": "f74dc87f771926abeeae7bdddd677218069deadb0b09f84690fa686bcb40dcb4"
+}

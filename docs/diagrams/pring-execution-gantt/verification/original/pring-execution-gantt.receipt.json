@@ -1,0 +1,149 @@
+{
+  "status": "passed",
+  "mode": "custom-gantt-template",
+  "native_gantt_schema": false,
+  "native_deliver_used": false,
+  "specification": {
+    "path": "pring-execution-gantt.gantt.json",
+    "sha256": "8a62afe9298a6577729673c0ac0a253e60db545534826a7e91f406c5ed6fe069",
+    "bytes": 50640
+  },
+  "artifact": {
+    "path": "pring-execution-gantt.html",
+    "sha256": "02656216c9b47565e3eff5c29247d6130ee8ed5204475055ccd6c7924c95adfe",
+    "bytes": 770927
+  },
+  "template": {
+    "path": "/mnt/d/cursor/archify/archify/assets/template.html",
+    "sha256": "35b2210b120c56a6c58d953ffe0cf815c2e67d0a5ff3e8b9518c45b737dd3fc3"
+  },
+  "archify_check": {
+    "ok": true,
+    "file": "/mnt/d/cursor/datasourceRF/docs/diagrams/pring-execution-gantt.html",
+    "checks": [
+      {
+        "name": "single_svg",
+        "ok": true,
+        "details": [
+          "found 1 <svg> block(s)"
+        ]
+      },
+      {
+        "name": "finite_svg",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "orthogonal_arrows",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "label_route_clearance",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "relationship_crossings",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "relationship_corridors",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "container_border_runs",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "route_rhythm",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "legend_clearance",
+        "ok": true,
+        "details": [
+          "no legend marker found"
+        ]
+      }
+    ],
+    "composition": {
+      "schemaVersion": 1,
+      "profile": "standard",
+      "status": "pass",
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      },
+      "metrics": {
+        "properCrossings": 0,
+        "ambiguousCorridors": 0,
+        "containerBorderRuns": 0,
+        "labelRouteClearanceIssues": 0,
+        "minLabelRouteClearance": null,
+        "desktopReadabilityIssues": 0,
+        "minProjectedNodeTextPx": null,
+        "maxBends": 0,
+        "routesOverSuggestedBends": 0,
+        "maxStretch": null,
+        "routesOverSuggestedStretch": 0,
+        "minSegmentPx": null,
+        "minInteriorSegmentPx": null,
+        "shortSegmentCount": 0,
+        "shortEndpointSegmentCount": 0,
+        "shortInteriorSegmentCount": 0,
+        "microSegmentCount": 0
+      },
+      "suggestedLimits": {
+        "bendsPerRelationship": 2,
+        "stretch": 1.35,
+        "segmentPx": 16,
+        "microSegmentPx": 8
+      },
+      "issues": []
+    }
+  },
+  "snapshot_at": "2026-09-09T10:02:38+08:00",
+  "evidence_kind": "git-and-local-execution-records",
+  "browser_evidence": {
+    "status": "pass",
+    "archify_visual_check": "pring-execution-gantt.visual-check.json",
+    "interaction_and_sources": "pring-execution-gantt.verification.json"
+  },
+  "visual_review": {
+    "status": "pass",
+    "receipt": "pring-execution-gantt.visual-review.json"
+  },
+  "outputs": [
+    {
+      "path": "pring-execution-gantt.html",
+      "sha256": "02656216c9b47565e3eff5c29247d6130ee8ed5204475055ccd6c7924c95adfe",
+      "bytes": 770927
+    },
+    {
+      "path": "pring-execution-gantt.svg",
+      "sha256": "2a753b9469480c6e019af7634c8c9b670d626f6322af535d93b1e2998f0b69e7",
+      "bytes": 24343
+    },
+    {
+      "path": "pring-execution-gantt.png",
+      "sha256": "1aaf2bf6647e8786fbd93dc01fec4791f8495e5e775d903a313e92b5ec9952c4",
+      "bytes": 835983
+    },
+    {
+      "path": "pring-execution-gantt.gantt.json",
+      "sha256": "8a62afe9298a6577729673c0ac0a253e60db545534826a7e91f406c5ed6fe069",
+      "bytes": 50640
+    },
+    {
+      "path": "pring-execution-gantt-notes.md",
+      "sha256": "73eb61a729c8b08fc86df40cc236b0a2814bbe8c973f456db04f91604553e32e",
+      "bytes": 3420
+    }
+  ],
+  "change_scope": "Only new .scratch/pring-execution-gantt/ and docs/diagrams/pring-execution-gantt* files; pre-existing content and Archify source left untouched."
+}

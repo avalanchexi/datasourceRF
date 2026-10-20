@@ -1,0 +1,32 @@
+{
+  "status": "running",
+  "recorded_at": "2026-09-09T09:54:01.675674+00:00",
+  "main_session_id": 38573,
+  "run_name": "official-interbank-full-59",
+  "scope": "default pytest suite from pyproject.toml, with no test-path filter",
+  "command_arguments": [
+    "-q",
+    "--tb=short"
+  ],
+  "log": "verification-interbank-full-59.txt",
+  "inputs_manifest": "verification-interbank-inputs-59.json",
+  "inputs_manifest_sha256": "94197d0b342bf4e78eb990f0ecf71430358495fe060b681752af4b553a7fafd4",
+  "frozen_files": 220,
+  "included_test_referenced_artifacts": 52,
+  "protected_files": 4,
+  "installed_source_files_matched": 91,
+  "prior_targeted_passed": 416,
+  "interbank_revision_cases_passed": 16,
+  "counts_overlap_not_additive": true,
+  "mypy_passed_files": 92,
+  "spec_findings": 0,
+  "standards_hard_findings": 0,
+  "actual_exit_code": null,
+  "default_suite_passed": false,
+  "committed": false,
+  "source_certification": false,
+  "real_complete_candidate": false,
+  "real_120_day_replay": false,
+  "real_qualified_ai_outputs": 0,
+  "production_cutover": false
+}

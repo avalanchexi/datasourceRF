@@ -1,0 +1,74 @@
+{
+  "status": "report_clock_regression_passed",
+  "recorded_at": "2026-09-09T15:19:19.592840+00:00",
+  "previous_goal_turn_classification": "progress",
+  "main_session_id": 45955,
+  "actual_exit_code": 0,
+  "passed": 38,
+  "failed": 0,
+  "seconds": 29.33,
+  "scope": "All tests/reports plus the original real-subprocess clock-rollback probe",
+  "new_regression_tests": 2,
+  "frozen_inputs_unchanged": 225,
+  "protected_files_unchanged": 4,
+  "installed_sources_matched_before_after": 91,
+  "dependencies_matched_before_after": 53,
+  "mypy_files": 92,
+  "mypy_exit_code": 0,
+  "ruff_passed": true,
+  "format_check_passed": true,
+  "spec_findings": 0,
+  "standards_hard_findings": 0,
+  "naming_suggestion_addressed": true,
+  "evidence": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-report-clock-running-74.json",
+      "bytes": 46166,
+      "sha256": "70dafe870c1b128885ce73682afb29c0a498cf52403d419f1f412aea54713259"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-report-clock-regression-74.txt",
+      "bytes": 206,
+      "sha256": "bf7598581b44102a8cd53f90cf58d0507b336c5f2007b5238c594a3bf74bae4b"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-report-clock-runtime-73-before.json",
+      "bytes": 2520,
+      "sha256": "f2db61d87608f43e5fd159809ae75009e737611cb284fcbb8bd89b28cd713a94"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-report-clock-runtime-74-after.json",
+      "bytes": 2520,
+      "sha256": "4e4d1b7113fdc949a1dfab1739b833b25dee0e36244f7033e386cc6c5cde4bfb"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-report-clock-review-72.md",
+      "bytes": 1863,
+      "sha256": "af6fc0847c97a738fba097f7f188cd3e25e683bf3c07febc650d798a1e0e71e9"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-report-clock-mypy-73.txt",
+      "bytes": 92,
+      "sha256": "84c96559963461ade2a9bd24b68f98e37b1a0450052160ce80e05aa7216f3923"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-report-clock-ruff-73.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-report-clock-format-73.txt",
+      "bytes": 56,
+      "sha256": "1ba32d724ec0aa587aba7888f97338980bc34aae522616cf9f35d4e0b38e574d"
+    }
+  ],
+  "default_suite_rerun": false,
+  "original_full_suite_still_recorded_as_failed": true,
+  "sqlite_lock_issue_fixed": false,
+  "committed": false,
+  "source_certification": false,
+  "real_complete_candidate": false,
+  "real_120_day_replay": false,
+  "real_qualified_ai_outputs": 0,
+  "production_cutover": false
+}

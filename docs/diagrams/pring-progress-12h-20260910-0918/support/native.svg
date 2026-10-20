@@ -1,0 +1,347 @@
+<svg id="diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 850" role="img" aria-label="Pring · 最近12小时推进与后续执行" data-gantt-view="overview" data-preset="classic" style="" width="1600" height="850"><style>@font-face { font-family: 'JetBrains Mono'; font-weight: 400; src: local('JetBrains Mono'), local('JetBrainsMono-Regular'); }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 500; src: local('JetBrains Mono'), local('JetBrainsMono-Regular'); }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 600; src: local('JetBrains Mono'), local('JetBrainsMono-Regular'); }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 700; src: local('JetBrains Mono'), local('JetBrainsMono-Regular'); }
+svg { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', 'Noto Sans Mono CJK SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace; }
+:root, [data-theme="dark"] { --bg: #020617; --grid: #1e293b; --text: #ffffff; --text-muted: #94a3b8; --text-dim: #475569; --text-faint: #7d8da1; --panel: rgba(15, 23, 42, 0.5); --panel-border: #1e293b; --lane-fill: rgba(15, 23, 42, 0.22); --lane-stroke: #334155; --arrow: #64748b; --arrow-emphasis: #34d399; --mask: #0f172a; --frontend-fill: rgba(8, 51, 68, 0.4); --frontend-stroke: #22d3ee; --backend-fill: rgba(6, 78, 59, 0.4); --backend-stroke: #34d399; --database-fill: rgba(76, 29, 149, 0.4); --database-stroke: #a78bfa; --cloud-fill: rgba(120, 53, 15, 0.3); --cloud-stroke: #fbbf24; --security-fill: rgba(136, 19, 55, 0.4); --security-stroke: #fb7185; --messagebus-fill: rgba(251, 146, 60, 0.3); --messagebus-stroke: #fb923c; --external-fill: rgba(30, 41, 59, 0.5); --external-stroke: #94a3b8; --toolbar-bg: rgba(15, 23, 42, 0.8); --toolbar-border: #334155; --toolbar-text: #e2e8f0; --toolbar-hover: rgba(15, 23, 42, 0.95); --toolbar-menu-bg: #0f172a; }
+[data-theme="light"] { --bg: #f8fafc; --grid: #e2e8f0; --text: #0f172a; --text-muted: #64748b; --text-dim: #94a3b8; --text-faint: #64748b; --panel: #ffffff; --panel-border: #e2e8f0; --lane-fill: rgba(248, 250, 252, 0.65); --lane-stroke: #cbd5e1; --arrow: #94a3b8; --arrow-emphasis: #059669; --mask: #ffffff; --frontend-fill: rgba(34, 211, 238, 0.15); --frontend-stroke: #0891b2; --backend-fill: rgba(52, 211, 153, 0.18); --backend-stroke: #059669; --database-fill: rgba(167, 139, 250, 0.2); --database-stroke: #7c3aed; --cloud-fill: rgba(251, 191, 36, 0.18); --cloud-stroke: #d97706; --security-fill: rgba(251, 113, 133, 0.15); --security-stroke: #e11d48; --messagebus-fill: rgba(251, 146, 60, 0.15); --messagebus-stroke: #ea580c; --external-fill: rgba(148, 163, 184, 0.18); --external-stroke: #64748b; --toolbar-bg: rgba(255, 255, 255, 0.92); --toolbar-border: #cbd5e1; --toolbar-text: #334155; --toolbar-hover: #ffffff; --toolbar-menu-bg: #ffffff; }
+[data-preset="signal-flow"][data-theme="dark"] { --bg: #030711; --grid: #15233a; --panel: rgba(6, 14, 28, 0.78); --panel-border: #1d3350; --lane-fill: rgba(9, 22, 40, 0.5); --lane-stroke: #2c4564; --text: #f5fbff; --text-muted: #9eb0c7; --text-dim: #52667f; --text-faint: #7890ad; --mask: #07101e; --frontend-fill: rgba(6, 182, 212, 0.14); --frontend-stroke: #67e8f9; --backend-fill: rgba(16, 185, 129, 0.14); --backend-stroke: #5eead4; --database-fill: rgba(139, 92, 246, 0.16); --database-stroke: #c4b5fd; --cloud-fill: rgba(245, 158, 11, 0.13); --cloud-stroke: #fcd34d; --security-fill: rgba(244, 63, 94, 0.13); --security-stroke: #fda4af; --messagebus-fill: rgba(249, 115, 22, 0.13); --messagebus-stroke: #fdba74; --external-fill: rgba(71, 85, 105, 0.24); --external-stroke: #a5b4c7; --arrow: #7890ad; --arrow-emphasis: #2dd4bf; --toolbar-bg: rgba(7, 16, 30, 0.86); --toolbar-border: #29415f; --toolbar-menu-bg: #07101e; }
+[data-preset="signal-flow"][data-theme="light"] { --bg: #f4f9fc; --grid: #d4e5ee; --panel: rgba(255, 255, 255, 0.82); --panel-border: #bfd5e2; --lane-fill: rgba(232, 243, 248, 0.62); --lane-stroke: #a9c5d5; --text: #102638; --text-muted: #587287; --text-dim: #8aa2b4; --text-faint: #668397; --mask: #ffffff; --frontend-fill: rgba(6, 182, 212, 0.09); --frontend-stroke: #0789a1; --backend-fill: rgba(5, 150, 105, 0.09); --backend-stroke: #087f69; --database-fill: rgba(124, 58, 237, 0.09); --database-stroke: #7254c7; --cloud-fill: rgba(217, 119, 6, 0.08); --cloud-stroke: #b9670b; --security-fill: rgba(225, 29, 72, 0.08); --security-stroke: #c53a59; --messagebus-fill: rgba(234, 88, 12, 0.08); --messagebus-stroke: #c65f27; --external-fill: rgba(100, 116, 139, 0.1); --external-stroke: #607a8c; --arrow: #7b97aa; --arrow-emphasis: #0d9488; }
+[data-preset="blueprint"][data-theme="dark"] { --bg: #06131f; --grid: #17425a; --panel: rgba(7, 27, 43, 0.9); --panel-border: #27627f; --lane-fill: rgba(10, 43, 66, 0.36); --lane-stroke: #34799a; --text: #e3f6ff; --text-muted: #91b8ca; --text-dim: #557e92; --text-faint: #739caf; --mask: #0a2031; --frontend-fill: rgba(26, 157, 193, 0.14); --frontend-stroke: #66d9ef; --backend-fill: rgba(31, 155, 124, 0.13); --backend-stroke: #69dfbd; --database-fill: rgba(120, 105, 196, 0.14); --database-stroke: #b4a8ff; --cloud-fill: rgba(197, 145, 43, 0.13); --cloud-stroke: #ffd166; --security-fill: rgba(199, 76, 104, 0.13); --security-stroke: #ff8da1; --messagebus-fill: rgba(207, 112, 49, 0.13); --messagebus-stroke: #ffad66; --external-fill: rgba(84, 119, 139, 0.18); --external-stroke: #a7cad9; --arrow: #78a3b7; --arrow-emphasis: #64dfc1; --toolbar-bg: rgba(7, 28, 45, 0.92); --toolbar-border: #34799a; --toolbar-text: #d8f3ff; --toolbar-hover: rgba(18, 58, 83, 0.95); --toolbar-menu-bg: #0a2031; }
+[data-preset="blueprint"][data-theme="light"] { --bg: #edf7fa; --grid: #b5d5e1; --panel: rgba(249, 253, 255, 0.94); --panel-border: #78aabd; --lane-fill: rgba(210, 232, 240, 0.42); --lane-stroke: #83b2c4; --text: #123344; --text-muted: #4e7486; --text-dim: #86a6b4; --text-faint: #668c9d; --mask: #f9fdff; --frontend-fill: rgba(8, 145, 178, 0.08); --frontend-stroke: #087f9c; --backend-fill: rgba(5, 128, 101, 0.08); --backend-stroke: #08755f; --database-fill: rgba(100, 75, 180, 0.08); --database-stroke: #6757a8; --cloud-fill: rgba(181, 120, 15, 0.08); --cloud-stroke: #a86609; --security-fill: rgba(190, 48, 80, 0.07); --security-stroke: #b32f50; --messagebus-fill: rgba(196, 81, 22, 0.07); --messagebus-stroke: #b65120; --external-fill: rgba(79, 112, 128, 0.08); --external-stroke: #506f7e; --arrow: #6d93a5; --arrow-emphasis: #087f69; --toolbar-bg: rgba(247, 252, 254, 0.94); --toolbar-border: #8ab5c5; --toolbar-text: #294f61; --toolbar-hover: #ffffff; --toolbar-menu-bg: #f9fdff; }
+[data-preset="editorial"][data-theme="dark"] { --bg: #181611; --grid: #39342a; --panel: rgba(35, 31, 24, 0.96); --panel-border: #625a4a; --lane-fill: rgba(52, 46, 35, 0.46); --lane-stroke: #726957; --text: #f4eddf; --text-muted: #b9ae9b; --text-dim: #776e60; --text-faint: #9d917e; --mask: #231f18; --frontend-fill: rgba(43, 133, 142, 0.16); --frontend-stroke: #7fc6c7; --backend-fill: rgba(63, 132, 92, 0.16); --backend-stroke: #8fc29e; --database-fill: rgba(117, 91, 141, 0.17); --database-stroke: #c0a4d0; --cloud-fill: rgba(170, 119, 49, 0.16); --cloud-stroke: #d8ad68; --security-fill: rgba(157, 69, 65, 0.17); --security-stroke: #df9085; --messagebus-fill: rgba(174, 79, 42, 0.16); --messagebus-stroke: #df946f; --external-fill: rgba(126, 115, 96, 0.18); --external-stroke: #b8ad99; --arrow: #948978; --arrow-emphasis: #dd6b3d; --toolbar-bg: rgba(35, 31, 24, 0.92); --toolbar-border: #625a4a; --toolbar-text: #eee5d5; --toolbar-hover: #302a20; --toolbar-menu-bg: #231f18; }
+[data-preset="editorial"][data-theme="light"] { --bg: #f2eee5; --grid: #d8d0c2; --panel: rgba(251, 248, 241, 0.97); --panel-border: #c4b9a6; --lane-fill: rgba(229, 221, 207, 0.42); --lane-stroke: #b8aa94; --text: #242018; --text-muted: #6f6658; --text-dim: #a09788; --text-faint: #817767; --mask: #fbf8f1; --frontend-fill: rgba(31, 117, 126, 0.09); --frontend-stroke: #287e84; --backend-fill: rgba(42, 119, 75, 0.09); --backend-stroke: #397b53; --database-fill: rgba(105, 75, 130, 0.09); --database-stroke: #765d86; --cloud-fill: rgba(157, 103, 31, 0.1); --cloud-stroke: #9a671f; --security-fill: rgba(153, 58, 52, 0.09); --security-stroke: #9e463f; --messagebus-fill: rgba(182, 70, 27, 0.09); --messagebus-stroke: #ad4b25; --external-fill: rgba(101, 91, 75, 0.09); --external-stroke: #746b5e; --arrow: #8a806f; --arrow-emphasis: #bb4c23; --toolbar-bg: rgba(251, 248, 241, 0.94); --toolbar-border: #c4b9a6; --toolbar-text: #40392f; --toolbar-hover: #fffdf8; --toolbar-menu-bg: #fbf8f1; }
+svg { width: 100%; min-width: min(900px, 100%); display: block; transform-origin: 0px 0px; transition: transform 0.18s; }
+@keyframes archify-lens-in { 
+  0% { opacity: 0; transform: translateY(5px) scale(0.985); }
+  100% { opacity: 1; transform: translateY(0px) scale(1); }
+}
+@keyframes archify-guide-in { 
+  0% { opacity: 0; transform: translateY(-5px) scale(0.985); }
+  100% { opacity: 1; transform: translateY(0px) scale(1); }
+}
+svg[data-chapter-handoff] [data-node-id][data-chapter-role="stay"] { opacity: 1; }
+svg[data-chapter-handoff] [data-node-id][data-chapter-role="enter"] { opacity: 0.78; }
+svg[data-chapter-handoff] [data-node-id][data-chapter-role="leave"] { opacity: 0.26; }
+@keyframes archify-chapter-anchor { 
+  0% { opacity: 0.35; stroke-dashoffset: 8; }
+  45% { opacity: 1; }
+  100% { opacity: 0.72; stroke-dashoffset: 0; }
+}
+@keyframes archify-story-caption-in { 
+  0% { opacity: 0; transform: translateY(3px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+[data-theme="light"] #theme-icon { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round'%3E%3Ccircle cx='10' cy='10' r='3.1'/%3E%3Cpath d='M10 2.2v1.4M10 16.4v1.4M2.2 10h1.4M16.4 10h1.4M4.5 4.5l1 1M14.5 14.5l1 1M15.5 4.5l-1 1M5.5 14.5l-1 1'/%3E%3C/g%3E%3C/svg%3E"); }
+[data-theme="dark"] #theme-icon { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M15.2 12.7A6.3 6.3 0 017.3 4.8a6.3 6.3 0 107.9 7.9Z' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.c-grid { stroke: var(--grid); fill: none; }
+.c-mask { fill: var(--mask); stroke: none; }
+.c-frontend { fill: var(--frontend-fill); stroke: var(--frontend-stroke); }
+.c-backend { fill: var(--backend-fill); stroke: var(--backend-stroke); }
+.c-database { fill: var(--database-fill); stroke: var(--database-stroke); }
+.c-cloud { fill: var(--cloud-fill); stroke: var(--cloud-stroke); }
+.c-security { fill: var(--security-fill); stroke: var(--security-stroke); }
+.c-messagebus { fill: var(--messagebus-fill); stroke: var(--messagebus-stroke); }
+.c-external { fill: var(--external-fill); stroke: var(--external-stroke); }
+.t-primary { fill: var(--text); }
+.t-muted { fill: var(--text-muted); }
+.t-dim { fill: var(--text-dim); }
+.t-frontend { fill: var(--frontend-stroke); }
+.t-backend { fill: var(--backend-stroke); }
+.t-database { fill: var(--database-stroke); }
+.t-cloud { fill: var(--cloud-stroke); }
+.t-security { fill: var(--security-stroke); }
+.t-messagebus { fill: var(--messagebus-stroke); }
+.t-external { fill: var(--external-stroke); }
+svg .semantic-sigil { fill: none; stroke: currentcolor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; opacity: 0.76; pointer-events: none; }
+svg .semantic-sigil &gt; * { vector-effect: non-scaling-stroke; }
+svg .semantic-sigil .sigil-fill { fill: currentcolor; stroke: none; }
+svg .s-frontend { color: var(--frontend-stroke); }
+svg .s-backend { color: var(--backend-stroke); }
+svg .s-database { color: var(--database-stroke); }
+svg .s-cloud { color: var(--cloud-stroke); }
+svg .s-security { color: var(--security-stroke); }
+svg .s-messagebus { color: var(--messagebus-stroke); }
+svg .s-external { color: var(--external-stroke); }
+svg .brand-mark { pointer-events: none; }
+svg .brand-mark-badge { fill: rgb(255, 255, 255); stroke: none; }
+svg .brand-mark-frame { fill: none; stroke: rgb(203, 213, 225); stroke-width: 0.8; vector-effect: non-scaling-stroke; }
+svg .brand-mark-fallback { fill: none; stroke: rgb(71, 85, 105); stroke-width: 1.15; stroke-linecap: round; stroke-linejoin: round; }
+svg[data-preset="blueprint"] .brand-mark-badge, svg[data-preset="blueprint"] .brand-mark-frame { rx: 1px; }
+svg [data-detail] { transition: opacity 160ms; }
+svg [data-detail-anchor] { transform-box: fill-box; transform-origin: center center; transition: transform 160ms; }
+svg[data-focus-active] [data-focus-match][data-detail], svg[data-focus-active] [data-focus-match] [data-detail], svg[data-reach-active] [data-reach-match][data-detail], svg[data-reach-active] [data-reach-match] [data-detail], svg[data-lens-active] [data-lens-match][data-detail], svg[data-lens-active] [data-lens-match] [data-detail], svg[data-legend-preview-active] [data-legend-preview-match][data-detail], svg[data-legend-preview-active] [data-legend-preview-match] [data-detail], svg[data-intent-trace-active] [data-intent-trace-match][data-detail], svg[data-intent-trace-active] [data-intent-trace-match] [data-detail], svg[data-route-active] [data-route-match][data-detail], svg[data-route-active] [data-route-match] [data-detail], svg[data-story-active] [data-story-step][data-detail], svg[data-story-active] [data-story-step] [data-detail], svg[data-relationship-preview-active] [data-relationship-preview][data-detail], svg[data-relationship-preview-active] [data-relationship-preview] [data-detail], svg [data-node-id]:hover [data-detail], svg [data-node-id]:focus-visible [data-detail] { opacity: 1; pointer-events: auto; }
+svg[data-focus-active] [data-focus-match] [data-detail-anchor], svg[data-reach-active] [data-reach-match] [data-detail-anchor], svg[data-lens-active] [data-lens-match] [data-detail-anchor], svg[data-legend-preview-active] [data-legend-preview-match] [data-detail-anchor], svg[data-intent-trace-active] [data-intent-trace-match] [data-detail-anchor], svg[data-route-active] [data-route-match] [data-detail-anchor], svg[data-story-active] [data-story-step] [data-detail-anchor], svg [data-node-id]:hover [data-detail-anchor], svg [data-node-id]:focus-visible [data-detail-anchor] { transform: none; }
+.a-default { stroke: var(--arrow); fill: none; }
+.a-emphasis { stroke: var(--arrow-emphasis); fill: none; }
+.a-security { stroke: var(--security-stroke); fill: none; stroke-dasharray: 5, 5; }
+.a-dashed { stroke: var(--database-stroke); fill: none; stroke-dasharray: 4, 4; }
+.m-default { fill: var(--arrow); }
+.m-emphasis { fill: var(--arrow-emphasis); }
+.m-security { fill: var(--security-stroke); }
+.m-dashed { fill: var(--database-stroke); }
+svg [data-node-id] { cursor: pointer; transition: opacity 0.18s, filter 0.18s; }
+svg [data-edge-from] { transition: opacity 0.18s, filter 0.18s; }
+svg [data-node-id]:hover, svg [data-node-id]:focus-visible { filter: drop-shadow(0 0 7px var(--frontend-stroke)); outline: none; }
+svg [data-node-id]:hover .source-evidence-beacon, svg [data-node-id]:focus-visible .source-evidence-beacon, svg [data-node-id][data-focus-selected] .source-evidence-beacon { opacity: 1; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--backend-stroke) 72%, transparent)); }
+svg[data-preset="signal-flow"] .source-evidence-beacon { opacity: 0.9; }
+svg[data-preset="blueprint"] .source-evidence-beacon rect { rx: 0.8px; filter: none; }
+svg [data-legend-kind][role="button"] { cursor: pointer; }
+svg [data-legend-kind]:focus { outline: none; }
+svg [data-legend-hit] { fill: transparent; stroke: transparent; stroke-width: 1.4; pointer-events: all; vector-effect: non-scaling-stroke; transition: stroke 150ms, stroke-width 150ms, filter 150ms; }
+svg [data-legend-count-badge] { pointer-events: none; }
+svg [data-legend-count-badge] rect { fill: var(--mask); stroke: var(--panel-border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+svg [data-legend-count-badge] text { fill: var(--text-muted); font-size: 8px; font-weight: 700; text-anchor: middle; }
+svg [data-legend-kind][role="button"]:hover [data-legend-hit] { stroke: color-mix(in srgb, var(--database-stroke) 58%, transparent); }
+svg [data-legend-kind][role="button"]:focus-visible [data-legend-hit] { stroke: var(--frontend-stroke); stroke-width: 1.8; filter: drop-shadow(0 0 3px var(--frontend-stroke)); }
+svg [data-legend-kind][data-legend-selected] [data-legend-hit] { stroke: var(--database-stroke); stroke-width: 2.2; stroke-dasharray: 3, 2; }
+svg [data-legend-kind][data-legend-selected] [data-legend-count-badge] rect { stroke: var(--database-stroke); stroke-width: 1.8; }
+svg [data-legend-kind][data-legend-zero] { opacity: 0.44; }
+svg[data-preset="signal-flow"] [data-legend-kind][data-legend-selected] [data-legend-hit] { filter: drop-shadow(0 0 4px var(--database-stroke)); }
+svg[data-preset="blueprint"] [data-legend-hit], svg[data-preset="blueprint"] [data-legend-count-badge] rect { rx: 0; filter: none; }
+svg[data-legend-preview-active] [data-node-id], svg[data-legend-preview-active] [data-edge-from] { opacity: 0.11; }
+svg[data-legend-preview-active] [data-legend-preview-match] { opacity: 1; }
+svg[data-legend-preview-active] [data-legend-preview-peer] { opacity: 0.62; }
+svg[data-legend-preview-active] [data-legend-preview-selected] { filter: drop-shadow(0 0 8px var(--database-stroke)); }
+svg[data-lens-active] [data-node-id], svg[data-lens-active] [data-edge-from] { opacity: 0.11; }
+svg[data-lens-active] [data-lens-match] { opacity: 1; }
+svg[data-lens-active] [data-lens-peer] { opacity: 0.62; }
+svg[data-lens-active] [data-lens-selected] { filter: drop-shadow(0 0 10px var(--database-stroke)); }
+svg[data-preset="signal-flow"] .semantic-lens-flow { stroke-width: 3.7; opacity: 1; }
+svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="out"], svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="forward"] { filter: drop-shadow(0 0 6px var(--frontend-stroke)); }
+svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="in"], svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="reverse"] { filter: drop-shadow(0 0 6px var(--database-stroke)); }
+svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="within"] { filter: drop-shadow(0 0 6px var(--messagebus-stroke)); }
+svg[data-preset="blueprint"] .semantic-lens-flow { stroke-width: 2.45; stroke-linecap: square; filter: none; opacity: 0.78; }
+svg[data-focus-active] [data-node-id], svg[data-focus-active] [data-edge-from] { opacity: 0.13; }
+svg[data-focus-active] [data-focus-match] { opacity: 1; }
+svg[data-focus-active] [data-focus-selected] { filter: drop-shadow(0 0 10px var(--frontend-stroke)); }
+svg[data-reach-active] [data-node-id], svg[data-reach-active] [data-edge-from] { opacity: 0.09; }
+svg[data-reach-active] [data-reach-match] { opacity: 1; }
+svg[data-reach-active="upstream"] [data-reach-origin] { filter: drop-shadow(0 0 11px var(--database-stroke)); }
+svg[data-reach-active="downstream"] [data-reach-origin] { filter: drop-shadow(0 0 11px var(--backend-stroke)); }
+svg[data-reach-active="upstream"] [data-edge-from][data-reach-match] { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--database-stroke) 72%, transparent)); }
+svg[data-reach-active="downstream"] [data-edge-from][data-reach-match] { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--backend-stroke) 72%, transparent)); }
+svg[data-preset="blueprint"][data-reach-active] [data-reach-origin], svg[data-preset="blueprint"][data-reach-active] [data-edge-from][data-reach-match] { filter: none; }
+svg[data-preset="blueprint"] .relationship-hit-target:focus-visible .relationship-focus-rail { stroke-linecap: square; filter: none; }
+svg[data-relationship-direct-active] [data-node-id], svg[data-relationship-direct-active] [data-edge-from] { opacity: 0.16; }
+svg[data-relationship-direct-active] [data-relationship-preview], svg[data-relationship-direct-active] [data-relationship-preview-node] { opacity: 1; }
+svg[data-focus-active]:not([data-relationship-pin-active]) .relationship-hit-rail, svg[data-story-active] .relationship-hit-rail, svg[data-route-picking] .relationship-hit-rail, svg[data-route-active] .relationship-hit-rail, svg[data-lens-active] .relationship-hit-rail, svg[data-chapter-preview] .relationship-hit-rail { pointer-events: none; }
+svg[data-relationship-preview-active] [data-focus-match] { opacity: 0.18; }
+svg[data-relationship-preview-active] [data-relationship-preview], svg[data-relationship-preview-active] [data-relationship-preview-node] { opacity: 1; }
+svg[data-relationship-preview-active] [data-relationship-preview] { filter: drop-shadow(0 0 5px var(--arrow-emphasis)); }
+svg[data-relationship-preview-active] [data-relationship-preview] path, svg[data-relationship-preview-active] path[data-relationship-preview], svg[data-relationship-preview-active] [data-relationship-preview] line, svg[data-relationship-preview-active] line[data-relationship-preview], svg[data-relationship-preview-active] [data-relationship-preview] polyline, svg[data-relationship-preview-active] polyline[data-relationship-preview] { stroke-width: 2.75; }
+svg[data-relationship-preview-active] [data-relationship-preview-source] { filter: drop-shadow(0 0 7px var(--frontend-stroke)); }
+svg[data-relationship-preview-active] [data-relationship-preview-target] { filter: drop-shadow(0 0 7px var(--database-stroke)); }
+svg[data-preset="signal-flow"] .relationship-flow-pulse { stroke: var(--frontend-stroke); stroke-width: 3.85; filter: drop-shadow(0 0 7px var(--frontend-stroke)); }
+svg[data-preset="blueprint"] .relationship-flow-pulse { stroke-width: 2.5; stroke-linecap: square; filter: none; }
+svg[data-preset="editorial"] .relationship-flow-pulse { stroke: var(--arrow-emphasis); stroke-width: 2.75; filter: none; }
+svg[data-preset="signal-flow"] .semantic-flow-token { filter: drop-shadow(currentcolor 0px 0px 5px); }
+svg[data-preset="blueprint"] .semantic-flow-token { filter: none; }
+svg[data-preset="editorial"] .semantic-flow-token { filter: none; }
+svg[data-intent-trace-active] [data-node-id], svg[data-intent-trace-active] [data-edge-from] { opacity: 0.2; }
+svg[data-intent-trace-active] [data-intent-trace-match] { opacity: 1; }
+svg[data-intent-trace-active] [data-intent-trace-selected] { filter: drop-shadow(0 0 10px var(--frontend-stroke)); }
+svg[data-preset="blueprint"] [data-intent-trace-selected], svg[data-preset="blueprint"] .intent-trace-flow { filter: none; stroke-linecap: square; }
+svg[data-preset="editorial"] [data-intent-trace-selected], svg[data-preset="editorial"] .intent-trace-flow { filter: none; }
+svg[data-route-picking="target"] [data-node-id] { opacity: 0.24; }
+svg[data-route-picking="target"] [data-route-candidate], svg[data-route-picking="target"] [data-route-start] { opacity: 1; }
+svg[data-route-picking] [data-node-id] { cursor: crosshair; }
+svg[data-route-picking] [data-route-start] { filter: drop-shadow(0 0 10px var(--frontend-stroke)); }
+svg[data-route-active] [data-node-id], svg[data-route-active] [data-edge-from] { opacity: 0.11; }
+svg[data-route-active] [data-route-match] { opacity: 1; }
+svg[data-route-active] [data-route-start] { filter: drop-shadow(0 0 11px var(--frontend-stroke)); }
+svg[data-route-active] [data-route-end] { filter: drop-shadow(0 0 11px var(--security-stroke)); }
+svg[data-route-active] [data-route-step]:not([data-route-start]):not([data-route-end]) { filter: drop-shadow(0 0 7px var(--backend-stroke)); }
+svg[data-route-journey] [data-route-match][data-route-journey-state="past"] { opacity: 0.62; }
+svg[data-route-journey] [data-route-match][data-route-journey-state="future"] { opacity: 0.34; }
+svg[data-route-journey] [data-route-match][data-route-journey-state="current"] { opacity: 1; }
+svg[data-route-journey] [data-node-id][data-route-journey-current] { filter: drop-shadow(0 0 10px var(--backend-stroke)); }
+svg[data-route-journey] [data-edge-from][data-route-journey-current] { opacity: 1; filter: drop-shadow(0 0 6px var(--backend-stroke)); }
+svg[data-preset="blueprint"] [data-route-start], svg[data-preset="blueprint"] [data-route-end], svg[data-preset="blueprint"] [data-route-step], svg[data-preset="blueprint"] .route-probe-flow { filter: none; stroke-linecap: square; }
+svg[data-preset="blueprint"] .route-journey-flow { filter: none; stroke-linecap: square; }
+svg[data-preset="editorial"] [data-route-start], svg[data-preset="editorial"] [data-route-end], svg[data-preset="editorial"] [data-route-step], svg[data-preset="editorial"] .route-probe-flow, svg[data-preset="editorial"] .route-journey-flow { filter: none; }
+svg[data-preset="editorial"] .c-grid { stroke-dasharray: 1, 4; opacity: 0.48; }
+svg[data-preset="editorial"] .c-region { fill: color-mix(in srgb, var(--cloud-fill) 48%, transparent); stroke-dasharray: 9, 4; }
+svg[data-preset="editorial"] [data-node-id]:hover, svg[data-preset="editorial"] [data-node-id]:focus-visible, svg[data-preset="editorial"][data-focus-active] [data-focus-selected] { filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--text) 18%, transparent)); }
+svg[data-preset="blueprint"] .c-grid { stroke-dasharray: 1, 3; opacity: 0.78; }
+svg[data-preset="blueprint"] .c-region { fill: color-mix(in srgb, var(--cloud-fill) 58%, transparent); stroke-dasharray: 12, 4, 2, 4; }
+svg[data-preset="blueprint"] .c-security-group, svg[data-preset="blueprint"] .c-lane { stroke-dasharray: 7, 3; }
+svg[data-preset="blueprint"] [data-node-id]:hover, svg[data-preset="blueprint"] [data-node-id]:focus-visible { filter: drop-shadow(0 0 3px var(--frontend-stroke)); }
+svg[data-preset="blueprint"][data-focus-active] [data-focus-selected] { filter: drop-shadow(0 0 3px var(--frontend-stroke)); }
+svg[data-preset="blueprint"][data-focus-active][data-reach-active] [data-focus-selected][data-reach-origin] { filter: none; }
+svg[data-preset="blueprint"][data-relationship-preview-active] [data-relationship-preview], svg[data-preset="blueprint"][data-relationship-preview-active] [data-relationship-preview-source], svg[data-preset="blueprint"][data-relationship-preview-active] [data-relationship-preview-target] { filter: drop-shadow(0 0 3px var(--frontend-stroke)); }
+svg[data-story-beat] [data-story-step] { opacity: 0.22; filter: saturate(0.42); transition: opacity 180ms, filter 180ms; }
+svg[data-story-beat] [data-story-step][data-story-beat-state="past"] { opacity: 0.72; filter: saturate(0.82); }
+svg[data-story-beat] [data-story-step][data-story-beat-state="next"] { opacity: 0.5; filter: saturate(0.66); }
+svg[data-story-beat] [data-story-step][data-story-beat-state="active"] { opacity: 1; filter: drop-shadow(0 0 7px var(--frontend-stroke)); animation: 360ms cubic-bezier(0.22, 1, 0.36, 1) 0s 1 normal both running archify-story-beat-node; }
+svg[data-story-beat] [data-edge-from][data-story-beat-step] { opacity: 0.16; transition: opacity 160ms; }
+svg[data-story-beat] [data-edge-from][data-story-beat-step][data-story-beat-state="past"] { opacity: 0.58; }
+svg[data-story-beat] [data-edge-from][data-story-beat-step][data-story-beat-state="next"] { opacity: 0.34; }
+svg[data-story-beat] [data-edge-from][data-story-beat-step][data-story-beat-state="active"] { opacity: 1; }
+svg[data-story-beat] .story-trail-flow { opacity: 0; transition: opacity 160ms; }
+svg[data-story-beat] .story-trail-flow[data-story-beat-state="past"] { opacity: 0.34; }
+svg[data-story-beat] .story-trail-flow[data-story-beat-state="next"] { opacity: 0.2; }
+svg[data-story-beat] .story-trail-flow[data-story-beat-state="active"] { opacity: 0.92; }
+svg[data-story-beat] .story-trail-flow[data-story-pulse="true"] { stroke-dasharray: 2, 13; stroke-dashoffset: 30; opacity: 0.92; animation: 0.78s linear 0s 1 normal both running archify-story-flow; }
+svg[data-preset="blueprint"] .story-trail-flow { stroke-linecap: square; filter: none; opacity: 0.5; }
+svg[data-preset="blueprint"][data-story-beat] [data-story-step][data-story-beat-state="active"] { filter: none; animation: auto ease 0s 1 normal none running none; }
+svg[data-preset="editorial"] .story-trail-flow { filter: none; }
+svg[data-preset="editorial"][data-story-beat] [data-story-step][data-story-beat-state="active"] { filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--text) 16%, transparent)); }
+svg[data-chapter-preview] [data-node-id], svg[data-chapter-preview] [data-edge-from] { opacity: 0.1 !important; filter: none !important; transition: none !important; }
+svg[data-chapter-preview] .story-trail-overlay { opacity: 0.08 !important; }
+svg[data-chapter-preview] [data-node-id][data-chapter-preview-role="stay"] { opacity: 0.76 !important; filter: saturate(0.7) !important; }
+svg[data-chapter-preview] [data-node-id][data-chapter-preview-role="enter"] { opacity: 1 !important; filter: saturate(1.2) !important; }
+svg[data-chapter-preview] [data-node-id][data-chapter-preview-role="leave"] { opacity: 0.28 !important; filter: grayscale(0.72) !important; }
+svg[data-preset="blueprint"][data-chapter-preview] [data-node-id] { filter: none !important; }
+.c-security-group { fill: transparent; stroke: var(--security-stroke); stroke-dasharray: 4, 4; }
+.c-region { fill: rgba(251, 191, 36, 0.05); stroke: var(--cloud-stroke); stroke-dasharray: 8, 4; }
+.c-lane { fill: var(--lane-fill); stroke: var(--lane-stroke); stroke-dasharray: 6, 6; }
+svg[data-preset="signal-flow"][data-animation="trace"] [data-animate="edge"] { stroke-linecap: round; filter: drop-shadow(0 0 3px var(--arrow-emphasis)); animation-duration: 1.75s; }
+svg[data-preset="signal-flow"][data-animation="trace"] [data-animate="node"] { animation-duration: 3.1s; }
+svg[data-preset="blueprint"][data-animation="trace"] [data-animate="edge"] { stroke-linecap: square; filter: none; animation-duration: 2.15s; }
+svg[data-preset="blueprint"][data-animation="trace"] [data-animate="node"] { animation-name: archify-blueprint-node-pulse; animation-duration: 3.8s; }
+svg[data-preset="editorial"][data-animation="trace"] [data-animate="edge"] { filter: none; animation-duration: 2.2s; }
+svg[data-preset="editorial"][data-animation="trace"] [data-animate="node"] { animation-name: archify-editorial-node-pulse; animation-duration: 3.5s; }
+@keyframes archify-edge-flow { 
+  0% { stroke-dasharray: 10, 8; stroke-dashoffset: 54; opacity: 0.42; }
+  88% { stroke-dasharray: 10, 8; stroke-dashoffset: 0; opacity: 1; }
+  99.9% { stroke-dasharray: 10, 8; stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes archify-node-pulse { 
+  0%, 72%, 100% { filter: none; stroke-width: 1.5; }
+  18%, 36% { filter: drop-shadow(0 0 8px var(--arrow-emphasis)); stroke-width: 2.4; }
+}
+@keyframes archify-blueprint-node-pulse { 
+  0%, 72%, 100% { opacity: 1; filter: none; }
+  18%, 36% { opacity: 0.72; filter: drop-shadow(0 0 2px var(--frontend-stroke)); }
+}
+@keyframes archify-editorial-node-pulse { 
+  0%, 72%, 100% { opacity: 1; filter: none; }
+  18%, 36% { opacity: 0.78; filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--text) 18%, transparent)); }
+}
+@keyframes archify-signal-scan { 
+  0%, 18% { opacity: 1; transform: translateX(-70%); }
+  70% { opacity: 1; transform: translateX(70%); }
+  100% { opacity: 0; transform: translateX(70%); }
+}
+@keyframes archify-radar-live { 
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--backend-stroke) 52%, transparent); }
+  55%, 100% { box-shadow: transparent 0px 0px 0px 0.32rem; }
+}
+@keyframes archify-guided-progress { 
+  0% { transform: scaleX(var(--guided-progress-start, 0)); }
+  100% { transform: scaleX(1); }
+}
+@keyframes archify-story-flow { 
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes archify-intent-trace-flow { 
+  0% { opacity: 0.28; stroke-dashoffset: 0; }
+  12%, 78% { opacity: 0.94; }
+  100% { opacity: 0; stroke-dashoffset: -1; }
+}
+@keyframes archify-route-probe-flow { 
+  0% { stroke-dashoffset: 0; opacity: 0.96; }
+  78% { stroke-dashoffset: -1; opacity: 0.96; }
+  100% { stroke-dasharray: none; stroke-dashoffset: 0; opacity: 0.58; }
+}
+@keyframes archify-route-journey-flow { 
+  0% { opacity: 0.16; stroke-dashoffset: 0; }
+  14%, 76% { opacity: 1; }
+  100% { opacity: 0; stroke-dashoffset: -1; }
+}
+@keyframes archify-semantic-lens-flow { 
+  0% { opacity: 0.2; stroke-dashoffset: 0; }
+  12%, 78% { opacity: 0.9; }
+  100% { opacity: 0; stroke-dashoffset: -1; }
+}
+@keyframes archify-relationship-pulse { 
+  0% { opacity: 0.18; stroke-dashoffset: 0; }
+  10%, 76% { opacity: 0.98; }
+  100% { opacity: 0; stroke-dashoffset: -1; }
+}
+@keyframes archify-relationship-token-life { 
+  0%, 7% { opacity: 0; }
+  13%, 82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes archify-story-beat-node { 
+  0% { opacity: 0.48; filter: saturate(0.6); }
+  58% { opacity: 1; filter: drop-shadow(0 0 10px var(--frontend-stroke)); }
+  100% { opacity: 1; filter: drop-shadow(0 0 7px var(--frontend-stroke)); }
+}
+@keyframes archify-share-cue-enter { 
+  0% { opacity: 0; transform: translate(-50%, -0.45rem); }
+  100% { opacity: 1; transform: translate(-50%, 0px); }
+}
+@keyframes archify-share-cue-pulse { 
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.48; transform: scale(0.78); }
+}
+:root { --ggreen: #166b5b; --gamber: #996006; --gink: #18293b; --gmuted: #687787; --gline: #dce4eb; --gpaper: #fcfdfd; --gband: #f4f7f8; --gstatus: #e4f1eb; --gactivebg: #fff0d1; }
+[data-theme="dark"] { --ggreen: #64d2b2; --gamber: #f7be5b; --gink: #e9f1f8; --gmuted: #95a7b8; --gline: #273748; --gpaper: #101b28; --gband: #132231; --gstatus: #143c35; --gactivebg: #433321; }
+:root { --gblue: #28699a; --ggray: #77828d; }
+[data-theme="dark"] { --gblue: #82bcf4; --ggray: #b2bec9; }
+.c-done { --gc: var(--ggreen); }
+.c-research { --gc: var(--gblue); }
+.c-issue, .c-blocked { --gc: var(--gamber); }
+.c-interrupted, .c-pending { --gc: var(--ggray); }
+:root { --ggreen: #166b5b; --gamber: #996006; --gink: #18293b; --gmuted: #687787; --gline: #dce4eb; --gpaper: #fcfdfd; --gband: #f4f7f8; --gstatus: #e4f1eb; --gactivebg: #fff0d1; }
+[data-theme="dark"] { --ggreen: #64d2b2; --gamber: #f7be5b; --gink: #e9f1f8; --gmuted: #95a7b8; --gline: #273748; --gpaper: #101b28; --gband: #132231; --gstatus: #143c35; --gactivebg: #433321; }
+:root { --gblue: #28699a; --ggray: #77828d; }
+[data-theme="dark"] { --gblue: #82bcf4; --ggray: #b2bec9; }
+.c-done { --gc: var(--ggreen); }
+.c-research { --gc: var(--gblue); }
+.c-issue, .c-blocked { --gc: var(--gamber); }
+.c-interrupted, .c-pending { --gc: var(--ggray); }
+:root, svg { --bg: #020617; --grid: #1e293b; --text: #ffffff; --text-muted: #94a3b8; --text-dim: #475569; --text-faint: #7d8da1; --panel: rgba(15, 23, 42, 0.5); --panel-border: #1e293b; --lane-fill: rgba(15, 23, 42, 0.22); --lane-stroke: #334155; --arrow: #64748b; --arrow-emphasis: #34d399; --mask: #0f172a; --frontend-fill: rgba(8, 51, 68, 0.4); --frontend-stroke: #22d3ee; --backend-fill: rgba(6, 78, 59, 0.4); --backend-stroke: #34d399; --database-fill: rgba(76, 29, 149, 0.4); --database-stroke: #a78bfa; --cloud-fill: rgba(120, 53, 15, 0.3); --cloud-stroke: #fbbf24; --security-fill: rgba(136, 19, 55, 0.4); --security-stroke: #fb7185; --messagebus-fill: rgba(251, 146, 60, 0.3); --messagebus-stroke: #fb923c; --external-fill: rgba(30, 41, 59, 0.5); --external-stroke: #94a3b8; --toolbar-bg: rgba(15, 23, 42, 0.8); --toolbar-border: #334155; --toolbar-text: #e2e8f0; --toolbar-hover: rgba(15, 23, 42, 0.95); --toolbar-menu-bg: #0f172a; --ggreen: #64d2b2; --gamber: #f7be5b; --gink: #e9f1f8; --gmuted: #95a7b8; --gline: #273748; --gpaper: #101b28; --gband: #132231; --gstatus: #143c35; --gactivebg: #433321; --gblue: #82bcf4; --ggray: #b2bec9; --gc: ; }
+@media (prefers-color-scheme: light) { :root, svg { --bg: #f8fafc; --grid: #e2e8f0; --text: #0f172a; --text-muted: #64748b; --text-dim: #94a3b8; --text-faint: #64748b; --panel: #ffffff; --panel-border: #e2e8f0; --lane-fill: rgba(248, 250, 252, 0.65); --lane-stroke: #cbd5e1; --arrow: #94a3b8; --arrow-emphasis: #059669; --mask: #ffffff; --frontend-fill: rgba(34, 211, 238, 0.15); --frontend-stroke: #0891b2; --backend-fill: rgba(52, 211, 153, 0.18); --backend-stroke: #059669; --database-fill: rgba(167, 139, 250, 0.2); --database-stroke: #7c3aed; --cloud-fill: rgba(251, 191, 36, 0.18); --cloud-stroke: #d97706; --security-fill: rgba(251, 113, 133, 0.15); --security-stroke: #e11d48; --messagebus-fill: rgba(251, 146, 60, 0.15); --messagebus-stroke: #ea580c; --external-fill: rgba(148, 163, 184, 0.18); --external-stroke: #64748b; --toolbar-bg: rgba(255, 255, 255, 0.92); --toolbar-border: #cbd5e1; --toolbar-text: #334155; --toolbar-hover: #ffffff; --toolbar-menu-bg: #ffffff; --ggreen: #166b5b; --gamber: #996006; --gink: #18293b; --gmuted: #687787; --gline: #dce4eb; --gpaper: #fcfdfd; --gband: #f4f7f8; --gstatus: #e4f1eb; --gactivebg: #fff0d1; --gblue: #28699a; --ggray: #77828d; --gc: ; } }
+svg[data-theme="light"] { --bg: #f8fafc; --grid: #e2e8f0; --text: #0f172a; --text-muted: #64748b; --text-dim: #94a3b8; --text-faint: #64748b; --panel: #ffffff; --panel-border: #e2e8f0; --lane-fill: rgba(248, 250, 252, 0.65); --lane-stroke: #cbd5e1; --arrow: #94a3b8; --arrow-emphasis: #059669; --mask: #ffffff; --frontend-fill: rgba(34, 211, 238, 0.15); --frontend-stroke: #0891b2; --backend-fill: rgba(52, 211, 153, 0.18); --backend-stroke: #059669; --database-fill: rgba(167, 139, 250, 0.2); --database-stroke: #7c3aed; --cloud-fill: rgba(251, 191, 36, 0.18); --cloud-stroke: #d97706; --security-fill: rgba(251, 113, 133, 0.15); --security-stroke: #e11d48; --messagebus-fill: rgba(251, 146, 60, 0.15); --messagebus-stroke: #ea580c; --external-fill: rgba(148, 163, 184, 0.18); --external-stroke: #64748b; --toolbar-bg: rgba(255, 255, 255, 0.92); --toolbar-border: #cbd5e1; --toolbar-text: #334155; --toolbar-hover: #ffffff; --toolbar-menu-bg: #ffffff; --ggreen: #166b5b; --gamber: #996006; --gink: #18293b; --gmuted: #687787; --gline: #dce4eb; --gpaper: #fcfdfd; --gband: #f4f7f8; --gstatus: #e4f1eb; --gactivebg: #fff0d1; --gblue: #28699a; --ggray: #77828d; --gc: ; }
+svg[data-theme="dark"] { --bg: #020617; --grid: #1e293b; --text: #ffffff; --text-muted: #94a3b8; --text-dim: #475569; --text-faint: #7d8da1; --panel: rgba(15, 23, 42, 0.5); --panel-border: #1e293b; --lane-fill: rgba(15, 23, 42, 0.22); --lane-stroke: #334155; --arrow: #64748b; --arrow-emphasis: #34d399; --mask: #0f172a; --frontend-fill: rgba(8, 51, 68, 0.4); --frontend-stroke: #22d3ee; --backend-fill: rgba(6, 78, 59, 0.4); --backend-stroke: #34d399; --database-fill: rgba(76, 29, 149, 0.4); --database-stroke: #a78bfa; --cloud-fill: rgba(120, 53, 15, 0.3); --cloud-stroke: #fbbf24; --security-fill: rgba(136, 19, 55, 0.4); --security-stroke: #fb7185; --messagebus-fill: rgba(251, 146, 60, 0.3); --messagebus-stroke: #fb923c; --external-fill: rgba(30, 41, 59, 0.5); --external-stroke: #94a3b8; --toolbar-bg: rgba(15, 23, 42, 0.8); --toolbar-border: #334155; --toolbar-text: #e2e8f0; --toolbar-hover: rgba(15, 23, 42, 0.95); --toolbar-menu-bg: #0f172a; --ggreen: #64d2b2; --gamber: #f7be5b; --gink: #e9f1f8; --gmuted: #95a7b8; --gline: #273748; --gpaper: #101b28; --gband: #132231; --gstatus: #143c35; --gactivebg: #433321; --gblue: #82bcf4; --ggray: #b2bec9; --gc: ; }
+rect.c-bg-rect { fill: var(--bg); }
+</style><rect width="100%" height="100%" class="c-bg-rect"/><style>
+  :root { --ggreen:#166b5b; --gamber:#996006; --gink:#18293b; --gmuted:#687787; --gline:#dce4eb; --gpaper:#fcfdfd; --gband:#f4f7f8; --gstatus:#e4f1eb; --gactivebg:#fff0d1; }
+  [data-theme="dark"] { --ggreen:#64d2b2; --gamber:#f7be5b; --gink:#e9f1f8; --gmuted:#95a7b8; --gline:#273748; --gpaper:#101b28; --gband:#132231; --gstatus:#143c35; --gactivebg:#433321; }
+  body, #diagram { font-family:Inter,"Noto Sans CJK SC","Microsoft YaHei",system-ui,sans-serif; }
+  .container { max-width:var(--archify-reader-width,1820px); }
+  .container .header { margin-bottom:.65rem; padding-right:0; }
+  .container .header-row { padding-right:29.5rem; }
+  .header h1 { font-size:clamp(22px,2.1vw,31px); }
+  .pulse-dot { animation:none; }
+  .diagram-container { padding:.35rem; padding-bottom:calc(.35rem + var(--archify-nav-reserve)); margin-bottom:.65rem; }
+  .cards.g-footer { display:block; margin-top:0; }
+  .footer { margin-top:.6rem; }
+  .g-controls {display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:.5rem 0 0;}
+  .g-tabs {display:flex;gap:6px;}
+  .g-tabs button,.g-pending {font:inherit;font-size:13px;padding:8px 13px;border:1px solid var(--gline);border-radius:7px;background:var(--gpaper);color:var(--gink);cursor:pointer;}
+  .g-tabs button[aria-pressed="true"] {background:var(--gstatus);border-color:var(--ggreen);color:var(--ggreen);font-weight:650;}
+  .g-meta {display:flex;gap:20px;align-items:center;color:var(--gmuted);font-size:12px;}
+  .g-meta strong {color:var(--gink);font-size:18px;font-weight:650;margin-right:5px;}
+  .g-summary {display:grid;grid-template-columns:1.1fr 1.3fr 1fr;gap:14px;color:var(--gmuted);font-size:12px;line-height:1.65;}
+  .g-summary&gt;div {border-top:2px solid var(--gline);padding-top:9px;}
+  .g-summary b {display:block;color:var(--gink);font-size:14px;font-weight:600;}
+  .g-summary a,.g-provenance a {color:var(--ggreen);text-decoration:underline;text-underline-offset:3px;}
+  .g-provenance {display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--gmuted);margin-top:12px;}
+  .gt-bg {fill:var(--gpaper);}.gt-band {fill:var(--gband);}.gt-text,.gt-strong {fill:var(--gink);}.gt-strong {font-weight:600;}.gt-muted,.gt-number {fill:var(--gmuted);}.gt-number {font-variant-numeric:tabular-nums;}
+  .gt-grid {stroke:var(--gline);stroke-width:1;}.gt-rowline {stroke:var(--gline);stroke-width:.55;}.gt-hit {fill:transparent;}.gt-row {cursor:pointer;outline:none;}.gt-row:hover .gt-hit,.gt-row:focus .gt-hit {fill:var(--ggreen);fill-opacity:.07;}.gt-row:focus .gt-hit {stroke:var(--ggreen);stroke-width:1;}
+  .gt-bar.gt-done {fill:var(--ggreen);fill-opacity:.2;}.gt-bar.gt-active {fill:var(--gamber);fill-opacity:.24;}.gt-top {stroke-width:2;}.gt-top.gt-done {stroke:var(--ggreen);}.gt-top.gt-active {stroke:var(--gamber);stroke-dasharray:5 3;}.gt-point.gt-done {fill:var(--ggreen);}.gt-point.gt-active {fill:var(--gamber);}.gt-bartext {fill:var(--gink);}
+  .gt-status.gt-done {fill:var(--gstatus);}.gt-status.gt-active {fill:var(--gactivebg);}.gt-done-text {fill:var(--ggreen);}.gt-active-text {fill:var(--gamber);}.gt-now {stroke:var(--gamber);stroke-width:1.5;stroke-dasharray:5 5;opacity:.75;}
+  #g-dialog {width:min(840px,92vw);max-height:83vh;margin:auto;border:1px solid var(--gline);border-radius:14px;padding:0;background:var(--gpaper);color:var(--gink);box-shadow:0 25px 90px #0005;}
+  #g-dialog::backdrop {background:#09172499;backdrop-filter:blur(3px);}
+  .g-dialog-head {position:sticky;top:0;z-index:1;display:flex;gap:20px;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--gline);background:var(--gpaper);}
+  .g-dialog-head h2 {font-size:20px;margin:0;}.g-dialog-head button {background:transparent;color:var(--gink);border:1px solid var(--gline);border-radius:6px;font-size:22px;cursor:pointer;padding:1px 10px;}
+  #g-dialog-content {padding:8px 24px 24px;}.g-task {padding:17px 0;border-bottom:1px solid var(--gline);}.g-task:last-child {border:0;}.g-task h3 {font-size:16px;margin:0 0 7px;}.g-task p {font-size:14px;line-height:1.7;margin:6px 0;}.g-task .g-date {font-size:12px;font-variant-numeric:tabular-nums;color:var(--gmuted);}.g-task a {color:var(--ggreen);}.g-task code {font-size:12px;background:var(--gband);padding:2px 5px;}.g-task .g-proof {font-size:13px;color:var(--ggreen);}.g-dialog-note {font-size:12px;line-height:1.7;color:var(--gmuted);padding:12px 0 0;}
+  @media(max-width:750px){.g-summary{grid-template-columns:1fr;}.g-controls{align-items:flex-start;}.g-meta{gap:10px;}.g-provenance{line-height:1.7}.container{padding-top:1rem}.container .header-row{padding-right:0}}
+  @media print {.g-controls,.g-provenance{display:none}.g-summary{font-size:10px} #g-dialog{display:none}}
+
+ :root{--gblue:#28699a;--ggray:#77828d;}[data-theme="dark"]{--gblue:#82bcf4;--ggray:#b2bec9;}
+ .header h1{font-size:clamp(22px,2vw,30px)}.g-meta{gap:16px}.gt-stage{fill:var(--gpaper);stroke:var(--gline);stroke-width:1.2}
+ .gt-row .gt-hit{pointer-events:all}.gt-future{cursor:pointer}.gt-future:hover .gt-stage{stroke:var(--ggreen);stroke-width:2}
+ .c-done{--gc:var(--ggreen)}.c-research{--gc:var(--gblue)}.c-issue,.c-blocked{--gc:var(--gamber)}.c-interrupted,.c-pending{--gc:var(--ggray)}
+ .g-fill{fill:var(--gc)}.g-stroke{stroke:var(--gc)}.g-window{fill:var(--gc);fill-opacity:.14;stroke:var(--gc);stroke-width:1.2}
+ .g-execution{fill:var(--gc);fill-opacity:.75}.g-unknown{stroke-dasharray:5 4;fill-opacity:.06}.g-tag{fill:var(--gc);fill-opacity:.10}
+ .g-result{fill:var(--gc);font-weight:600}.g-capsule{fill:var(--gpaper);stroke:var(--gline)}.g-item-id{font-variant-numeric:tabular-nums;font-weight:700}
+ .g-links{display:flex;gap:12px;flex-wrap:wrap}.g-detail-meta{padding:12px 0;border-bottom:1px solid var(--gline);line-height:1.7}
+ .g-subheading{font-size:15px;font-weight:600;color:var(--gink);margin:16px 0 6px}.g-pending-list{line-height:1.9}.g-provenance{margin-top:2px}
+</style><title>Pring · 最近12小时推进与后续执行 · 12小时推进与后续概览</title><desc>实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。 后续采用阶段轴，不设未经确认的日期；条宽不代表工期，具体前置见各项详情。</desc><rect width="1600" height="850" rx="12" class="gt-bg"/><text x="25" y="35" class="gt-strong" font-size="23" text-anchor="start">最近12小时 · 实际推进记录</text><text x="1570" y="35" class="gt-muted" font-size="17" text-anchor="end">09/09 21:18 — 09/10 09:18 · 北京时间</text><text x="25" y="78" class="gt-muted" font-size="16" text-anchor="start">事项 / 点击查看证据</text><text x="1485" y="78" class="gt-muted" font-size="16" text-anchor="middle">截至盘点的状态</text><text x="350" y="78" class="gt-muted" font-size="15" text-anchor="start">21:18</text><rect x="407.10648148148147" y="89" width="83.33333333333333" height="426" class="gt-band"/><line x1="407.10648148148147" x2="407.10648148148147" y1="89" y2="515" class="gt-grid"/><line x1="490.4398148148148" x2="490.4398148148148" y1="89" y2="515" class="gt-grid"/><rect x="573.7731481481482" y="89" width="83.33333333333333" height="426" class="gt-band"/><line x1="573.7731481481482" x2="573.7731481481482" y1="89" y2="515" class="gt-grid"/><text x="573.7731481481482" y="78" class="gt-muted" font-size="15" text-anchor="middle">09/10 00:00</text><line x1="657.1064814814815" x2="657.1064814814815" y1="89" y2="515" class="gt-grid"/><rect x="740.4398148148148" y="89" width="83.33333333333333" height="426" class="gt-band"/><line x1="740.4398148148148" x2="740.4398148148148" y1="89" y2="515" class="gt-grid"/><text x="740.4398148148148" y="78" class="gt-muted" font-size="15" text-anchor="middle">02:00</text><line x1="823.7731481481482" x2="823.7731481481482" y1="89" y2="515" class="gt-grid"/><rect x="907.1064814814814" y="89" width="83.33333333333333" height="426" class="gt-band"/><line x1="907.1064814814814" x2="907.1064814814814" y1="89" y2="515" class="gt-grid"/><text x="907.1064814814814" y="78" class="gt-muted" font-size="15" text-anchor="middle">04:00</text><line x1="990.4398148148148" x2="990.4398148148148" y1="89" y2="515" class="gt-grid"/><rect x="1073.7731481481483" y="89" width="83.33333333333333" height="426" class="gt-band"/><line x1="1073.7731481481483" x2="1073.7731481481483" y1="89" y2="515" class="gt-grid"/><text x="1073.7731481481483" y="78" class="gt-muted" font-size="15" text-anchor="middle">06:00</text><line x1="1157.1064814814813" x2="1157.1064814814813" y1="89" y2="515" class="gt-grid"/><rect x="1240.4398148148148" y="89" width="83.33333333333333" height="426" class="gt-band"/><line x1="1240.4398148148148" x2="1240.4398148148148" y1="89" y2="515" class="gt-grid"/><text x="1240.4398148148148" y="78" class="gt-muted" font-size="15" text-anchor="middle">08:00</text><line x1="1323.7731481481483" x2="1323.7731481481483" y1="89" y2="515" class="gt-grid"/><text x="1350" y="78" class="gt-muted" font-size="15" text-anchor="end">09:18</text><g class="gt-row c-issue" data-task="full" role="button" tabindex="0" aria-label="全套回归暴露故障，发现2项故障"><rect x="12" y="94" width="1567" height="38" rx="5" class="gt-hit"/><text x="25" y="116" class="gt-number" font-size="14" text-anchor="start">01</text><text x="59" y="111" class="gt-strong" font-size="18" text-anchor="start">全套回归暴露故障</text><text x="59" y="128" class="gt-muted" font-size="12" text-anchor="start">1146通过 / 2失败</text><line x1="25" x2="1570" y1="132" y2="132" class="gt-rowline"/><rect x="350" y="103" width="20.467129629629653" height="20" rx="4" class="g-window "/><text x="355" y="118" class="g-result" font-size="17" text-anchor="start">←</text><path d="M 370.46712962962965 107 l 6 6 -6 6 -6 -6 z" class="g-fill"/><text x="382.46712962962965" y="118" class="gt-muted" font-size="14" text-anchor="start">21:33</text><rect x="1408" y="101" width="154" height="25" rx="12" class="g-tag"/><text x="1485" y="118" class="g-result" font-size="15" text-anchor="middle">发现2项故障</text><title>完整套件发现SQLite锁与报告时间倒序两项失败。报告时钟后来已有专项修复；SQLite仍未关闭。原失败记录保持不变。 2026-09-09T17:54:01.675674+08:00 → 2026-09-09T21:33:37.180581+08:00；实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。</title></g><g class="gt-row c-done" data-task="clock" role="button" tabindex="0" aria-label="报告时钟与隔离验证，专项通过"><rect x="12" y="132" width="1567" height="38" rx="5" class="gt-hit"/><text x="25" y="154" class="gt-number" font-size="14" text-anchor="start">02</text><text x="59" y="149" class="gt-strong" font-size="18" text-anchor="start">报告时钟与隔离验证</text><text x="59" y="166" class="gt-muted" font-size="12" text-anchor="start">38项专项通过</text><line x1="25" x2="1570" y1="170" y2="170" class="gt-rowline"/><rect x="512.274050925926" y="141" width="5.008171296296268" height="20" rx="4" class="g-window "/><path d="M 517.2822222222222 145 l 6 6 -6 6 -6 -6 z" class="g-fill"/><text x="529.2822222222222" y="156" class="gt-muted" font-size="14" text-anchor="start">23:19</text><rect x="1408" y="139" width="154" height="25" rx="12" class="g-tag"/><text x="1485" y="156" class="g-result" font-size="15" text-anchor="middle">专项通过</text><title>耗时改用单调计时，保留实际UTC及回拨标记；按请求ID等查询入口统一还原耗时。验证迁入独立环境。 2026-09-09T23:15:43.239650+08:00 → 2026-09-09T23:19:19.592840+08:00；实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。</title></g><g class="gt-row c-done" data-task="gdp" role="button" tabindex="0" aria-label="GDP合同与消费修复，关联通过"><rect x="12" y="170" width="1567" height="38" rx="5" class="gt-hit"/><text x="25" y="192" class="gt-number" font-size="14" text-anchor="start">03</text><text x="59" y="187" class="gt-strong" font-size="18" text-anchor="start">GDP合同与消费修复</text><text x="59" y="204" class="gt-muted" font-size="12" text-anchor="start">95项关联通过</text><line x1="25" x2="1570" y1="208" y2="208" class="gt-rowline"/><rect x="577.3902083333334" y="179" width="9.344097222222217" height="20" rx="4" class="g-window "/><path d="M 586.7343055555556 183 l 6 6 -6 6 -6 -6 z" class="g-fill"/><text x="598.7343055555556" y="194" class="gt-muted" font-size="14" text-anchor="start">00:09</text><rect x="1408" y="177" width="154" height="25" rx="12" class="g-tag"/><text x="1485" y="194" class="g-result" font-size="15" text-anchor="middle">关联通过</text><title>补齐GDP八字段新目录合同与原件/规范化消费校验，覆盖单位、当季/累计及价格基础表头。 2026-09-10T00:02:36.257093+08:00 → 2026-09-10T00:09:19.922659+08:00；实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。</title></g><g class="gt-row c-done" data-task="ust" role="button" tabindex="0" aria-label="美债新目录与来源校验，两批通过"><rect x="12" y="208" width="1567" height="38" rx="5" class="gt-hit"/><text x="25" y="230" class="gt-number" font-size="14" text-anchor="start">04</text><text x="59" y="225" class="gt-strong" font-size="18" text-anchor="start">美债新目录与来源校验</text><text x="59" y="242" class="gt-muted" font-size="12" text-anchor="start">CLI 28项 / 消费113项</text><line x1="25" x2="1570" y1="246" y2="246" class="gt-rowline"/><rect x="603.1699074074074" y="217" width="46.74710648148141" height="20" rx="4" class="g-window "/><path d="M 649.9170138888888 221 l 6 6 -6 6 -6 -6 z" class="g-fill"/><text x="661.9170138888888" y="232" class="gt-muted" font-size="14" text-anchor="start">00:54</text><rect x="1408" y="215" width="154" height="25" rx="12" class="g-tag"/><text x="1485" y="232" class="g-result" font-size="15" text-anchor="middle">两批通过</text><title>修复CLI新目录查找，明确官方CSV来源合同；原件与规范化联合资格接入检索、上下文、派生及组件回放，坏最新父项不能恢复旧利差。 2026-09-10T00:21:09.940707+08:00 → 2026-09-10T00:54:49.415303+08:00；实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。</title></g><g class="gt-row c-blocked" data-task="bse" role="button" tabindex="0" aria-label="北交所官方入口补证，仍缺样本"><rect x="12" y="246" width="1567" height="38" rx="5" class="gt-hit"/><text x="25" y="268" class="gt-number" font-size="14" text-anchor="start">05</text><text x="59" y="263" class="gt-strong" font-size="18" text-anchor="start">北交所官方入口补证</text><text x="59" y="280" class="gt-muted" font-size="12" text-anchor="start">新目标样本仍为0</text><line x1="25" x2="1570" y1="284" y2="284" class="gt-rowline"/><path d="M 647.3588657407407 259 l 6 6 -6 6 -6 -6 z" class="g-fill"/><text x="659.3588657407407" y="270" class="gt-muted" font-size="14" text-anchor="start">00:52</text><rect x="1408" y="253" width="154" height="25" rx="12" class="g-tag"/><text x="1485" y="270" class="g-result" font-size="15" text-anchor="middle">仍缺样本</text><title>完成3次逻辑搜索及1次有依据的官方GET，新入口返回自指302；没有获得目标日样本和历史公开时间证据。 2026-09-10T00:52:58.903492+08:00 → 2026-09-10T00:52:58.903492+08:00；实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。</title></g><g class="gt-row c-done" data-task="p2fix" role="button" tabindex="0" aria-label="P2回放边界修复与复审，复审完成"><rect x="12" y="284" width="1567" height="38" rx="5" class="gt-hit"/><text x="25" y="306" class="gt-number" font-size="14" text-anchor="start">06</text><text x="59" y="301" class="gt-strong" font-size="18" text-anchor="start">P2回放边界修复与复审</text><text x="59" y="318" class="gt-muted" font-size="12" text-anchor="start">认证 / 鲜度 / 双版本范围</text><line x1="25" x2="1570" y1="322" y2="322" class="gt-rowline"/><path d="M 791.9516435185185 297 l 6 6 -6 6 -6 -6 z" class="g-fill"/><text x="803.9516435185185" y="308" class="gt-muted" font-size="14" text-anchor="start">02:37</text><rect x="1408" y="291" width="154" height="25" rx="12" class="g-tag"/><text x="1485" y="308" class="g-result" font-size="15" text-anchor="middle">复审完成</text><title>修复可选P2被误作硬门、输出待认证、比较侧来源遗漏、陈旧值重标current、输出单独降级及双方禁用公式边界。 2026-09-10T02:37:05.311117+08:00 → 2026-09-10T02:37:05.311117+08:00；实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。</title></g><g class="gt-row c-interrupted" data-task="p2lost" role="button" tabindex="0" aria-label="P2首次合并回归中断，终态丢失"><rect x="12" y="322" width="1567" height="38" rx="5" class="gt-hit"/><text x="25" y="344" class="gt-number" font-size="14" text-anchor="start">07</text><text x="59" y="339" class="gt-strong" font-size="18" text-anchor="start">P2首次合并回归中断</text><text x="59" y="356" class="gt-muted" font-size="12" text-anchor="start">最后日志14% / 退出码未知</text><line x1="25" x2="1570" y1="360" y2="360" class="gt-rowline"/><rect x="791.9516435185185" y="331" width="428.7897222222223" height="20" rx="4" class="g-window g-unknown"/><text x="803.9516435185185" y="346" class="g-result" font-size="14" text-anchor="start">停止时刻未知</text><path d="M 1220.7413657407408 335 l 6 6 -6 6 -6 -6 z" class="g-fill"/><text x="1232.7413657407408" y="346" class="gt-muted" font-size="14" text-anchor="start">07:45</text><rect x="1408" y="329" width="154" height="25" rx="12" class="g-tag"/><text x="1485" y="346" class="g-result" font-size="15" text-anchor="middle">终态丢失</text><title>第129批工具会话与旧进程后来已不存在，未取得终态；保留原日志和未知结果，按相同范围重新验证。 2026-09-10T02:37:05.311117+08:00 → 2026-09-10T07:45:49.027867+08:00；实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。</title></g><g class="gt-row c-done" data-task="p2pass" role="button" tabindex="0" aria-label="P2持久回归与最终核验，限定范围通过"><rect x="12" y="360" width="1567" height="38" rx="5" class="gt-hit"/><text x="25" y="382" class="gt-number" font-size="14" text-anchor="start">08</text><text x="59" y="377" class="gt-strong" font-size="18" text-anchor="start">P2持久回归与最终核验</text><text x="59" y="394" class="gt-muted" font-size="12" text-anchor="start">484项通过 / 前后核验通过</text><line x1="25" x2="1570" y1="398" y2="398" class="gt-rowline"/><rect x="1220.7515277777777" y="369" width="36.46449074074076" height="20" rx="4" class="g-execution "/><path d="M 1257.2160185185185 373 l 6 6 -6 6 -6 -6 z" class="g-fill"/><text x="1269.2160185185185" y="384" class="gt-muted" font-size="14" text-anchor="start">08:12</text><rect x="1408" y="367" width="154" height="25" rx="12" class="g-tag"/><text x="1485" y="384" class="g-result" font-size="15" text-anchor="middle">限定范围通过</text><title>独立持久执行器完成五文件合并回归并自行保存终态；后续根验收确认228输入、4受保护文件、91安装源码及53依赖一致。 2026-09-10T07:45:49.466010+08:00 → 2026-09-10T08:12:04.732851+08:00；实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。</title></g><g class="gt-row c-issue" data-task="q1" role="button" tabindex="0" aria-label="Q1映射研究到公开反例，已复现待修"><rect x="12" y="398" width="1567" height="38" rx="5" class="gt-hit"/><text x="25" y="420" class="gt-number" font-size="14" text-anchor="start">09</text><text x="59" y="415" class="gt-strong" font-size="18" text-anchor="start">Q1映射研究到公开反例</text><text x="59" y="432" class="gt-muted" font-size="12" text-anchor="start">规则已明确 / 反例已失败</text><line x1="25" x2="1570" y1="436" y2="436" class="gt-rowline"/><rect x="1241.7838425925925" y="407" width="89.30851851851867" height="20" rx="4" class="g-window "/><path d="M 1331.0923611111111 411 l 6 6 -6 6 -6 -6 z" class="g-fill"/><text x="1319.0923611111111" y="422" class="gt-muted" font-size="14" text-anchor="end">09:05</text><rect x="1408" y="405" width="154" height="25" rx="12" class="g-tag"/><text x="1485" y="422" class="g-result" font-size="15" text-anchor="middle">已复现待修</text><title>研究明确同一Jan–Mar区间源格的显式映射与绑定方式；首个公开测试5.09秒失败，命中mapping_unresolved，生产映射尚未实现。 2026-09-10T08:00:58.062654+08:00 → 2026-09-10T09:05:16.190881+08:00；实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。</title></g><g class="gt-row c-research" data-task="a18" role="button" tabindex="0" aria-label="A18原件与收据对账，对账完成"><rect x="12" y="436" width="1567" height="38" rx="5" class="gt-hit"/><text x="25" y="458" class="gt-number" font-size="14" text-anchor="start">10</text><text x="59" y="453" class="gt-strong" font-size="18" text-anchor="start">A18原件与收据对账</text><text x="59" y="470" class="gt-muted" font-size="12" text-anchor="start">250原件 / 268有效收据</text><line x1="25" x2="1570" y1="474" y2="474" class="gt-rowline"/><path d="M 1253.981550925926 449 l 6 6 -6 6 -6 -6 z" class="g-fill"/><text x="1265.981550925926" y="460" class="gt-muted" font-size="14" text-anchor="start">08:09</text><rect x="1408" y="443" width="154" height="25" rx="12" class="g-tag"/><text x="1485" y="460" class="g-result" font-size="15" text-anchor="middle">对账完成</text><title>对账1858标量身份及收据/规范化字段，核对v1/v2唯一M2数值变化已修。分类为1857字面相符与1个Q1映射待绑定。 2026-09-10T08:09:45.003772+08:00 → 2026-09-10T08:09:45.003772+08:00；实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。</title></g><g class="gt-row c-issue" data-task="sqlite" role="button" tabindex="0" aria-label="SQLite可控诊断与收口方案，继续定位"><rect x="12" y="474" width="1567" height="38" rx="5" class="gt-hit"/><text x="25" y="496" class="gt-number" font-size="14" text-anchor="start">11</text><text x="59" y="491" class="gt-strong" font-size="18" text-anchor="start">SQLite可控诊断与收口方案</text><text x="59" y="508" class="gt-muted" font-size="12" text-anchor="start">单一交叠未复现 / 根因未知</text><line x1="25" x2="1570" y1="512" y2="512" class="gt-rowline"/><path d="M 1331.0923611111111 487 l 6 6 -6 6 -6 -6 z" class="g-fill"/><text x="1319.0923611111111" y="498" class="gt-muted" font-size="14" text-anchor="end">09:05</text><rect x="1408" y="481" width="154" height="25" rx="12" class="g-tag"/><text x="1485" y="498" class="g-result" font-size="15" text-anchor="middle">继续定位</text><title>保持真实心跳写事务未提交，原件查询仍完成；10.45秒诊断证明该交叠未触发原故障。任务补充关闭条件、四消费路径矩阵及分层验收。 2026-09-10T09:05:16.190881+08:00 → 2026-09-10T09:05:16.190881+08:00；实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。</title></g><line x1="1350" x2="1350" y1="89" y2="515" class="gt-now"/><text x="25" y="548" class="gt-muted" font-size="15" text-anchor="start">实线：执行起止　浅色条：记录窗口　虚线：停止时刻未知　◆：结果记录时点</text><text x="1570" y="548" class="gt-muted" font-size="14" text-anchor="end">绿：通过　蓝：对账　橙：待解决　灰：中断</text><text x="25" y="589" class="gt-strong" font-size="22" text-anchor="start">后续执行 · 点击阶段查看事项，或切换到完整计划</text><text x="1570" y="589" class="gt-muted" font-size="16" text-anchor="end">待排期 · 无承诺完成日期</text><g class="gt-future" data-stage="software" role="button" tabindex="0" aria-label="01  软件修复收口，待排期" data-plan-ids="S1,S2,S3,S4"><rect x="25" y="610" width="368" height="156" rx="10" class="gt-stage"/><text x="43" y="641" class="gt-strong" font-size="20" text-anchor="start">01  软件修复收口</text><text x="43" y="677" class="gt-muted" font-size="17" text-anchor="start">SQLite锁 / Worker新目录</text><text x="43" y="705" class="gt-muted" font-size="17" text-anchor="start">Q1映射 / 信用脉冲整窗</text><text x="43" y="733" class="gt-muted" font-size="17" text-anchor="start">关闭缺陷后完成关联回归</text></g><g class="gt-future" data-stage="sources" role="button" tabindex="0" aria-label="02  来源与业务规则，待排期" data-plan-ids="D1,D2,D3"><rect x="419" y="610" width="368" height="156" rx="10" class="gt-stage"/><text x="437" y="641" class="gt-strong" font-size="20" text-anchor="start">02  来源与业务规则</text><text x="437" y="677" class="gt-muted" font-size="17" text-anchor="start">来源认证 / 历史公开时间</text><text x="437" y="705" class="gt-muted" font-size="17" text-anchor="start">股票池、广度与完整金额</text><text x="437" y="733" class="gt-muted" font-size="17" text-anchor="start">商品合约、换月与篮子</text></g><g class="gt-future" data-stage="accept" role="button" tabindex="0" aria-label="03  完整模型与真实验收，待排期" data-plan-ids="G1,G2,V1,V2"><rect x="813" y="610" width="368" height="156" rx="10" class="gt-stage"/><text x="831" y="641" class="gt-strong" font-size="20" text-anchor="start">03  完整模型与真实验收</text><text x="831" y="677" class="gt-muted" font-size="17" text-anchor="start">最终全套 / 完整候选与校准</text><text x="831" y="705" class="gt-muted" font-size="17" text-anchor="start">固定120交易日双时点回放</text><text x="831" y="733" class="gt-muted" font-size="17" text-anchor="start">真实检索基准 / 合格AI报告</text></g><g class="gt-future" data-stage="release" role="button" tabindex="0" aria-label="04  演练与正式切换，待排期" data-plan-ids="V3"><rect x="1207" y="610" width="368" height="156" rx="10" class="gt-stage"/><text x="1225" y="641" class="gt-strong" font-size="20" text-anchor="start">04  演练与正式切换</text><text x="1225" y="677" class="gt-muted" font-size="17" text-anchor="start">目标日端到端结果一致</text><text x="1225" y="705" class="gt-muted" font-size="17" text-anchor="start">中断恢复与回退边界</text><text x="1225" y="733" class="gt-muted" font-size="17" text-anchor="start">必要前置满足后正式切换</text></g><text x="25" y="802" class="gt-strong" font-size="18" text-anchor="start">服务目标：稳定使用可信、点时正确的数据，形成可验收的Pring输出与真实报告。</text><text x="25" y="833" class="gt-muted" font-size="15" text-anchor="start">测试批次范围重叠，不累加；软件切片通过不等于来源认证、完整候选、120日回放或正式切换。</text></svg>

@@ -1,0 +1,28 @@
+{
+    "status":  "running",
+    "recorded_at":  "2026-09-09T18:37:05.3111176+00:00",
+    "main_session_id":  6968,
+    "previous_goal_turn_classification":  "progress",
+    "branch":  "main",
+    "head":  "99c495a217b66d4bca9d6ceae4688ee69d4382bb",
+    "frozen_input_manifest":  "verification-p2-inputs-129.json",
+    "runtime_before":  "verification-p2-runtime-before-129.json",
+    "log":  "verification-p2-joint-129.txt",
+    "scope":  [
+                  "tests/models/test_candidate_admission.py",
+                  "tests/models/test_candidate_replay.py",
+                  "tests/models/test_model_lifecycle.py",
+                  "tests/integration/test_context_model_certification.py",
+                  "tests/integration/test_derived_context_freshness.py"
+              ],
+    "mypy_files":  94,
+    "mypy_passed":  true,
+    "ruff_passed":  true,
+    "standards_remaining":  0,
+    "spec_remaining":  0,
+    "default_suite_rerun":  false,
+    "real_complete_candidate":  false,
+    "real_120_day_replay":  false,
+    "real_qualified_ai_outputs":  0,
+    "production_cutover":  false
+}

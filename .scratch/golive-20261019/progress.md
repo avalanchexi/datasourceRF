@@ -1,0 +1,9 @@
+- 2026-10-19 17:09:26 合并完成：ff 到 conclusion-board 638d125、cockpit-layout 57474e2，merge worker-gaps 得 a976625，无冲突
+- 2026-10-19 17:11:30 clock_check 退出 0；全套开跑（dev-venv-golive，与 HEAD 逐文件一致）
+- 2026-10-19 18:51:17 全套结束：3 failed, 2729 passed，5923.80s（17:11～18:50），C 盘最低 43G；失败为 bytecode 1 例（src 下 10-15 旧 __pycache__）与中间价 2 例（日期相关）。已删 src 下 __pycache__
+- 2026-10-19 18:53:30 修复：中间价两例固定时钟到原运行截止（测试改动，提交 2502ae4）；bytecode 例删 src 旧 __pycache__ 后通过；该文件 4 例＋bytecode 例＋两例冒烟 7 passed，98s
+- 2026-10-19 18:55:10 备份完成：backups/pring-cycle-before-golive-20261019.sqlite3（3224883200 字节，quick_check ok，alembic 0038，parent_run 41）
+- 2026-10-19 18:56:29 正式 dev-venv 重装（原副本来自 worktree igr，43 处差异 → 0），init 迁移 0038→0039_run_health，doctor ok；调度开关未动（enabled，09:30）
+- 2026-10-19 18:58:07 clock_check 0；提交 manual_full run-153de3060fa2b0ebc424（目标日 2026-10-19，系统按默认选定，三核心更新时点 17:00 已过），18:57:57 起 Worker PID 199223（start-worker-golive-20261019.sh，flock＋disk_guard 20G）
+- 2026-10-19 19:26:27 运行 completed（19:25:08，projection-554b0640f5f9d167fb6a）；AI 报告 completed_degraded：codex_cli、claude_code_cli 均 timed_out，退回 deterministic；19:26 SIGTERM 停 Worker exit 0
+- 2026-10-19 19:28:21 体检完成 audit-run-153de306.md（真正缺失 10／模型用到 9，输出 58/59，三核心目标日一致）；第 6 步：三核心 points 各 120、change_5 有值、stage_history.display.days 120、noncanonical_basis 存在

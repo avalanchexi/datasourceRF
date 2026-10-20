@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Pring Cycle 系统架构",
+    "subtitle": "CLI 追加任务 · Worker 执行 · 原子投影 · 只读驾驶舱",
+    "locale": "zh-CN",
+    "output": "pring-architecture.html",
+    "quality_profile": "showcase",
+    "visual_preset": "blueprint",
+    "views": [
+      {
+        "id": "acquire",
+        "label": "证据采集",
+        "focus": ["worker", "cascade", "tushare", "official", "eia", "search", "acquisition", "artifacts", "evidence"],
+        "note": "固定降级链：本地有效证据 → TuShare → 认证官方直连 → Tavily → Exa → 受限 AI 搜索。每次获取写一条采集回执，原件按 SHA-256 内容寻址保存。"
+      },
+      {
+        "id": "classify",
+        "label": "确定性分类",
+        "focus": ["evidence", "trend", "p0", "projection"],
+        "note": "三条核心价格序列经 120 日趋势状态机得到牛熊状态，机械映射为 Stage I–VI。P0 门禁不通过就不发布新阶段，当前指针继续读上一套投影。"
+      },
+      {
+        "id": "serve",
+        "label": "只读服务与报告",
+        "focus": ["projection", "web", "browser", "codex", "claudecli"],
+        "note": "页面只读取已发布投影，浏览器不重算趋势或阶段。两个 AI CLI 只解释冻结证据包，都失败则输出确定性简版报告。"
+      }
+    ]
+  },
+  "components": [
+    { "id": "cli", "type": "external", "label": "pring-cycle CLI", "sublabel": "唯一命令入口", "pos": [40, 30], "size": [190, 50] },
+    { "id": "ledger", "type": "database", "label": "运行账本", "sublabel": "SQLite WAL · 幂等键", "pos": [320, 30], "size": [190, 50] },
+    { "id": "worker", "type": "backend", "label": "Worker 进程", "sublabel": "租约 + 可恢复检查点", "pos": [320, 130], "size": [190, 56] },
+    { "id": "cascade", "type": "security", "label": "检索降级链", "sublabel": "预算 · 负缓存 · 发布门", "pos": [320, 240], "size": [190, 56], "tag": "单运行 8/4/1" },
+
+    { "id": "tushare", "type": "external", "label": "TuShare Pro", "sublabel": "行情与宏观", "pos": [40, 150], "size": [190, 46] },
+    { "id": "official", "type": "external", "label": "官方直连", "sublabel": "PBOC · NBS · 中国货币网", "pos": [40, 214], "size": [190, 46] },
+    { "id": "eia", "type": "external", "label": "EIA API v2", "sublabel": "Brent / WTI 原油", "pos": [40, 278], "size": [190, 46] },
+    { "id": "search", "type": "external", "label": "Tavily / Exa", "sublabel": "只产出候选来源", "pos": [40, 342], "size": [190, 46] },
+
+    { "id": "acquisition", "type": "backend", "label": "采集回执", "sublabel": "原件哈希 · 解析版本", "pos": [600, 240], "size": [190, 56] },
+    { "id": "artifacts", "type": "database", "label": "制品目录", "sublabel": "内容寻址 SHA-256", "pos": [600, 340], "size": [190, 50] },
+
+    { "id": "evidence", "type": "database", "label": "证据仓库", "sublabel": "双 as-of 追加式", "pos": [880, 240], "size": [190, 50], "tag": "不可变版本" },
+    { "id": "trend", "type": "backend", "label": "趋势与阶段引擎", "sublabel": "120 日状态机 · 无网络", "pos": [880, 340], "size": [190, 56] },
+    { "id": "p0", "type": "security", "label": "P0 核心门禁", "sublabel": "不通过则 action_required", "pos": [880, 440], "size": [190, 56] },
+
+    { "id": "browser", "type": "external", "label": "浏览器", "sublabel": "127.0.0.1:8050", "pos": [1160, 240], "size": [190, 50] },
+    { "id": "web", "type": "frontend", "label": "FastAPI + Dash", "sublabel": "八页只读 + REST", "pos": [1160, 340], "size": [190, 50] },
+    { "id": "projection", "type": "database", "label": "分析投影集", "sublabel": "六数据集原子发布", "pos": [1160, 440], "size": [190, 50] },
+    { "id": "codex", "type": "cloud", "label": "Codex CLI", "sublabel": "子进程适配器", "pos": [1160, 560], "size": [190, 46] },
+    { "id": "claudecli", "type": "cloud", "label": "Claude Code CLI", "sublabel": "备用适配器", "pos": [1160, 640], "size": [190, 46] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "外部来源", "wraps": ["tushare", "official", "eia", "search"] }
+  ],
+  "connections": [
+    { "id": "cli-to-ledger", "from": "cli", "to": "ledger", "label": "幂等追加任务", "variant": "emphasis" },
+    { "id": "ledger-to-worker", "from": "ledger", "to": "worker", "label": "领取租约", "labelAt": [415, 94] },
+    { "id": "worker-to-cascade", "from": "worker", "to": "cascade", "label": "按序取证", "labelAt": [415, 200] },
+
+    { "id": "cascade-to-tushare", "from": "cascade", "to": "tushare" },
+    { "id": "cascade-to-official", "from": "cascade", "to": "official" },
+    { "id": "cascade-to-eia", "from": "cascade", "to": "eia" },
+    { "id": "cascade-to-search", "from": "cascade", "to": "search", "variant": "dashed" },
+
+    { "id": "cascade-to-acquisition", "from": "cascade", "to": "acquisition", "label": "回执" },
+    { "id": "acquisition-to-artifacts", "from": "acquisition", "to": "artifacts", "label": "原件入库", "variant": "security", "labelAt": [695, 310] },
+    { "id": "acquisition-to-evidence", "from": "acquisition", "to": "evidence", "label": "source claim" },
+
+    { "id": "evidence-to-trend", "from": "evidence", "to": "trend", "label": "120 日窗口", "labelAt": [975, 304] },
+    { "id": "trend-to-p0", "from": "trend", "to": "p0", "label": "三资产状态", "labelAt": [975, 410] },
+    { "id": "p0-to-projection", "from": "p0", "to": "projection", "label": "原子发布", "variant": "emphasis" },
+
+    { "id": "projection-to-web", "from": "projection", "to": "web", "label": "只读投影", "variant": "emphasis" },
+    { "id": "web-to-browser", "from": "web", "to": "browser", "label": "八页导航" },
+    { "id": "projection-to-codex", "from": "projection", "to": "codex", "label": "冻结证据包", "variant": "dashed", "labelAt": [1255, 504] },
+    { "id": "codex-to-claudecli", "from": "codex", "to": "claudecli", "label": "失败则降级", "variant": "dashed", "labelAt": [1255, 620] }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "确定性内核",
+      "items": [
+        "正式阶段只由债、股、商品三个核心价格状态机械映射",
+        "宏观、库存与政策证据只做事后确认，不参与投票",
+        "非典型组合返回空阶段，不创建 Stage VII/VIII"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "点时可重放",
+      "items": [
+        "public_as_of 回答市场当时理论可知什么",
+        "system_as_of 回答本系统当时已取得并校验什么",
+        "来源修订生成新版本指向旧版本，从不覆盖"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "刻意的边界",
+      "items": [
+        "AI 只解释冻结证据包，不能改写任何阶段",
+        "应用不接收也不保存模型厂商 API key",
+        "无备份：RPO 与 RTO 均为 not_guaranteed"
+      ]
+    }
+  ]
+}

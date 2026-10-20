@@ -1,0 +1,1167 @@
+{
+  "format": "archify-custom-gantt-v1",
+  "title": "Pring · 近期执行与修复",
+  "locale": "zh-CN",
+  "timezone": "Asia/Shanghai",
+  "period_start": "2026-09-05T00:00:00+08:00",
+  "snapshot_at": "2026-09-09T10:02:38+08:00",
+  "head_commit": "99c495a217b66d4bca9d6ceae4688ee69d4382bb",
+  "time_semantics": "条形表示有依据的记录覆盖窗口：起点取实施基点或前一相关提交，终点取完成提交；并非连续工时。进行中项截于盘点时点；未排期任务没有虚构未来日期。",
+  "engine": {
+    "root": "/mnt/d/cursor/archify/archify",
+    "version": "2.17.0-dev.1",
+    "mode": "custom SVG in Archify HTML template",
+    "native_gantt_schema": false
+  },
+  "groups": [
+    {
+      "id": "audit",
+      "label": "来源审查与驾驶舱 QA",
+      "note": "来源边界重新收口",
+      "start": "2026-09-05T16:48:59+08:00",
+      "end": "2026-09-05T22:32:39+08:00",
+      "status": "completed",
+      "task_ids": [
+        "task-01",
+        "task-02"
+      ]
+    },
+    {
+      "id": "foundation",
+      "label": "规格、候选天数与收据",
+      "note": "22 票修复计划启动",
+      "start": "2026-09-05T22:32:39+08:00",
+      "end": "2026-09-06T22:19:13+08:00",
+      "status": "completed",
+      "task_ids": [
+        "task-03",
+        "task-04",
+        "task-05"
+      ]
+    },
+    {
+      "id": "retrieval",
+      "label": "检索、预算与完整运行",
+      "note": "报告协议同步修复",
+      "start": "2026-09-06T22:19:13+08:00",
+      "end": "2026-09-07T12:17:43+08:00",
+      "status": "completed",
+      "task_ids": [
+        "task-06",
+        "task-07",
+        "task-08",
+        "task-09"
+      ]
+    },
+    {
+      "id": "macro",
+      "label": "宏观候选与派生纠错",
+      "note": "资格 / 期次 / 鲜度 / 金额",
+      "start": "2026-09-07T12:17:43+08:00",
+      "end": "2026-09-08T02:24:52+08:00",
+      "status": "completed",
+      "task_ids": [
+        "task-10",
+        "task-11",
+        "task-12",
+        "task-13"
+      ]
+    },
+    {
+      "id": "catalog",
+      "label": "不可变目录与候选准入",
+      "note": "校验先于新目录采用",
+      "start": "2026-09-08T02:24:52+08:00",
+      "end": "2026-09-08T10:01:42+08:00",
+      "status": "completed",
+      "task_ids": [
+        "task-14",
+        "task-15",
+        "task-16"
+      ]
+    },
+    {
+      "id": "discovery",
+      "label": "市场传导与搜索实测",
+      "note": "真实搜索结果单独计量",
+      "start": "2026-09-08T10:01:42+08:00",
+      "end": "2026-09-08T14:10:41+08:00",
+      "status": "completed",
+      "task_ids": [
+        "task-17",
+        "task-18",
+        "task-19"
+      ]
+    },
+    {
+      "id": "rrr",
+      "label": "降准公告完整消费",
+      "note": "多范围与回放一致性",
+      "start": "2026-09-08T14:10:41+08:00",
+      "end": "2026-09-08T18:09:11+08:00",
+      "status": "completed",
+      "task_ids": [
+        "task-20",
+        "task-21"
+      ]
+    },
+    {
+      "id": "warrants",
+      "label": "仓单全链与历史覆盖",
+      "note": "原行 → 仓库 → 120 日",
+      "start": "2026-09-08T18:09:11+08:00",
+      "end": "2026-09-08T23:14:39+08:00",
+      "status": "completed",
+      "task_ids": [
+        "task-22",
+        "task-23",
+        "task-24",
+        "task-25"
+      ]
+    },
+    {
+      "id": "core",
+      "label": "三核心采集与逐日回放",
+      "note": "修订不回写早期判断",
+      "start": "2026-09-08T23:14:39+08:00",
+      "end": "2026-09-09T01:11:30+08:00",
+      "status": "completed",
+      "task_ids": [
+        "task-26",
+        "task-27",
+        "task-28"
+      ]
+    },
+    {
+      "id": "replay",
+      "label": "候选与上下文回放存档",
+      "note": "逐日结果可查询、可追溯",
+      "start": "2026-09-09T01:11:30+08:00",
+      "end": "2026-09-09T03:19:59+08:00",
+      "status": "completed",
+      "task_ids": [
+        "task-29",
+        "task-30"
+      ]
+    },
+    {
+      "id": "integrity",
+      "label": "制品一致性与连接释放",
+      "note": "全套失败后定位并修复",
+      "start": "2026-09-09T03:19:59+08:00",
+      "end": "2026-09-09T05:49:17+08:00",
+      "status": "completed",
+      "task_ids": [
+        "task-31"
+      ]
+    },
+    {
+      "id": "context",
+      "label": "LPR 收口 · PMI 正在推进",
+      "note": "从宏观原件到实际采用",
+      "start": "2026-09-09T05:49:17+08:00",
+      "end": "2026-09-09T10:02:38+08:00",
+      "status": "active",
+      "task_ids": [
+        "task-32",
+        "task-pmi"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-01",
+      "group": "audit",
+      "title": "来源审查与驾驶舱修复",
+      "start": "2026-09-05T16:48:59+08:00",
+      "end": "2026-09-05T17:19:45+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "07195d02ea5f7c2bb5d491035a092ffed2a40b8c",
+        "short": "07195d0",
+        "committed_at": "2026-09-05T16:48:59+08:00",
+        "subject": "fix: harden source certification and projection boundaries"
+      },
+      "end_commit": {
+        "hash": "42da5c70a5bd2efe239dc50ab3eea6cd6cd0860b",
+        "short": "42da5c7",
+        "committed_at": "2026-09-05T17:19:45+08:00",
+        "subject": "fix(qa): ISSUE-003 - encode evidence trace cutoff timestamps"
+      },
+      "status": "completed",
+      "summary": "暂停未闭合来源；修复暂停提示、任务入队与证据时间链接。",
+      "verification": "352 项测试；离线验收与恢复记录。",
+      "source": ".scratch/pring-cycle-dashboard/closeout-2026-09-05.md"
+    },
+    {
+      "id": "task-02",
+      "group": "audit",
+      "title": "融资候选与广度输入补证",
+      "start": "2026-09-05T17:19:45+08:00",
+      "end": "2026-09-05T22:32:39+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "42da5c70a5bd2efe239dc50ab3eea6cd6cd0860b",
+        "short": "42da5c7",
+        "committed_at": "2026-09-05T17:19:45+08:00",
+        "subject": "fix(qa): ISSUE-003 - encode evidence trace cutoff timestamps"
+      },
+      "end_commit": {
+        "hash": "6edf0cbea95c3c26efa9c24fbb4e8f88f57c0302",
+        "short": "6edf0cb",
+        "committed_at": "2026-09-05T22:32:39+08:00",
+        "subject": "fix: validate breadth history with explicit official suspension evidence"
+      },
+      "status": "completed",
+      "summary": "保留沪深北融资候选与广度原件；用官方停牌证据裁决冲突。",
+      "verification": "410 项测试；输入通过不等于 PUBLIC 认证。",
+      "source": ".scratch/pring-cycle-dashboard/source-resolution-2026-09-05.md"
+    },
+    {
+      "id": "task-03",
+      "group": "foundation",
+      "title": "修复规格与 22 票发布",
+      "start": "2026-09-05T22:32:39+08:00",
+      "end": "2026-09-06T19:31:24+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "6edf0cbea95c3c26efa9c24fbb4e8f88f57c0302",
+        "short": "6edf0cb",
+        "committed_at": "2026-09-05T22:32:39+08:00",
+        "subject": "fix: validate breadth history with explicit official suspension evidence"
+      },
+      "end_commit": {
+        "hash": "aeb6b412fcc16d2c94fbe7bd442966b16b8bf588",
+        "short": "aeb6b41",
+        "committed_at": "2026-09-06T19:31:24+08:00",
+        "subject": "docs: publish data acquisition audit and repair tickets"
+      },
+      "status": "completed",
+      "summary": "固定数据可信性、搜索补缺、模型与报告验收范围。",
+      "verification": "规格和依赖已发布；业务规则仍逐家族收口。",
+      "source": ".scratch/pring-data-acquisition-repair/spec.md"
+    },
+    {
+      "id": "task-04",
+      "group": "foundation",
+      "title": "候选持续天数纠正",
+      "start": "2026-09-06T19:31:24+08:00",
+      "end": "2026-09-06T19:55:24+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "aeb6b412fcc16d2c94fbe7bd442966b16b8bf588",
+        "short": "aeb6b41",
+        "committed_at": "2026-09-06T19:31:24+08:00",
+        "subject": "docs: publish data acquisition audit and repair tickets"
+      },
+      "end_commit": {
+        "hash": "074dea6f725e2aa2f992c2906f7d6cce62e7d43f",
+        "short": "074dea6",
+        "committed_at": "2026-09-06T19:55:24+08:00",
+        "subject": "fix: report actual candidate duration in new model versions"
+      },
+      "status": "completed",
+      "summary": "新模型显示实际候选持续日，保留旧模型语义。",
+      "verification": "票 01 Execution: completed。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-01.md"
+    },
+    {
+      "id": "task-05",
+      "group": "foundation",
+      "title": "核心及上下文采集收据",
+      "start": "2026-09-06T19:55:24+08:00",
+      "end": "2026-09-06T22:19:13+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "074dea6f725e2aa2f992c2906f7d6cce62e7d43f",
+        "short": "074dea6",
+        "committed_at": "2026-09-06T19:55:24+08:00",
+        "subject": "fix: report actual candidate duration in new model versions"
+      },
+      "end_commit": {
+        "hash": "3231539a19c1a5ff0284b6d7f6450c2f5f632e9e",
+        "short": "3231539",
+        "committed_at": "2026-09-06T22:19:13+08:00",
+        "subject": "fix: trace context acquisitions and preserve publication uncertainty"
+      },
+      "status": "completed",
+      "summary": "保存请求原件、校验时钟和双点时；未知公开时间保持未知。",
+      "verification": "票 02、03 Execution: completed。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-03.md"
+    },
+    {
+      "id": "task-06",
+      "group": "retrieval",
+      "title": "检索账本与预算恢复",
+      "start": "2026-09-06T22:19:13+08:00",
+      "end": "2026-09-07T00:10:28+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "3231539a19c1a5ff0284b6d7f6450c2f5f632e9e",
+        "short": "3231539",
+        "committed_at": "2026-09-06T22:19:13+08:00",
+        "subject": "fix: trace context acquisitions and preserve publication uncertainty"
+      },
+      "end_commit": {
+        "hash": "8a343e0f0c8ba3428745cf3c521e2d4f41b1bb5e",
+        "short": "8a343e0",
+        "committed_at": "2026-09-07T00:10:28+08:00",
+        "subject": "fix: persist retrieval requests budgets and recovery evidence"
+      },
+      "status": "completed",
+      "summary": "逐次外部请求持久计量，保留中断与重试记录。",
+      "verification": "票 15 Execution: completed。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-15.md"
+    },
+    {
+      "id": "task-07",
+      "group": "retrieval",
+      "title": "搜索候选到模型输入",
+      "start": "2026-09-07T00:10:28+08:00",
+      "end": "2026-09-07T01:37:59+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "8a343e0f0c8ba3428745cf3c521e2d4f41b1bb5e",
+        "short": "8a343e0",
+        "committed_at": "2026-09-07T00:10:28+08:00",
+        "subject": "fix: persist retrieval requests budgets and recovery evidence"
+      },
+      "end_commit": {
+        "hash": "2e08e18561c23bacd4cf273569e773a17f87da0e",
+        "short": "2e08e18",
+        "committed_at": "2026-09-07T01:37:59+08:00",
+        "subject": "fix(retrieval): validate discovered sources against target model inputs"
+      },
+      "status": "completed",
+      "summary": "搜索候选经过来源、字段与目标模型输入校验。",
+      "verification": "票 16 软件闭环完成；真实模型补齐率另验。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-16.md"
+    },
+    {
+      "id": "task-08",
+      "group": "retrieval",
+      "title": "CLI 报告协议修复",
+      "start": "2026-09-07T01:37:59+08:00",
+      "end": "2026-09-07T02:33:45+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "2e08e18561c23bacd4cf273569e773a17f87da0e",
+        "short": "2e08e18",
+        "committed_at": "2026-09-07T01:37:59+08:00",
+        "subject": "fix(retrieval): validate discovered sources against target model inputs"
+      },
+      "end_commit": {
+        "hash": "94a16a19bf5e743605e8e52afc43a7a6df1ee7bd",
+        "short": "94a16a1",
+        "committed_at": "2026-09-07T02:33:45+08:00",
+        "subject": "fix(reports): audit CLI failures and separate explanation evidence review"
+      },
+      "status": "completed",
+      "summary": "区分真实 CLI 错误、解释验收和确定性降级。",
+      "verification": "协议修复；真实合格 AI 输出仍缺。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-18.md"
+    },
+    {
+      "id": "task-09",
+      "group": "retrieval",
+      "title": "完整运行按缺口补采",
+      "start": "2026-09-07T02:33:45+08:00",
+      "end": "2026-09-07T12:17:43+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "94a16a19bf5e743605e8e52afc43a7a6df1ee7bd",
+        "short": "94a16a1",
+        "committed_at": "2026-09-07T02:33:45+08:00",
+        "subject": "fix(reports): audit CLI failures and separate explanation evidence review"
+      },
+      "end_commit": {
+        "hash": "02a5cce7e9d97a6199534992533d96da84f26b6c",
+        "short": "02a5cce",
+        "committed_at": "2026-09-07T12:17:43+08:00",
+        "subject": "Complete full-run evidence retrieval and repair completeness checks"
+      },
+      "status": "completed",
+      "summary": "完整运行复用检索账本，冻结 cutoff 后校验实际采用。",
+      "verification": "票 17 Execution: completed。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-17.md"
+    },
+    {
+      "id": "task-10",
+      "group": "macro",
+      "title": "GDP、EIA 与美债候选接入",
+      "start": "2026-09-07T12:17:43+08:00",
+      "end": "2026-09-07T18:02:53+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "02a5cce7e9d97a6199534992533d96da84f26b6c",
+        "short": "02a5cce",
+        "committed_at": "2026-09-07T12:17:43+08:00",
+        "subject": "Complete full-run evidence retrieval and repair completeness checks"
+      },
+      "end_commit": {
+        "hash": "9aaf5263132e2e3596ca4f71f18b109ef20a8c7f",
+        "short": "9aaf526",
+        "committed_at": "2026-09-07T18:02:53+08:00",
+        "subject": "Add verified Treasury CSV candidate acquisition"
+      },
+      "status": "completed",
+      "summary": "修正 GDP 语义，接入 EIA HTML 与 Treasury CSV 候选。",
+      "verification": "639 项全套通过；不授予真实 P2 认证。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-14-treasury.md"
+    },
+    {
+      "id": "task-11",
+      "group": "macro",
+      "title": "派生资格、RRR 范围与库存期次",
+      "start": "2026-09-07T18:02:53+08:00",
+      "end": "2026-09-07T23:43:42+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "9aaf5263132e2e3596ca4f71f18b109ef20a8c7f",
+        "short": "9aaf526",
+        "committed_at": "2026-09-07T18:02:53+08:00",
+        "subject": "Add verified Treasury CSV candidate acquisition"
+      },
+      "end_commit": {
+        "hash": "ad86bd08f073f000e395f08bb773a22220c01c4e",
+        "short": "ad86bd0",
+        "committed_at": "2026-09-07T23:43:42+08:00",
+        "subject": "fix: reject inventory approximations with mismatched periods"
+      },
+      "status": "completed",
+      "summary": "修复未认证父项、降准双范围和错统计期输入。",
+      "verification": "664 → 677 → 680 项全套逐批通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-13-inventory-period.md"
+    },
+    {
+      "id": "task-12",
+      "group": "macro",
+      "title": "鲜度、贷款跨年与 OMO 缺值",
+      "start": "2026-09-07T23:43:42+08:00",
+      "end": "2026-09-08T01:49:18+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "ad86bd08f073f000e395f08bb773a22220c01c4e",
+        "short": "ad86bd0",
+        "committed_at": "2026-09-07T23:43:42+08:00",
+        "subject": "fix: reject inventory approximations with mismatched periods"
+      },
+      "end_commit": {
+        "hash": "ca2780710f2079d59cfb172bde314cba3f547be6",
+        "short": "ca27807",
+        "committed_at": "2026-09-08T01:49:18+08:00",
+        "subject": "fix: preserve invalid OMO inputs in net flow selection"
+      },
+      "status": "completed",
+      "summary": "旧派生不冒充 current；一月累计差分独立；坏投放不当零。",
+      "verification": "702 → 716 → 725 项全套逐批通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-omo-invalid-flow.md"
+    },
+    {
+      "id": "task-13",
+      "group": "macro",
+      "title": "官方表格与金额换算",
+      "start": "2026-09-08T01:49:18+08:00",
+      "end": "2026-09-08T02:24:52+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "ca2780710f2079d59cfb172bde314cba3f547be6",
+        "short": "ca27807",
+        "committed_at": "2026-09-08T01:49:18+08:00",
+        "subject": "fix: preserve invalid OMO inputs in net flow selection"
+      },
+      "end_commit": {
+        "hash": "6341dd2be0699734512e672c4ff2618ca624d4fc",
+        "short": "6341dd2",
+        "committed_at": "2026-09-08T02:24:52+08:00",
+        "subject": "fix: validate official table completeness and money scaling"
+      },
+      "status": "completed",
+      "summary": "产能缺列、重复工业行与货币金额精度校验。",
+      "verification": "741 项全套通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-official-parsing.md"
+    },
+    {
+      "id": "task-14",
+      "group": "catalog",
+      "title": "历史原件与请求收据",
+      "start": "2026-09-08T02:24:52+08:00",
+      "end": "2026-09-08T03:12:13+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "6341dd2be0699734512e672c4ff2618ca624d4fc",
+        "short": "6341dd2",
+        "committed_at": "2026-09-08T02:24:52+08:00",
+        "subject": "fix: validate official table completeness and money scaling"
+      },
+      "end_commit": {
+        "hash": "1cd2c00fc4be1a4fa599d5e45f8ca18fe284c2d1",
+        "short": "1cd2c00",
+        "committed_at": "2026-09-08T03:12:13+08:00",
+        "subject": "fix: retain receipts for historical source discovery and fetches"
+      },
+      "status": "completed",
+      "summary": "补全历史发现、正文获取和失败原件的物理请求记录。",
+      "verification": "756 项全套通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-history-receipts.md"
+    },
+    {
+      "id": "task-15",
+      "group": "catalog",
+      "title": "认证包准入与不可变目录登记",
+      "start": "2026-09-08T03:12:13+08:00",
+      "end": "2026-09-08T05:18:16+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "1cd2c00fc4be1a4fa599d5e45f8ca18fe284c2d1",
+        "short": "1cd2c00",
+        "committed_at": "2026-09-08T03:12:13+08:00",
+        "subject": "fix: retain receipts for historical source discovery and fetches"
+      },
+      "end_commit": {
+        "hash": "656eaa03c41efc31d7ee37de56865f52db4e0af0",
+        "short": "656eaa0",
+        "committed_at": "2026-09-08T05:18:16+08:00",
+        "subject": "feat: register immutable catalogs and validate LPR consumption"
+      },
+      "status": "completed",
+      "summary": "先核验正式包与引用，再登记新目录并接通 LPR。",
+      "verification": "806 → 819 项全套通过；真实完整候选未建立。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-catalog.md"
+    },
+    {
+      "id": "task-16",
+      "group": "catalog",
+      "title": "常规宏观新目录消费",
+      "start": "2026-09-08T05:18:16+08:00",
+      "end": "2026-09-08T10:01:42+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "656eaa03c41efc31d7ee37de56865f52db4e0af0",
+        "short": "656eaa0",
+        "committed_at": "2026-09-08T05:18:16+08:00",
+        "subject": "feat: register immutable catalogs and validate LPR consumption"
+      },
+      "end_commit": {
+        "hash": "0452aca80ce601ee105c824d6cee3f707439c39b",
+        "short": "0452aca",
+        "committed_at": "2026-09-08T10:01:42+08:00",
+        "subject": "feat: support official macro inputs in registered catalogs"
+      },
+      "status": "completed",
+      "summary": "接通官方宏观数据在登记目录下的选值和采用。",
+      "verification": "855 通过 / 1 超时；单例复测通过，保留原失败。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-official-consumption.md"
+    },
+    {
+      "id": "task-17",
+      "group": "discovery",
+      "title": "DR007 / Shibor 新目录接入",
+      "start": "2026-09-08T10:01:42+08:00",
+      "end": "2026-09-08T11:19:24+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "0452aca80ce601ee105c824d6cee3f707439c39b",
+        "short": "0452aca",
+        "committed_at": "2026-09-08T10:01:42+08:00",
+        "subject": "feat: support official macro inputs in registered catalogs"
+      },
+      "end_commit": {
+        "hash": "087b9a8250b11d3f72cde093c445baa61c755996",
+        "short": "087b9a8",
+        "committed_at": "2026-09-08T11:19:24+08:00",
+        "subject": "fix: admit exact interbank inputs through registered catalogs"
+      },
+      "status": "completed",
+      "summary": "精确绑定渠道、期限、单位、日期和实际 API 字段。",
+      "verification": "156 项关联回归通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-interbank-consumption.md"
+    },
+    {
+      "id": "task-18",
+      "group": "discovery",
+      "title": "搜索目录绑定修复",
+      "start": "2026-09-08T11:19:24+08:00",
+      "end": "2026-09-08T13:48:52+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "087b9a8250b11d3f72cde093c445baa61c755996",
+        "short": "087b9a8",
+        "committed_at": "2026-09-08T11:19:24+08:00",
+        "subject": "fix: admit exact interbank inputs through registered catalogs"
+      },
+      "end_commit": {
+        "hash": "7a7e384d120a170864eb6f3dfcc5c71fbc40a945",
+        "short": "7a7e384",
+        "committed_at": "2026-09-08T13:48:52+08:00",
+        "subject": "fix: bind registered catalogs throughout search retrieval"
+      },
+      "status": "completed",
+      "summary": "检索、缓存和预算解析绑定实际登记目录。",
+      "verification": "213 项关联回归通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-search-catalog.md"
+    },
+    {
+      "id": "task-19",
+      "group": "discovery",
+      "title": "四缺口 Tavily / Exa 实测",
+      "start": "2026-09-08T13:48:52+08:00",
+      "end": "2026-09-08T14:10:41+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "7a7e384d120a170864eb6f3dfcc5c71fbc40a945",
+        "short": "7a7e384",
+        "committed_at": "2026-09-08T13:48:52+08:00",
+        "subject": "fix: bind registered catalogs throughout search retrieval"
+      },
+      "end_commit": {
+        "hash": "c062d76027c33749a9d1118d7433ae185fc54d0f",
+        "short": "c062d76",
+        "committed_at": "2026-09-08T14:10:41+08:00",
+        "subject": "docs: record real paired search pilot and official RRR evidence"
+      },
+      "status": "completed",
+      "summary": "真实 8 次搜索、12 次 GET；取得央行降准原通知。",
+      "verification": "原文补齐 Tavily 1/4、Exa 0/4；模型可用率未评估。",
+      "source": ".scratch/pring-data-acquisition-repair/search-preexperiment-report.md"
+    },
+    {
+      "id": "task-20",
+      "group": "rrr",
+      "title": "降准来源入库",
+      "start": "2026-09-08T14:10:41+08:00",
+      "end": "2026-09-08T14:52:08+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "c062d76027c33749a9d1118d7433ae185fc54d0f",
+        "short": "c062d76",
+        "committed_at": "2026-09-08T14:10:41+08:00",
+        "subject": "docs: record real paired search pilot and official RRR evidence"
+      },
+      "end_commit": {
+        "hash": "40accaebde851181e94b82b5f761aa8c4858f347",
+        "short": "40accae",
+        "committed_at": "2026-09-08T14:52:08+08:00",
+        "subject": "feat: admit official RRR event inputs in registered catalogs"
+      },
+      "status": "completed",
+      "summary": "接通官方 RRR 来源合同；保留两个机构范围。",
+      "verification": "178 项关联 + 最终 8 项通过；磁盘故障后恢复。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-rrr-source.md"
+    },
+    {
+      "id": "task-21",
+      "group": "rrr",
+      "title": "完整公告选值与回放",
+      "start": "2026-09-08T14:52:08+08:00",
+      "end": "2026-09-08T18:09:11+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "40accaebde851181e94b82b5f761aa8c4858f347",
+        "short": "40accae",
+        "committed_at": "2026-09-08T14:52:08+08:00",
+        "subject": "feat: admit official RRR event inputs in registered catalogs"
+      },
+      "end_commit": {
+        "hash": "d68fe6eba1ee74d35b4cb045806fe2282cdf2c1e",
+        "short": "d68fe6e",
+        "committed_at": "2026-09-08T18:09:11+08:00",
+        "subject": "fix: require complete published RRR events in model inputs"
+      },
+      "status": "completed",
+      "summary": "缺成员不得采用；排除版本 ID 和行顺序造成的假差异。",
+      "verification": "246 项关联；最后 41 项回归通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-rrr-members.md"
+    },
+    {
+      "id": "task-22",
+      "group": "warrants",
+      "title": "仓单原行与精确收据绑定",
+      "start": "2026-09-08T18:09:11+08:00",
+      "end": "2026-09-08T20:58:34+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "d68fe6eba1ee74d35b4cb045806fe2282cdf2c1e",
+        "short": "d68fe6e",
+        "committed_at": "2026-09-08T18:09:11+08:00",
+        "subject": "fix: require complete published RRR events in model inputs"
+      },
+      "end_commit": {
+        "hash": "b640610ef212e5c7e79e6d23ad9dd7288841c1f4",
+        "short": "b640610",
+        "committed_at": "2026-09-08T20:58:34+08:00",
+        "subject": "fix: bind warrant source claims to exact physical rows"
+      },
+      "status": "completed",
+      "summary": "按品种、仓库和字段匹配原始行；重复身份整批拒绝。",
+      "verification": "190 项关联；最后 12 项通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-warrants-source.md"
+    },
+    {
+      "id": "task-23",
+      "group": "warrants",
+      "title": "多仓库完整性与双点时消费",
+      "start": "2026-09-08T20:58:34+08:00",
+      "end": "2026-09-08T22:06:55+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "b640610ef212e5c7e79e6d23ad9dd7288841c1f4",
+        "short": "b640610",
+        "committed_at": "2026-09-08T20:58:34+08:00",
+        "subject": "fix: bind warrant source claims to exact physical rows"
+      },
+      "end_commit": {
+        "hash": "96964cf4433b8d001ed932890239aa402a1bc04f",
+        "short": "96964cf",
+        "committed_at": "2026-09-08T22:06:55+08:00",
+        "subject": "fix: validate complete warrant deliveries in model consumers"
+      },
+      "status": "completed",
+      "summary": "原件中的空当值仍计入分母；不混合旧、新交付仓库。",
+      "verification": "238 项关联；最后 12 项通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-warrants-members.md"
+    },
+    {
+      "id": "task-24",
+      "group": "warrants",
+      "title": "八品种定向补采",
+      "start": "2026-09-08T22:06:55+08:00",
+      "end": "2026-09-08T22:44:24+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "96964cf4433b8d001ed932890239aa402a1bc04f",
+        "short": "96964cf",
+        "committed_at": "2026-09-08T22:06:55+08:00",
+        "subject": "fix: validate complete warrant deliveries in model consumers"
+      },
+      "end_commit": {
+        "hash": "b8cf9b3091074ede751fb7c09e30daa150eb05dc",
+        "short": "b8cf9b3",
+        "committed_at": "2026-09-08T22:44:24+08:00",
+        "subject": "fix: retrieve all warrant symbols in targeted refresh"
+      },
+      "status": "completed",
+      "summary": "正常八次请求；重试分别记账，中途失败不写部分声明。",
+      "verification": "91 项关联；最后 3 项通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-warrants-targeted.md"
+    },
+    {
+      "id": "task-25",
+      "group": "warrants",
+      "title": "120 日完整仓库覆盖",
+      "start": "2026-09-08T22:44:24+08:00",
+      "end": "2026-09-08T23:14:39+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "b8cf9b3091074ede751fb7c09e30daa150eb05dc",
+        "short": "b8cf9b3",
+        "committed_at": "2026-09-08T22:44:24+08:00",
+        "subject": "fix: retrieve all warrant symbols in targeted refresh"
+      },
+      "end_commit": {
+        "hash": "159a7252cd436f7ddbf2c26b29825e1e1299af35",
+        "short": "159a725",
+        "committed_at": "2026-09-08T23:14:39+08:00",
+        "subject": "fix: count complete warehouse deliveries in warrant history"
+      },
+      "status": "completed",
+      "summary": "每品种按完整仓库日计数；保留 120 日内至少 114 日规则。",
+      "verification": "219 项关联通过；真实来源认证仍待完成。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-warrants-history.md"
+    },
+    {
+      "id": "task-26",
+      "group": "core",
+      "title": "三核心新目录采集",
+      "start": "2026-09-08T23:14:39+08:00",
+      "end": "2026-09-08T23:52:13+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "159a7252cd436f7ddbf2c26b29825e1e1299af35",
+        "short": "159a725",
+        "committed_at": "2026-09-08T23:14:39+08:00",
+        "subject": "fix: count complete warehouse deliveries in warrant history"
+      },
+      "end_commit": {
+        "hash": "4084834744b5d5514e0dd5952e847f0d37247c20",
+        "short": "4084834",
+        "committed_at": "2026-09-08T23:52:13+08:00",
+        "subject": "fix: validate registered core acquisitions against exact originals"
+      },
+      "status": "completed",
+      "summary": "股票、债券、NHII 的日期、代码、价格与原件逐次核验。",
+      "verification": "252 项关联；最后 17 项通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-core-source.md"
+    },
+    {
+      "id": "task-27",
+      "group": "core",
+      "title": "核心回放逐日 PUBLIC 修复",
+      "start": "2026-09-08T23:52:13+08:00",
+      "end": "2026-09-09T00:35:20+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "4084834744b5d5514e0dd5952e847f0d37247c20",
+        "short": "4084834",
+        "committed_at": "2026-09-08T23:52:13+08:00",
+        "subject": "fix: validate registered core acquisitions against exact originals"
+      },
+      "end_commit": {
+        "hash": "dd744ff334f7cae23b092e994d3599b351c188c9",
+        "short": "dd744ff",
+        "committed_at": "2026-09-09T00:35:20+08:00",
+        "subject": "fix: replay core prices at each historical public cutoff"
+      },
+      "status": "completed",
+      "summary": "晚公开修订不改变早期判断；不能隐藏缺失日缩短窗口。",
+      "verification": "269 项关联；最终 23 项含合成性能测试通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-21-core-public-replay.md"
+    },
+    {
+      "id": "task-28",
+      "group": "core",
+      "title": "模型使用时复核核心原件",
+      "start": "2026-09-09T00:35:20+08:00",
+      "end": "2026-09-09T01:11:30+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "dd744ff334f7cae23b092e994d3599b351c188c9",
+        "short": "dd744ff",
+        "committed_at": "2026-09-09T00:35:20+08:00",
+        "subject": "fix: replay core prices at each historical public cutoff"
+      },
+      "end_commit": {
+        "hash": "0c33710842f3b68e92ed207c0a94ec472424a811",
+        "short": "0c33710",
+        "committed_at": "2026-09-09T01:11:30+08:00",
+        "subject": "fix: revalidate registered core originals in model consumers"
+      },
+      "status": "completed",
+      "summary": "消费前重新核原件；缺失、损坏及多关联一坏均拒绝。",
+      "verification": "328 项关联回归通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-core-original-consumption.md"
+    },
+    {
+      "id": "task-29",
+      "group": "replay",
+      "title": "候选状态与回放明细持久化",
+      "start": "2026-09-09T01:11:30+08:00",
+      "end": "2026-09-09T02:02:30+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "0c33710842f3b68e92ed207c0a94ec472424a811",
+        "short": "0c33710",
+        "committed_at": "2026-09-09T01:11:30+08:00",
+        "subject": "fix: revalidate registered core originals in model consumers"
+      },
+      "end_commit": {
+        "hash": "6662bc2f5d7c8914fdedaab187a15aaea5f042c8",
+        "short": "6662bc2",
+        "committed_at": "2026-09-09T02:02:30+08:00",
+        "subject": "fix: preserve daily candidate outputs in model replays"
+      },
+      "status": "completed",
+      "summary": "每日候选方向、持续天数与差异保存；旧记录不补造明细。",
+      "verification": "342 项关联通过；追加式存档与 0020 迁移。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-21-candidate-replay.md"
+    },
+    {
+      "id": "task-30",
+      "group": "replay",
+      "title": "上下文逐日历史与版本绑定",
+      "start": "2026-09-09T02:02:30+08:00",
+      "end": "2026-09-09T03:19:59+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "6662bc2f5d7c8914fdedaab187a15aaea5f042c8",
+        "short": "6662bc2",
+        "committed_at": "2026-09-09T02:02:30+08:00",
+        "subject": "fix: preserve daily candidate outputs in model replays"
+      },
+      "end_commit": {
+        "hash": "3e1b7d3f4f2421fa72ee2e30ffbaefb11da03f8d",
+        "short": "3e1b7d3",
+        "committed_at": "2026-09-09T03:19:59+08:00",
+        "subject": "fix: bind context replays to daily input histories"
+      },
+      "status": "completed",
+      "summary": "保存完整上下文与可见输入历史；同值新版本也改变证据指纹。",
+      "verification": "432 项关联通过；0021 迁移保留旧记录。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-21-context-replay.md"
+    },
+    {
+      "id": "task-31",
+      "group": "integrity",
+      "title": "核心 / 仓单制品与 SQLite 连接",
+      "start": "2026-09-09T03:19:59+08:00",
+      "end": "2026-09-09T05:49:17+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "3e1b7d3f4f2421fa72ee2e30ffbaefb11da03f8d",
+        "short": "3e1b7d3",
+        "committed_at": "2026-09-09T03:19:59+08:00",
+        "subject": "fix: bind context replays to daily input histories"
+      },
+      "end_commit": {
+        "hash": "bda795f566f60205fc443f3854a8e2eb1b13b76c",
+        "short": "bda795f",
+        "committed_at": "2026-09-09T05:49:17+08:00",
+        "subject": "fix: close SQLite connections and verify normalized inputs"
+      },
+      "status": "completed",
+      "summary": "核对原件与标准化语义；修复连接依赖垃圾回收导致句柄耗尽。",
+      "verification": "失败 1022/6/1 → 修复后默认全套 1031 项通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-database-connections.md"
+    },
+    {
+      "id": "task-32",
+      "group": "context",
+      "title": "LPR 全链消费与发布日历",
+      "start": "2026-09-09T05:49:17+08:00",
+      "end": "2026-09-09T09:09:45+08:00",
+      "start_basis": "实施基点或前一相关提交；用于表示记录窗口，不是精确开工时间",
+      "base_commit": {
+        "hash": "bda795f566f60205fc443f3854a8e2eb1b13b76c",
+        "short": "bda795f",
+        "committed_at": "2026-09-09T05:49:17+08:00",
+        "subject": "fix: close SQLite connections and verify normalized inputs"
+      },
+      "end_commit": {
+        "hash": "99c495a217b66d4bca9d6ceae4688ee69d4382bb",
+        "short": "99c495a",
+        "committed_at": "2026-09-09T09:09:45+08:00",
+        "subject": "fix: validate LPR evidence across model consumers"
+      },
+      "status": "completed",
+      "summary": "校验经济字段与时间；分别处理 PUBLIC / SYSTEM 日历和坏版本回放。",
+      "verification": "376 项关联；默认全套 1053 项通过。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-context-normalized-consumption.md"
+    },
+    {
+      "id": "task-pmi",
+      "group": "context",
+      "title": "PMI 原件、声明与派生消费核验",
+      "start": "2026-09-09T09:09:45+08:00",
+      "end": "2026-09-09T10:02:38+08:00",
+      "start_basis": "前一已验收 LPR 提交；截至本次观察",
+      "base_commit": {
+        "hash": "99c495a217b66d4bca9d6ceae4688ee69d4382bb",
+        "short": "99c495a",
+        "committed_at": "2026-09-09T09:09:45+08:00",
+        "subject": "fix: validate LPR evidence across model consumers"
+      },
+      "end_commit": null,
+      "status": "active",
+      "summary": "已覆盖损坏制品、哈希自洽错值、错误声明值及回退旧统计期；字段、时间与回放边界继续推进。",
+      "verification": "最近记录 6 项针对回归通过；本批未提交，未完成扩大回归和最终验收。",
+      "source": ".scratch/pring-data-acquisition-repair/implementation-19-macro-normalized-consumption.md"
+    }
+  ],
+  "pending": [
+    {
+      "title": "宏观消费校验",
+      "status": "active",
+      "description": "完成 PMI，再覆盖 CPI、其他宏观、DR007/Shibor、RRR 多收据及派生实际采用。",
+      "source": ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md"
+    },
+    {
+      "title": "来源认证与业务规则",
+      "status": "blocked",
+      "description": "核心历史公开时间、北交所、CNY030、估值 / 股票池 / 完整金额、PP 等仍缺件；估值、广度和商品规则未冻结。",
+      "source": ".scratch/pring-data-acquisition-repair/business-decisions-draft.md"
+    },
+    {
+      "title": "真实候选与 120 日验收",
+      "status": "pending",
+      "description": "新完整候选、2026-03-09 至 08-28 的实际 120 中国交易日回放、当前目标日 Worker 完整运行。",
+      "source": ".scratch/pring-data-acquisition-repair/issues/21-public-replay-120d.md"
+    },
+    {
+      "title": "搜索、报告与正式切换",
+      "status": "blocked",
+      "description": "模型可用搜索补齐率未验收；真实合格 CLI 输出缺失；综合验收与正式切换未完成。",
+      "source": ".scratch/pring-data-acquisition-repair/issues/22-live-acceptance-cutover.md"
+    }
+  ],
+  "sources": {
+    ".scratch/pring-cycle-dashboard/closeout-2026-09-05.md": {
+      "sha256": "91305cf120eeb4810d239da42d44f3a47d6ad80f3916842a1a8d8822603942ba",
+      "bytes": 6863,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-cycle-dashboard/source-resolution-2026-09-05.md": {
+      "sha256": "dd9f62d0334336a7de78cc46717b0f7fb45d090711a129dfd1accbb478cb479c",
+      "bytes": 12428,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/spec.md": {
+      "sha256": "f5c32c407f216841b2afed0aaab3863868bdc394d9057207d25dbc9e9a561cc4",
+      "bytes": 27762,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-01.md": {
+      "sha256": "3bf7ebc32666ba5817bb9f6dcf12bd54bdb1a2a006a0f94853418cbb6ec5e412",
+      "bytes": 4956,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-03.md": {
+      "sha256": "fc77b6c494f26d59496050c8923e6f31edd78b108781b0daf77a39bcc7d9cec1",
+      "bytes": 6708,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-15.md": {
+      "sha256": "32e61c65da6547e684840c054c03bf4eb872b2e8e3028e1d694c055fc22e83d4",
+      "bytes": 6580,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-16.md": {
+      "sha256": "73d1d852728bd463c85c85632f2dde3fdedb6d0636c40c5b2dfa3f7e26f7cbd3",
+      "bytes": 4797,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-18.md": {
+      "sha256": "73382f0bd269cb3f8824ea8f3c67496cf25d43e911402499d251cf0fcb06940e",
+      "bytes": 6821,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-17.md": {
+      "sha256": "1649a88038f1a0cc1389e2c514db406e22975f71050e8fe54c03fa794696a36c",
+      "bytes": 9157,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-14-treasury.md": {
+      "sha256": "3ee5e89f1c39c0bf12f43369218b5e600b2eb153e3fc8c253cb6dbc0e0eaa6bf",
+      "bytes": 5051,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-13-inventory-period.md": {
+      "sha256": "d810e7ae7d6562290a471d55d8089939783ffe040a2ce2489804ac7c2823a1d7",
+      "bytes": 3215,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-omo-invalid-flow.md": {
+      "sha256": "da7590bcfc9a01e2036cc723ee7de9649f2b8955f46efb93c6f9f9d9e5809b11",
+      "bytes": 4624,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-official-parsing.md": {
+      "sha256": "e07530f9ddcfdd1deb7cb08adbfea24000374c3265963d15375e98022f3c622b",
+      "bytes": 4979,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-history-receipts.md": {
+      "sha256": "bf55022f4691201624169e0def26b7aadf4c86c63ce2a428b9767cbdf963850c",
+      "bytes": 3655,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-catalog.md": {
+      "sha256": "975de374758e6cedbeb9cb66c98cf90646d3d87250191e474af44321b73d5ab6",
+      "bytes": 5978,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-official-consumption.md": {
+      "sha256": "020de4a17f06b3db7f798afd3da7fdfdd9d0464e7fab2e77a293826bdce02ffc",
+      "bytes": 6024,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-interbank-consumption.md": {
+      "sha256": "1436c628bb40e7c03519174626ccce0793c20d5f222cded8d14d39784c879a48",
+      "bytes": 2860,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-search-catalog.md": {
+      "sha256": "8966b645494e6a6cd7e553e721c4c3250280d32601117835bdedb8e9c006d363",
+      "bytes": 1837,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/search-preexperiment-report.md": {
+      "sha256": "186d57abf8d3d19e5a0e8a9203c83b02161d1fefbf80c1de6afa3617bcdb43d4",
+      "bytes": 4000,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-rrr-source.md": {
+      "sha256": "73607f75675c6054601db59e1e4db1fdb2c34d925bf22d6c1811641068c78340",
+      "bytes": 2282,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-rrr-members.md": {
+      "sha256": "328d91380a5e347f4dec2bc2888586d8be26f2392dbf5b949e91dc1752469998",
+      "bytes": 4609,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-warrants-source.md": {
+      "sha256": "54ce0e3590f219a4c89e3a33346add2210a97968e3cbe0f90e323e7d5b46a53b",
+      "bytes": 3530,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-warrants-members.md": {
+      "sha256": "bc49f20c48d26f803ccd608b08400343fd3b4c94b41236776b3cfad9fb033348",
+      "bytes": 4571,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-warrants-targeted.md": {
+      "sha256": "46a5f269770dc446f49d798575fc1028510e8b3fc6c16a33364ef4de77b4b5af",
+      "bytes": 2660,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-warrants-history.md": {
+      "sha256": "8f422888158a28b10b9d1e814284b80db1855d46631bbd03e60226d108b917f8",
+      "bytes": 2972,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-core-source.md": {
+      "sha256": "5bd98a49f9213c8523f1067a7f0c04c8b21dd71805d367a6593e6ef128654cd6",
+      "bytes": 4090,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-21-core-public-replay.md": {
+      "sha256": "c711fe52a70e6b4a7245c858a9d900d941ddc203753894828ea105f9a1a48c0c",
+      "bytes": 4615,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-core-original-consumption.md": {
+      "sha256": "48c05ecc208e6d15a31072bf4e79a69d29e31319b852a3d2fcece3bb7f93b306",
+      "bytes": 4517,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-21-candidate-replay.md": {
+      "sha256": "b65dc079e1a3ba6c86dcfbc3df40e8553e0b1716e8618a28de66733e3fb23a72",
+      "bytes": 5349,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-21-context-replay.md": {
+      "sha256": "a645b32e86bfbdde4d14d910ac2fbdcb89c13122ff1717f87ba268c1e84f9e01",
+      "bytes": 5967,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-database-connections.md": {
+      "sha256": "ff2a499624d1aace87c9c0a157d50dbc15243fd23160fe6d798a9875054bb102",
+      "bytes": 4333,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-context-normalized-consumption.md": {
+      "sha256": "ae3ca47adff636ec7548e0fe4de70729e8a77a9cd0d12ca04a10785d6d9f818d",
+      "bytes": 11642,
+      "revision": "99c495a217b66d4bca9d6ceae4688ee69d4382bb"
+    },
+    ".scratch/pring-data-acquisition-repair/implementation-19-macro-normalized-consumption.md": {
+      "sha256": "2800997a5d75a88cb80a27cba99d37a4dde48b613fe5b0d0885047d6eba1ffb6",
+      "bytes": 6595,
+      "revision": "working-tree-snapshot"
+    }
+  },
+  "milestones": [
+    {
+      "at": "2026-09-06T19:31:24+08:00",
+      "label": "22 票发布"
+    },
+    {
+      "at": "2026-09-09T05:49:17+08:00",
+      "label": "1031 全套通过"
+    },
+    {
+      "at": "2026-09-09T09:09:45+08:00",
+      "label": "1053 全套通过"
+    }
+  ]
+}

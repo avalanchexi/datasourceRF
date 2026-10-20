@@ -1,0 +1,5 @@
+仅复核296审查的P2。当前tests/models/test_candidate_admission.py SHA256 28b34ac1…c91d70与冻结298匹配，生产266未改。
+
+P2静态关闭：6353在缺前月的失败candidate输出上，直接断言两项旧窗口父项与model_input_observation_version_ids不相交；结合6348–6357的精确缺口、missing_certified_inputs及无信用数值，已能捕获“公式拒绝但旧窗仍列为采用”，对应spec:144及issue19:31。补齐后的34父项、旧父项排除与comparison不变断言保留。未发现本修订新增缺漏、越界或错误预期。
+
+旧296为四例通过；新增断言的执行证据仍待299。本次读取299为running/pytest、单例范围，不能据旧结果称新断言已通过。未运行测试或改冻结输入。消费者软件AC须结合299终态和此前各公开消费入口证据收口；不产生Worker、真实认证或120日验收结论。

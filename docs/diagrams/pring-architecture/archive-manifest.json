@@ -1,0 +1,28 @@
+{
+  "status": "archived",
+  "group": "pring-architecture",
+  "title": "Pring Cycle 系统架构",
+  "snapshot": "原架构快照",
+  "file_moves": [
+    {
+      "old": "docs/diagrams/pring-architecture.architecture.json",
+      "sha256": "32d5eb8302a63e812872ef279b2f71d862337f2d206d212703d24eb947502728",
+      "bytes": 7055,
+      "group": "pring-architecture",
+      "new": "docs/diagrams/pring-architecture/pring-architecture.architecture.json"
+    },
+    {
+      "old": "docs/diagrams/pring-architecture.html",
+      "sha256": "0c3d8ed5ac778aa1896fcc95decbd1ec0940929b100daf7157b5805f5cdc6266",
+      "bytes": 729951,
+      "group": "pring-architecture",
+      "new": "docs/diagrams/pring-architecture/pring-architecture.html"
+    }
+  ],
+  "support_snapshots": [],
+  "link_changes": [],
+  "main_html_sha256": "0c3d8ed5ac778aa1896fcc95decbd1ec0940929b100daf7157b5805f5cdc6266",
+  "historical_receipts": "verification/original; unchanged, bound to preserved original HTML/spec where applicable",
+  "support_semantics": "Historical construction and verification snapshots. Original .scratch tracking files remain unchanged.",
+  "archive_verification": "verification/archive/browser.json"
+}

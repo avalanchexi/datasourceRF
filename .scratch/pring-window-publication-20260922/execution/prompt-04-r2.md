@@ -1,0 +1,9 @@
+继续票04 r2，独立实施，不再委派。先读AGENTS/CONTEXT、父spec/票04、ADR0004/0006/0018/0019、testing、implement/tdd及tests.md/mocking.md、code-review技能。继承当前04树01+02及原r1+主代理测试修订，不能从根树重新覆盖（根已叠加03/05）。独立venv、runtime已验证，不碰他树/根任务、不联网/凭据/commit/merge。禁止heavy/全模型/校准/回放/全套，主代理掌队列；你可以运行已批准轻量公开入口反例和定向反馈，具体命令必须留存。
+证据根/mnt/d/cursor/datasourceRF/.scratch/pring-window-publication-20260922/execution。读取review-04-r1-combined.md、review-04-r1-input.json、两轴报告、diagnosis-04-lookback-edge.md、heavy-04-preflight-parent-r3终态/日志。两轴均已终态，冻结5文件首尾一致。主代理仅改旧test_material_preflight.py政策父项测试，两个参数2passed5.61s，完整文件33passed84.24s，前后软件/包/材料一致。保留修改、全部旧日志原件。
+本轮任务先建立实际公开反例再修：
+1. Spec P1：material_preflight_context.py166和context_projection.py公开OMO推导只从PUBLIC可见投放构建到期父项。08-21的950亿元投放未知/晚于08-28 cutoff，08-28合法200亿及日历存在，当前可能漏到期父项而通过200亿。用公开导入/选择/派生/预检证明实际RED，修复必要预热未知/未来不能当0/无到期。区分真正缺父项与不可见修订：已合法可见旧版本+未来修订应仍采用合法旧版，不能简单见任何不可见claim就阻断。必须可定位缺失日期/维度/原因、实际采用版本血缘及受影响结果；不得将未来/未知值用于正式结果。必需公式仍阻断、可选按目录。冻结算式不变，不推算发布时间。缺中间期次/无可见事件等同类路径也按真实需求核实，避免只修一个literal。
+2. Spec P2：_parent无rate_period时退到target_business_date最新记录。DR00708-28、只有08-31政策事件、cutoff08-31应报DR007日期之前缺有效政策，不能把未来于DR007的政策当通过父项。用公开API反例验证准确父期次与关系，然后最小修复。保持已有2起点0bp正例。
+3. 审查阶段评估Standards两个启发式：重复7自然日到期顺延函数，可共享纯函数避免projection/diagnostics歧义；诊断直接SQL读取原件定位考虑通过EvidenceRepository适合的公开查询封装。仅在本轮改动有实际复用/边界收益时重构；不为建议扩成全仓改造，可明确说明有依据的不采纳。重构在RED-GREEN完成后。
+可写你已有5归属文件；若修OMO真实派生需要context_projection本来已归你，允许必要evidence.py公共读取接口和与此直接相关的小公开测试。禁止改model_evaluation/06模块/catalog规则/03核心输入。原src改动后必须用自己的uv/venv重装非editable并逐字节确认实际导入；任何测试都不能用旧安装冒充。
+每个新反例独立保存RED/GREEN实际终态。临时目录保留10000/all，显式basetemp唯一，禁止覆盖或清理旧失败库。生成材料原件保留引用与hash。复用已有合法synthetic来源，不能手填认证、伪active、内部替身或私有helper测试。定向测试选择按调用方，重型完整预检文件由父队列跑。
+交付.task-runtime/implementation-report-r2.md、heavy-request-r2.md、精确WIP文件/基线/源码安装材料身份、实际命令日志和未解决项；明确其他票/真实缺件不等于04完成。交付后停止修改，等主代理重型与独立双轴复审。中文精炼。

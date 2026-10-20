@@ -1,0 +1,73 @@
+﻿{
+    "recorded_at":  "2026-09-09T16:09:19.9226595+00:00",
+    "status":  "gdp_joint_regression_passed",
+    "main_session_id":  70085,
+    "actual_exit_code":  0,
+    "passed":  95,
+    "failed":  0,
+    "seconds":  337.12,
+    "new_gdp_cases":  17,
+    "frozen_inputs_unchanged":  228,
+    "protected_files_unchanged":  4,
+    "installed_sources_matched":  91,
+    "dependencies_matched":  53,
+    "mypy_files":  93,
+    "ruff_passed":  true,
+    "standards_remaining":  0,
+    "spec_remaining":  0,
+    "default_suite_rerun":  false,
+    "sqlite_lock_issue_fixed":  false,
+    "committed":  false,
+    "source_certification":  false,
+    "real_complete_candidate":  false,
+    "real_120_day_replay":  false,
+    "real_qualified_ai_outputs":  0,
+    "production_cutover":  false,
+    "evidence":  [
+                     {
+                         "path":  ".scratch\\pring-data-acquisition-repair\\verification-gdp-running-87.json",
+                         "bytes":  1840,
+                         "sha256":  "298c0079715b792645d3e207589aa1190b43b1682850a57e7bb727c38a316d27"
+                     },
+                     {
+                         "path":  ".scratch\\pring-data-acquisition-repair\\verification-gdp-inputs-86.json",
+                         "bytes":  65858,
+                         "sha256":  "0ce98112d0bc76629bbf799b5f03c55767c83b7e309fcfbbf76dd7c82affd075"
+                     },
+                     {
+                         "path":  ".scratch\\pring-data-acquisition-repair\\verification-gdp-joint-87.txt",
+                         "bytes":  390,
+                         "sha256":  "08707456d95bdd663dc5450d6448adcdf72e7e5e937a127533d4dbb561577f99"
+                     },
+                     {
+                         "path":  ".scratch\\pring-data-acquisition-repair\\verification-gdp-runtime-after-87.json",
+                         "bytes":  714,
+                         "sha256":  "d131be3c6d656cfb7ce9432c9962105529550c002cb6d9795e3a46ca51410c68"
+                     },
+                     {
+                         "path":  ".scratch\\pring-data-acquisition-repair\\verification-gdp-runtime-87.py",
+                         "bytes":  1853,
+                         "sha256":  "d60226c738b66c347088e5f34911a445d8ec62f7f424ce9c0059374740d75d45"
+                     },
+                     {
+                         "path":  ".scratch\\pring-data-acquisition-repair\\verification-gdp-review-85.md",
+                         "bytes":  1738,
+                         "sha256":  "89fd727d74047eb3f1295306dc646f74da786534a615b9e3874a4571bfefe6e6"
+                     },
+                     {
+                         "path":  ".scratch\\pring-data-acquisition-repair\\verification-gdp-mypy-85.txt",
+                         "bytes":  92,
+                         "sha256":  "2126b99d4b572ef9b87374466b4069c2befe90a34a384f77d5ca3b139e134b73"
+                     },
+                     {
+                         "path":  ".scratch\\pring-data-acquisition-repair\\verification-gdp-ruff-85.txt",
+                         "bytes":  42,
+                         "sha256":  "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+                     },
+                     {
+                         "path":  ".scratch\\pring-data-acquisition-repair\\verification-gdp-format-85.txt",
+                         "bytes":  90,
+                         "sha256":  "49ebf1191ad8bf040e0e80d9ddff9e644adc464308ea790452adb55f6f9d04c9"
+                     }
+                 ]
+}

@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "artifact": "docs/diagrams/pring-run-pipeline/pring-run-pipeline.html",
+  "sha256": "eca46d311ce4f21acea2baa942cbf9da0095a5cbc57b06452b83a2b0959e4c3a",
+  "original_files_preserved": 2,
+  "support_files_preserved": 0,
+  "detail_dialogs_checked": 0,
+  "themes": "passed",
+  "links": "passed",
+  "scope": "Archive relocation only; no new product or diagram-content acceptance claimed."
+}

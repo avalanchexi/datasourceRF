@@ -1,0 +1,6 @@
+你是独立只读 code-review 子任务，只通过本次直接 codex exec 调用，不再委派。不要写文件、改源码/票状态、运行测试/联网/读取凭据。报告由主代理从CLI输出保存。中文精炼，400 words以内。找真实问题，不只是附和已知意见；未实测明确标注。
+
+审查固定点 bb737200024369f2938d26d1cc49f5f77f18a1b1，工作树 /home/tywin/worktrees/datasourceRF-window-20260922/ticket-02。尚未提交新commit，所以本次审查WIP，不用空的HEAD三点diff冒充改动。主代理已固定差异和文件哈希：/mnt/d/cursor/datasourceRF/.scratch/pring-window-publication-20260922/execution/review-02-input.json、review-02.diff。重验哈希后阅读差异及必要上下文。可复现命令：git -C <工作树> diff bb737200024369f2938d26d1cc49f5f77f18a1b1 -- src/pring_cycle/candidate_admission.py；新增测试用 git -C <工作树> diff --no-index -- /dev/null tests/models/test_cny030_optional_migration.py（有差异exit1正常）。git log <base>..HEAD为空，本轮只审查明确两个改动文件，不纳入复制的既有文档WIP。
+
+已交付公开候选准入与轻量PUBLIC/SYSTEM选值/投影；完整Worker/报告仍未验证。父规格：/mnt/d/cursor/datasourceRF/.scratch/pring-window-publication-20260922/spec.md，票issues/02-cny030-optional-migration.md；交接工作树 .task-runtime/implementation-report.md、heavy-request.md。主代理独立核验安装103文件与源码内容一致及88项选择测试终态；这些不等于整票通过。
+本次只审 Spec 轴。完整读取该spec/票及ADR0020；明确哪些要求缺失/部分、哪些实现超范围、哪些貌似实现但错误；每个发现引用规格/票面的对应条目，定位代码。专项检查：CNY030只有优先级改变且保持待认证、保留完整定义、兼容已批准ECB/黄金/融资迁移、其余核心/P1门、旧版本不可变。Worker与报告的未完成要报告真实缺口，不能用准入88项替代。子代理曾怀疑reports.py递归收集待认证行的observation_id可能纳入可引用证据；这是未实测疑点，独立判断，勿把它升级成已经发生的运行事实。

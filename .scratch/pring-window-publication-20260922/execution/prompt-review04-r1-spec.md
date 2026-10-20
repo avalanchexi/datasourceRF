@@ -1,0 +1,5 @@
+独立只读code-review，不再委派、不修改文件、不运行测试、不联网、不读凭据。中文400words以内，给file:line和规则来源，静态推断注明。读取/home/tywin/.codex/skills/code-review/SKILL.md。主仓库/mnt/d/cursor/datasourceRF，execution目录.scratch/pring-window-publication-20260922/execution；工作树/home/tywin/worktrees/datasourceRF-window-20260922/ticket-04。
+固定Git基线bb737200024369f2938d26d1cc49f5f77f18a1b1，无新提交，实际继承01+02。非空WIP的5文件哈希、精确diff_commands与baseline副本见review-04-r1-input.json；有序输出必须匹配review-04-r1.diff，首尾重验。不要用已叠加05的根树为基线。
+读取AGENTS及相关docs/agents、CONTEXT、ADR0006/0018/0019，完整父spec及issues/04-context-formula-parents.md，本树根目录implementation-report.md/heavy-request.md，execution/parent-verify-04-r1.json、heavy-04-parents-r1/pytest.log及terminal.json、diagnosis-04-lookback-edge.md。
+04原4文件补8个冻结上下文公式的父期次/维度/比较基线及血缘诊断。父代理另改旧边缘日期测试：原heavy1failed5passed，10自然日lookback不代表必须有边缘值，改成先缺政策父项失败再真实导入政策成功，保留DR007两个起点。此修订待GREEN：heavy-04-policy-parent-r2在C盘PowerShell监测失败，pytest未启动；独立审查可先行但交付须等待验证。重试运行heavy-04-policy-parent-r3若终态可引用实际结果，不得推测成功。全套/真实认证未完成。
+只审Spec：逐条审实际冻结公式、全部父输入/预期值/血缘，月季频/事件不可统一259或每日120。重点核未知/未来新修订、已可见坏最新、缺中间期次/维度/版本不兼容、必需与可选分类、旧回执不变及公式不变。判断父代理测试修订是否符合实际公式且保留真实父缺件门。区分生产错误、未测分支、后续票依赖，引用规格条款；不以真实源缺件否定合法synthetic软件验证。

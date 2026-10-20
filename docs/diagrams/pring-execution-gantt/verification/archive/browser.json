@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "artifact": "docs/diagrams/pring-execution-gantt/pring-execution-gantt.html",
+  "sha256": "be42f92a14a8fd442f4a8a231037934bba6afad6344e8f0627555e86f5eb59e5",
+  "original_files_preserved": 15,
+  "support_files_preserved": 13,
+  "detail_dialogs_checked": 13,
+  "themes": "passed",
+  "links": "passed",
+  "scope": "Archive relocation only; no new product or diagram-content acceptance claimed."
+}

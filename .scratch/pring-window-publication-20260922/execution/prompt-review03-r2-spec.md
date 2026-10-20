@@ -1,0 +1,7 @@
+独立只读code-review，不再委派，不修改任何文件/票/源码，不跑测试/联网/读凭据。中文400words内，具体规则/规格及代码位置，静态推断注明。先读code-review/SKILL.md、AGENTS/CONTEXT、相关ADR0006/0018/0019、docs/agents/testing.md。
+主目录/mnt/d/cursor/datasourceRF/.scratch/pring-window-publication-20260922/execution，工作树/home/tywin/worktrees/datasourceRF-window-20260922/ticket-03。固定Git基线bb737200024369f2938d26d1cc49f5f77f18a1b1，无新增提交；本票继承01七文件，冻结5归属文件WIP在review-03-r2-input.json，diff_commands有序git diff --no-index拼接必须等于review-03-r2.diff，退出1只是有差异。baseline副本按该票真实继承01冻结，不可拿已叠加05的根文件作比较。首尾重验hash与diff。
+读完整父spec、issues/03-core-formula-warmup.md、前置01实际交付；本树.task-runtime/implementation-report-r2.md、heavy-request-r2.md、r2-final-identity.json；根review-03-combined.md、parent-verify-03-r2.json、heavy-03-preflight-r2/terminal.json及pytest.log。主代理已独立核104安装文件同源、最终7/33/15三个批次同版本同材料身份；实际heavy34passed85.80秒exit0前后身份相同，旧heavy5fail保留。这不代表全套/实际回放/真实认证完成。
+本轮新增calendar_coverage：以实际未过滤trade_cal原件及绑定自然日范围证明预热日历完整，不能只数开市行；保留history_dates为01旧新窗口对账，不能漏行凑140或抹掉原件。03核心仍逐正式结果PUBLIC cutoff取140输入、默认259/139；认证、质量、逐版本原件绑定；诊断候选可以不可见但要区别正式consumer.inputs/versions血缘。未知/未来新修订不破坏合法旧版本，后来在真实cutoff可见时可以采用。初始化及持续性规则保持独立。
+保留义务存在已披露缺口：旧r1临时CAS被pytest轮换清理，按hash找回318个，仍54路径缺失；本次r2用唯一basetemp且保存当前生成材料。不要伪称旧原件完全恢复，也不要据旧临时材料缺失否定当前同版本真实新验证。
+
+只审Spec：列本轮新增、前轮已修与仍缺的具体要求；给对应规格条款，不用“有测试”代替行为核查。特别检查漏自然日期诊断是否真正绑定原件范围、坏最新采用输入与未来不可见版本的隔离、失效原件定位、旧回执不变、按实际冻结规则派生而非硬编码日期。确认material_preflight以外的真实消费/回放路径是否仍存在与批准的“按正式消费cutoff”不一致；若问题属于后续票集成验收，明确依赖归属，不把某文件未改本身视为缺陷。代码作者明确未改model_evaluation且未运行真实回放，不能自动外推回放通过。不要用真实源缺件否定合法synthetic软件行为；未测分支/静态风险分别标注。

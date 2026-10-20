@@ -1,0 +1,76 @@
+﻿{
+    "recorded_at":  "2026-09-09T16:21:09.9407071+00:00",
+    "status":  "ust_catalog_joint_regression_passed",
+    "main_session_id":  87891,
+    "actual_exit_code":  0,
+    "passed":  28,
+    "failed":  0,
+    "seconds":  81.2,
+    "test_scope":  [
+                       "tests/models/test_candidate_admission.py::test_registered_catalog_treasury_cli_keeps_real_receipt_and_unknown_public_time",
+                       "tests/integration/test_treasury_csv_acquisition.py"
+                   ],
+    "frozen_inputs_unchanged":  228,
+    "protected_files_unchanged":  4,
+    "installed_sources_matched":  91,
+    "mypy_files":  93,
+    "ruff_passed":  true,
+    "spec_remaining":  0,
+    "standards_remaining":  0,
+    "real_network_test":  false,
+    "default_suite_rerun":  false,
+    "sqlite_lock_issue_fixed":  false,
+    "committed":  false,
+    "source_certification":  false,
+    "real_complete_candidate":  false,
+    "real_120_day_replay":  false,
+    "real_qualified_ai_outputs":  0,
+    "production_cutover":  false,
+    "evidence":  [
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-catalog-inputs-90.json",
+                         "bytes":  65753,
+                         "sha256":  "120a850f32371ed8294ef34f1177814f3faf8f0f77b16bbd018e422c5aea804c"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-catalog-fingerprint-before-90.json",
+                         "bytes":  29582,
+                         "sha256":  "3d04e51cfd0e420764b5c843d824b9d1d3570cca989fffc444f60a4b42bbccf4"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-catalog-fingerprint-after-90.json",
+                         "bytes":  29582,
+                         "sha256":  "3d04e51cfd0e420764b5c843d824b9d1d3570cca989fffc444f60a4b42bbccf4"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-catalog-joint-90.txt",
+                         "bytes":  226,
+                         "sha256":  "9375c7cb990959c4c4ba9057ec0061e6e1e90118d6e232fec46e523cc0a41e96"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-catalog-red-88.txt",
+                         "bytes":  3684,
+                         "sha256":  "1a504d67380c9ce40f47923786328d6354a41ec93a887a4e1abf55040315ae6d"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-catalog-green-88.txt",
+                         "bytes":  204,
+                         "sha256":  "55717f4924d4b21a3680a8635446346b27b4adcaf505bd90ffb740e1204acace"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-catalog-mypy-89.txt",
+                         "bytes":  92,
+                         "sha256":  "2126b99d4b572ef9b87374466b4069c2befe90a34a384f77d5ca3b139e134b73"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-catalog-ruff-89.txt",
+                         "bytes":  42,
+                         "sha256":  "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+                     },
+                     {
+                         "path":  ".scratch/pring-data-acquisition-repair/verification-ust-catalog-format-89.txt",
+                         "bytes":  88,
+                         "sha256":  "c517ddd69cb8c025d00f8d891defcc99a31263b941a21578cd571aaf3db9101b"
+                     }
+                 ]
+}

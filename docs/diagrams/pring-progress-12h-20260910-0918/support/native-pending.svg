@@ -1,0 +1,347 @@
+<svg id="diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 850" role="img" aria-label="Pring · 最近12小时推进与后续执行" data-gantt-view="plan" data-preset="classic" style="" width="1600" height="850"><style>@font-face { font-family: 'JetBrains Mono'; font-weight: 400; src: local('JetBrains Mono'), local('JetBrainsMono-Regular'); }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 500; src: local('JetBrains Mono'), local('JetBrainsMono-Regular'); }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 600; src: local('JetBrains Mono'), local('JetBrainsMono-Regular'); }
+@font-face { font-family: 'JetBrains Mono'; font-weight: 700; src: local('JetBrains Mono'), local('JetBrainsMono-Regular'); }
+svg { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', 'Noto Sans Mono CJK SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace; }
+:root, [data-theme="dark"] { --bg: #020617; --grid: #1e293b; --text: #ffffff; --text-muted: #94a3b8; --text-dim: #475569; --text-faint: #7d8da1; --panel: rgba(15, 23, 42, 0.5); --panel-border: #1e293b; --lane-fill: rgba(15, 23, 42, 0.22); --lane-stroke: #334155; --arrow: #64748b; --arrow-emphasis: #34d399; --mask: #0f172a; --frontend-fill: rgba(8, 51, 68, 0.4); --frontend-stroke: #22d3ee; --backend-fill: rgba(6, 78, 59, 0.4); --backend-stroke: #34d399; --database-fill: rgba(76, 29, 149, 0.4); --database-stroke: #a78bfa; --cloud-fill: rgba(120, 53, 15, 0.3); --cloud-stroke: #fbbf24; --security-fill: rgba(136, 19, 55, 0.4); --security-stroke: #fb7185; --messagebus-fill: rgba(251, 146, 60, 0.3); --messagebus-stroke: #fb923c; --external-fill: rgba(30, 41, 59, 0.5); --external-stroke: #94a3b8; --toolbar-bg: rgba(15, 23, 42, 0.8); --toolbar-border: #334155; --toolbar-text: #e2e8f0; --toolbar-hover: rgba(15, 23, 42, 0.95); --toolbar-menu-bg: #0f172a; }
+[data-theme="light"] { --bg: #f8fafc; --grid: #e2e8f0; --text: #0f172a; --text-muted: #64748b; --text-dim: #94a3b8; --text-faint: #64748b; --panel: #ffffff; --panel-border: #e2e8f0; --lane-fill: rgba(248, 250, 252, 0.65); --lane-stroke: #cbd5e1; --arrow: #94a3b8; --arrow-emphasis: #059669; --mask: #ffffff; --frontend-fill: rgba(34, 211, 238, 0.15); --frontend-stroke: #0891b2; --backend-fill: rgba(52, 211, 153, 0.18); --backend-stroke: #059669; --database-fill: rgba(167, 139, 250, 0.2); --database-stroke: #7c3aed; --cloud-fill: rgba(251, 191, 36, 0.18); --cloud-stroke: #d97706; --security-fill: rgba(251, 113, 133, 0.15); --security-stroke: #e11d48; --messagebus-fill: rgba(251, 146, 60, 0.15); --messagebus-stroke: #ea580c; --external-fill: rgba(148, 163, 184, 0.18); --external-stroke: #64748b; --toolbar-bg: rgba(255, 255, 255, 0.92); --toolbar-border: #cbd5e1; --toolbar-text: #334155; --toolbar-hover: #ffffff; --toolbar-menu-bg: #ffffff; }
+[data-preset="signal-flow"][data-theme="dark"] { --bg: #030711; --grid: #15233a; --panel: rgba(6, 14, 28, 0.78); --panel-border: #1d3350; --lane-fill: rgba(9, 22, 40, 0.5); --lane-stroke: #2c4564; --text: #f5fbff; --text-muted: #9eb0c7; --text-dim: #52667f; --text-faint: #7890ad; --mask: #07101e; --frontend-fill: rgba(6, 182, 212, 0.14); --frontend-stroke: #67e8f9; --backend-fill: rgba(16, 185, 129, 0.14); --backend-stroke: #5eead4; --database-fill: rgba(139, 92, 246, 0.16); --database-stroke: #c4b5fd; --cloud-fill: rgba(245, 158, 11, 0.13); --cloud-stroke: #fcd34d; --security-fill: rgba(244, 63, 94, 0.13); --security-stroke: #fda4af; --messagebus-fill: rgba(249, 115, 22, 0.13); --messagebus-stroke: #fdba74; --external-fill: rgba(71, 85, 105, 0.24); --external-stroke: #a5b4c7; --arrow: #7890ad; --arrow-emphasis: #2dd4bf; --toolbar-bg: rgba(7, 16, 30, 0.86); --toolbar-border: #29415f; --toolbar-menu-bg: #07101e; }
+[data-preset="signal-flow"][data-theme="light"] { --bg: #f4f9fc; --grid: #d4e5ee; --panel: rgba(255, 255, 255, 0.82); --panel-border: #bfd5e2; --lane-fill: rgba(232, 243, 248, 0.62); --lane-stroke: #a9c5d5; --text: #102638; --text-muted: #587287; --text-dim: #8aa2b4; --text-faint: #668397; --mask: #ffffff; --frontend-fill: rgba(6, 182, 212, 0.09); --frontend-stroke: #0789a1; --backend-fill: rgba(5, 150, 105, 0.09); --backend-stroke: #087f69; --database-fill: rgba(124, 58, 237, 0.09); --database-stroke: #7254c7; --cloud-fill: rgba(217, 119, 6, 0.08); --cloud-stroke: #b9670b; --security-fill: rgba(225, 29, 72, 0.08); --security-stroke: #c53a59; --messagebus-fill: rgba(234, 88, 12, 0.08); --messagebus-stroke: #c65f27; --external-fill: rgba(100, 116, 139, 0.1); --external-stroke: #607a8c; --arrow: #7b97aa; --arrow-emphasis: #0d9488; }
+[data-preset="blueprint"][data-theme="dark"] { --bg: #06131f; --grid: #17425a; --panel: rgba(7, 27, 43, 0.9); --panel-border: #27627f; --lane-fill: rgba(10, 43, 66, 0.36); --lane-stroke: #34799a; --text: #e3f6ff; --text-muted: #91b8ca; --text-dim: #557e92; --text-faint: #739caf; --mask: #0a2031; --frontend-fill: rgba(26, 157, 193, 0.14); --frontend-stroke: #66d9ef; --backend-fill: rgba(31, 155, 124, 0.13); --backend-stroke: #69dfbd; --database-fill: rgba(120, 105, 196, 0.14); --database-stroke: #b4a8ff; --cloud-fill: rgba(197, 145, 43, 0.13); --cloud-stroke: #ffd166; --security-fill: rgba(199, 76, 104, 0.13); --security-stroke: #ff8da1; --messagebus-fill: rgba(207, 112, 49, 0.13); --messagebus-stroke: #ffad66; --external-fill: rgba(84, 119, 139, 0.18); --external-stroke: #a7cad9; --arrow: #78a3b7; --arrow-emphasis: #64dfc1; --toolbar-bg: rgba(7, 28, 45, 0.92); --toolbar-border: #34799a; --toolbar-text: #d8f3ff; --toolbar-hover: rgba(18, 58, 83, 0.95); --toolbar-menu-bg: #0a2031; }
+[data-preset="blueprint"][data-theme="light"] { --bg: #edf7fa; --grid: #b5d5e1; --panel: rgba(249, 253, 255, 0.94); --panel-border: #78aabd; --lane-fill: rgba(210, 232, 240, 0.42); --lane-stroke: #83b2c4; --text: #123344; --text-muted: #4e7486; --text-dim: #86a6b4; --text-faint: #668c9d; --mask: #f9fdff; --frontend-fill: rgba(8, 145, 178, 0.08); --frontend-stroke: #087f9c; --backend-fill: rgba(5, 128, 101, 0.08); --backend-stroke: #08755f; --database-fill: rgba(100, 75, 180, 0.08); --database-stroke: #6757a8; --cloud-fill: rgba(181, 120, 15, 0.08); --cloud-stroke: #a86609; --security-fill: rgba(190, 48, 80, 0.07); --security-stroke: #b32f50; --messagebus-fill: rgba(196, 81, 22, 0.07); --messagebus-stroke: #b65120; --external-fill: rgba(79, 112, 128, 0.08); --external-stroke: #506f7e; --arrow: #6d93a5; --arrow-emphasis: #087f69; --toolbar-bg: rgba(247, 252, 254, 0.94); --toolbar-border: #8ab5c5; --toolbar-text: #294f61; --toolbar-hover: #ffffff; --toolbar-menu-bg: #f9fdff; }
+[data-preset="editorial"][data-theme="dark"] { --bg: #181611; --grid: #39342a; --panel: rgba(35, 31, 24, 0.96); --panel-border: #625a4a; --lane-fill: rgba(52, 46, 35, 0.46); --lane-stroke: #726957; --text: #f4eddf; --text-muted: #b9ae9b; --text-dim: #776e60; --text-faint: #9d917e; --mask: #231f18; --frontend-fill: rgba(43, 133, 142, 0.16); --frontend-stroke: #7fc6c7; --backend-fill: rgba(63, 132, 92, 0.16); --backend-stroke: #8fc29e; --database-fill: rgba(117, 91, 141, 0.17); --database-stroke: #c0a4d0; --cloud-fill: rgba(170, 119, 49, 0.16); --cloud-stroke: #d8ad68; --security-fill: rgba(157, 69, 65, 0.17); --security-stroke: #df9085; --messagebus-fill: rgba(174, 79, 42, 0.16); --messagebus-stroke: #df946f; --external-fill: rgba(126, 115, 96, 0.18); --external-stroke: #b8ad99; --arrow: #948978; --arrow-emphasis: #dd6b3d; --toolbar-bg: rgba(35, 31, 24, 0.92); --toolbar-border: #625a4a; --toolbar-text: #eee5d5; --toolbar-hover: #302a20; --toolbar-menu-bg: #231f18; }
+[data-preset="editorial"][data-theme="light"] { --bg: #f2eee5; --grid: #d8d0c2; --panel: rgba(251, 248, 241, 0.97); --panel-border: #c4b9a6; --lane-fill: rgba(229, 221, 207, 0.42); --lane-stroke: #b8aa94; --text: #242018; --text-muted: #6f6658; --text-dim: #a09788; --text-faint: #817767; --mask: #fbf8f1; --frontend-fill: rgba(31, 117, 126, 0.09); --frontend-stroke: #287e84; --backend-fill: rgba(42, 119, 75, 0.09); --backend-stroke: #397b53; --database-fill: rgba(105, 75, 130, 0.09); --database-stroke: #765d86; --cloud-fill: rgba(157, 103, 31, 0.1); --cloud-stroke: #9a671f; --security-fill: rgba(153, 58, 52, 0.09); --security-stroke: #9e463f; --messagebus-fill: rgba(182, 70, 27, 0.09); --messagebus-stroke: #ad4b25; --external-fill: rgba(101, 91, 75, 0.09); --external-stroke: #746b5e; --arrow: #8a806f; --arrow-emphasis: #bb4c23; --toolbar-bg: rgba(251, 248, 241, 0.94); --toolbar-border: #c4b9a6; --toolbar-text: #40392f; --toolbar-hover: #fffdf8; --toolbar-menu-bg: #fbf8f1; }
+svg { width: 100%; min-width: min(900px, 100%); display: block; transform-origin: 0px 0px; transition: transform 0.18s; }
+@keyframes archify-lens-in { 
+  0% { opacity: 0; transform: translateY(5px) scale(0.985); }
+  100% { opacity: 1; transform: translateY(0px) scale(1); }
+}
+@keyframes archify-guide-in { 
+  0% { opacity: 0; transform: translateY(-5px) scale(0.985); }
+  100% { opacity: 1; transform: translateY(0px) scale(1); }
+}
+svg[data-chapter-handoff] [data-node-id][data-chapter-role="stay"] { opacity: 1; }
+svg[data-chapter-handoff] [data-node-id][data-chapter-role="enter"] { opacity: 0.78; }
+svg[data-chapter-handoff] [data-node-id][data-chapter-role="leave"] { opacity: 0.26; }
+@keyframes archify-chapter-anchor { 
+  0% { opacity: 0.35; stroke-dashoffset: 8; }
+  45% { opacity: 1; }
+  100% { opacity: 0.72; stroke-dashoffset: 0; }
+}
+@keyframes archify-story-caption-in { 
+  0% { opacity: 0; transform: translateY(3px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+[data-theme="light"] #theme-icon { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cg fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round'%3E%3Ccircle cx='10' cy='10' r='3.1'/%3E%3Cpath d='M10 2.2v1.4M10 16.4v1.4M2.2 10h1.4M16.4 10h1.4M4.5 4.5l1 1M14.5 14.5l1 1M15.5 4.5l-1 1M5.5 14.5l-1 1'/%3E%3C/g%3E%3C/svg%3E"); }
+[data-theme="dark"] #theme-icon { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M15.2 12.7A6.3 6.3 0 017.3 4.8a6.3 6.3 0 107.9 7.9Z' fill='none' stroke='black' stroke-width='1.7' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.c-grid { stroke: var(--grid); fill: none; }
+.c-mask { fill: var(--mask); stroke: none; }
+.c-frontend { fill: var(--frontend-fill); stroke: var(--frontend-stroke); }
+.c-backend { fill: var(--backend-fill); stroke: var(--backend-stroke); }
+.c-database { fill: var(--database-fill); stroke: var(--database-stroke); }
+.c-cloud { fill: var(--cloud-fill); stroke: var(--cloud-stroke); }
+.c-security { fill: var(--security-fill); stroke: var(--security-stroke); }
+.c-messagebus { fill: var(--messagebus-fill); stroke: var(--messagebus-stroke); }
+.c-external { fill: var(--external-fill); stroke: var(--external-stroke); }
+.t-primary { fill: var(--text); }
+.t-muted { fill: var(--text-muted); }
+.t-dim { fill: var(--text-dim); }
+.t-frontend { fill: var(--frontend-stroke); }
+.t-backend { fill: var(--backend-stroke); }
+.t-database { fill: var(--database-stroke); }
+.t-cloud { fill: var(--cloud-stroke); }
+.t-security { fill: var(--security-stroke); }
+.t-messagebus { fill: var(--messagebus-stroke); }
+.t-external { fill: var(--external-stroke); }
+svg .semantic-sigil { fill: none; stroke: currentcolor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; opacity: 0.76; pointer-events: none; }
+svg .semantic-sigil &gt; * { vector-effect: non-scaling-stroke; }
+svg .semantic-sigil .sigil-fill { fill: currentcolor; stroke: none; }
+svg .s-frontend { color: var(--frontend-stroke); }
+svg .s-backend { color: var(--backend-stroke); }
+svg .s-database { color: var(--database-stroke); }
+svg .s-cloud { color: var(--cloud-stroke); }
+svg .s-security { color: var(--security-stroke); }
+svg .s-messagebus { color: var(--messagebus-stroke); }
+svg .s-external { color: var(--external-stroke); }
+svg .brand-mark { pointer-events: none; }
+svg .brand-mark-badge { fill: rgb(255, 255, 255); stroke: none; }
+svg .brand-mark-frame { fill: none; stroke: rgb(203, 213, 225); stroke-width: 0.8; vector-effect: non-scaling-stroke; }
+svg .brand-mark-fallback { fill: none; stroke: rgb(71, 85, 105); stroke-width: 1.15; stroke-linecap: round; stroke-linejoin: round; }
+svg[data-preset="blueprint"] .brand-mark-badge, svg[data-preset="blueprint"] .brand-mark-frame { rx: 1px; }
+svg [data-detail] { transition: opacity 160ms; }
+svg [data-detail-anchor] { transform-box: fill-box; transform-origin: center center; transition: transform 160ms; }
+svg[data-focus-active] [data-focus-match][data-detail], svg[data-focus-active] [data-focus-match] [data-detail], svg[data-reach-active] [data-reach-match][data-detail], svg[data-reach-active] [data-reach-match] [data-detail], svg[data-lens-active] [data-lens-match][data-detail], svg[data-lens-active] [data-lens-match] [data-detail], svg[data-legend-preview-active] [data-legend-preview-match][data-detail], svg[data-legend-preview-active] [data-legend-preview-match] [data-detail], svg[data-intent-trace-active] [data-intent-trace-match][data-detail], svg[data-intent-trace-active] [data-intent-trace-match] [data-detail], svg[data-route-active] [data-route-match][data-detail], svg[data-route-active] [data-route-match] [data-detail], svg[data-story-active] [data-story-step][data-detail], svg[data-story-active] [data-story-step] [data-detail], svg[data-relationship-preview-active] [data-relationship-preview][data-detail], svg[data-relationship-preview-active] [data-relationship-preview] [data-detail], svg [data-node-id]:hover [data-detail], svg [data-node-id]:focus-visible [data-detail] { opacity: 1; pointer-events: auto; }
+svg[data-focus-active] [data-focus-match] [data-detail-anchor], svg[data-reach-active] [data-reach-match] [data-detail-anchor], svg[data-lens-active] [data-lens-match] [data-detail-anchor], svg[data-legend-preview-active] [data-legend-preview-match] [data-detail-anchor], svg[data-intent-trace-active] [data-intent-trace-match] [data-detail-anchor], svg[data-route-active] [data-route-match] [data-detail-anchor], svg[data-story-active] [data-story-step] [data-detail-anchor], svg [data-node-id]:hover [data-detail-anchor], svg [data-node-id]:focus-visible [data-detail-anchor] { transform: none; }
+.a-default { stroke: var(--arrow); fill: none; }
+.a-emphasis { stroke: var(--arrow-emphasis); fill: none; }
+.a-security { stroke: var(--security-stroke); fill: none; stroke-dasharray: 5, 5; }
+.a-dashed { stroke: var(--database-stroke); fill: none; stroke-dasharray: 4, 4; }
+.m-default { fill: var(--arrow); }
+.m-emphasis { fill: var(--arrow-emphasis); }
+.m-security { fill: var(--security-stroke); }
+.m-dashed { fill: var(--database-stroke); }
+svg [data-node-id] { cursor: pointer; transition: opacity 0.18s, filter 0.18s; }
+svg [data-edge-from] { transition: opacity 0.18s, filter 0.18s; }
+svg [data-node-id]:hover, svg [data-node-id]:focus-visible { filter: drop-shadow(0 0 7px var(--frontend-stroke)); outline: none; }
+svg [data-node-id]:hover .source-evidence-beacon, svg [data-node-id]:focus-visible .source-evidence-beacon, svg [data-node-id][data-focus-selected] .source-evidence-beacon { opacity: 1; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--backend-stroke) 72%, transparent)); }
+svg[data-preset="signal-flow"] .source-evidence-beacon { opacity: 0.9; }
+svg[data-preset="blueprint"] .source-evidence-beacon rect { rx: 0.8px; filter: none; }
+svg [data-legend-kind][role="button"] { cursor: pointer; }
+svg [data-legend-kind]:focus { outline: none; }
+svg [data-legend-hit] { fill: transparent; stroke: transparent; stroke-width: 1.4; pointer-events: all; vector-effect: non-scaling-stroke; transition: stroke 150ms, stroke-width 150ms, filter 150ms; }
+svg [data-legend-count-badge] { pointer-events: none; }
+svg [data-legend-count-badge] rect { fill: var(--mask); stroke: var(--panel-border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+svg [data-legend-count-badge] text { fill: var(--text-muted); font-size: 8px; font-weight: 700; text-anchor: middle; }
+svg [data-legend-kind][role="button"]:hover [data-legend-hit] { stroke: color-mix(in srgb, var(--database-stroke) 58%, transparent); }
+svg [data-legend-kind][role="button"]:focus-visible [data-legend-hit] { stroke: var(--frontend-stroke); stroke-width: 1.8; filter: drop-shadow(0 0 3px var(--frontend-stroke)); }
+svg [data-legend-kind][data-legend-selected] [data-legend-hit] { stroke: var(--database-stroke); stroke-width: 2.2; stroke-dasharray: 3, 2; }
+svg [data-legend-kind][data-legend-selected] [data-legend-count-badge] rect { stroke: var(--database-stroke); stroke-width: 1.8; }
+svg [data-legend-kind][data-legend-zero] { opacity: 0.44; }
+svg[data-preset="signal-flow"] [data-legend-kind][data-legend-selected] [data-legend-hit] { filter: drop-shadow(0 0 4px var(--database-stroke)); }
+svg[data-preset="blueprint"] [data-legend-hit], svg[data-preset="blueprint"] [data-legend-count-badge] rect { rx: 0; filter: none; }
+svg[data-legend-preview-active] [data-node-id], svg[data-legend-preview-active] [data-edge-from] { opacity: 0.11; }
+svg[data-legend-preview-active] [data-legend-preview-match] { opacity: 1; }
+svg[data-legend-preview-active] [data-legend-preview-peer] { opacity: 0.62; }
+svg[data-legend-preview-active] [data-legend-preview-selected] { filter: drop-shadow(0 0 8px var(--database-stroke)); }
+svg[data-lens-active] [data-node-id], svg[data-lens-active] [data-edge-from] { opacity: 0.11; }
+svg[data-lens-active] [data-lens-match] { opacity: 1; }
+svg[data-lens-active] [data-lens-peer] { opacity: 0.62; }
+svg[data-lens-active] [data-lens-selected] { filter: drop-shadow(0 0 10px var(--database-stroke)); }
+svg[data-preset="signal-flow"] .semantic-lens-flow { stroke-width: 3.7; opacity: 1; }
+svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="out"], svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="forward"] { filter: drop-shadow(0 0 6px var(--frontend-stroke)); }
+svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="in"], svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="reverse"] { filter: drop-shadow(0 0 6px var(--database-stroke)); }
+svg[data-preset="signal-flow"] .semantic-lens-flow[data-direction="within"] { filter: drop-shadow(0 0 6px var(--messagebus-stroke)); }
+svg[data-preset="blueprint"] .semantic-lens-flow { stroke-width: 2.45; stroke-linecap: square; filter: none; opacity: 0.78; }
+svg[data-focus-active] [data-node-id], svg[data-focus-active] [data-edge-from] { opacity: 0.13; }
+svg[data-focus-active] [data-focus-match] { opacity: 1; }
+svg[data-focus-active] [data-focus-selected] { filter: drop-shadow(0 0 10px var(--frontend-stroke)); }
+svg[data-reach-active] [data-node-id], svg[data-reach-active] [data-edge-from] { opacity: 0.09; }
+svg[data-reach-active] [data-reach-match] { opacity: 1; }
+svg[data-reach-active="upstream"] [data-reach-origin] { filter: drop-shadow(0 0 11px var(--database-stroke)); }
+svg[data-reach-active="downstream"] [data-reach-origin] { filter: drop-shadow(0 0 11px var(--backend-stroke)); }
+svg[data-reach-active="upstream"] [data-edge-from][data-reach-match] { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--database-stroke) 72%, transparent)); }
+svg[data-reach-active="downstream"] [data-edge-from][data-reach-match] { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--backend-stroke) 72%, transparent)); }
+svg[data-preset="blueprint"][data-reach-active] [data-reach-origin], svg[data-preset="blueprint"][data-reach-active] [data-edge-from][data-reach-match] { filter: none; }
+svg[data-preset="blueprint"] .relationship-hit-target:focus-visible .relationship-focus-rail { stroke-linecap: square; filter: none; }
+svg[data-relationship-direct-active] [data-node-id], svg[data-relationship-direct-active] [data-edge-from] { opacity: 0.16; }
+svg[data-relationship-direct-active] [data-relationship-preview], svg[data-relationship-direct-active] [data-relationship-preview-node] { opacity: 1; }
+svg[data-focus-active]:not([data-relationship-pin-active]) .relationship-hit-rail, svg[data-story-active] .relationship-hit-rail, svg[data-route-picking] .relationship-hit-rail, svg[data-route-active] .relationship-hit-rail, svg[data-lens-active] .relationship-hit-rail, svg[data-chapter-preview] .relationship-hit-rail { pointer-events: none; }
+svg[data-relationship-preview-active] [data-focus-match] { opacity: 0.18; }
+svg[data-relationship-preview-active] [data-relationship-preview], svg[data-relationship-preview-active] [data-relationship-preview-node] { opacity: 1; }
+svg[data-relationship-preview-active] [data-relationship-preview] { filter: drop-shadow(0 0 5px var(--arrow-emphasis)); }
+svg[data-relationship-preview-active] [data-relationship-preview] path, svg[data-relationship-preview-active] path[data-relationship-preview], svg[data-relationship-preview-active] [data-relationship-preview] line, svg[data-relationship-preview-active] line[data-relationship-preview], svg[data-relationship-preview-active] [data-relationship-preview] polyline, svg[data-relationship-preview-active] polyline[data-relationship-preview] { stroke-width: 2.75; }
+svg[data-relationship-preview-active] [data-relationship-preview-source] { filter: drop-shadow(0 0 7px var(--frontend-stroke)); }
+svg[data-relationship-preview-active] [data-relationship-preview-target] { filter: drop-shadow(0 0 7px var(--database-stroke)); }
+svg[data-preset="signal-flow"] .relationship-flow-pulse { stroke: var(--frontend-stroke); stroke-width: 3.85; filter: drop-shadow(0 0 7px var(--frontend-stroke)); }
+svg[data-preset="blueprint"] .relationship-flow-pulse { stroke-width: 2.5; stroke-linecap: square; filter: none; }
+svg[data-preset="editorial"] .relationship-flow-pulse { stroke: var(--arrow-emphasis); stroke-width: 2.75; filter: none; }
+svg[data-preset="signal-flow"] .semantic-flow-token { filter: drop-shadow(currentcolor 0px 0px 5px); }
+svg[data-preset="blueprint"] .semantic-flow-token { filter: none; }
+svg[data-preset="editorial"] .semantic-flow-token { filter: none; }
+svg[data-intent-trace-active] [data-node-id], svg[data-intent-trace-active] [data-edge-from] { opacity: 0.2; }
+svg[data-intent-trace-active] [data-intent-trace-match] { opacity: 1; }
+svg[data-intent-trace-active] [data-intent-trace-selected] { filter: drop-shadow(0 0 10px var(--frontend-stroke)); }
+svg[data-preset="blueprint"] [data-intent-trace-selected], svg[data-preset="blueprint"] .intent-trace-flow { filter: none; stroke-linecap: square; }
+svg[data-preset="editorial"] [data-intent-trace-selected], svg[data-preset="editorial"] .intent-trace-flow { filter: none; }
+svg[data-route-picking="target"] [data-node-id] { opacity: 0.24; }
+svg[data-route-picking="target"] [data-route-candidate], svg[data-route-picking="target"] [data-route-start] { opacity: 1; }
+svg[data-route-picking] [data-node-id] { cursor: crosshair; }
+svg[data-route-picking] [data-route-start] { filter: drop-shadow(0 0 10px var(--frontend-stroke)); }
+svg[data-route-active] [data-node-id], svg[data-route-active] [data-edge-from] { opacity: 0.11; }
+svg[data-route-active] [data-route-match] { opacity: 1; }
+svg[data-route-active] [data-route-start] { filter: drop-shadow(0 0 11px var(--frontend-stroke)); }
+svg[data-route-active] [data-route-end] { filter: drop-shadow(0 0 11px var(--security-stroke)); }
+svg[data-route-active] [data-route-step]:not([data-route-start]):not([data-route-end]) { filter: drop-shadow(0 0 7px var(--backend-stroke)); }
+svg[data-route-journey] [data-route-match][data-route-journey-state="past"] { opacity: 0.62; }
+svg[data-route-journey] [data-route-match][data-route-journey-state="future"] { opacity: 0.34; }
+svg[data-route-journey] [data-route-match][data-route-journey-state="current"] { opacity: 1; }
+svg[data-route-journey] [data-node-id][data-route-journey-current] { filter: drop-shadow(0 0 10px var(--backend-stroke)); }
+svg[data-route-journey] [data-edge-from][data-route-journey-current] { opacity: 1; filter: drop-shadow(0 0 6px var(--backend-stroke)); }
+svg[data-preset="blueprint"] [data-route-start], svg[data-preset="blueprint"] [data-route-end], svg[data-preset="blueprint"] [data-route-step], svg[data-preset="blueprint"] .route-probe-flow { filter: none; stroke-linecap: square; }
+svg[data-preset="blueprint"] .route-journey-flow { filter: none; stroke-linecap: square; }
+svg[data-preset="editorial"] [data-route-start], svg[data-preset="editorial"] [data-route-end], svg[data-preset="editorial"] [data-route-step], svg[data-preset="editorial"] .route-probe-flow, svg[data-preset="editorial"] .route-journey-flow { filter: none; }
+svg[data-preset="editorial"] .c-grid { stroke-dasharray: 1, 4; opacity: 0.48; }
+svg[data-preset="editorial"] .c-region { fill: color-mix(in srgb, var(--cloud-fill) 48%, transparent); stroke-dasharray: 9, 4; }
+svg[data-preset="editorial"] [data-node-id]:hover, svg[data-preset="editorial"] [data-node-id]:focus-visible, svg[data-preset="editorial"][data-focus-active] [data-focus-selected] { filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--text) 18%, transparent)); }
+svg[data-preset="blueprint"] .c-grid { stroke-dasharray: 1, 3; opacity: 0.78; }
+svg[data-preset="blueprint"] .c-region { fill: color-mix(in srgb, var(--cloud-fill) 58%, transparent); stroke-dasharray: 12, 4, 2, 4; }
+svg[data-preset="blueprint"] .c-security-group, svg[data-preset="blueprint"] .c-lane { stroke-dasharray: 7, 3; }
+svg[data-preset="blueprint"] [data-node-id]:hover, svg[data-preset="blueprint"] [data-node-id]:focus-visible { filter: drop-shadow(0 0 3px var(--frontend-stroke)); }
+svg[data-preset="blueprint"][data-focus-active] [data-focus-selected] { filter: drop-shadow(0 0 3px var(--frontend-stroke)); }
+svg[data-preset="blueprint"][data-focus-active][data-reach-active] [data-focus-selected][data-reach-origin] { filter: none; }
+svg[data-preset="blueprint"][data-relationship-preview-active] [data-relationship-preview], svg[data-preset="blueprint"][data-relationship-preview-active] [data-relationship-preview-source], svg[data-preset="blueprint"][data-relationship-preview-active] [data-relationship-preview-target] { filter: drop-shadow(0 0 3px var(--frontend-stroke)); }
+svg[data-story-beat] [data-story-step] { opacity: 0.22; filter: saturate(0.42); transition: opacity 180ms, filter 180ms; }
+svg[data-story-beat] [data-story-step][data-story-beat-state="past"] { opacity: 0.72; filter: saturate(0.82); }
+svg[data-story-beat] [data-story-step][data-story-beat-state="next"] { opacity: 0.5; filter: saturate(0.66); }
+svg[data-story-beat] [data-story-step][data-story-beat-state="active"] { opacity: 1; filter: drop-shadow(0 0 7px var(--frontend-stroke)); animation: 360ms cubic-bezier(0.22, 1, 0.36, 1) 0s 1 normal both running archify-story-beat-node; }
+svg[data-story-beat] [data-edge-from][data-story-beat-step] { opacity: 0.16; transition: opacity 160ms; }
+svg[data-story-beat] [data-edge-from][data-story-beat-step][data-story-beat-state="past"] { opacity: 0.58; }
+svg[data-story-beat] [data-edge-from][data-story-beat-step][data-story-beat-state="next"] { opacity: 0.34; }
+svg[data-story-beat] [data-edge-from][data-story-beat-step][data-story-beat-state="active"] { opacity: 1; }
+svg[data-story-beat] .story-trail-flow { opacity: 0; transition: opacity 160ms; }
+svg[data-story-beat] .story-trail-flow[data-story-beat-state="past"] { opacity: 0.34; }
+svg[data-story-beat] .story-trail-flow[data-story-beat-state="next"] { opacity: 0.2; }
+svg[data-story-beat] .story-trail-flow[data-story-beat-state="active"] { opacity: 0.92; }
+svg[data-story-beat] .story-trail-flow[data-story-pulse="true"] { stroke-dasharray: 2, 13; stroke-dashoffset: 30; opacity: 0.92; animation: 0.78s linear 0s 1 normal both running archify-story-flow; }
+svg[data-preset="blueprint"] .story-trail-flow { stroke-linecap: square; filter: none; opacity: 0.5; }
+svg[data-preset="blueprint"][data-story-beat] [data-story-step][data-story-beat-state="active"] { filter: none; animation: auto ease 0s 1 normal none running none; }
+svg[data-preset="editorial"] .story-trail-flow { filter: none; }
+svg[data-preset="editorial"][data-story-beat] [data-story-step][data-story-beat-state="active"] { filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--text) 16%, transparent)); }
+svg[data-chapter-preview] [data-node-id], svg[data-chapter-preview] [data-edge-from] { opacity: 0.1 !important; filter: none !important; transition: none !important; }
+svg[data-chapter-preview] .story-trail-overlay { opacity: 0.08 !important; }
+svg[data-chapter-preview] [data-node-id][data-chapter-preview-role="stay"] { opacity: 0.76 !important; filter: saturate(0.7) !important; }
+svg[data-chapter-preview] [data-node-id][data-chapter-preview-role="enter"] { opacity: 1 !important; filter: saturate(1.2) !important; }
+svg[data-chapter-preview] [data-node-id][data-chapter-preview-role="leave"] { opacity: 0.28 !important; filter: grayscale(0.72) !important; }
+svg[data-preset="blueprint"][data-chapter-preview] [data-node-id] { filter: none !important; }
+.c-security-group { fill: transparent; stroke: var(--security-stroke); stroke-dasharray: 4, 4; }
+.c-region { fill: rgba(251, 191, 36, 0.05); stroke: var(--cloud-stroke); stroke-dasharray: 8, 4; }
+.c-lane { fill: var(--lane-fill); stroke: var(--lane-stroke); stroke-dasharray: 6, 6; }
+svg[data-preset="signal-flow"][data-animation="trace"] [data-animate="edge"] { stroke-linecap: round; filter: drop-shadow(0 0 3px var(--arrow-emphasis)); animation-duration: 1.75s; }
+svg[data-preset="signal-flow"][data-animation="trace"] [data-animate="node"] { animation-duration: 3.1s; }
+svg[data-preset="blueprint"][data-animation="trace"] [data-animate="edge"] { stroke-linecap: square; filter: none; animation-duration: 2.15s; }
+svg[data-preset="blueprint"][data-animation="trace"] [data-animate="node"] { animation-name: archify-blueprint-node-pulse; animation-duration: 3.8s; }
+svg[data-preset="editorial"][data-animation="trace"] [data-animate="edge"] { filter: none; animation-duration: 2.2s; }
+svg[data-preset="editorial"][data-animation="trace"] [data-animate="node"] { animation-name: archify-editorial-node-pulse; animation-duration: 3.5s; }
+@keyframes archify-edge-flow { 
+  0% { stroke-dasharray: 10, 8; stroke-dashoffset: 54; opacity: 0.42; }
+  88% { stroke-dasharray: 10, 8; stroke-dashoffset: 0; opacity: 1; }
+  99.9% { stroke-dasharray: 10, 8; stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes archify-node-pulse { 
+  0%, 72%, 100% { filter: none; stroke-width: 1.5; }
+  18%, 36% { filter: drop-shadow(0 0 8px var(--arrow-emphasis)); stroke-width: 2.4; }
+}
+@keyframes archify-blueprint-node-pulse { 
+  0%, 72%, 100% { opacity: 1; filter: none; }
+  18%, 36% { opacity: 0.72; filter: drop-shadow(0 0 2px var(--frontend-stroke)); }
+}
+@keyframes archify-editorial-node-pulse { 
+  0%, 72%, 100% { opacity: 1; filter: none; }
+  18%, 36% { opacity: 0.78; filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--text) 18%, transparent)); }
+}
+@keyframes archify-signal-scan { 
+  0%, 18% { opacity: 1; transform: translateX(-70%); }
+  70% { opacity: 1; transform: translateX(70%); }
+  100% { opacity: 0; transform: translateX(70%); }
+}
+@keyframes archify-radar-live { 
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--backend-stroke) 52%, transparent); }
+  55%, 100% { box-shadow: transparent 0px 0px 0px 0.32rem; }
+}
+@keyframes archify-guided-progress { 
+  0% { transform: scaleX(var(--guided-progress-start, 0)); }
+  100% { transform: scaleX(1); }
+}
+@keyframes archify-story-flow { 
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes archify-intent-trace-flow { 
+  0% { opacity: 0.28; stroke-dashoffset: 0; }
+  12%, 78% { opacity: 0.94; }
+  100% { opacity: 0; stroke-dashoffset: -1; }
+}
+@keyframes archify-route-probe-flow { 
+  0% { stroke-dashoffset: 0; opacity: 0.96; }
+  78% { stroke-dashoffset: -1; opacity: 0.96; }
+  100% { stroke-dasharray: none; stroke-dashoffset: 0; opacity: 0.58; }
+}
+@keyframes archify-route-journey-flow { 
+  0% { opacity: 0.16; stroke-dashoffset: 0; }
+  14%, 76% { opacity: 1; }
+  100% { opacity: 0; stroke-dashoffset: -1; }
+}
+@keyframes archify-semantic-lens-flow { 
+  0% { opacity: 0.2; stroke-dashoffset: 0; }
+  12%, 78% { opacity: 0.9; }
+  100% { opacity: 0; stroke-dashoffset: -1; }
+}
+@keyframes archify-relationship-pulse { 
+  0% { opacity: 0.18; stroke-dashoffset: 0; }
+  10%, 76% { opacity: 0.98; }
+  100% { opacity: 0; stroke-dashoffset: -1; }
+}
+@keyframes archify-relationship-token-life { 
+  0%, 7% { opacity: 0; }
+  13%, 82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes archify-story-beat-node { 
+  0% { opacity: 0.48; filter: saturate(0.6); }
+  58% { opacity: 1; filter: drop-shadow(0 0 10px var(--frontend-stroke)); }
+  100% { opacity: 1; filter: drop-shadow(0 0 7px var(--frontend-stroke)); }
+}
+@keyframes archify-share-cue-enter { 
+  0% { opacity: 0; transform: translate(-50%, -0.45rem); }
+  100% { opacity: 1; transform: translate(-50%, 0px); }
+}
+@keyframes archify-share-cue-pulse { 
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.48; transform: scale(0.78); }
+}
+:root { --ggreen: #166b5b; --gamber: #996006; --gink: #18293b; --gmuted: #687787; --gline: #dce4eb; --gpaper: #fcfdfd; --gband: #f4f7f8; --gstatus: #e4f1eb; --gactivebg: #fff0d1; }
+[data-theme="dark"] { --ggreen: #64d2b2; --gamber: #f7be5b; --gink: #e9f1f8; --gmuted: #95a7b8; --gline: #273748; --gpaper: #101b28; --gband: #132231; --gstatus: #143c35; --gactivebg: #433321; }
+:root { --gblue: #28699a; --ggray: #77828d; }
+[data-theme="dark"] { --gblue: #82bcf4; --ggray: #b2bec9; }
+.c-done { --gc: var(--ggreen); }
+.c-research { --gc: var(--gblue); }
+.c-issue, .c-blocked { --gc: var(--gamber); }
+.c-interrupted, .c-pending { --gc: var(--ggray); }
+:root { --ggreen: #166b5b; --gamber: #996006; --gink: #18293b; --gmuted: #687787; --gline: #dce4eb; --gpaper: #fcfdfd; --gband: #f4f7f8; --gstatus: #e4f1eb; --gactivebg: #fff0d1; }
+[data-theme="dark"] { --ggreen: #64d2b2; --gamber: #f7be5b; --gink: #e9f1f8; --gmuted: #95a7b8; --gline: #273748; --gpaper: #101b28; --gband: #132231; --gstatus: #143c35; --gactivebg: #433321; }
+:root { --gblue: #28699a; --ggray: #77828d; }
+[data-theme="dark"] { --gblue: #82bcf4; --ggray: #b2bec9; }
+.c-done { --gc: var(--ggreen); }
+.c-research { --gc: var(--gblue); }
+.c-issue, .c-blocked { --gc: var(--gamber); }
+.c-interrupted, .c-pending { --gc: var(--ggray); }
+:root, svg { --bg: #020617; --grid: #1e293b; --text: #ffffff; --text-muted: #94a3b8; --text-dim: #475569; --text-faint: #7d8da1; --panel: rgba(15, 23, 42, 0.5); --panel-border: #1e293b; --lane-fill: rgba(15, 23, 42, 0.22); --lane-stroke: #334155; --arrow: #64748b; --arrow-emphasis: #34d399; --mask: #0f172a; --frontend-fill: rgba(8, 51, 68, 0.4); --frontend-stroke: #22d3ee; --backend-fill: rgba(6, 78, 59, 0.4); --backend-stroke: #34d399; --database-fill: rgba(76, 29, 149, 0.4); --database-stroke: #a78bfa; --cloud-fill: rgba(120, 53, 15, 0.3); --cloud-stroke: #fbbf24; --security-fill: rgba(136, 19, 55, 0.4); --security-stroke: #fb7185; --messagebus-fill: rgba(251, 146, 60, 0.3); --messagebus-stroke: #fb923c; --external-fill: rgba(30, 41, 59, 0.5); --external-stroke: #94a3b8; --toolbar-bg: rgba(15, 23, 42, 0.8); --toolbar-border: #334155; --toolbar-text: #e2e8f0; --toolbar-hover: rgba(15, 23, 42, 0.95); --toolbar-menu-bg: #0f172a; --ggreen: #64d2b2; --gamber: #f7be5b; --gink: #e9f1f8; --gmuted: #95a7b8; --gline: #273748; --gpaper: #101b28; --gband: #132231; --gstatus: #143c35; --gactivebg: #433321; --gblue: #82bcf4; --ggray: #b2bec9; --gc: ; }
+@media (prefers-color-scheme: light) { :root, svg { --bg: #f8fafc; --grid: #e2e8f0; --text: #0f172a; --text-muted: #64748b; --text-dim: #94a3b8; --text-faint: #64748b; --panel: #ffffff; --panel-border: #e2e8f0; --lane-fill: rgba(248, 250, 252, 0.65); --lane-stroke: #cbd5e1; --arrow: #94a3b8; --arrow-emphasis: #059669; --mask: #ffffff; --frontend-fill: rgba(34, 211, 238, 0.15); --frontend-stroke: #0891b2; --backend-fill: rgba(52, 211, 153, 0.18); --backend-stroke: #059669; --database-fill: rgba(167, 139, 250, 0.2); --database-stroke: #7c3aed; --cloud-fill: rgba(251, 191, 36, 0.18); --cloud-stroke: #d97706; --security-fill: rgba(251, 113, 133, 0.15); --security-stroke: #e11d48; --messagebus-fill: rgba(251, 146, 60, 0.15); --messagebus-stroke: #ea580c; --external-fill: rgba(148, 163, 184, 0.18); --external-stroke: #64748b; --toolbar-bg: rgba(255, 255, 255, 0.92); --toolbar-border: #cbd5e1; --toolbar-text: #334155; --toolbar-hover: #ffffff; --toolbar-menu-bg: #ffffff; --ggreen: #166b5b; --gamber: #996006; --gink: #18293b; --gmuted: #687787; --gline: #dce4eb; --gpaper: #fcfdfd; --gband: #f4f7f8; --gstatus: #e4f1eb; --gactivebg: #fff0d1; --gblue: #28699a; --ggray: #77828d; --gc: ; } }
+svg[data-theme="light"] { --bg: #f8fafc; --grid: #e2e8f0; --text: #0f172a; --text-muted: #64748b; --text-dim: #94a3b8; --text-faint: #64748b; --panel: #ffffff; --panel-border: #e2e8f0; --lane-fill: rgba(248, 250, 252, 0.65); --lane-stroke: #cbd5e1; --arrow: #94a3b8; --arrow-emphasis: #059669; --mask: #ffffff; --frontend-fill: rgba(34, 211, 238, 0.15); --frontend-stroke: #0891b2; --backend-fill: rgba(52, 211, 153, 0.18); --backend-stroke: #059669; --database-fill: rgba(167, 139, 250, 0.2); --database-stroke: #7c3aed; --cloud-fill: rgba(251, 191, 36, 0.18); --cloud-stroke: #d97706; --security-fill: rgba(251, 113, 133, 0.15); --security-stroke: #e11d48; --messagebus-fill: rgba(251, 146, 60, 0.15); --messagebus-stroke: #ea580c; --external-fill: rgba(148, 163, 184, 0.18); --external-stroke: #64748b; --toolbar-bg: rgba(255, 255, 255, 0.92); --toolbar-border: #cbd5e1; --toolbar-text: #334155; --toolbar-hover: #ffffff; --toolbar-menu-bg: #ffffff; --ggreen: #166b5b; --gamber: #996006; --gink: #18293b; --gmuted: #687787; --gline: #dce4eb; --gpaper: #fcfdfd; --gband: #f4f7f8; --gstatus: #e4f1eb; --gactivebg: #fff0d1; --gblue: #28699a; --ggray: #77828d; --gc: ; }
+svg[data-theme="dark"] { --bg: #020617; --grid: #1e293b; --text: #ffffff; --text-muted: #94a3b8; --text-dim: #475569; --text-faint: #7d8da1; --panel: rgba(15, 23, 42, 0.5); --panel-border: #1e293b; --lane-fill: rgba(15, 23, 42, 0.22); --lane-stroke: #334155; --arrow: #64748b; --arrow-emphasis: #34d399; --mask: #0f172a; --frontend-fill: rgba(8, 51, 68, 0.4); --frontend-stroke: #22d3ee; --backend-fill: rgba(6, 78, 59, 0.4); --backend-stroke: #34d399; --database-fill: rgba(76, 29, 149, 0.4); --database-stroke: #a78bfa; --cloud-fill: rgba(120, 53, 15, 0.3); --cloud-stroke: #fbbf24; --security-fill: rgba(136, 19, 55, 0.4); --security-stroke: #fb7185; --messagebus-fill: rgba(251, 146, 60, 0.3); --messagebus-stroke: #fb923c; --external-fill: rgba(30, 41, 59, 0.5); --external-stroke: #94a3b8; --toolbar-bg: rgba(15, 23, 42, 0.8); --toolbar-border: #334155; --toolbar-text: #e2e8f0; --toolbar-hover: rgba(15, 23, 42, 0.95); --toolbar-menu-bg: #0f172a; --ggreen: #64d2b2; --gamber: #f7be5b; --gink: #e9f1f8; --gmuted: #95a7b8; --gline: #273748; --gpaper: #101b28; --gband: #132231; --gstatus: #143c35; --gactivebg: #433321; --gblue: #82bcf4; --ggray: #b2bec9; --gc: ; }
+rect.c-bg-rect { fill: var(--bg); }
+</style><rect width="100%" height="100%" class="c-bg-rect"/><style>
+  :root { --ggreen:#166b5b; --gamber:#996006; --gink:#18293b; --gmuted:#687787; --gline:#dce4eb; --gpaper:#fcfdfd; --gband:#f4f7f8; --gstatus:#e4f1eb; --gactivebg:#fff0d1; }
+  [data-theme="dark"] { --ggreen:#64d2b2; --gamber:#f7be5b; --gink:#e9f1f8; --gmuted:#95a7b8; --gline:#273748; --gpaper:#101b28; --gband:#132231; --gstatus:#143c35; --gactivebg:#433321; }
+  body, #diagram { font-family:Inter,"Noto Sans CJK SC","Microsoft YaHei",system-ui,sans-serif; }
+  .container { max-width:var(--archify-reader-width,1820px); }
+  .container .header { margin-bottom:.65rem; padding-right:0; }
+  .container .header-row { padding-right:29.5rem; }
+  .header h1 { font-size:clamp(22px,2.1vw,31px); }
+  .pulse-dot { animation:none; }
+  .diagram-container { padding:.35rem; padding-bottom:calc(.35rem + var(--archify-nav-reserve)); margin-bottom:.65rem; }
+  .cards.g-footer { display:block; margin-top:0; }
+  .footer { margin-top:.6rem; }
+  .g-controls {display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:.5rem 0 0;}
+  .g-tabs {display:flex;gap:6px;}
+  .g-tabs button,.g-pending {font:inherit;font-size:13px;padding:8px 13px;border:1px solid var(--gline);border-radius:7px;background:var(--gpaper);color:var(--gink);cursor:pointer;}
+  .g-tabs button[aria-pressed="true"] {background:var(--gstatus);border-color:var(--ggreen);color:var(--ggreen);font-weight:650;}
+  .g-meta {display:flex;gap:20px;align-items:center;color:var(--gmuted);font-size:12px;}
+  .g-meta strong {color:var(--gink);font-size:18px;font-weight:650;margin-right:5px;}
+  .g-summary {display:grid;grid-template-columns:1.1fr 1.3fr 1fr;gap:14px;color:var(--gmuted);font-size:12px;line-height:1.65;}
+  .g-summary&gt;div {border-top:2px solid var(--gline);padding-top:9px;}
+  .g-summary b {display:block;color:var(--gink);font-size:14px;font-weight:600;}
+  .g-summary a,.g-provenance a {color:var(--ggreen);text-decoration:underline;text-underline-offset:3px;}
+  .g-provenance {display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--gmuted);margin-top:12px;}
+  .gt-bg {fill:var(--gpaper);}.gt-band {fill:var(--gband);}.gt-text,.gt-strong {fill:var(--gink);}.gt-strong {font-weight:600;}.gt-muted,.gt-number {fill:var(--gmuted);}.gt-number {font-variant-numeric:tabular-nums;}
+  .gt-grid {stroke:var(--gline);stroke-width:1;}.gt-rowline {stroke:var(--gline);stroke-width:.55;}.gt-hit {fill:transparent;}.gt-row {cursor:pointer;outline:none;}.gt-row:hover .gt-hit,.gt-row:focus .gt-hit {fill:var(--ggreen);fill-opacity:.07;}.gt-row:focus .gt-hit {stroke:var(--ggreen);stroke-width:1;}
+  .gt-bar.gt-done {fill:var(--ggreen);fill-opacity:.2;}.gt-bar.gt-active {fill:var(--gamber);fill-opacity:.24;}.gt-top {stroke-width:2;}.gt-top.gt-done {stroke:var(--ggreen);}.gt-top.gt-active {stroke:var(--gamber);stroke-dasharray:5 3;}.gt-point.gt-done {fill:var(--ggreen);}.gt-point.gt-active {fill:var(--gamber);}.gt-bartext {fill:var(--gink);}
+  .gt-status.gt-done {fill:var(--gstatus);}.gt-status.gt-active {fill:var(--gactivebg);}.gt-done-text {fill:var(--ggreen);}.gt-active-text {fill:var(--gamber);}.gt-now {stroke:var(--gamber);stroke-width:1.5;stroke-dasharray:5 5;opacity:.75;}
+  #g-dialog {width:min(840px,92vw);max-height:83vh;margin:auto;border:1px solid var(--gline);border-radius:14px;padding:0;background:var(--gpaper);color:var(--gink);box-shadow:0 25px 90px #0005;}
+  #g-dialog::backdrop {background:#09172499;backdrop-filter:blur(3px);}
+  .g-dialog-head {position:sticky;top:0;z-index:1;display:flex;gap:20px;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--gline);background:var(--gpaper);}
+  .g-dialog-head h2 {font-size:20px;margin:0;}.g-dialog-head button {background:transparent;color:var(--gink);border:1px solid var(--gline);border-radius:6px;font-size:22px;cursor:pointer;padding:1px 10px;}
+  #g-dialog-content {padding:8px 24px 24px;}.g-task {padding:17px 0;border-bottom:1px solid var(--gline);}.g-task:last-child {border:0;}.g-task h3 {font-size:16px;margin:0 0 7px;}.g-task p {font-size:14px;line-height:1.7;margin:6px 0;}.g-task .g-date {font-size:12px;font-variant-numeric:tabular-nums;color:var(--gmuted);}.g-task a {color:var(--ggreen);}.g-task code {font-size:12px;background:var(--gband);padding:2px 5px;}.g-task .g-proof {font-size:13px;color:var(--ggreen);}.g-dialog-note {font-size:12px;line-height:1.7;color:var(--gmuted);padding:12px 0 0;}
+  @media(max-width:750px){.g-summary{grid-template-columns:1fr;}.g-controls{align-items:flex-start;}.g-meta{gap:10px;}.g-provenance{line-height:1.7}.container{padding-top:1rem}.container .header-row{padding-right:0}}
+  @media print {.g-controls,.g-provenance{display:none}.g-summary{font-size:10px} #g-dialog{display:none}}
+
+ :root{--gblue:#28699a;--ggray:#77828d;}[data-theme="dark"]{--gblue:#82bcf4;--ggray:#b2bec9;}
+ .header h1{font-size:clamp(22px,2vw,30px)}.g-meta{gap:16px}.gt-stage{fill:var(--gpaper);stroke:var(--gline);stroke-width:1.2}
+ .gt-row .gt-hit{pointer-events:all}.gt-future{cursor:pointer}.gt-future:hover .gt-stage{stroke:var(--ggreen);stroke-width:2}
+ .c-done{--gc:var(--ggreen)}.c-research{--gc:var(--gblue)}.c-issue,.c-blocked{--gc:var(--gamber)}.c-interrupted,.c-pending{--gc:var(--ggray)}
+ .g-fill{fill:var(--gc)}.g-stroke{stroke:var(--gc)}.g-window{fill:var(--gc);fill-opacity:.14;stroke:var(--gc);stroke-width:1.2}
+ .g-execution{fill:var(--gc);fill-opacity:.75}.g-unknown{stroke-dasharray:5 4;fill-opacity:.06}.g-tag{fill:var(--gc);fill-opacity:.10}
+ .g-result{fill:var(--gc);font-weight:600}.g-capsule{fill:var(--gpaper);stroke:var(--gline)}.g-item-id{font-variant-numeric:tabular-nums;font-weight:700}
+ .g-links{display:flex;gap:12px;flex-wrap:wrap}.g-detail-meta{padding:12px 0;border-bottom:1px solid var(--gline);line-height:1.7}
+ .g-subheading{font-size:15px;font-weight:600;color:var(--gink);margin:16px 0 6px}.g-pending-list{line-height:1.9}.g-provenance{margin-top:2px}
+</style><title>Pring · 最近12小时推进与后续执行 · 后续执行</title><desc>实线表示有起止记录的执行；浅色条表示记录覆盖窗口；虚线表示实际停止时刻未知；菱形表示结果记录时点。条形不等于连续工时。 后续采用阶段轴，不设未经确认的日期；条宽不代表工期，具体前置见各项详情。</desc><rect width="1600" height="850" rx="12" class="gt-bg"/><text x="25" y="36" class="gt-strong" font-size="23" text-anchor="start">后续执行 · 12组事项及建议阶段</text><text x="1570" y="36" class="gt-muted" font-size="16" text-anchor="end">阶段轴 · 全部待排期 · 条宽不代表工期</text><rect x="430" y="93" width="155" height="630" class="gt-band"/><text x="507.5" y="79" class="gt-muted" font-size="17" text-anchor="middle">立即推进</text><line x1="430" x2="430" y1="93" y2="723" class="gt-grid"/><text x="662.5" y="79" class="gt-muted" font-size="17" text-anchor="middle">补齐前置</text><line x1="585" x2="585" y1="93" y2="723" class="gt-grid"/><rect x="740" y="93" width="155" height="630" class="gt-band"/><text x="817.5" y="79" class="gt-muted" font-size="17" text-anchor="middle">软件验收</text><line x1="740" x2="740" y1="93" y2="723" class="gt-grid"/><text x="972.5" y="79" class="gt-muted" font-size="17" text-anchor="middle">完整候选</text><line x1="895" x2="895" y1="93" y2="723" class="gt-grid"/><rect x="1050" y="93" width="155" height="630" class="gt-band"/><text x="1127.5" y="79" class="gt-muted" font-size="17" text-anchor="middle">真实验收</text><line x1="1050" x2="1050" y1="93" y2="723" class="gt-grid"/><text x="1282.5" y="79" class="gt-muted" font-size="17" text-anchor="middle">正式切换</text><line x1="1205" x2="1205" y1="93" y2="723" class="gt-grid"/><text x="25" y="79" class="gt-muted" font-size="16" text-anchor="start">事项 / 点击查看关闭条件</text><text x="1485" y="79" class="gt-muted" font-size="16" text-anchor="middle">状态</text><g class="gt-row c-issue" data-plan="S1" role="button" tabindex="0" aria-label="SQLite锁根因与修复，正在推进，待排期"><rect x="12" y="105" width="1567" height="51" rx="5" class="gt-hit"/><text x="25" y="132.5" class="gt-number g-item-id" font-size="16" text-anchor="start">S1</text><text x="75" y="128.5" class="gt-strong" font-size="20" text-anchor="start">SQLite锁根因与修复</text><text x="75" y="147.5" class="gt-muted" font-size="13" text-anchor="start">优先诊断</text><line x1="25" x2="1570" y1="156" y2="156" class="gt-rowline"/><rect x="442" y="118.5" width="286" height="24" rx="5" class="g-window"/><text x="585" y="136.5" class="g-result" font-size="15" text-anchor="middle">待排期</text><text x="1485" y="135.5" class="g-result" font-size="16" text-anchor="middle">正在推进</text><title>SQLite锁根因与修复；待排期；阶段位置为建议顺序，不代表日期或工期；前置：优先诊断</title></g><g class="gt-row c-blocked" data-plan="S2" role="button" tabindex="0" aria-label="Worker新目录与官方路由，前置待补，待排期"><rect x="12" y="156" width="1567" height="51" rx="5" class="gt-hit"/><text x="25" y="183.5" class="gt-number g-item-id" font-size="16" text-anchor="start">S2</text><text x="75" y="179.5" class="gt-strong" font-size="20" text-anchor="start">Worker新目录与官方路由</text><text x="75" y="198.5" class="gt-muted" font-size="13" text-anchor="start">待合法执行样本</text><line x1="25" x2="1570" y1="207" y2="207" class="gt-rowline"/><rect x="442" y="169.5" width="286" height="24" rx="5" class="g-window"/><text x="585" y="187.5" class="g-result" font-size="15" text-anchor="middle">待排期</text><text x="1485" y="186.5" class="g-result" font-size="16" text-anchor="middle">前置待补</text><title>Worker新目录与官方路由；待排期；阶段位置为建议顺序，不代表日期或工期；前置：待合法执行样本</title></g><g class="gt-row c-issue" data-plan="S3" role="button" tabindex="0" aria-label="Q1产能显式映射，正在推进，待排期"><rect x="12" y="207" width="1567" height="51" rx="5" class="gt-hit"/><text x="25" y="234.5" class="gt-number g-item-id" font-size="16" text-anchor="start">S3</text><text x="75" y="230.5" class="gt-strong" font-size="20" text-anchor="start">Q1产能显式映射</text><text x="75" y="249.5" class="gt-muted" font-size="13" text-anchor="start">反例已建立</text><line x1="25" x2="1570" y1="258" y2="258" class="gt-rowline"/><rect x="442" y="220.5" width="286" height="24" rx="5" class="g-window"/><text x="585" y="238.5" class="g-result" font-size="15" text-anchor="middle">待排期</text><text x="1485" y="237.5" class="g-result" font-size="16" text-anchor="middle">正在推进</text><title>Q1产能显式映射；待排期；阶段位置为建议顺序，不代表日期或工期；前置：反例已建立</title></g><g class="gt-row c-blocked" data-plan="S4" role="button" tabindex="0" aria-label="信用脉冲整窗与GDP修订，前置待补，待排期"><rect x="12" y="258" width="1567" height="51" rx="5" class="gt-hit"/><text x="25" y="285.5" class="gt-number g-item-id" font-size="16" text-anchor="start">S4</text><text x="75" y="281.5" class="gt-strong" font-size="20" text-anchor="start">信用脉冲整窗与GDP修订</text><text x="75" y="300.5" class="gt-muted" font-size="13" text-anchor="start">依赖兼容修订基线</text><line x1="25" x2="1570" y1="309" y2="309" class="gt-rowline"/><rect x="442" y="271.5" width="286" height="24" rx="5" class="g-window"/><text x="585" y="289.5" class="g-result" font-size="15" text-anchor="middle">待排期</text><text x="1485" y="288.5" class="g-result" font-size="16" text-anchor="middle">前置待补</text><title>信用脉冲整窗与GDP修订；待排期；阶段位置为建议顺序，不代表日期或工期；前置：依赖兼容修订基线</title></g><g class="gt-row c-blocked" data-plan="D1" role="button" tabindex="0" aria-label="来源认证与历史公开时间，前置待补，待排期"><rect x="12" y="309" width="1567" height="51" rx="5" class="gt-hit"/><text x="25" y="336.5" class="gt-number g-item-id" font-size="16" text-anchor="start">D1</text><text x="75" y="332.5" class="gt-strong" font-size="20" text-anchor="start">来源认证与历史公开时间</text><text x="75" y="351.5" class="gt-muted" font-size="13" text-anchor="start">多项证据缺口</text><line x1="25" x2="1570" y1="360" y2="360" class="gt-rowline"/><rect x="442" y="322.5" width="441" height="24" rx="5" class="g-window"/><text x="662.5" y="340.5" class="g-result" font-size="15" text-anchor="middle">待排期</text><text x="1485" y="339.5" class="g-result" font-size="16" text-anchor="middle">前置待补</text><title>来源认证与历史公开时间；待排期；阶段位置为建议顺序，不代表日期或工期；前置：多项证据缺口</title></g><g class="gt-row c-blocked" data-plan="D2" role="button" tabindex="0" aria-label="股票广度与成交金额，前置待补，待排期"><rect x="12" y="360" width="1567" height="51" rx="5" class="gt-hit"/><text x="25" y="387.5" class="gt-number g-item-id" font-size="16" text-anchor="start">D2</text><text x="75" y="383.5" class="gt-strong" font-size="20" text-anchor="start">股票广度与成交金额</text><text x="75" y="402.5" class="gt-muted" font-size="13" text-anchor="start">依赖历史股票池</text><line x1="25" x2="1570" y1="411" y2="411" class="gt-rowline"/><rect x="442" y="373.5" width="286" height="24" rx="5" class="g-window"/><text x="585" y="391.5" class="g-result" font-size="15" text-anchor="middle">待排期</text><text x="1485" y="390.5" class="g-result" font-size="16" text-anchor="middle">前置待补</text><title>股票广度与成交金额；待排期；阶段位置为建议顺序，不代表日期或工期；前置：依赖历史股票池</title></g><g class="gt-row c-blocked" data-plan="D3" role="button" tabindex="0" aria-label="商品合约与篮子规则，前置待补，待排期"><rect x="12" y="411" width="1567" height="51" rx="5" class="gt-hit"/><text x="25" y="438.5" class="gt-number g-item-id" font-size="16" text-anchor="start">D3</text><text x="75" y="434.5" class="gt-strong" font-size="20" text-anchor="start">商品合约与篮子规则</text><text x="75" y="453.5" class="gt-muted" font-size="13" text-anchor="start">依赖原件及规则冻结</text><line x1="25" x2="1570" y1="462" y2="462" class="gt-rowline"/><rect x="442" y="424.5" width="286" height="24" rx="5" class="g-window"/><text x="585" y="442.5" class="g-result" font-size="15" text-anchor="middle">待排期</text><text x="1485" y="441.5" class="g-result" font-size="16" text-anchor="middle">前置待补</text><title>商品合约与篮子规则；待排期；阶段位置为建议顺序，不代表日期或工期；前置：依赖原件及规则冻结</title></g><g class="gt-row c-pending" data-plan="G1" role="button" tabindex="0" aria-label="最终版本软件回归，等待前置，待排期"><rect x="12" y="462" width="1567" height="51" rx="5" class="gt-hit"/><text x="25" y="489.5" class="gt-number g-item-id" font-size="16" text-anchor="start">G1</text><text x="75" y="485.5" class="gt-strong" font-size="20" text-anchor="start">最终版本软件回归</text><text x="75" y="504.5" class="gt-muted" font-size="13" text-anchor="start">当前全套仍有失败</text><line x1="25" x2="1570" y1="513" y2="513" class="gt-rowline"/><rect x="752" y="475.5" width="131" height="24" rx="5" class="g-window"/><text x="817.5" y="493.5" class="g-result" font-size="15" text-anchor="middle">待排期</text><text x="1485" y="492.5" class="g-result" font-size="16" text-anchor="middle">等待前置</text><title>最终版本软件回归；待排期；阶段位置为建议顺序，不代表日期或工期；前置：S1、S2、S3、S4</title></g><g class="gt-row c-pending" data-plan="G2" role="button" tabindex="0" aria-label="完整真实候选与校准，等待前置，待排期"><rect x="12" y="513" width="1567" height="51" rx="5" class="gt-hit"/><text x="25" y="540.5" class="gt-number g-item-id" font-size="16" text-anchor="start">G2</text><text x="75" y="536.5" class="gt-strong" font-size="20" text-anchor="start">完整真实候选与校准</text><text x="75" y="555.5" class="gt-muted" font-size="13" text-anchor="start">依赖完整来源和规则</text><line x1="25" x2="1570" y1="564" y2="564" class="gt-rowline"/><rect x="907" y="526.5" width="131" height="24" rx="5" class="g-window"/><text x="972.5" y="544.5" class="g-result" font-size="15" text-anchor="middle">待排期</text><text x="1485" y="543.5" class="g-result" font-size="16" text-anchor="middle">等待前置</text><title>完整真实候选与校准；待排期；阶段位置为建议顺序，不代表日期或工期；前置：S2、S3、S4、D1、D2、D3</title></g><g class="gt-row c-pending" data-plan="V1" role="button" tabindex="0" aria-label="固定120交易日双时点回放，等待前置，待排期"><rect x="12" y="564" width="1567" height="51" rx="5" class="gt-hit"/><text x="25" y="591.5" class="gt-number g-item-id" font-size="16" text-anchor="start">V1</text><text x="75" y="587.5" class="gt-strong" font-size="20" text-anchor="start">固定120交易日双时点回放</text><text x="75" y="606.5" class="gt-muted" font-size="13" text-anchor="start">候选完成后执行</text><line x1="25" x2="1570" y1="615" y2="615" class="gt-rowline"/><rect x="1062" y="577.5" width="131" height="24" rx="5" class="g-window"/><text x="1127.5" y="595.5" class="g-result" font-size="15" text-anchor="middle">待排期</text><text x="1485" y="594.5" class="g-result" font-size="16" text-anchor="middle">等待前置</text><title>固定120交易日双时点回放；待排期；阶段位置为建议顺序，不代表日期或工期；前置：G2</title></g><g class="gt-row c-pending" data-plan="V2" role="button" tabindex="0" aria-label="真实检索基准与AI报告，等待前置，待排期"><rect x="12" y="615" width="1567" height="51" rx="5" class="gt-hit"/><text x="25" y="642.5" class="gt-number g-item-id" font-size="16" text-anchor="start">V2</text><text x="75" y="638.5" class="gt-strong" font-size="20" text-anchor="start">真实检索基准与AI报告</text><text x="75" y="657.5" class="gt-muted" font-size="13" text-anchor="start">依赖可用模型和运行链</text><line x1="25" x2="1570" y1="666" y2="666" class="gt-rowline"/><rect x="1062" y="628.5" width="131" height="24" rx="5" class="g-window"/><text x="1127.5" y="646.5" class="g-result" font-size="15" text-anchor="middle">待排期</text><text x="1485" y="645.5" class="g-result" font-size="16" text-anchor="middle">等待前置</text><title>真实检索基准与AI报告；待排期；阶段位置为建议顺序，不代表日期或工期；前置：G2、S2</title></g><g class="gt-row c-pending" data-plan="V3" role="button" tabindex="0" aria-label="目标日演练与正式切换，等待前置，待排期"><rect x="12" y="666" width="1567" height="51" rx="5" class="gt-hit"/><text x="25" y="693.5" class="gt-number g-item-id" font-size="16" text-anchor="start">V3</text><text x="75" y="689.5" class="gt-strong" font-size="20" text-anchor="start">目标日演练与正式切换</text><text x="75" y="708.5" class="gt-muted" font-size="13" text-anchor="start">最终验收前置未齐</text><line x1="25" x2="1570" y1="717" y2="717" class="gt-rowline"/><rect x="1217" y="679.5" width="131" height="24" rx="5" class="g-window"/><text x="1282.5" y="697.5" class="g-result" font-size="15" text-anchor="middle">待排期</text><text x="1485" y="696.5" class="g-result" font-size="16" text-anchor="middle">等待前置</text><title>目标日演练与正式切换；待排期；阶段位置为建议顺序，不代表日期或工期；前置：G1、V1、V2</title></g><text x="25" y="756" class="gt-strong" font-size="19" text-anchor="start">推进关系：来源与规则 → 完整候选 → 固定120日回放 / 真实检索与报告 → 目标日演练与切换</text><text x="25" y="789" class="gt-muted" font-size="16" text-anchor="start">SQLite、Worker、Q1及派生校验按依赖推进；共用验证环境的测试串行。最终全套绑定同一版本。</text><text x="25" y="824" class="gt-muted" font-size="16" text-anchor="start">阶段位置为建议安排，具体前置与验收标准见各行详情；没有预设未来日期或承诺工期。</text></svg>

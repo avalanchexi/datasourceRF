@@ -1,0 +1,6 @@
+独立只读两轴增量审查，不委派、不改文件、不跑测试/联网/读凭据，最终中文400words以内。主代理持有全部判断/验收权。先读 /home/tywin/.codex/skills/code-review/SKILL.md、根AGENTS及CONTEXT、docs/agents/testing.md、当前完整父spec和对应01/02票。
+根路径/mnt/d/cursor/datasourceRF，证据目录.scratch/pring-window-publication-20260922/execution。先核review-delta-01-02-input.json固定的三个当前文件哈希。两树基线均bb737200024369f2938d26d1cc49f5f77f18a1b1，无新commit；工作树/home/tywin/worktrees/datasourceRF-window-20260922/ticket-01和ticket-02。
+增量范围：01相对review-01-r3-input.json仅test_material_preflight.py在future_damaged_revision既有用例加一行 @pytest.mark.usefixtures("runtime_clock")，实际重型系统时间倒退失败日志heavy-01-preflight-r3/pytest.log，诊断diagnosis-01-preflight-clock.md；添加后36项受影响heavy-01-preflight-r4真实exit0/104.95sec且身份不变，生产源码与r3两轴0发现相同。
+02 r2相对review-02-input.json加三核心source_codes固定守卫和公开CLI参数反例。当前git diff base -- src/pring_cycle/candidate_admission.py及git diff --no-index /dev/null tests/models/test_cny030_optional_migration.py（退出1意为有差异）；用review-02.diff排除已审r1范围。报告/home/tywin/worktrees/datasourceRF-window-20260922/ticket-02/.task-runtime/implementation-report-r2.md，主代理parent-verify-02-r2.json核91passed/37.65sec/103安装文件。只审新sourceidentity守卫是否准确、拒收新增三种核心替换、合法迁移兼容。其余报告/完整Worker/旧发布历史缺口保持未完成，不把修复准入等同整票完成。
+明确按票分别给结果/依据，不重新审无关全库或把旧已知缺口冒充新发现。固定diff非空和哈希核验，不用空HEAD三点diff。
+你只审Spec：缺失/部分、超范围、看似实现但错误。引用本票具体要求；01外部时钟替身是否仍验证原PUBLIC坏修订隔离，02三核心ID/role/source代码守卫是否覆盖要求且不污染历史迁移。对旧未完成3项保持准确，不因此阻止已完成准入切片集成。

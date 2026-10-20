@@ -1,0 +1,5 @@
+独立只读code-review，不再委派、不修改文件/票/源码、不测试/联网/读凭据。中文400words内（必要可到600），给具体规则/规格+代码位置，推断注明。先读code-review/SKILL.md、AGENTS/CONTEXT、相关ADR0013/0018/0019、测试规范。主目录/mnt/d/cursor/datasourceRF/.scratch/pring-window-publication-20260922/execution，工作树/home/tywin/worktrees/datasourceRF-window-20260922/ticket-06。固定基线bb737200024369f2938d26d1cc49f5f77f18a1b1，无新增commit，审本次11归属文件WIP；继承文档WIP不属于票代码差异。
+核review-06-r3-input.json所有文件hash及review-06-r3.diff：git diff <base> -- <tracked数组顺序>，再按new数组顺序拼git diff --no-index -- /dev/null <newfile>（退出1表示有差异）；不得用空HEAD差异。末尾复核输入未变。
+读完整父spec、issues/06-margin-two-exchange-delivery.md，本树.task-runtime/implementation-report-r3.md、heavy-request-r3.md、r3-margin-publication-api.md，以及主目录review06-r3-focus.md与前轮review-06-combined.md。主代理重验104包文件相同、58 passed/29.76秒及软件安装材料前后相同；无重型/完整Worker/回放通过，不能补写完成。
+
+仅Spec：绑定值/来源/日期/单位/每所版本/原件/实际获取收据/内容审核，可靠日期下一自然日与未知保留、修订不借旧发布时间、篡改后消费者拒收、旧三所不改。人工具名审核是应用证明包，不是声称上游已有该JSON；核其自洽性、假通过或绕门路径。列具体新问题及前轮哪些已关闭，回放融资ID旧分支与完整Worker仍未完成需保留。不要用未认证真实源缺件否定合法synthetic软件正例。

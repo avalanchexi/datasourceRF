@@ -1,0 +1,41 @@
+﻿{
+    "recorded_at":  "2026-09-09T16:52:58.9034922+00:00",
+    "status":  "bse_delivery_verified_target_sample_still_missing",
+    "artifacts_and_inputs":  [
+                                 {
+                                     "path":  ".scratch\\pring-data-acquisition-repair\\evidence-05-bse-20260910\\753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+                                     "bytes":  138,
+                                     "sha256":  "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0"
+                                 },
+                                 {
+                                     "path":  ".scratch\\pring-data-acquisition-repair\\research-05.md",
+                                     "bytes":  21121,
+                                     "sha256":  "b4d606f38ff3c59d6478a5d822fd3a5109daf84a689b533d4ed0d92c8a6b2634"
+                                 },
+                                 {
+                                     "path":  ".scratch\\pring-data-acquisition-repair\\evidence-05-bse-20260910\\receipts.json",
+                                     "bytes":  1226,
+                                     "sha256":  "2754b64db006f99c5e59fd09d2ede42f7227e5f83378f75ab51350f29d3439b5"
+                                 },
+                                 {
+                                     "path":  ".scratch\\pring-data-acquisition-repair\\margin-bse-official-followup-20260909.md",
+                                     "bytes":  7519,
+                                     "sha256":  "4057362edb184890fca1deb74f0a10c689a2ee6b1ef24fb693ad8bd46b6dda8b"
+                                 },
+                                 {
+                                     "path":  ".scratch\\pring-data-acquisition-repair\\margin-bse-official-followup-20260910.md",
+                                     "bytes":  8860,
+                                     "sha256":  "1a365278cbce8d077eb2beb5775ae0d32e9a82c22e2411f84b875bc42f4daa7b"
+                                 }
+                             ],
+    "local_links_checked":  13,
+    "logical_searches":  3,
+    "web_search_calls":  2,
+    "direct_gets":  1,
+    "http_status":  302,
+    "response_bytes":  138,
+    "target_samples":  0,
+    "new_publication_evidence":  0,
+    "source_certification":  false,
+    "included_in_tavily_exa_denominators":  false
+}

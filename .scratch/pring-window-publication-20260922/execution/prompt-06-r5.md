@@ -1,0 +1,9 @@
+继续票06，r5只修实际r4材料准备失败。你是隔离实施执行者，不再委派；读取AGENTS/CONTEXT、父spec/票06/02、implement和tdd技能/相关ADR/testing、.task-runtime/implementation-report-r4.md及heavy-request-r4.md。主代理掌握重型队列、验收、合并和票状态。禁止任何全模型材料准备、校准、回放、完整Worker、heavy文件/全套；不因命令名是pytest单节点就视为轻量。不要改其他树或根票/执行目录，不联网/读凭据/commit。
+自己的树/home/tywin/worktrees/datasourceRF-window-20260922/ticket-06、独立.venv和/tmp/datasourceRF-window-20260922/ticket-06已验证，当前244软件/104安装同源，生产src从r3未变；主代理parent-verify-06-r4.json与parent-06-r4-current-identity.json已核对最终身份及4日志哈希。
+主代理实际heavy失败：execution/heavy-06-replay-r4/terminal.json，子运行/tmp/datasourceRF-window-20260922/ticket-06/r4-parent-replay-1790120761091558379/r4-stdout.log及r4-terminal.json。1failed55.78s，身份前后一致，失败发生prepare_window_inputs第305行supplemental_documents公开导入，registered_official_source_identity_mismatch。尚未到融资正向回放/损坏断言，不能称业务RED，不授权预修model_evaluation。失败库/tmp/datasourceRF-window-20260922/ticket-06/materials/r4/6213a928b55d0ec4cd7e06127f424017f732149f0c27bdf83b6a51dbdefafe23.build-157805-1790120766200603581保留不可改。
+任务：
+1. 查实际失败输入/来源合同，构建最小公开准入→ingest_official_context_document回归。原r4-parser27份只验证解析不验证准入合同，现在需覆盖每份新增supplemental文档真实合法导入及PUBLIC选择/字段、期次、来源、发布时间，使用独立小运行库，无完整核心/长历史/校准。准入复用既有轻量.r4-fixture-light，无伪造active/跳过认证。先保存同问题RED，再纠正SYNTHETIC fixture来源身份或合法材料；不得放宽生产来源守卫、删必要指标、改冻结公式、缩候选目录。
+2. 审其他新增fixture材料明显同类输入合同问题，以同等小公开导入发现并修正；不要扩成完整profile构建。合法材料生产API仍保持真实，只替换外部clock/transport/CLI。测试预期取独立明确fixture值，不镜像私有实现。
+3. 保留r4所有失败/原件/报告/旧profile；只修改r4归属6文件及新增必要小fixture验证文件。若需生产改动，报告实际证据和归属，暂不扩大。新文件按实际成本判断heavy清单，不绕过。
+4. 定向测试/ruff/必要mypy，记录软件/实际包/两profile材料身份前后。若src不变无需重装，src若改须先取得主代理范围；禁止共享环境重装。PYTEST临时保留已设10000/all；显式basetemp唯一不可覆盖。
+交付.task-runtime/implementation-report-r5.md、heavy-request-r5.md及准确改动哈希/实际命令日志/RED与GREEN收据。交付后停止修改，主代理重跑相同完整PUBLIC节点，只有正向成立才继续业务修复。你的最终产物是可执行、合同合法的材料修复，不是再写一份要求其他人提供manifest的提案。中文精炼。

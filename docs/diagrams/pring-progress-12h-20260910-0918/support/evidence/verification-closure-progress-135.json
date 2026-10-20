@@ -1,0 +1,148 @@
+﻿{
+    "status":  "closure_plan_adopted_with_controlled_diagnostic_evidence",
+    "recorded_at":  "2026-09-10T01:05:16.1908810+00:00",
+    "previous_goal_turn_classification":  "progress",
+    "q1_public_test":  {
+                           "applied":  true,
+                           "actual_exit_code":  1,
+                           "passed":  0,
+                           "failed":  1,
+                           "seconds":  5.09,
+                           "classification":  "reproduced_registered_mapping_not_implemented",
+                           "production_fix_applied":  false
+                       },
+    "sqlite_diagnostic":  {
+                              "actual_exit_code":  0,
+                              "passed":  1,
+                              "seconds":  10.45,
+                              "sqlite_version":  "3.50.4",
+                              "controlled_heartbeat_write_held":  true,
+                              "original_read_completed_before_commit":  true,
+                              "same_original_lock_reproduced":  false,
+                              "root_cause_known":  false,
+                              "product_fix_applied":  false,
+                              "scope":  "real heartbeat writer and original public acquisition read seam, not full Worker execution",
+                              "events":  [
+                                             {
+                                                 "event":  "connect",
+                                                 "elapsed":  0.0008368600001631421,
+                                                 "connection":  132570235211856
+                                             },
+                                             {
+                                                 "event":  "execute",
+                                                 "elapsed":  0.0008529649999218236,
+                                                 "connection":  132570235211856,
+                                                 "statement":  "PRAGMA journal_mode=WAL",
+                                                 "in_transaction":  false
+                                             },
+                                             {
+                                                 "event":  "execute",
+                                                 "elapsed":  0.0020212119998177513,
+                                                 "connection":  132570235211856,
+                                                 "statement":  "PRAGMA foreign_keys=ON",
+                                                 "in_transaction":  false
+                                             },
+                                             {
+                                                 "event":  "execute",
+                                                 "elapsed":  0.0020422200000211888,
+                                                 "connection":  132570235211856,
+                                                 "statement":  "PRAGMA busy_timeout=5000",
+                                                 "in_transaction":  false
+                                             },
+                                             {
+                                                 "event":  "execute",
+                                                 "elapsed":  0.0020805379999728757,
+                                                 "connection":  132570235211856,
+                                                 "statement":  "INSERT INTO service_heartbeat (service, process_id, started_at, heartbeat_at) VA",
+                                                 "in_transaction":  false
+                                             },
+                                             {
+                                                 "event":  "heartbeat_write_held",
+                                                 "elapsed":  0.002160453999749734,
+                                                 "connection":  132570235211856
+                                             },
+                                             {
+                                                 "event":  "connect",
+                                                 "elapsed":  0.0031057669998517667,
+                                                 "connection":  132570231415632
+                                             },
+                                             {
+                                                 "event":  "execute",
+                                                 "elapsed":  0.003121243999885337,
+                                                 "connection":  132570231415632,
+                                                 "statement":  "PRAGMA foreign_keys=ON",
+                                                 "in_transaction":  false
+                                             },
+                                             {
+                                                 "event":  "execute",
+                                                 "elapsed":  0.0031534409999949276,
+                                                 "connection":  132570231415632,
+                                                 "statement":  "PRAGMA journal_mode=WAL",
+                                                 "in_transaction":  false
+                                             },
+                                             {
+                                                 "event":  "execute",
+                                                 "elapsed":  0.004389454999909503,
+                                                 "connection":  132570231415632,
+                                                 "statement":  "SELECT link.claim_id, request.* FROM source_claim_acquisition AS link JOIN acqui",
+                                                 "in_transaction":  false
+                                             },
+                                             {
+                                                 "event":  "close",
+                                                 "elapsed":  0.004623044999789272,
+                                                 "connection":  132570231415632,
+                                                 "in_transaction":  false
+                                             },
+                                             {
+                                                 "event":  "original_query_completed_before_heartbeat_commit",
+                                                 "elapsed":  0.005100911999761593
+                                             },
+                                             {
+                                                 "event":  "close",
+                                                 "elapsed":  0.019798941999852104,
+                                                 "connection":  132570235211856,
+                                                 "in_transaction":  false
+                                             },
+                                             {
+                                                 "event":  "heartbeat_completed",
+                                                 "elapsed":  0.02646163700001125
+                                             }
+                                         ]
+                          },
+    "execution_priority":  [
+                               "controlled SQLite diagnosis through original full-run path",
+                               "Worker and derived dependency contracts",
+                               "Q1 exact mapping binding",
+                               "same-final-version related tests and default suite",
+                               "real source/model/120d/AI/cutover acceptance"
+                           ],
+    "evidence":  [
+                     {
+                         "path":  "verification-capacity-red-134.txt",
+                         "bytes":  3466,
+                         "sha256":  "8264da015523171cca83ba5841a35caf31dfb6fa268e742ef7d2a17d2434cc1a"
+                     },
+                     {
+                         "path":  "verification-sqlite-controlled-135.txt",
+                         "bytes":  4138,
+                         "sha256":  "ea1ebc529e458cf4e7ad16012c0d859f095f12ea6a0bff5967b520c1e9e1ac15"
+                     },
+                     {
+                         "path":  "verification-runtime-failures/debug/test_sqlite_controlled_135.py",
+                         "bytes":  3524,
+                         "sha256":  "a2825ea6baa43aeb93b44a98fc67cfd91ff0bc1b607c5f321e00750b0ef5c024"
+                     },
+                     {
+                         "path":  "verification-p2-acceptance-133.json",
+                         "bytes":  3325,
+                         "sha256":  "7ddaa022c26dbd37864b773fb0ddba77fd96e2c90709b7ed4805de7c034784f9"
+                     },
+                     {
+                         "path":  "capacity-first-public-test.patch",
+                         "bytes":  7122,
+                         "sha256":  "d75f671e988607d2c17836a669a1c2a13181be5e00cfb478feefd396208aa093"
+                     }
+                 ],
+    "software_complete":  false,
+    "product_complete":  false
+}

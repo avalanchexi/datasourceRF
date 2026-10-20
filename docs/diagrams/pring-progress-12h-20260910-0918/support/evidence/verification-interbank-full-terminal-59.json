@@ -1,0 +1,52 @@
+{
+  "status": "default_suite_failed",
+  "recorded_at": "2026-09-09T13:33:37.180581+00:00",
+  "main_session_id": 38573,
+  "actual_exit_code": 1,
+  "passed": 1146,
+  "failed": 2,
+  "seconds": 7984.63,
+  "failure_test_ids": [
+    "tests/integration/test_full_run_retrieval.py::test_full_run_shares_hard_search_budget_across_periods",
+    "tests/reports/test_cli_protocol.py::test_cli_timeout_audit_preserves_partial_hash_and_bounded_fallback[both_hang-completed_degraded]"
+  ],
+  "failure_errors": [
+    "sqlite3.OperationalError: database is locked at evidence.py PRAGMA journal_mode=WAL",
+    "ValueError: report_attempt_time_order_invalid at reports.py record_attempt"
+  ],
+  "frozen_files_unchanged": 220,
+  "protected_files_unchanged": 4,
+  "verification_evidence_unchanged": 7,
+  "installed_sources_matched_before_after": 91,
+  "fingerprint_command_exit_code": 0,
+  "evidence": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-interbank-full-running-59.json",
+      "bytes": 1067,
+      "sha256": "7623bbab30fc27eccdd024d3e1a89df04216cf37966485302ca90c050d54ec82"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-interbank-inputs-59.json",
+      "bytes": 45667,
+      "sha256": "94197d0b342bf4e78eb990f0ecf71430358495fe060b681752af4b553a7fafd4"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-interbank-full-59.txt",
+      "bytes": 9322,
+      "sha256": "e632768dd09cb2a976bdee854a0ce4c7dab6e65d90e361c3aff8e6cdf9c15dc4"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-interbank-fingerprint-59-after.json",
+      "bytes": 29554,
+      "sha256": "ea2338be6dd2cae247bd98b16e904b41a2a6bef39de58432093343326cd91311"
+    }
+  ],
+  "default_suite_passed": false,
+  "committed": false,
+  "source_certification": false,
+  "real_complete_candidate": false,
+  "real_120_day_replay": false,
+  "real_qualified_ai_outputs": 0,
+  "production_cutover": false,
+  "next_action": "Diagnose the two observed failures before applying GDP patch. Preserve original failures; no full-suite restart yet."
+}

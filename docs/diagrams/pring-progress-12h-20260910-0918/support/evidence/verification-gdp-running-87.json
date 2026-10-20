@@ -1,0 +1,25 @@
+﻿{
+    "status":  "running",
+    "recorded_at":  "2026-09-09T16:02:36.2570932+00:00",
+    "main_session_id":  70085,
+    "run_name":  "official-gdp-joint-87",
+    "test_scope":  [
+                       "tests/models/test_candidate_admission.py::test_registered_gdp_original_preserves_eight_members_and_two_times",
+                       "tests/models/test_candidate_admission.py::test_registered_gdp_rejects_unsupported_members_and_quarter_boundaries",
+                       "tests/models/test_candidate_admission.py::test_registered_gdp_requires_complete_current_quarter_and_matched_receipts",
+                       "tests/models/test_candidate_admission.py::test_registered_gdp_rejects_mislabeled_official_table",
+                       "tests/models/test_candidate_admission.py::test_registered_gdp_preserves_q3_q4_official_table_layouts",
+                       "tests/models/test_candidate_admission.py::test_registered_official_original_reaches_selection_and_context",
+                       "tests/models/test_candidate_admission.py::test_registered_official_legitimate_missing_columns_are_complete",
+                       "tests/models/test_candidate_admission.py::test_registered_official_claim_rejects_wrong_member_identity",
+                       "tests/adapters/test_official_context.py",
+                       "tests/e2e/test_official_context_cli.py",
+                       "tests/integration/test_gdp_semantics.py",
+                       "tests/integration/test_source_contract_quarantine.py",
+                       "tests/catalog/test_metric_catalog.py"
+                   ],
+    "inputs_manifest":  "verification-gdp-inputs-86.json",
+    "inputs_manifest_sha256":  "0ce98112d0bc76629bbf799b5f03c55767c83b7e309fcfbbf76dd7c82affd075",
+    "default_suite":  false,
+    "committed":  false
+}

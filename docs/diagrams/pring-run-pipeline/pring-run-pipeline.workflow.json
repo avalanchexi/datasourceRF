@@ -1,0 +1,96 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "手动完整运行的执行链路",
+    "subtitle": "CLI 只负责持久化任务，Worker 领取后按固定步骤推进，P0 门禁决定是否发布新阶段",
+    "locale": "zh-CN",
+    "output": "pring-run-pipeline.html",
+    "quality_profile": "showcase",
+    "visual_preset": "blueprint",
+    "viewBox": [1100, 800],
+    "views": [
+      {
+        "id": "happy",
+        "label": "核心齐备",
+        "focus": ["submit", "queue", "lease", "refresh", "freeze", "trend", "p0", "publish", "report"],
+        "note": "三条核心价格序列都通过身份、时效与冲突校验时，运行一路推进到原子发布与报告生成。"
+      },
+      {
+        "id": "gated",
+        "label": "P0 门禁拦截",
+        "focus": ["trend", "p0", "halted"],
+        "note": "任一核心资产缺失、陈旧、冲突或身份不符，运行转入 action_required，当前指针继续读上一套完整投影。"
+      }
+    ]
+  },
+  "lanes": [
+    { "id": "intake", "label": "提交与排队" },
+    { "id": "execute", "label": "Worker 执行" },
+    { "id": "classify", "label": "确定性派生" },
+    { "id": "halt", "label": "门禁与中断", "variant": "exception" },
+    { "id": "serve", "label": "发布与报告" }
+  ],
+  "phases": [
+    { "id": "queueing", "label": "持久化", "fromCol": 0, "toCol": 1 },
+    { "id": "acquiring", "label": "取证与冻结", "fromCol": 2, "toCol": 3 },
+    { "id": "deciding", "label": "分类与发布", "fromCol": 4, "toCol": 5, "variant": "emphasis" }
+  ],
+  "nodes": [
+    { "id": "submit", "lane": "intake", "col": 0, "type": "external", "label": "run-submit", "sublabel": "幂等键提交" },
+    { "id": "queue", "lane": "intake", "col": 1, "type": "database", "label": "运行账本排队", "sublabel": "SQLite WAL" },
+
+    { "id": "lease", "lane": "execute", "col": 1, "type": "backend", "label": "领取租约", "sublabel": "心跳与检查点" },
+    { "id": "refresh", "lane": "execute", "col": 2, "type": "backend", "label": "刷新证据", "sublabel": "核心与上下文" },
+    { "id": "freeze", "lane": "execute", "col": 3, "type": "security", "label": "冻结截止点", "sublabel": "as-of 与快照", "width": 120 },
+
+    { "id": "trend", "lane": "classify", "col": 3, "type": "backend", "label": "120 日趋势", "sublabel": "滞回与持续性" },
+    { "id": "p0", "lane": "classify", "col": 4, "type": "security", "label": "P0 门禁", "sublabel": "映射六阶段", "tag": "不可绕过", "width": 120 },
+
+    { "id": "publish", "lane": "serve", "col": 4, "type": "database", "label": "原子发布", "sublabel": "六数据集同一身份", "width": 120 },
+    { "id": "report", "lane": "serve", "col": 5, "type": "cloud", "label": "生成报告", "sublabel": "Codex / Claude", "width": 128 },
+
+    { "id": "halted", "lane": "halt", "col": 5, "type": "external", "label": "action_required", "sublabel": "保留上一投影", "width": 128 }
+  ],
+  "mainPath": ["submit", "queue", "lease", "refresh", "freeze", "trend", "p0", "publish", "report"],
+  "edges": [
+    { "id": "submit-queue", "from": "submit", "to": "queue", "label": "持久化" },
+    { "id": "queue-lease", "from": "queue", "to": "lease", "label": "轮询取任务" },
+    { "id": "lease-refresh", "from": "lease", "to": "refresh", "label": "校验生效模型" },
+    { "id": "refresh-freeze", "from": "refresh", "to": "freeze", "label": "写入 source claim" },
+    { "id": "freeze-trend", "from": "freeze", "to": "trend", "label": "证据窗口" },
+    { "id": "trend-p0", "from": "trend", "to": "p0", "label": "三资产状态" },
+    { "id": "p0-publish", "from": "p0", "to": "publish", "label": "核心齐备", "variant": "emphasis" },
+    { "id": "publish-report", "from": "publish", "to": "report", "label": "冻结证据包" },
+    { "id": "p0-halted", "from": "p0", "to": "halted", "label": "缺失 / 陈旧 / 冲突", "variant": "security" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么先持久化再执行",
+      "items": [
+        "CLI 与页面都只向账本追加任务，不在前台计算",
+        "进程或机器中断后已验证的检查点继续保留",
+        "恢复保留原 system_as_of、报告截止点与已消耗预算"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "P0 门禁的语义",
+      "items": [
+        "缺口只让本次运行不发布新阶段，不污染历史",
+        "不可变 assessment_id 记录当时的判定依据",
+        "用户可显式生成不调用 AI 的缺口说明"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "报告不影响分类",
+      "items": [
+        "AI 只解释已冻结的证据包与事实骨架",
+        "两个 CLI 都不可用则写 completed_degraded",
+        "自然语言正文保留 30 天，结构化事实长期保留"
+      ]
+    }
+  ]
+}

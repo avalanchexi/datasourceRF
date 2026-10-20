@@ -1,0 +1,202 @@
+{
+  "status": "archived",
+  "group": "pring-execution-gantt",
+  "title": "近期执行与修复甘特图",
+  "snapshot": "截至2026-09-09 10:02",
+  "file_moves": [
+    {
+      "old": "docs/diagrams/pring-execution-gantt-notes.md",
+      "sha256": "73eb61a729c8b08fc86df40cc236b0a2814bbe8c973f456db04f91604553e32e",
+      "bytes": 3420,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/pring-execution-gantt-notes.md"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.archify-check.json",
+      "sha256": "49380e1d5243706852c3550859d1f3977ed9f1c01334408ec2c513983c73f9c7",
+      "bytes": 1870,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/verification/original/pring-execution-gantt.archify-check.json"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.gantt.json",
+      "sha256": "8a62afe9298a6577729673c0ac0a253e60db545534826a7e91f406c5ed6fe069",
+      "bytes": 50640,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/pring-execution-gantt.gantt.json"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.html",
+      "sha256": "02656216c9b47565e3eff5c29247d6130ee8ed5204475055ccd6c7924c95adfe",
+      "bytes": 770927,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/pring-execution-gantt.html",
+      "original_copy": "docs/diagrams/pring-execution-gantt/verification/original/pring-execution-gantt.html",
+      "new_sha256": "be42f92a14a8fd442f4a8a231037934bba6afad6344e8f0627555e86f5eb59e5"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.png",
+      "sha256": "1aaf2bf6647e8786fbd93dc01fec4791f8495e5e775d903a313e92b5ec9952c4",
+      "bytes": 835983,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/pring-execution-gantt.png"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.receipt.json",
+      "sha256": "f8b676a5bf620238a77282d9a53c6548076e2745630505b02579df72bb03fe9c",
+      "bytes": 4105,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/verification/original/pring-execution-gantt.receipt.json"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.svg",
+      "sha256": "2a753b9469480c6e019af7634c8c9b670d626f6322af535d93b1e2998f0b69e7",
+      "bytes": 24343,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/pring-execution-gantt.svg"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.verification.json",
+      "sha256": "ab4d60514b8ed9b8a79107cff02ca3c1fce6adc35c248becf322cf0e996b8a2e",
+      "bytes": 694,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/verification/original/pring-execution-gantt.verification.json"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.visual-check.1440x900.dark.png",
+      "sha256": "0fdf7612b12aeba8d28f0127c3dbbd862a2902c3a54a614eaf76f30d613a376d",
+      "bytes": 211571,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/verification/original/pring-execution-gantt.visual-check.1440x900.dark.png"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.visual-check.1440x900.light.png",
+      "sha256": "276246a75bd2ed48d4eaac3db04e1e1539be50f5cd59965de50001ab3bb58080",
+      "bytes": 210980,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/verification/original/pring-execution-gantt.visual-check.1440x900.light.png"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.visual-check.2048x1320.dark.png",
+      "sha256": "a1830eba2bd09f6dc1e4f89faf9e67307f5c63145d1c61ce3b11175fe1e987bd",
+      "bytes": 287881,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/verification/original/pring-execution-gantt.visual-check.2048x1320.dark.png"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.visual-check.2048x1320.light.png",
+      "sha256": "430fea34dffcb87a3990a461555fb8afa51aa10306d221bb26d303d3832abd02",
+      "bytes": 287379,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/verification/original/pring-execution-gantt.visual-check.2048x1320.light.png"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.visual-check.html",
+      "sha256": "e3cc6af51eb1f72c83b3b9d403c01fc29367a1b6d960f6bb81dea990e68a36b2",
+      "bytes": 1970,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/verification/original/pring-execution-gantt.visual-check.html"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.visual-check.json",
+      "sha256": "5d9615c5fae01930fa836dbda356e86267e294792aa7c4d0c7b63a1e329132f9",
+      "bytes": 16846,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/verification/original/pring-execution-gantt.visual-check.json"
+    },
+    {
+      "old": "docs/diagrams/pring-execution-gantt.visual-review.json",
+      "sha256": "7afa6479eb2b779e96a47d97834d3a356d409515c87d9c64b0e57f5684fde710",
+      "bytes": 773,
+      "group": "pring-execution-gantt",
+      "new": "docs/diagrams/pring-execution-gantt/verification/original/pring-execution-gantt.visual-review.json"
+    }
+  ],
+  "support_snapshots": [
+    {
+      "source": ".scratch/pring-execution-gantt/build_data.py",
+      "archive": "docs/diagrams/pring-execution-gantt/support/build_data.py",
+      "sha256": "8f6abfc81e7a6eebac2a348cffcbdb5e21a08f83c5c7a35df0a98c82cbe242ae",
+      "bytes": 13550
+    },
+    {
+      "source": ".scratch/pring-execution-gantt/final-desktop.png",
+      "archive": "docs/diagrams/pring-execution-gantt/support/final-desktop.png",
+      "sha256": "f542bdbba52ac8f1da7d04ef97920c22c38a637e1a0fc95a027ee26705a8216b",
+      "bytes": 228728
+    },
+    {
+      "source": ".scratch/pring-execution-gantt/fonts.conf",
+      "archive": "docs/diagrams/pring-execution-gantt/support/fonts.conf",
+      "sha256": "b8d5837bfb64287c7a9b86155685c574fb89491250dfa58e3d2fdc6eab147037",
+      "bytes": 295
+    },
+    {
+      "source": ".scratch/pring-execution-gantt/initial.png",
+      "archive": "docs/diagrams/pring-execution-gantt/support/initial.png",
+      "sha256": "ae1f8f01fbfc1350826ad42cc5056bd741aeb592d4c6646e50bccc567b5bfe4f",
+      "bytes": 59364
+    },
+    {
+      "source": ".scratch/pring-execution-gantt/issues/01-build-gantt.md",
+      "archive": "docs/diagrams/pring-execution-gantt/support/issues/01-build-gantt.md",
+      "sha256": "0ad786dedb4b0c965436d48ec2db9f9a8129e76eb3bad5c4e357c2dee98992b8",
+      "bytes": 2103
+    },
+    {
+      "source": ".scratch/pring-execution-gantt/laptop.png",
+      "archive": "docs/diagrams/pring-execution-gantt/support/laptop.png",
+      "sha256": "ead2cc49d7388a841e3e2e04e49768a823dedaecd3b1188f7ea23e88db5c28dd",
+      "bytes": 210491
+    },
+    {
+      "source": ".scratch/pring-execution-gantt/native-export.svg",
+      "archive": "docs/diagrams/pring-execution-gantt/support/native-export.svg",
+      "sha256": "a348c387830be725cd9eee6e5cd867532294d1a9e7bd7c5ec0171a7f8f56edf7",
+      "bytes": 62669
+    },
+    {
+      "source": ".scratch/pring-execution-gantt/pending.png",
+      "archive": "docs/diagrams/pring-execution-gantt/support/pending.png",
+      "sha256": "ccbf2476951bc89e5fc08fe6afbf8e4230f8e5ee23e14bc04cb147b61b0a1cae",
+      "bytes": 322009
+    },
+    {
+      "source": ".scratch/pring-execution-gantt/recent.png",
+      "archive": "docs/diagrams/pring-execution-gantt/support/recent.png",
+      "sha256": "52200f73e5c773459e39471be3cb7901702f0aad99978e1f0fc48947dc650373",
+      "bytes": 205198
+    },
+    {
+      "source": ".scratch/pring-execution-gantt/render.mjs",
+      "archive": "docs/diagrams/pring-execution-gantt/support/render.mjs",
+      "sha256": "9c29b973c2cefda52d73763f9d45290ac12095ad2a104873f369982ff03342f5",
+      "bytes": 17926
+    },
+    {
+      "source": ".scratch/pring-execution-gantt/standalone-svg.png",
+      "archive": "docs/diagrams/pring-execution-gantt/support/standalone-svg.png",
+      "sha256": "fabb74f949e0fc185dd52cb2feb9f8ec7cca5c41305de7568378281294239589",
+      "bytes": 174167
+    },
+    {
+      "source": ".scratch/pring-execution-gantt/verify.py",
+      "archive": "docs/diagrams/pring-execution-gantt/support/verify.py",
+      "sha256": "d572875adaf426b143d3096537bfffc1ee7feb4854f203c63eb9ffe38af0ca70",
+      "bytes": 4764
+    },
+    {
+      "source": ".scratch/pring-execution-gantt/visual-check-output.json",
+      "archive": "docs/diagrams/pring-execution-gantt/support/visual-check-output.json",
+      "sha256": "5d9615c5fae01930fa836dbda356e86267e294792aa7c4d0c7b63a1e329132f9",
+      "bytes": 16846
+    }
+  ],
+  "link_changes": [
+    "Two evidence links now resolve from the extra archive directory level."
+  ],
+  "main_html_sha256": "be42f92a14a8fd442f4a8a231037934bba6afad6344e8f0627555e86f5eb59e5",
+  "historical_receipts": "verification/original; unchanged, bound to preserved original HTML/spec where applicable",
+  "support_semantics": "Historical construction and verification snapshots. Original .scratch tracking files remain unchanged.",
+  "archive_verification": "verification/archive/browser.json"
+}

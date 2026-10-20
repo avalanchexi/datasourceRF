@@ -1,0 +1,41 @@
+{
+  "status": "passed",
+  "started_at": "2026-09-09T23:45:49.466010+00:00",
+  "driver_pid": 34089,
+  "driver_start_ticks": "55656",
+  "frozen_input_manifest": "verification-p2-inputs-129.json",
+  "previous_run": "verification-p2-interrupted-130.json",
+  "scope": [
+    "tests/models/test_candidate_admission.py",
+    "tests/models/test_candidate_replay.py",
+    "tests/models/test_model_lifecycle.py",
+    "tests/integration/test_context_model_certification.py",
+    "tests/integration/test_derived_context_freshness.py"
+  ],
+  "phases": {
+    "runtime_before": {
+      "actual_exit_code": 0,
+      "log": "verification-p2-runtime-before-130.json",
+      "bytes": 345,
+      "sha256": "05ca76f476768a69b4f26499c7d7a4003a5e0653388eb986e3fda520e991ac1a"
+    },
+    "pytest": {
+      "actual_exit_code": 0,
+      "log": "verification-p2-joint-130.txt",
+      "bytes": 593,
+      "sha256": "e760808f02157389935fcb164b0af3bb6310949fcf816e8add813f631f9be606"
+    },
+    "runtime_after": {
+      "actual_exit_code": 0,
+      "log": "verification-p2-runtime-after-130.json",
+      "bytes": 345,
+      "sha256": "d1cd3cb69f335e691d98380266cb8619c15dc589b9d1277a56f6a0dfe43f5f4b"
+    }
+  },
+  "phase": "runtime_after",
+  "log": "verification-p2-runtime-after-130.json",
+  "test_exit_code": 0,
+  "postcheck_exit_code": 0,
+  "finished_at": "2026-09-10T00:12:04.732851+00:00",
+  "duration_seconds": 1575.267
+}

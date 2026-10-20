@@ -1,0 +1,24 @@
+{
+    "status":  "stopped_without_terminal_result",
+    "recorded_at":  "2026-09-09T23:45:49.0278670+00:00",
+    "previous_goal_turn_classification":  "progress",
+    "original_main_session_id":  6968,
+    "tool_handle_missing":  true,
+    "observed_private_checks_or_wrapper":  [
+
+                                           ],
+    "last_recorded_progress":  "14%",
+    "actual_exit_code":  null,
+    "final_test_counts":  null,
+    "cause":  "unknown",
+    "old_log":  "verification-p2-joint-129.txt",
+    "old_log_bytes":  164,
+    "old_log_sha256":  "ebff80cf14d3f2924043638ec3fd9a006126cb9af7633c4d91f328658c1ebcb7",
+    "frozen_inputs_after_stop":  "verification-p2-runtime-after-interruption-130.json",
+    "frozen_inputs_unchanged":  228,
+    "protected_files_unchanged":  4,
+    "installed_sources_matched":  91,
+    "dependencies_matched":  53,
+    "shared_services_restarted":  false,
+    "retry_scope_unchanged":  true
+}

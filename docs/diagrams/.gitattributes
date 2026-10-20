@@ -1,0 +1,3 @@
+# Archived diagrams and verification evidence are checked by byte-level hashes.
+# Preserve their original line endings on checkout and when adding them to Git.
+* -text
