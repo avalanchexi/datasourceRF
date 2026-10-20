@@ -427,11 +427,13 @@ def _meaningful_dashboard_shell(paths: RuntimePaths, *, status: str) -> str:
     notice_html = f"<aside role='alert'>{escape(notice)}</aside>" if notice is not None else ""
     overview = projection.datasets.get("cycle_overview", {}) if projection else {}
     macro = overview.get("macro_judgement")
+    judged = macro.get("conclusion") if isinstance(macro, dict) else None
     conclusion = (
         "等待首次完整运行"
         if projection is None
-        # The judgement leads the set as it leads the page (ADR-0043, ticket 16).
-        else macro_title(macro.get("conclusion") or {})
+        # The judgement leads the set as it leads the page (ADR-0043, ticket 16); a block
+        # without its conclusion is unreadable, never the judgement's own 无可取阶段.
+        else (macro_title(judged) if isinstance(judged, dict) else "宏观判断数据不可用")
         if isinstance(macro, dict)
         else stage_title(overview.get("current_stage"))
     )

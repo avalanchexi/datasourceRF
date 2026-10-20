@@ -607,6 +607,27 @@ def test_bond_attribution_sits_beside_price_consistency_as_a_card_with_its_rest_
     )
 
 
+def test_an_older_set_keeps_the_formal_stage_in_the_bond_attribution_drawer() -> None:
+    # Ticket 16: only a page led by the judgement says 价格阶段; an older set's note stays.
+    boundary = "债券状态旁的解释附注：不计入确认度，不由宽松程度推算或改写债券牛熊与正式阶段"
+    projection = _three_cores()
+    projection = replace(
+        projection,
+        datasets={
+            **projection.datasets,
+            "macro": {"bond_attribution": {**BOND_ATTRIBUTION, "boundary": boundary}},
+        },
+    )
+    page = dashboard_page("/", projection, (), ())
+    (attribution,) = _find(
+        _by_id(page, "assets"), lambda item: getattr(item, "id", None) == "asset-attribution"
+    )
+    (details,) = _triggers(attribution)
+
+    assert _words(_panel(page, details)).endswith(boundary)
+    assert "价格阶段" not in _words(_panel(page, details))
+
+
 def test_an_observation_name_shows_its_full_name_and_code_on_hover() -> None:
     page = dashboard_page(
         "/",
