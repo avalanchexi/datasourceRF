@@ -85,6 +85,18 @@ def test_each_day_from_the_rules_on_records_its_main_conclusion_and_none_before(
         # Its tenth session: stage III, a tendency.
         ("stage_iii", "tendency"),
     ]
+    # Each day's row says how the hysteresis left its conclusion, never the run's count
+    # (D2): held, against the day's raw judgement.
+    rows = {row["date"]: row for row in projection.datasets["stage_history"]["display"]["days"]}
+    held = {"basis": "held", "raw_stage": "stage_iii", "raw_confidence": "tendency"}
+    assert [rows[day].get("macro_hysteresis") for day in window] == [
+        None,
+        None,
+        {"basis": "initial"},
+        {"basis": "agrees"},
+        *(held for _ in range(9)),
+        {"basis": "replaced", "sessions_required": 10},
+    ]
     display = projection.datasets["stage_history"]["display"]
     earlier = len(display["days"]) - len(window)
     assert display["macro_counts"] == {

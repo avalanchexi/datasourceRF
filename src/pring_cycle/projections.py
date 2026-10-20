@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime
@@ -385,6 +385,34 @@ class ProjectionSetRepository:
         if row is None:
             return None
         return str(row["day"]), json.loads(str(row["document_json"]))["macro_judgement"]
+
+    def macro_hysteresis(self, projection_set_ids: Sequence[str]) -> dict[str, dict[str, object]]:
+        """Each of the sets' macro judgement as its stage history row tells how the
+        hysteresis left it: its hysteresis and raw judgement (D2); a set without one is left
+        out."""
+        ids = sorted(set(projection_set_ids))
+        if not ids:
+            return {}
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT projection_set_id,
+                    json_extract(document_json, '$.macro_judgement.hysteresis') AS hysteresis,
+                    json_extract(document_json, '$.macro_judgement.raw') AS raw
+                FROM analytical_dataset
+                WHERE dataset_name = 'cycle_overview'
+                    AND projection_set_id IN ({", ".join("?" for _ in ids)})
+                    AND json_type(document_json, '$.macro_judgement') = 'object'
+                """,
+                ids,
+            ).fetchall()
+        return {
+            str(row["projection_set_id"]): {
+                "hysteresis": json.loads(row["hysteresis"]) if row["hysteresis"] else None,
+                "raw": json.loads(row["raw"]) if row["raw"] else None,
+            }
+            for row in rows
+        }
 
     def macro_effective_from(self) -> str | None:
         """The business day the macro judgement rules took effect on, as the judgements

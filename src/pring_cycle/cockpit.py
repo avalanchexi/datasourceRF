@@ -2532,6 +2532,46 @@ def macro_history_label(day: Mapping[str, Any]) -> str:
     return MACRO_HISTORY_BLANKS.get(value) or history_label(value)
 
 
+# How the hysteresis left a day's main conclusion, as its interval's drawer tells it; the
+# run counted toward replacing it is the day's signal list's, not the history's (decision 33).
+MACRO_HYSTERESIS = {"initial": "生效首日，取当日原始判断", "agrees": "与当日原始判断一致"}
+
+
+def macro_hysteresis_label(state: object) -> str:
+    """滞回保持，当日原始判断：第 X 阶段（倾向） while held (decision 45); replaced, the
+    sessions its raw judgement ran; a day that recorded none says so."""
+    state = obj(state)
+    basis = state.get("basis")
+    if basis == "held":
+        raw = state.get("raw_stage")
+        if raw is None:
+            return f"滞回保持，当日原始判断：{MACRO_HISTORY_BLANKS['no_stage']}"
+        confidence = MACRO_CONFIDENCES.get(str(state.get("raw_confidence")), "")
+        return f"滞回保持，当日原始判断：{stage_name(raw)}（{confidence}）"
+    if basis == "replaced":
+        return f"滞回替换：当日原始判断已连续 {state.get('sessions_required')} 日，取代原主结论"
+    return MACRO_HYSTERESIS.get(str(basis), "滞回状态未记录")
+
+
+def macro_history_day(day: dict[str, Any]) -> html.Li:
+    """One day of a macro interval: its main conclusion with its confidence and how the
+    hysteresis left it, the version it corrects; its price stage is the price drawer's (D2)."""
+    recorded = str(day.get("macro")).startswith("stage_")
+    return html.Li(
+        [
+            html.Strong(f"{day['date']} · {macro_history_label(day)}"),
+            html.Span(
+                macro_hysteresis_label(day.get("macro_hysteresis")), className="secondary-copy"
+            )
+            if recorded
+            else None,
+            *correction_note(day, term=PRICE_TERM),
+            html.Span(["投影 ", projection_link(day.get("projection_set_id"))]),
+        ],
+        className="record-row",
+    )
+
+
 def macro_count_label(key: str) -> str:
     stage, _, confidence = key.partition(":")
     return macro_history_label({"macro": stage, "macro_confidence": confidence or None})
@@ -2775,7 +2815,7 @@ def history_intervals(days: Sequence[dict[str, Any]]) -> tuple[list[Any], list[A
         macro_history_label,
         "history-macro-interval",
         view="macro",
-        term=term,
+        row=macro_history_day,
     )
     views = (("official", term), ("macro", MACRO_JUDGEMENT))
     # Only the switch's script shows the other list; without it the formal one stays.
@@ -2810,9 +2850,13 @@ def _interval_list(
     *,
     view: str | None = None,
     term: str = FORMAL_TERM,
+    row: Callable[[dict[str, Any]], html.Li] | None = None,
 ) -> tuple[html.Ul, list[Any]]:
     """The intervals of one ``state`` running over consecutive days, and their drawers; a
-    ``view`` names the list for the switch between them, shown only for the formal stage."""
+    ``view`` names the list for the switch between them, shown only for the formal stage.
+    A drawer lists its days by ``row``, by default their stage, called ``term``."""
+    if row is None:
+        row = lambda day: history_day(day, term=term)  # noqa: E731
     runs: list[list[dict[str, Any]]] = []
     for day in days:
         if runs and state(runs[-1][-1]) == state(day):
@@ -2856,7 +2900,7 @@ def _interval_list(
             drawer_panel(
                 key,
                 f"{label(run[0])} · {span(run)}",
-                [html.Ul([history_day(day, term=term) for day in run], className="record-list")],
+                [html.Ul([row(day) for day in run], className="record-list")],
                 code=stage_code(state(run[0])[0])
                 if str(state(run[0])[0]).startswith("stage_")
                 else None,
@@ -2884,7 +2928,6 @@ def projection_link(projection_set_id: object) -> Any:
 def history_day(day: dict[str, Any], *, term: str = FORMAL_TERM) -> html.Li:
     """One day of an interval: its state, its event's facts, the version it corrects and why;
     ``term`` is what the page calls the cores' stage."""
-    corrects = day.get("corrects")
     gaps = day.get("gaps")
     facts = (
         [
@@ -2907,25 +2950,33 @@ def history_day(day: dict[str, Any], *, term: str = FORMAL_TERM) -> html.Li:
         [
             html.Strong(f"{day['date']} · {history_label(day['official'], term=term)}"),
             html.Span(" · ".join(facts), className="secondary-copy") if facts else None,
-            html.Span(
-                [
-                    "更正版本：更正 ",
-                    projection_link(corrects.get("projection_set_id")),
-                    "（"
-                    + (
-                        view._stage_correction_note(corrects).replace(FORMAL_TERM, term)
-                        or str(corrects.get("reason"))
-                    )
-                    + "）",
-                ],
-                className="secondary-copy",
-            )
-            if isinstance(corrects, dict)
-            else None,
+            *correction_note(day, term=term),
             html.Span(["投影 ", projection_link(day.get("projection_set_id"))]),
         ],
         className="record-row",
     )
+
+
+def correction_note(day: Mapping[str, Any], *, term: str) -> list[html.Span]:
+    """The version a day corrects and why; none for a day that corrects none."""
+    corrects = day.get("corrects")
+    if not isinstance(corrects, dict):
+        return []
+    return [
+        html.Span(
+            [
+                "更正版本：更正 ",
+                projection_link(corrects.get("projection_set_id")),
+                "（"
+                + (
+                    view._stage_correction_note(corrects).replace(FORMAL_TERM, term)
+                    or str(corrects.get("reason"))
+                )
+                + "）",
+            ],
+            className="secondary-copy",
+        )
+    ]
 
 
 # The page's "海外与汇率" list, in reading order: FX, US Treasuries, then risk and oil. The
