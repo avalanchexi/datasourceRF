@@ -2536,7 +2536,7 @@ def macro_history_label(day: Mapping[str, Any]) -> str:
 
 # How the hysteresis left a day's main conclusion, as its interval's drawer tells it; the
 # run counted toward replacing it is the day's signal list's, not the history's (decision 33).
-MACRO_HYSTERESIS = {"initial": "生效首日，取当日原始判断", "agrees": "与当日原始判断一致"}
+MACRO_HYSTERESIS = {"initial": "无既往主结论，取当日原始判断", "agrees": "与当日原始判断一致"}
 
 
 def macro_hysteresis_label(state: object) -> str:
