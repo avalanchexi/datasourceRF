@@ -72,3 +72,8 @@
 - **S15 处理**：新增 `_Sentence`／`_read`，每句一次算出阶段提及、各提及的主语、主语标记序列（含条件起止）与重判作用域，阶段、把握程度、转换三类核对共用这一结果；`_conditions` 拆出 `_hold`（作用域结束位置）与 `_divergence_before`。
 - **测试**：`tests/reports` 全部＋`test_confirmation_policy`、`test_confirmation_projection`、`test_confirmation_publish`、`test_macro_signals`、`test_macro_fallback`、`test_price_verification` 共 451 过（413 s）；其中 `test_real_macro_readings.py` 78 过，含 42 句探针、上一轮 6 个反例与两份冻结真实输出。两例冒烟 2 过（49 s）。ruff、mypy 通过；`find src tools -name __pycache__` 为空。macro-followups 头 8d4ad9a 自本分支起点未变，无需另行合并。
 - **残余风险**（未扩展新探针，记此另开票）：省略"第"的识别靠前置字排除表，"分为六阶段"一类会被读作第六阶段；按现状陈述的识别靠"判断／结论＋为／是"，"规则判断为"写在条件结果中会按主结论核对（保守拒收）。
+
+## ms-rf4：rf2b 复审（review-completeness-20261020-r3.md）
+
+16. **S16（应改）**：⑦ 表下说明句不再一律写"沿用已持有的一期"（SOX 这类什么都没持有的指标没有可沿用的期），改为"晚于应有期、尚未持有的计划期还未到应有期（如已发布的下一期），计在门禁一列，不列为缺口；有已持有期的指标沿用其最新一期。"
+    - 处理（主 agent）：先改 `test_the_gated_column_also_counts_periods_not_due_yet_and_says_why_no_gap` 断言（红），再改 cockpit.py（绿）；`tests/web/test_reading_section.py` 15 passed；ruff check/format 通过。复审其余 7 条均为满足。
