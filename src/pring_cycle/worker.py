@@ -783,6 +783,7 @@ def _execute_run(
     window_calendar = SseCalendar(paths, as_of=run.system_as_of).around(
         date.fromisoformat(run.target_business_date)
     )
+    timeliness = batch_freshness(paths.database, run.run_id)
     summary = DaySummaries(
         EvidenceRepository(paths.database),
         ProjectionSetRepository(paths.database),
@@ -796,10 +797,8 @@ def _execute_run(
         system_as_of=run.system_as_of,
         run_materials=RunMaterials(
             freshness_gaps=gaps,
-            held_periods={
-                metric_id: row["held_period"]
-                for metric_id, row in batch_freshness(paths.database, run.run_id).items()
-            },
+            held_periods={metric_id: row["held_period"] for metric_id, row in timeliness.items()},
+            freshness_status={metric_id: row["status"] for metric_id, row in timeliness.items()},
             # The days its calendar left to weekdays, stated beside the gap list (ticket 06).
             freshness_calendar=judging_calendar_basis(calendar, run.system_as_of),
             plan_gaps=tuple(plan["final"]["gaps"]),
