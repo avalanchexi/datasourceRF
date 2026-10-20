@@ -50,7 +50,7 @@ from pring_cycle.source_contract_review import (
 )
 from pring_cycle.storage import database_health
 from pring_cycle.web_config import HostBoundary, WebConfig
-from pring_cycle.wording import stage_title
+from pring_cycle.wording import macro_title, stage_title
 
 COMMAND_BODY_LIMIT = 4096
 
@@ -426,7 +426,15 @@ def _meaningful_dashboard_shell(paths: RuntimePaths, *, status: str) -> str:
     notice = _source_contract_notice(paths)
     notice_html = f"<aside role='alert'>{escape(notice)}</aside>" if notice is not None else ""
     overview = projection.datasets.get("cycle_overview", {}) if projection else {}
-    conclusion = stage_title(overview.get("current_stage")) if projection else "等待首次完整运行"
+    macro = overview.get("macro_judgement")
+    conclusion = (
+        "等待首次完整运行"
+        if projection is None
+        # The judgement leads the set as it leads the page (ADR-0043, ticket 16).
+        else macro_title(macro.get("conclusion") or {})
+        if isinstance(macro, dict)
+        else stage_title(overview.get("current_stage"))
+    )
     return (
         "<header><p>PRING CYCLE</p><h1>周期驾驶舱</h1>"
         f"<dl>{identity}</dl></header>"

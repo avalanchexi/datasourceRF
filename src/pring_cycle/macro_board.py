@@ -28,6 +28,7 @@ from pring_cycle.wording import (
     MACRO_KEPT,
     MACRO_MATURITIES,
     MACRO_NO_SIGNALS,
+    MACRO_NO_STAGE,
     MACRO_POSITIONS,
     MACRO_RAW_UNCHANGED,
     MACRO_SAME_SOURCE,
@@ -37,11 +38,11 @@ from pring_cycle.wording import (
     MACRO_VALUES,
     MACRO_VERIFICATION,
     UNAVAILABLE,
+    macro_title,
     stage_name,
 )
 
 _ACTIONS = {"cut": "下调", "hike": "上调"}
-_NO_STAGE = "无可取阶段（证据不足、三核心不可用且无上一确认阶段）"
 _NO_REFERENCE = "无上一确认阶段，按 Pring 顺序取首个"
 _UNREAD_POLICY = "政策利率、LPR、降准均无可读记录"
 _NO_ACTION = "120 日内无降息、LPR 下调、降准或上调"
@@ -160,19 +161,7 @@ def bond_policy_apart(block: Mapping[str, Any], attribution: Mapping[str, Any]) 
 
 def title(conclusion: Mapping[str, Any], block: Mapping[str, Any]) -> str:
     """宏观判断：第 N 阶段（明确，5 维中 k 维吻合）· 相对上次确认第 M 阶段 前进 n 步."""
-    stage = conclusion.get("stage")
-    if stage is None:
-        return f"{MACRO_JUDGEMENT}：{_NO_STAGE}"
-    head = (
-        f"{MACRO_JUDGEMENT}：{stage_name(stage)}"
-        f"（{MACRO_CONFIDENCES.get(str(conclusion.get('confidence')), '')}，"
-        f"{conclusion.get('known')} 维中 {conclusion.get('matched')} 维吻合）"
-    )
-    reference, steps = conclusion.get("reference_stage"), conclusion.get("steps")
-    if reference is None or not isinstance(steps, int):
-        return f"{head}· 无上一确认阶段"
-    move = "不变" if steps == 0 else f"前进 {steps} 步" if steps > 0 else f"后退 {-steps} 步"
-    return f"{head}· 相对上次确认{stage_name(reference)} {move}"
+    return macro_title(conclusion)
 
 
 def held(block: Mapping[str, Any]) -> str | None:
@@ -182,7 +171,7 @@ def held(block: Mapping[str, Any]) -> str | None:
         return None
     raw = _mapping(block.get("raw"))
     if raw.get("stage") is None:
-        return f"{_HELD}，当日原始判断：{_NO_STAGE}"
+        return f"{_HELD}，当日原始判断：{MACRO_NO_STAGE}"
     return (
         f"{_HELD}，当日原始判断：{stage_name(raw.get('stage'))}"
         f"（{MACRO_CONFIDENCES.get(str(raw.get('confidence')), '')}）"
@@ -252,7 +241,7 @@ def _basis(facts: Mapping[str, Any], *, on: object = None) -> str | None:
         then = (
             f"三核心不可用，取上一确认阶段{stage_name(stage)}"
             if stage is not None
-            else f"三核心不可用且无上一确认阶段，{_NO_STAGE}"
+            else f"三核心不可用且无上一确认阶段，{MACRO_NO_STAGE}"
         )
     elif taken.get("differences") == 0:
         then = f"价格组合典型（{_cores(combination)}），取价格阶段{stage_name(stage)}"

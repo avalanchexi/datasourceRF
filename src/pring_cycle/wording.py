@@ -424,3 +424,24 @@ def source_name(channel: object) -> str:
     """A request source's Chinese name, or the recorded value when none is mapped."""
     value = str(channel)
     return SOURCE_NAMES.get(value) or SOURCE_NAMES.get(value.partition(":")[0], value)
+
+
+MACRO_NO_STAGE = "无可取阶段（证据不足、三核心不可用且无上一确认阶段）"
+
+
+def macro_title(conclusion: Mapping[str, object]) -> str:
+    """宏观判断：第 N 阶段（明确，5 维中 k 维吻合）· 相对上次确认第 M 阶段 前进 n 步, without
+    Dash, so the shell before the cockpit loads leads with it as well (ticket 16)."""
+    stage = conclusion.get("stage")
+    if stage is None:
+        return f"{MACRO_JUDGEMENT}：{MACRO_NO_STAGE}"
+    head = (
+        f"{MACRO_JUDGEMENT}：{stage_name(stage)}"
+        f"（{MACRO_CONFIDENCES.get(str(conclusion.get('confidence')), '')}，"
+        f"{conclusion.get('known')} 维中 {conclusion.get('matched')} 维吻合）"
+    )
+    reference, steps = conclusion.get("reference_stage"), conclusion.get("steps")
+    if reference is None or not isinstance(steps, int):
+        return f"{head}· 无上一确认阶段"
+    move = "不变" if steps == 0 else f"前进 {steps} 步" if steps > 0 else f"后退 {-steps} 步"
+    return f"{head}· 相对上次确认{stage_name(reference)} {move}"
