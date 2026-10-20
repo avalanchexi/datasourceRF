@@ -876,6 +876,12 @@ def _report_checks(run: Run, overview: dict, core: dict, macro: dict, p0: dict) 
             d.get("counts") if d.get("status") != "not_connected" else d.get("status")
         )
     conclusions |= {f"key_indicator:{ki.get('key')}": ki.get("relation") for ki in indicators}
+    if "macro_judgement_rules" in run.manifest:  # model-v0016 on: the report states the judgement
+        judgement = (overview.get("macro_judgement") or {}).get("conclusion") or {}
+        conclusions |= {
+            "macro_stage": judgement.get("stage"),
+            "macro_confidence": judgement.get("confidence"),
+        }
     identity = body.get("report_identity", {})
     basis = body.get("formal_stage_basis", {})
     results = body.get("verified_results", {})
