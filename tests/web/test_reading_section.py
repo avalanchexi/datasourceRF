@@ -344,8 +344,8 @@ def test_the_gated_column_also_counts_periods_not_due_yet_and_says_why_no_gap() 
         ["目录全部", 4, 1, 2, 1],
     ]
     assert (
-        "晚于应有期的计划期未到应有期（如已发布、尚未持有的下一期），沿用已持有的一期，"
-        "也计在门禁一列，不列为缺口。"
+        "晚于应有期、尚未持有的计划期还未到应有期（如已发布的下一期），计在门禁一列，不列为缺口；"
+        "有已持有期的指标沿用其最新一期。"
     ) in _words(_visible(section))
 
 
