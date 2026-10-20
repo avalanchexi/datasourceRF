@@ -24,6 +24,7 @@ from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths
 from tests.integration.test_core_carry_forward import seed_cores
 from tests.integration.test_day_summary import target_projection
+from tests.integration.test_macro_signals import listed_day
 from tests.integration.test_worker_execution import runtime
 from tests.reports.test_report_boundary import FakeAdapter
 from tests.web.test_dashboard_contract import _hrefs, _text
@@ -291,3 +292,84 @@ def test_empty_library_reads_without_a_report_link_or_invented_run_facts() -> No
     assert "解读：报告尚未生成" in text
     assert "运行事实：目标交易日 口径不可用" in text
     assert not any("generate-report-command" in href for href in hrefs)
+
+
+@pytest.mark.parametrize(
+    ("change", "check"),
+    [
+        ({"current_stage": "stage_iv"}, "current_stage"),
+        ({"sections": [{"title": "解读", "explanation": "当前处于第四阶段。"}]}, "stated_stage"),
+    ],
+)
+def test_template_reason_for_a_rewritten_stage_read_back_from_the_repository(
+    tmp_path: Path,
+    published: tuple[RuntimePaths, ProjectionSet],
+    change: dict[str, Any],
+    check: str,
+) -> None:
+    # Ticket 16: an older set's refused stage reads 正式阶段, by either check it recorded.
+    _paths, projection = published
+    source = report_input_from_projection(projection)
+    document = {
+        "bundle_id": source.bundle_id,
+        "current_stage": source.current_stage,
+        "report_cutoff": source.report_cutoff.isoformat(),
+        "core_states": dict(source.core_states),
+        "conclusions": dict(source.conclusions),
+        "sections": [{"title": "解读", "explanation": "组合不在六个典型组合内。"}],
+        "proxy_used": False,
+        **change,
+    }
+    repository = ReportRepository.create(tmp_path / "reports.sqlite3")
+    result = ReportService(
+        repository, (FakeAdapter("codex_cli", AdapterResponse.succeeded(document)),)
+    ).generate(source)
+
+    (attempt,) = repository.attempts(result.report_snapshot_id)
+    assert attempt.process_audit["rejection"]["check"] == check
+    text, _hrefs = _board(projection, reports=(repository.get(result.report_snapshot_id),))
+
+    assert "（适配器失败原因：codex_cli 输出改写正式阶段被拒）" in text
+
+
+def test_template_reason_under_the_judgement_calls_the_rewritten_stage_the_price_stage(
+    tmp_path: Path,
+) -> None:
+    projection = listed_day(tmp_path)
+    source = report_input_from_projection(projection)
+    document = {
+        "bundle_id": source.bundle_id,
+        "current_stage": "stage_vi" if source.current_stage != "stage_vi" else "stage_i",
+        "report_cutoff": source.report_cutoff.isoformat(),
+        "core_states": dict(source.core_states),
+        "conclusions": dict(source.conclusions),
+        "sections": [{"title": "解读", "explanation": "未提供。"}],
+        "proxy_used": False,
+    }
+    repository = ReportRepository.create(tmp_path / "reports.sqlite3")
+    result = ReportService(
+        repository, (FakeAdapter("codex_cli", AdapterResponse.succeeded(document)),)
+    ).generate(source)
+
+    (attempt,) = repository.attempts(result.report_snapshot_id)
+    assert attempt.process_audit["rejection"]["check"] == "current_stage"
+    text, _hrefs = _board(projection, reports=(repository.get(result.report_snapshot_id),))
+
+    assert "（适配器失败原因：codex_cli 输出改写价格阶段被拒）" in text
+
+
+def test_template_reason_for_an_unknown_check_is_the_outcomes(
+    published: tuple[RuntimePaths, ProjectionSet],
+) -> None:
+    _paths, projection = published
+    template = _report(
+        projection.envelope.projection_set_id,
+        adapter="deterministic",
+        adapter_outcomes=(("codex_cli", "conclusion_mutation_rejected"),),
+        adapter_rejections=("a_check_the_page_does_not_know",),
+    )
+
+    text, _hrefs = _board(projection, reports=(template,))
+
+    assert "（适配器失败原因：codex_cli 输出改写结论被拒）" in text
+    assert "a_check_the_page_does_not_know" not in text

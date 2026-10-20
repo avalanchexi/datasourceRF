@@ -674,7 +674,7 @@ def section_titles(judgement: Mapping[str, Any] | None) -> tuple[tuple[str, str]
 
 
 BOARD_SUBTITLE = "正式阶段 · 三核心 · 确认度 · 一致性 · 库存 · 归因，一板看完"
-MACRO_BOARD_SUBTITLE = "五维定宏观阶段 · 价格表象作验证 · 库存 · 归因，一板看完"
+MACRO_BOARD_SUBTITLE = "五维定宏观判断阶段 · 价格表象作验证 · 库存 · 归因，一板看完"
 
 
 def stage_term(projection: ProjectionSet | None) -> str:

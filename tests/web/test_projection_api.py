@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 from fastapi import FastAPI
 
 from pring_cycle.domain import CoreAssetState, FormalStage
@@ -199,6 +200,19 @@ def test_deferred_dashboard_shell_under_the_judgement_shows_the_judgement(
 
     assert "宏观判断：第三阶段（倾向，5 维中 3 维吻合）· 相对上次确认第三阶段 不变" in document
     assert "正式阶段" not in document
+
+
+@pytest.mark.parametrize("macro", [{}, {"conclusion": None}, {"conclusion": "stage_iii"}])
+def test_deferred_dashboard_shell_does_not_read_a_judgement_without_its_conclusion(
+    tmp_path: Path, macro: dict[str, Any]
+) -> None:
+    # A block without its conclusion is unreadable, not the judgement's own 无可取阶段.
+    paths = _shell_projection(tmp_path, macro_judgement=macro)
+
+    document = _visible(_initial_dashboard_html(paths, failed=False))
+
+    assert "宏观判断数据不可用" in document
+    assert "无可取阶段" not in document
 
 
 def test_dashboard_deep_links_return_the_interactive_index(tmp_path: Path) -> None:

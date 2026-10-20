@@ -19,3 +19,14 @@
 7. **S7**：启动壳遇到缺 `conclusion` 的宏观块时显示"宏观判断数据不可用"，不当作合法的"无可取阶段"；补空块测试。
 8. **S8**：副标题"五维定宏观阶段"按 GLOSSARY.md 改用规范词（宏观判断阶段），同步 test_macro_signal_board 的断言。
 9. **S9**：补三个兼容用例：旧投影抽屉含完整旧术语时保持原样；`current_stage`／`stated_stage` 经仓库读取后的页面文案；未知 check 的回退文案。
+
+### ms-rf2c 处理记录（2026-10-20，分支 ms-rf2c）
+
+- **S7**：`web._meaningful_dashboard_shell` 只在宏观块的 `conclusion` 是字典时调用 `macro_title`（合法"无可取阶段"即 `stage` 为空的结论，照旧）；块缺 `conclusion`、为 `null` 或不是字典时显示"宏观判断数据不可用"，不在页面补算。测试 `tests/web/test_projection_api.py::test_deferred_dashboard_shell_does_not_read_a_judgement_without_its_conclusion`（3 例：`{}`、`conclusion: null`、`conclusion` 为字符串；先红：前两例误显示"无可取阶段"，第三例 AttributeError）。
+- **S8**：`cockpit.MACRO_BOARD_SUBTITLE` 改为"五维定宏观判断阶段 · 价格表象作验证 · 库存 · 归因，一板看完"；`test_macro_signal_board.py::test_a_page_led_by_the_judgement_calls_the_cores_stage_the_price_stage` 断言新副标题，并断言首页与阶段史页不出现"宏观阶段"（先红后绿）。
+- **S9**：只补测试、不改源码（锁定现有行为，各自做过变异核验：改掉对应分支后测试失败，恢复后通过）。
+  - 旧投影抽屉：`tests/web/test_asset_cards.py::test_an_older_set_keeps_the_formal_stage_in_the_bond_attribution_drawer`——无宏观块时归因抽屉末段"……不由宽松程度推算或改写债券牛熊与正式阶段"原样保留、不出现"价格阶段"。
+  - 经仓库读取：`tests/web/test_board_footer.py::test_template_reason_for_a_rewritten_stage_read_back_from_the_repository`（2 例：旧投影下 `current_stage`、`stated_stage` 经真实 `ReportService` 拒收、`ReportRepository` 读回后，结论板写"codex_cli 输出改写正式阶段被拒"，并核对审计记下的 check）；`test_template_reason_under_the_judgement_calls_the_rewritten_stage_the_price_stage`（宏观投影下 `current_stage` 写"输出改写价格阶段被拒"）。
+  - 未知 check：`test_template_reason_for_an_unknown_check_is_the_outcomes`——审计 check 不在映射表时按结果码写（`conclusion_mutation_rejected` → "输出改写结论被拒"），不显示 check 原名。
+- 未碰 `reports.py` 与完整度表；测试辅助未复用 `tests/reports/test_macro_report.py`，避开 ms-rf2a 的改动区。
+- 运行（venv `dev-venv-msrf2c`，basetemp `/tmp/pytest-msrf2c`，`PYTHONDONTWRITEBYTECODE=1`，flock）：macro-followups 最新头仍为 7001550，合并为空操作；`python tools/check.py quick` test_projection_api、test_macro_signal_board、test_board_footer、test_asset_cards、test_conclusion_board、test_cockpit_http、tests/reports/test_macro_report＋两例冒烟 **129 passed（98 s；另排队等锁约 6 分钟）**。ruff check／format、mypy（web.py、cockpit.py）通过。
