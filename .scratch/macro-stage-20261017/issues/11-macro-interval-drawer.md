@@ -13,7 +13,7 @@
 
 2026-10-20 ticket-ms11（分支 ms-11）实施：
 
-- 做法：阶段史展示行（`stage_history.display.days`）新增 `macro_hysteresis`，发布时取各日自身投影集 `cycle_overview.macro_judgement` 的滞回状态——`held` 附当日原始判断阶段与把握程度，`replaced` 附所需日数，`initial`／`agrees` 只记状态；不记候选与 k/10 计数（决定 33）。读法为 `ProjectionSetRepository.macro_hysteresis`（按投影集 id 的 SQL `json_extract`），当日自身用正在发布的宏观块；`relink` 路径用重述后的宏观块。旧投影集的日子会在下一次发布重建展示时补上，无需迁移。
+- 做法：阶段史展示行（`stage_history.display.days`）新增 `macro_hysteresis`，发布时取各日自身投影集 `cycle_overview.macro_judgement` 的滞回状态——`held` 附当日原始判断阶段与把握程度，`replaced` 附所需日数，`initial`／`agrees` 只记状态；不记候选与 k/10 计数（决定 33）。读法为 `ProjectionSetRepository.macro_hysteresis`（按投影集 id 的 SQL `json_extract`），当日自身用正在发布的宏观块；`relink` 路径用重述后的宏观块。补齐的是下一次发布的新投影中的历史展示行，旧投影本身不改：固定访问旧投影仍显示"滞回状态未记录"，无需迁移。
 - 页面：宏观区间抽屉逐日行改为"日期 · 主结论（把握程度）"＋滞回状态（"生效首日，取当日原始判断"／"与当日原始判断一致"／"滞回保持，当日原始判断：第三阶段（倾向）"／"滞回替换：当日原始判断已连续 10 日，取代原主结论"；未记录的写"滞回状态未记录"）、更正说明与投影链接；不再列上一确认、原因、缺口、模型等价格阶段描述。价格区间抽屉不变（更正说明抽成共用的 `correction_note`）。
 - 测试缝：页面（`tests/web/test_macro_stage_history_board.py` 新增 `test_a_macro_interval_lists_each_days_conclusion_and_hysteresis_not_its_price_stage`，并在 `test_the_intervals_can_be_listed_by_the_macro_judgement` 补"滞回状态未记录"）；发布（`tests/integration/test_macro_stage_history.py::test_each_day_from_the_rules_on_records_its_main_conclusion_and_none_before` 断言 14 日窗口逐日滞回状态：生效前 2 日无、initial、agrees、held×9、replaced）。两例均先红后绿。
 - 受影响测试（venv dev-venv-ms11，`PYTHONDONTWRITEBYTECODE=1`，basetemp /tmp/pytest-ms11，flock /tmp/pring-heavy.lock）：
@@ -24,4 +24,5 @@
   - ruff check／format（改动文件）、mypy（cockpit、p0、projections、display_projection）通过
 - 两例冒烟（`test_core_history_refresh.py::test_manual_run_cannot_backdate_daily_core_availability`、`test_worker_execution.py::test_worker_completes_a_valid_noncanonical_projection_and_report`）：2 passed，66 s。
 - main 头仍为 2f876b2（分支基于它），无需合并。
-- 偏离：票面只要求页面测试；滞回状态原先不在阶段史事件与展示行里，故另加发布层断言与一个仓储读法。正式库中 10-14～10-19 已发布投影的展示行没有该字段，上线后下一次运行发布时即补齐；在此之前这些日子抽屉显示"滞回状态未记录"。
+- 偏离：票面只要求页面测试；滞回状态原先不在阶段史事件与展示行里，故另加发布层断言与一个仓储读法。正式库中 10-14～10-19 已发布投影的展示行没有该字段；上线后下一次运行发布的新投影中，这些日子的历史展示行会补齐，而固定访问这些旧投影仍显示"滞回状态未记录"。
+- 2026-10-20（ms-reviewfix，分支 ms-rf）：审查修复 R1–R3 见 `../review-fixes-20261020.md`（`initial` 改写"无既往主结论，取当日原始判断"；更正说明定位到宏观抽屉；旧投影补齐措辞已按 R3 修正）。

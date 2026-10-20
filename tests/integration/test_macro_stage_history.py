@@ -22,6 +22,7 @@ from typing import Any
 import pytest
 
 import pring_cycle.day_summary as day_summary
+import pring_cycle.display_projection as display_projection
 from pring_cycle.dashboard import dashboard_page
 from pring_cycle.day_summary import DaySummaries, ModelRules
 from pring_cycle.evidence import EvidenceRepository
@@ -55,6 +56,13 @@ def macro_rows(projection: ProjectionSet, days: tuple[str, ...]) -> list[tuple[A
     """Each of ``days``'s macro stage and confidence as the set's stage history shows them."""
     rows = {row["date"]: row for row in projection.datasets["stage_history"]["display"]["days"]}
     return [(rows[day]["macro"], rows[day]["macro_confidence"]) for day in days]
+
+
+def hysteresis(projection: ProjectionSet, days: tuple[str, ...]) -> list[Any]:
+    """How the hysteresis left each of ``days``'s conclusion, as the set's stage history
+    rows tell it (D2)."""
+    rows = {row["date"]: row for row in projection.datasets["stage_history"]["display"]["days"]}
+    return [rows[day].get("macro_hysteresis") for day in days]
 
 
 def test_each_day_from_the_rules_on_records_its_main_conclusion_and_none_before(
@@ -105,6 +113,39 @@ def test_each_day_from_the_rules_on_records_its_main_conclusion_and_none_before(
         "stage_v:explicit": 11,
         "stage_iii:tendency": 1,
     }
+
+
+def test_a_set_published_before_its_rows_told_the_hysteresis_keeps_them_the_next_fills_them(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The second day's set was published with its macro judgement, before its stage history
+    # rows told how the hysteresis left each day's conclusion (D2).
+    paths = macro_day(tmp_path)
+    window = last(3)
+    repository = ProjectionSetRepository(paths.database)
+    take_effect(paths, window[0])
+    with monkeypatch.context() as patch:
+        patch.setattr(display_projection, "macro_hysteresis_row", lambda judgement: None)
+        # The next day's run, at its own evening.
+        take_effect(paths, window[1])
+    old = repository.current()
+    assert old.envelope.target_business_date == window[1]
+    assert judgement(old)["hysteresis"]["basis"] == "agrees"
+    assert hysteresis(old, window[:2]) == [None, None]
+
+    projection = publish(paths, MODEL, window)
+
+    # The next set's rows tell each day's from that day's own set.
+    assert hysteresis(projection, window) == [
+        {"basis": "initial"},
+        {"basis": "agrees"},
+        {"basis": "agrees"},
+    ]
+    # The older set is left as it was published: opened, it still says none was recorded.
+    kept = repository.get(old.envelope.projection_set_id)
+    assert kept.datasets == old.datasets
+    assert "滞回状态未记录" in _text(dashboard_page("/", kept, (), ()))
+    assert "滞回状态未记录" not in _text(dashboard_page("/", projection, (), ()))
 
 
 def test_a_day_from_before_the_rules_corrected_with_them_is_still_not_judged(
@@ -254,6 +295,7 @@ def test_a_day_with_no_stage_to_take_records_so_and_its_relink_records_the_stage
     take_effect(paths, held)
     # Decision 49: nothing to take, a blank of its own, not a day before the rules.
     assert macro_rows(held_set(), (held,)) == [("no_stage", None)]
+    assert hysteresis(held_set(), (held,)) == [{"basis": "initial"}]
 
     summaries.backfill((staged, held), target=days[-1], system_as_of=CUTOFF + timedelta(days=1))
 
@@ -261,6 +303,9 @@ def test_a_day_with_no_stage_to_take_records_so_and_its_relink_records_the_stage
     # The staged day, before the rules took effect, is not judged back; two dimensions
     # known, the relinked day is weak, on the stage the staged day gives it.
     assert macro_rows(relinked, (staged, held)) == [("not_effective", None), ("stage_iii", "weak")]
+    # The relinked day's row tells the hysteresis of its relinked set: the first stage
+    # taken since the rules took effect, with no main conclusion before it.
+    assert hysteresis(relinked, (staged, held)) == [None, {"basis": "initial"}]
     assert relinked.datasets["stage_history"]["events"][-1]["macro_conclusion"] == {
         "stage": "stage_iii",
         "confidence": "weak",

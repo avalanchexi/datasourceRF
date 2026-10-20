@@ -2225,9 +2225,11 @@ def coverage_table(
                 "按最终计划的指标 × 统计期计数；期内缺维度仍算缺失。"
                 "模型口径为三核心与确认规则所需，目录口径包含纯观察指标。"
                 "等待发布等门禁单列，不计作已持有。"
+                # Out and not due yet: no gap (2026-10-13 decision, macro stage 15).
+                "已发布但未到应有期的期沿用上一期，时效仍为当前，也计在门禁一列，不列为缺口。"
             ),
             table(
-                ("口径", "应有期", "已持有", "门禁 / 等待发布", "其他缺失"),
+                ("口径", "应有期", "已持有", "门禁 / 等待发布 / 未到应有期", "其他缺失"),
                 [
                     (
                         label,
@@ -2561,7 +2563,7 @@ def macro_history_label(day: Mapping[str, Any]) -> str:
 
 # How the hysteresis left a day's main conclusion, as its interval's drawer tells it; the
 # run counted toward replacing it is the day's signal list's, not the history's (decision 33).
-MACRO_HYSTERESIS = {"initial": "生效首日，取当日原始判断", "agrees": "与当日原始判断一致"}
+MACRO_HYSTERESIS = {"initial": "无既往主结论，取当日原始判断", "agrees": "与当日原始判断一致"}
 
 
 def macro_hysteresis_label(state: object) -> str:
