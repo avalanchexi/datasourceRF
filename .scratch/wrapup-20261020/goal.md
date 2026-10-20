@@ -71,6 +71,7 @@
   - 阶段 4：全部通过测试，等用户回复"上线"（golive-plan.md）。
   - 阶段 5：清单已给出（phase5-cleanup-list.md），等用户批准；B 组待上线后。
 - 15:48–16:05 用户确认推荐方案后执行：停 Worker/8069（按 PID）→ 备份 before-macro-followups-20261020（integrity ok，0039）→ 并入 main f3fb425 → 重装 dev-venv（首次 uv sync 未换副本，加 --reinstall-package 后 153 文件一致）→ init ok → 重启 Worker（pid 907339）与 8069（pid 907336，web-8069.pid）→ 补生成 10-19 报告 report-7e4ac01e v4 codex_cli succeeded（70,650 B 全送达）→ 关宏观 10 → 关阶段 2 旧票 → 清理 A、B 组。
+- 16:10 上线后 Codex 浏览器复核（investigations/browser-after-followups-20261020.md）：报告区为 AI 解读 codex_cli，⑥ 宏观抽屉、② 债券归因、启动壳、⑦ 表头与说明、副标题均通过；旧投影按约定不回填。残留 1 处：AI 报告正文写"正式阶段为空" → 开宏观 17（needs-triage，不在本次实施）。10-21 10:23 定时复核下一次运行。
 
 ## 复盘待定项（不在本目标内）
 
