@@ -35,3 +35,14 @@
   - 未知 check：`test_template_reason_for_an_unknown_check_is_the_outcomes`——审计 check 不在映射表时按结果码写（`conclusion_mutation_rejected` → "输出改写结论被拒"），不显示 check 原名。
 - 未碰 `reports.py` 与完整度表；测试辅助未复用 `tests/reports/test_macro_report.py`，避开 ms-rf2a 的改动区。
 - 运行（venv `dev-venv-msrf2c`，basetemp `/tmp/pytest-msrf2c`，`PYTHONDONTWRITEBYTECODE=1`，flock）：macro-followups 最新头仍为 7001550，合并为空操作；`python tools/check.py quick` test_projection_api、test_macro_signal_board、test_board_footer、test_asset_cards、test_conclusion_board、test_cockpit_http、tests/reports/test_macro_report＋两例冒烟 **129 passed（98 s；另排队等锁约 6 分钟）**。ruff check／format、mypy（web.py、cockpit.py）通过。
+
+## ms-rf3a：第三轮复审（review-report-check-20261020-r3.md）
+
+收口标准（不再开第四轮对抗探针）：把 r3 报告中的 30 句绕过探针 N1–N30 与 12 句合法改写 L1–L12 全部固化为参数化测试——N 组错误陈述全部拒收（含此前已拒收的 15 句），L 组合法句全部通过；上一轮 6 个反例与两份真实输出保持现状。r3 之后新发现的边角写法记为已知残余风险，另开票。
+
+10. **S10（B1）**：条件作用域结束时同步结束主语继承；无法判定归属的独立结论按主结论核对。
+11. **S11（B2）**：点名指标的改投／重判陈述绑定该指标，不依赖条件词白名单；无法绑定的条件推演按主结论核对。
+12. **S12（B3）**：识别省略"第"的阶段写法（"五阶段""三阶段向四阶段"），有词法边界，统一转阶段代码。
+13. **S13（B4）**：否定作用域不在括号、冒号处清空；跨标点嵌套否定拒收。
+14. **S14（误拒）**：识别"不是 A 而是 B"、"没有滞回保持且……"、"没有改变倾向的……"中否定的真实对象；条件结果中的"宏观判断会变为……"不当作现实边界（L2、L3、L4、L6）。
+15. **S15（建议）**：若改动自然，把"陈述主语＋信号身份＋作用域"收成一处结果供阶段、把握程度、转换三类核对共用。
