@@ -15,9 +15,22 @@
 ## ms-rf2b：完整度与体检
 
 3. **S3（规格 P2）超出时效行所述范围的计划期**：DR007 场景里应有期 08-27、持有 08-26，计划期 08-28 被算进"其他缺失"，缺口清单却只写"落后一期，沿用上一期（应有期 08-27，持有 08-26）"。晚于应有期的计划期同样"未到应有期"，应归入门禁列；应有期及以前、未持有的期须逐期在缺口清单中可见（或明确归类）。把测试辅助 `_names` 改成对实际可见期次集合严格对账（2099-01-01 这类期不能被当作已解释）。
+   - **处理（ms-rf2b，88a9729）**：先改测试再改生产代码。
+     - **严格对账**：`tests/integration/test_coverage_matches_gap_list.py` 的 `_names` 只认缺口行"写出名字"的期：时效行的 `due_period`，或 `missing_periods`／`not_requested`／`not_covered`／`members_missing`／`awaiting_release` 逐项列出的期；"持有期之后的期由时效行概括"不再算解释。补断言 `_names(DR007 行, "2099-01-01")` 为假。DR007 场景计划补入应有期 08-27（行写明应有期即解释它），08-28 保留。改测试后变红：`[('CN_DR007', '2026-08-28')]` 未被解释。
+     - **归类（不需新取舍，按术语表"应有期"＋10-13 决定）**：`freshness.not_yet_due` 改为按应有期判断——计划期晚于该指标时效记录的应有期（current 且未写应有期时取持有期），且未持有、无门禁、非等待发布、非部分持有，即标 `not_due: {carried_period: 持有期}`，不论 current 还是 stale／missing；完整度计入门禁列，缺口清单不列。DR007 08-28 由此计入门禁（沿用 08-26），其时效行照旧写"落后一期（应有期 08-27，持有 08-26）"。
+     - **持有期与应有期之间的期逐期列出**：新增落后两期场景（USDCNY 中间价持有 08-25、应有期 08-27，计划 08-26、08-27 未取得）先变红（08-26 未被解释）。`_historical_periods` 不再把"持有期之后"一概交给时效行：时效行只代表它写明的应有期（及其后未到期的期），早于应有期的未持有期作为 `missing_periods` 记在该行（页面"历史缺期"）；"后面没有已持有期"的跳过条件同时看有没有更晚的应有期。
+     - gap_list 既有口径不动：`test_gap_list.py`（CSI300）与 `test_release_preannouncement.py`（CPI）照旧通过。
+     - **正式库只读模拟**（`mode=ro`，新 `not_yet_due` 作用于最终计划与 `batch_freshness`）：run-3ebbe323 仍只标 VIX 10-19、run-153de306 仍只标两只债券 10-19，与票 15 结果一致；新增差异只有 run-25ac18e4 的 NASDAQ_SOX_INDEX 10-13（未持有任何期、应有期 10-12，`carried_period` 为空），由其"未持有（应有期 10-12）"时效行说明。近 6 次运行没有"持有期与应有期之间"的未取得期。已发布投影不回填。
 4. **S4（建议）列名**：完整度表总数列"应有期"实际含未到应有期的计划期，改为"计划期数"（或与术语表一致的等价写法），页面测试同步。
+   - **处理**：`cockpit.coverage_table` 总数列改名"计划期数"（新旧投影同一表头，计数照发布值显示）；表下说明句随 S3 改为"晚于应有期的计划期未到应有期（如已发布、尚未持有的下一期），沿用已持有的一期，也计在门禁一列，不列为缺口。"（原句"时效仍为当前"对 stale 指标不成立）。`tests/web/test_reading_section.py` 先改断言变红再改源码。
 5. **S5（建议）时效摘要成组传递**：`held_periods` 与 `freshness_status` 同键同源，收束为一份有类型的逐指标时效摘要由 Worker 传入、汇总消费；改动小于半天就做，否则在 Comments 说明不做的理由。
+   - **处理（做了）**：`freshness.MetricFreshness`（`status`、`held_period`、`due_period`，`from_row` 读 `batch_freshness` 行，`due_by` 给出应有期）。`RunMaterials` 的 `held_periods`、`freshness_status` 合并为 `freshness: Mapping[str, MetricFreshness]`；Worker 仍只读一次 `batch_freshness` 并逐行转换；`summarize_target` 从中取持有期给 `awaiting_stated_release`／`add_projection_gaps`，整份交给 `not_yet_due`。`add_projection_gaps` 的 `held_periods` 参数不变（测试直接调用的接口）。两处旧测试（`test_day_summary.py` 社融、`test_awaiting_release_group.py` 布伦特）改传 `MetricFreshness`，断言不变。
 6. **S6（票 14）**：补"把握程度不一致 → 报 `macro_confidence` 不一致"的持久化负例（可参数化）。
+   - **处理**：`tests/maintenance/test_quality_output_consistency.py` 把阶段不一致负例参数化为 `test_v0016_report_stating_another_macro_stage_or_confidence_is_inconsistent[macro_stage-stage_iv / macro_confidence-explicit]`，各断言"值不同的键：<该键>"与不一致标记。实现早已正确（审查探针已证），此例为回归锁定，未经红灯。
+   - **测试（S3–S6，venv `dev-venv-msrf2b`，`PYTEST_ADDOPTS=--basetemp=/tmp/pytest-msrf2b`，`PYTHONDONTWRITEBYTECODE=1`，均 flock）**：
+     - 合并前受影响：`python tools/check.py quick` test_coverage_matches_gap_list、test_gap_list、test_warrant_historical_gaps、test_awaiting_release_group、test_derived_context_freshness、test_official_pmi_fallback、test_display_projection、test_release_preannouncement、web/test_reading_section、web/test_conclusion_board、maintenance/test_quality_output_consistency → 109 passed（460 s）；test_day_summary、test_gap_source_repairs、test_holiday_freshness → 44 passed（152 s）；test_official_social_financing_fallback、test_credit_impulse、test_confirmation_publish、test_decertified_main_chain → 128 passed（380 s）；test_macro_judgement、test_model_version_switch、test_worker_calendar_gate、test_core_carry_forward → 37 passed（263 s）；test_context_projection → 49 passed（14 s）；重型 `python -m pytest tests/integration/test_worker_registered_catalog.py`（Worker 传参改动）→ 2 passed（398 s）。
+     - 合并 macro-followups df4b6fd 后：test_coverage_matches_gap_list、test_awaiting_release_group、test_warrant_historical_gaps、web/test_reading_section、web/test_conclusion_board、web/test_board_footer、maintenance/test_quality_output_consistency → 52 passed（134 s）；两例冒烟 2 passed（45 s）。
+     - `ruff check`／`ruff format --check`（改动文件）、`mypy`（freshness、day_summary、worker、cockpit）通过；`find src tools -name __pycache__` 为空。
 
 ## ms-rf2c：票 16 审查建议（review-16-20261020.md）
 
