@@ -957,6 +957,9 @@ class ReportSnapshot:
     corrections: dict[str, Any] = field(default_factory=dict)
     # Each recorded adapter attempt as (adapter, outcome), in order: why a template stood in.
     adapter_outcomes: tuple[tuple[str, str], ...] = ()
+    # Beside each outcome, the check that refused its reading, None where the attempt was
+    # not refused or its audit predates the rejection record (macro stage ticket 16).
+    adapter_rejections: tuple[str | None, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1247,6 +1250,7 @@ class ReportRepository:
             ),
             corrections=corrections,
             adapter_outcomes=tuple((item.adapter, item.outcome) for item in attempts),
+            adapter_rejections=tuple(_rejection_check(item.process_audit) for item in attempts),
         )
 
     @contextmanager
@@ -2337,6 +2341,12 @@ def _report_attempt(row: sqlite3.Row) -> ReportAttempt:
         output_hash=(str(row["output_hash"]) if row["output_hash"] is not None else None),
         process_audit=audit,
     )
+
+
+def _rejection_check(audit: dict[str, Any]) -> str | None:
+    rejection = audit.get("rejection")
+    check = rejection.get("check") if isinstance(rejection, dict) else None
+    return check if isinstance(check, str) else None
 
 
 def _timing_duration(audit: dict[str, Any], field: str) -> int | None:

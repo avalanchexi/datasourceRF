@@ -377,7 +377,8 @@ def test_the_report_under_the_judgement_names_the_cores_stage_the_price_stage(
     tmp_path: Path, explicit: ProjectionSet
 ) -> None:
     # D1: 07's stage change and the report's details say 价格阶段 as the rest of the page
-    # does; only the published bond attribution note, the model's own text, keeps 正式阶段.
+    # does; only the report's verified results, the model's own text, keep 正式阶段 in the
+    # bond attribution note (ticket 16: the drawer shows it as the page's own words).
     reports = ReportRepository.create(tmp_path / "reports.sqlite3")
     codex = FakeAdapter("codex_cli", AdapterResponse.unavailable("cli_not_authenticated"))
     result = ReportService(reports, (codex,)).generate(report_input_from_projection(explicit))
@@ -386,13 +387,44 @@ def test_the_report_under_the_judgement_names_the_cores_stage_the_price_stage(
         reports.get(result.report_snapshot_id),
         adapter_outcomes=(("codex_cli", "stage_mutation_rejected"),),
     )
-    note = "不由宽松程度推算或改写债券牛熊与正式阶段"
+    note = (
+        '"boundary": "债券状态旁的解释附注：不计入确认度，不由宽松程度推算或改写债券牛熊与正式阶段"'
+    )
 
     for route in ("/", "/reports"):
         text = " ".join(_text(dashboard_page(route, explicit, (), (snapshot,))).split())
 
+        assert note in text, route
         assert "正式阶段" not in text.replace(note, ""), route
     home = " ".join(_text(dashboard_page("/", explicit, (), (snapshot,))).split())
+    assert "不由宽松程度推算或改写债券牛熊与价格阶段 " in home
     assert "阶段变化：非典型组合，暂无价格阶段" in home
     assert "价格阶段 暂无价格阶段" in home and "阶段变化 非典型组合，暂无价格阶段" in home
     assert "codex_cli 输出改写价格阶段被拒" in home
+
+
+@pytest.mark.parametrize(
+    ("text", "reason"),
+    [
+        ("宏观判断为第五阶段（倾向）。", "输出所写宏观判断阶段与规则结论不符被拒"),
+        ("宏观判断为第三阶段（倾向），第五阶段 4 分。", "输出所写阶段得分与规则结论不符被拒"),
+        ("宏观判断为第三阶段（明确）。", "输出所写把握程度与规则结论不符被拒"),
+        ("宏观判断为第三阶段，五维指向清楚。", "输出未写明把握程度被拒"),
+        ("宏观判断为第三阶段，倾向判断；价格阶段为第三阶段。", "输出改写价格阶段被拒"),
+    ],
+)
+def test_a_template_says_which_check_refused_the_reading(
+    tmp_path: Path, tendency: ProjectionSet, text: str, reason: str
+) -> None:
+    # 16: the reason is the check the audit recorded, not every refusal as a rewritten stage.
+    source = report_input_from_projection(tendency)
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    first = FakeAdapter("codex_cli", AdapterResponse.succeeded(written(source, text)))
+    second = FakeAdapter("claude_code_cli", AdapterResponse.unavailable("timed_out"))
+
+    result = ReportService(reports, (first, second)).generate(source)
+
+    home = " ".join(
+        _text(dashboard_page("/", tendency, (), (reports.get(result.report_snapshot_id),))).split()
+    )
+    assert f"（适配器失败原因：codex_cli {reason}；claude_code_cli 超时）" in home

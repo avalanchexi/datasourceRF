@@ -137,9 +137,8 @@ def test_deferred_dashboard_shell_is_meaningful_before_interactive_assets_load(
     assert "运行状态" in document
 
 
-def test_deferred_dashboard_shell_reads_its_projection_as_the_topbar_does(
-    tmp_path: Path,
-) -> None:
+def _shell_projection(tmp_path: Path, **overview: Any) -> RuntimePaths:
+    """A runtime whose current set is a noncanonical day, its overview with ``overview``."""
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     envelope = ProjectionEnvelope(
@@ -159,8 +158,17 @@ def test_deferred_dashboard_shell_reads_its_projection_as_the_topbar_does(
     datasets: dict[str, dict[str, Any]] = {
         name: {"projection_set_id": envelope.projection_set_id} for name in ANALYTICAL_DATASETS
     }
-    datasets["cycle_overview"].update(current_stage=None, stage_reason="noncanonical_combination")
+    datasets["cycle_overview"].update(
+        current_stage=None, stage_reason="noncanonical_combination", **overview
+    )
     ProjectionSetRepository(paths.database).publish(envelope, datasets)
+    return paths
+
+
+def test_deferred_dashboard_shell_reads_its_projection_as_the_topbar_does(
+    tmp_path: Path,
+) -> None:
+    paths = _shell_projection(tmp_path)
 
     document = _initial_dashboard_html(paths, failed=False)
 
@@ -171,6 +179,26 @@ def test_deferred_dashboard_shell_reads_its_projection_as_the_topbar_does(
     assert "暂无正式阶段" in _visible(document)
     assert "noncanonical_combination" not in document
     assert "degraded" not in document
+
+
+def test_deferred_dashboard_shell_under_the_judgement_shows_the_judgement(
+    tmp_path: Path,
+) -> None:
+    # Ticket 16: the shell before Dash renders leads as the page does, without 正式阶段.
+    conclusion = {
+        "stage": "stage_iii",
+        "confidence": "tendency",
+        "known": 5,
+        "matched": 3,
+        "reference_stage": "stage_iii",
+        "steps": 0,
+    }
+    paths = _shell_projection(tmp_path, macro_judgement={"conclusion": conclusion})
+
+    document = _visible(_initial_dashboard_html(paths, failed=False))
+
+    assert "宏观判断：第三阶段（倾向，5 维中 3 维吻合）· 相对上次确认第三阶段 不变" in document
+    assert "正式阶段" not in document
 
 
 def test_dashboard_deep_links_return_the_interactive_index(tmp_path: Path) -> None:
