@@ -1694,14 +1694,22 @@ _FOLLOWING = (
     (
         "score",
         re.compile(
-            r"\s*(?:同为|均为|都是|各|得分为|得分|得|为|[:：])?\s*(?P<score>\d+)\s*(?:分|维)"
+            r"\s*(?:同为|均为|都是|各得|各|得分为|得分|得|为|[:：])?\s*(?P<score>\d+)\s*(?:分|维)"
         ),
     ),
 )
 _LISTED = re.compile(r"\s*[、和与及或/]\s*")
+# "如果 PMI 改按少数方向计票，判断会变为第五阶段，把握程度为明确": under a condition the
+# judgement and its confidence are a signal's recount, until the prose says what is now.
+_CONDITION = re.compile(r"如果|假如|倘若|假设|一旦|若(?!干)")
+_ACTUAL = re.compile(r"主结论|当前|目前|现在|当下|实际")
 # "走弱", "转弱", "偏弱" say a move and "弱于" a comparison, not a weak judgement.
 _CONFIDENCE = re.compile(r"明确|倾向|(?<![走转偏减削较变衰增])弱(?![于势化小])")
 _LINK = r"\s*(?:为|是|处于|属于|在|于|指向|落在|进入|[:：])?\s*"
+# A confidence word denied right before it: "不是明确", "不能解释为明确", "并非倾向".
+_DENIED_CONFIDENCE = re.compile(
+    r"(?:不是|并非|不算|不属于?|不能|不应|无法)(?:被)?(?:解释|视|看|读|理解|算|称)?(?:作|成|为)?\s*$"
+)
 _CONFIDENCE_TO_STAGE = re.compile(r"(?:判断|判定)?" + _LINK)
 # A judgement short of explicit said to be settled.
 _STATED_CERTAINTY = re.compile(r"(?<![不未非没])(?:已经?确定|确定无疑|毫无疑问|可以确定|确定结论)")
@@ -1761,10 +1769,19 @@ def _macro_statements(bundle: ReportInput, text: str) -> _Stated:
     told = False
     for sentence in re.split(r"[。；;！!？?]", text):
         mentions = list(_MENTION.finditer(sentence))
+        scopes = _conditions(sentence)
         markers = sorted(
-            (match.start(), subject)
-            for subject, pattern in _SUBJECTS
-            for match in pattern.finditer(sentence)
+            [
+                (
+                    match.start(),
+                    "signal"
+                    if subject == "conclusion" and _scope(scopes, match.start())
+                    else subject,
+                )
+                for subject, pattern in _SUBJECTS
+                for match in pattern.finditer(sentence)
+            ]
+            + [(start, "signal") for start, _end in scopes]
         )
         said: list[str] = []
         for index, mention in enumerate(mentions):
@@ -1792,15 +1809,28 @@ def _macro_statements(bundle: ReportInput, text: str) -> _Stated:
             if bound is None:
                 continue
             of, subject = bound
+            if of is None and (scope := _scope(scopes, word.start())) is not None:
+                # "把握程度为明确" under a condition: of the stage the recount is said to be.
+                of = next(
+                    (
+                        index
+                        for index, mention in reversed(list(enumerate(mentions)))
+                        if scope[0] <= mention.start() and mention.end() <= word.start()
+                    ),
+                    None,
+                )
             if of is not None:
                 subject = said[of]
                 stage = _mention_stage(mentions[of])
+            # "不是明确的结论" says the judgement is anything but explicit: it holds when the
+            # judged confidence is another, and never tells the conclusion's.
+            denied = _DENIED_CONFIDENCE.search(sentence, 0, word.start()) is not None
             if subject == "conclusion":
-                if confidence != conclusion.get("confidence"):
+                if (confidence == conclusion.get("confidence")) == denied:
                     return _Stated("macro_stated_confidence", told)
-                told = True
+                told = told or not denied
             elif subject == "raw":
-                if confidence != raw.get("confidence"):
+                if (confidence == raw.get("confidence")) == denied:
                     return _Stated("macro_stated_confidence", told)
             elif of is not None and subject != "dimension":
                 judged = (
@@ -1808,11 +1838,24 @@ def _macro_statements(bundle: ReportInput, text: str) -> _Stated:
                     if subject == "signal"
                     else pairs
                 )
-                if (stage, confidence) not in judged:
+                if ((stage, confidence) in judged) == denied:
                     return _Stated("macro_stated_confidence", told)
     if conclusion.get("confidence") != "explicit" and _STATED_CERTAINTY.search(text):
         return _Stated("macro_stated_confidence", told)
     return _Stated(None, told)
+
+
+def _conditions(sentence: str) -> list[tuple[int, int]]:
+    """Where each condition in a sentence holds: from its word to what is now, else the end."""
+    scopes = []
+    for condition in _CONDITION.finditer(sentence):
+        actual = _ACTUAL.search(sentence, condition.end())
+        scopes.append((condition.start(), actual.start() if actual else len(sentence)))
+    return scopes
+
+
+def _scope(scopes: list[tuple[int, int]], at: int) -> tuple[int, int] | None:
+    return next((scope for scope in scopes if scope[0] <= at < scope[1]), None)
 
 
 def _mention_stage(mention: re.Match[str]) -> str:
@@ -1874,7 +1917,8 @@ _DIMENSION_WORDS |= {"库存": "inventory"}
 _RELATION = "(" + "|".join(_RELATION_WORDS) + ")"
 # "不", "没有被", "并非": a negation, taken in the match so what it negates is not read
 # again without it.
-_NEGATION = r"(?:没有|并非|不是|[不非未没])\s*被?\s*"
+# "没有任何一项记为支持": denied of each indicator the sentence names.
+_NEGATION = r"(?:没有|并非|不是|[不非未没])\s*(?:任何一?项|一项)?\s*被?\s*"
 # "PMI 记为反证", "PMI 是支持", "PMI：反证", "PMI 没有被判为支持", "PMI 并非支持": a key
 # indicator's relation said in so many words.
 _VERB = r"(?:记为|判为|计为|构成|属于|为|是|[:：])"
