@@ -30,6 +30,7 @@ from pring_cycle.models import (
     model_v0015_manifest,
     model_v0016_manifest,
 )
+from pring_cycle.official_lpr import FetchedOfficialDocument, refresh_lpr_release
 from pring_cycle.projections import (
     ProjectionSet,
     ProjectionSetRepository,
@@ -37,7 +38,7 @@ from pring_cycle.projections import (
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES, TushareCoreAdapter
 from pring_cycle.trading_calendar import TradingCalendar
-from pring_cycle.tushare_context import MARKET_INDEX_IDENTITIES
+from pring_cycle.tushare_context import MARKET_INDEX_IDENTITIES, TushareContextAdapter
 from tests.conftest import install_runtime_clock
 from tests.integration.test_backfill import summary
 from tests.integration.test_confirmation_cumulative_quarterly import LESS, LOAN_PAIRS, MORE, loan
@@ -73,6 +74,7 @@ from tests.integration.test_macro_judgement import (
     take_effect,
 )
 from tests.integration.test_worker_execution import runtime, seed_independent_calendar
+from tests.integration.test_worker_registered_catalog import macro_rows
 
 
 def test_v0016_freezes_the_price_signal_table() -> None:
@@ -525,14 +527,24 @@ def test_a_relink_while_a_run_is_counted_judges_the_divergence_again(tmp_path: P
     )
     repository = ProjectionSetRepository(paths.database)
 
-    def held_judgement() -> dict[str, Any]:
+    def held_set() -> ProjectionSet:
         [event] = [event for event in repository.stage_history() if event["business_date"] == held]
-        return judgement(repository.get(str(event["projection_set_id"])))
+        return repository.get(str(event["projection_set_id"]))
+
+    def held_judgement() -> dict[str, Any]:
+        return judgement(held_set())
+
+    def held_row() -> Any:
+        """How the held day's stage history row tells the hysteresis left it (D2)."""
+        history: dict[str, Any] = held_set().datasets["stage_history"]
+        days = history["display"]["days"]
+        return next(row for row in days if row["date"] == held).get("macro_hysteresis")
 
     summaries.backfill((held,), target=days[-1], system_as_of=CUTOFF)
     before = held_judgement()
     # No stage before it: the ties go to the first in Pring's order, stage III.
     assert (before["conclusion"]["stage"], before["hysteresis"]["basis"]) == ("stage_iii", "agrees")
+    assert held_row() == {"basis": "agrees"}
     pmi = next(item for item in before["signals"] if item["id"] == "D-pmi")
     assert (pmi["rejudged"]["stage"], pmi["transition"], pmi["group"]) == (
         "stage_iii",
@@ -547,6 +559,8 @@ def test_a_relink_while_a_run_is_counted_judges_the_divergence_again(tmp_path: P
     # the second session toward replacing stage III, still held.
     assert (after["raw"]["stage"], after["conclusion"]["stage"]) == ("stage_v", "stage_iii")
     assert (after["hysteresis"]["candidate"], after["hysteresis"]["sessions"]) == ("stage_v", 2)
+    # Its row tells the relinked set's hysteresis, not the one it replaced.
+    assert held_row() == {"basis": "held", "raw_stage": "stage_v", "raw_confidence": "tendency"}
     assert [item["matches"] for item in after["dimensions"]] == [True, True, False, False, True]
     # The PMI's recount is judged again against stage VI: its tie of III and IV goes to IV,
     # a step forward from the conclusion.
@@ -684,8 +698,9 @@ def v0006(
 ) -> RuntimePaths:
     """A run's database under model-v0016's rules on catalog v0006, whose cores ``states``
     names, fetched from their originals: a registered catalog adopts a core close only
-    while its original states it. No macro claim is held, so the judgement falls back on
-    the stage it is stated against (ticket 03)."""
+    while its original states it. No macro claim is held unless a case fetches its
+    originals too (``seed_macro_originals``, ``seed_lpr``); without, the judgement falls
+    back on the stage it is stated against (ticket 03)."""
     install_runtime_clock(monkeypatch, request, FETCHED)
     paths = runtime(tmp_path)
     register_v0006(paths)
@@ -708,14 +723,18 @@ def seed_breadth(paths: RuntimePaths, share: float) -> None:
     )
 
 
-def seed_sleeves(paths: RuntimePaths, signs: tuple[int, ...]) -> None:
+def seed_sleeves(
+    paths: RuntimePaths, signs: tuple[int, ...], recent: tuple[int, ...] | None = None
+) -> None:
     """Each sleeve's daily contribution, 0.01 points a session times its sign, on each of
     the 120 sessions the basket's return spans to the target day, as TuShare's basket
-    delivers them (test_confirmation_price_consistency), in one append."""
+    delivers them (test_confirmation_price_consistency), in one append; ``recent`` signs
+    instead on the last 20."""
     claims = []
-    for day in last(120):
+    for index, day in enumerate(last(120)):
         public = datetime.combine(date.fromisoformat(day), time(10), tzinfo=UTC)
-        for sleeve, sign in zip(SLEEVES, signs, strict=True):
+        today = recent if recent is not None and index >= 100 else signs
+        for sleeve, sign in zip(SLEEVES, today, strict=True):
             dimensions = {"formula_version": BASKET, "sleeve": sleeve}
             claims.append(
                 SourceClaimInput(
@@ -822,3 +841,154 @@ def test_in_stage_i_a_narrow_fall_is_b4_and_a_rise_on_one_sleeve_is_k2(
     assert k2["transition"] == {"from": "stage_v", "to": "stage_vi"}
     assert (k2["group"], k2["steps"]) == ("back", -1)
     assert (k2["sessions"], k2["maturity"], k2["listed"]) == (1, "sprout", False)
+
+
+def seed_macro_originals(paths: RuntimePaths) -> None:
+    """TuShare's monthly and quarterly deliveries of the confirmation's official series,
+    test_worker_registered_catalog's rows: every field rising from 2024, to July (the
+    second quarter), out by the target day. Each is stored with its original, so catalog
+    v0006 adopts it; policy and inventory have none."""
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        fields = payload["fields"].split(",")
+        items = macro_rows(payload["api_name"], payload["params"], fields)
+        return json.dumps({"code": 0, "data": {"fields": fields, "items": items}}).encode()
+
+    adapter = TushareContextAdapter("fixture-token", transport=transport)
+    months = {"start_month": "2024-01", "end_month": "2026-07"}
+    for retrieve in (
+        lambda: adapter.pmi(**months),
+        lambda: adapter.prices(**months),
+        lambda: adapter.money(**months, include_month_on_month=False),
+        lambda: adapter.social_financing_total(**months),
+        lambda: adapter.gdp(start_quarter="2024Q1", end_quarter="2026Q2"),
+    ):
+        adapter.acquire_scalars(paths, retrieve, definition_version=V0006)
+
+
+LPR_ANNOUNCEMENT = (
+    Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html"
+).read_bytes()
+
+
+def seed_lpr(paths: RuntimePaths, fixings: dict[str, tuple[float, float]]) -> None:
+    """Each month's LPR announcement on the 20th, the 2026-08-20 original's wording with
+    the month's date and its one-year and five-year-plus fixings, fetched before the
+    target day's cutoff and stored as fetched."""
+    for month, (one_year, five_year) in fixings.items():
+        day = f"{month}-20"
+        content = (
+            LPR_ANNOUNCEMENT.decode()
+            .replace("2026年8月20日", f"{month[:4]}年{int(month[5:])}月20日")
+            .replace("2026-08-20", day)
+            .replace("1年期LPR为3.0%", f"1年期LPR为{one_year}%")
+            .replace("5年期以上LPR为3.5%", f"5年期以上LPR为{five_year}%")
+            .encode()
+        )
+
+        def served(url: str, content: bytes = content) -> FetchedOfficialDocument:
+            return FetchedOfficialDocument(content, "text/html", url, 200)
+
+        refresh_lpr_release(
+            paths,
+            source_url=(
+                f"https://www.chinamoney.com.cn/chinese/rdgz/{day.replace('-', '')}/3399885.html"
+            ),
+            expected_period=month,
+            fetched_at=FETCHED,
+            fetcher=served,
+            definition_version=V0006,
+        )
+
+
+def test_on_its_macro_originals_a_stage_iv_groups_b2_and_k4_and_k4_confirms_on_stage_iii(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> None:
+    # The first case's cores, breadth and basket, now with the macro data on catalog v0006
+    # too: credit and prices rising, prices high, the LPR raised in July.
+    paths = v0006(tmp_path, monkeypatch, request, bond="bull", stock="bull", commodity="bull")
+    seed_macro_originals(paths)
+    seed_lpr(paths, {f"2026-{m:02d}": ((3.0, 3.5) if m < 7 else (3.1, 3.6)) for m in range(1, 9)})
+    seed_breadth(paths, 38.0)
+    seed_sleeves(paths, (-1, -1, 1, 1, 1, 1, -9))
+
+    projection = publish(paths, V0006_MODEL)
+
+    # Tightening, credit up and prices up: stage IV on three dimensions of three known,
+    # a step on from the day's price stage, III.
+    assert projection.datasets["cycle_overview"]["current_stage"] == "stage_iii"
+    published = judgement(projection)
+    assert [(item["dimension"], item["value"]) for item in published["dimensions"]] == [
+        ("policy", "tightening"),
+        ("credit", "up"),
+        ("overheat", None),
+        ("price", "up"),
+        ("inventory", None),
+    ]
+    assert (published["conclusion"]["stage"], published["conclusion"]["confidence"]) == (
+        "stage_iv",
+        "explicit",
+    )
+    placed = breadth_signals(projection)
+    assert set(placed) == {"B2", "K4"}
+    b2, k4 = placed["B2"], placed["K4"]
+    # Grouped against the main conclusion, IV: B2 to V a step forward, K4 to III a step
+    # back -- not two forward and a hold, as against the price stage.
+    assert b2["transition"] == {"from": "stage_iv", "to": "stage_v"}
+    assert (b2["group"], b2["steps"]) == ("forward", 1)
+    assert k4["transition"] == {"from": "stage_ii", "to": "stage_iii"}
+    assert (k4["group"], k4["steps"]) == ("back", -1)
+    # Confirmed against the price stage, III: K4 on its first session, listed; B2 to V
+    # is a sprout.
+    assert (k4["sessions"], k4["maturity"], k4["listed"]) == (1, "confirmed", True)
+    assert (b2["sessions"], b2["maturity"], b2["listed"]) == (1, "sprout", False)
+
+
+@pytest.mark.parametrize(
+    ("states", "share", "signs", "readings"),
+    [
+        # Stocks up with most shares above their average; the basket up on most sleeves.
+        (("bull", "bull", "bull"), 62.0, (1, 1, 1, 1, 1, 1, -1), ("broad_rise", "broad_rise")),
+        # Stocks down with most shares below; the basket down on every sleeve.
+        (("bull", "bear", "bear"), 38.0, (-1,) * 7, ("broad_fall", "broad_fall")),
+        # Half the shares above; the sleeves offsetting each other session by session.
+        (("bull", "bull", "bull"), 50.0, (1, 1, 1, -1, -1, -1, 0), ("even", "flat")),
+    ],
+    ids=["broad_rise", "broad_fall", "even_and_flat"],
+)
+def test_a_breadth_or_basket_moving_broadly_or_evenly_is_in_no_cell(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    states: tuple[str, str, str],
+    share: float,
+    signs: tuple[int, ...],
+    readings: tuple[str, str],
+) -> None:
+    bond, stock, commodity = states
+    paths = v0006(tmp_path, monkeypatch, request, bond=bond, stock=stock, commodity=commodity)
+    seed_breadth(paths, share)
+    seed_sleeves(paths, signs)
+
+    projection = publish(paths, V0006_MODEL)
+
+    macro: dict[str, Any] = projection.datasets["macro"]
+    read = macro["price_consistency"]
+    assert (read["stock_breadth"]["reading"], read["basket_breadth"]["reading"]) == readings
+    # Signal table, sections 2 and 3: only a divergence is a cell.
+    assert breadth_signals(projection) == {}
+
+
+def test_the_basket_is_read_over_its_120_sessions_not_its_last_20(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> None:
+    paths = v0006(tmp_path, monkeypatch, request, bond="bull", stock="bull", commodity="bull")
+    seed_breadth(paths, 62.0)
+    # Down on three sleeves over the 120 sessions; up on all seven over the last 20.
+    seed_sleeves(paths, (-1, -1, 1, 1, 1, 1, -9), recent=(1,) * 7)
+
+    projection = publish(paths, V0006_MODEL)
+
+    macro: dict[str, Any] = projection.datasets["macro"]
+    assert macro["price_consistency"]["basket_breadth"]["reading"] == "few_sleeves_fall"
+    assert set(breadth_signals(projection)) == {"K4"}
